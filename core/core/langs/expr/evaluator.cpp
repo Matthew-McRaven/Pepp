@@ -115,20 +115,23 @@ bool short_circuits(BinaryOp op, Value lhs) {
   return (op == BinaryOp::LogicalAnd && lhs.bits == 0) || (op == BinaryOp::LogicalOr && lhs.bits != 0);
 }
 
-Result evaluate(const Tree &tree, NodeId id, const Options &options) {
+Result evaluate(const Tree &tree, NodeId id, const Options &options, const ValueOf &value_of) {
   const auto fail = [&](std::string message) { return std::unexpected(EvaluationError{id, std::move(message)}); };
   const auto f = [&](const auto &n) -> Result {
     using T = std::decay_t<decltype(n)>;
     if constexpr (std::is_same_v<T, Integer> || std::is_same_v<T, Character>) return literal(n, options);
     else if constexpr (std::is_same_v<T, FoldedConstant>) return n.value;
-    else if constexpr (std::is_same_v<T, Identifier>) return fail("Symbols are not allowed in a constant expression");
+    else if constexpr (std::is_same_v<T, Identifier>) {
+      if (auto value = value_of ? value_of(n) : std::nullopt) return *value;
+      return fail("Symbol has no value: " + n.name);
+    }
     else if constexpr (std::is_same_v<T, Unary>) {
-      if (const auto operand = evaluate(tree, n.operand, options); !operand) return operand;
+      if (const auto operand = evaluate(tree, n.operand, options, value_of); !operand) return operand;
       else if (auto ret = apply(n.op, *operand, options); ret) return *ret;
       else return fail(ret.error());
     } else {
-      if (const auto lhs = evaluate(tree, n.lhs, options); !lhs) return lhs;
-      else if (const auto rhs = short_circuits(n.op, *lhs) ? lhs : evaluate(tree, n.rhs, options); !rhs) return rhs;
+      if (const auto lhs = evaluate(tree, n.lhs, options, value_of); !lhs) return lhs;
+      else if (const auto rhs = short_circuits(n.op, *lhs) ? lhs : evaluate(tree, n.rhs, options, value_of); !rhs) return rhs;
       else if (auto ret = apply(n.op, *lhs, *rhs, options); ret) return *ret;
       else return fail(ret.error());
     }
@@ -210,13 +213,13 @@ std::expected<pepp::tc::expr::Value, std::string> pepp::tc::expr::apply(BinaryOp
 }
 
 std::expected<pepp::tc::expr::Value, pepp::tc::expr::EvaluationError>
-pepp::tc::expr::evaluate_constant(const Tree &tree, const Options &options) {
+pepp::tc::expr::evaluate_expression(const Tree &tree, const Options &options, const ValueOf &value_of) {
   if (tree.empty()) return std::unexpected(EvaluationError{std::nullopt, "Empty expression"});
-  return evaluate(tree, tree.root(), options);
+  return evaluate(tree, tree.root(), options, value_of);
 }
 
 std::vector<std::optional<pepp::tc::expr::Value>>
-pepp::tc::expr::constant_values(const Tree &tree, const Options &options, const ConstantOf &constant_of) {
+pepp::tc::expr::constant_values(const Tree &tree, const Options &options, const ValueOf &constant_of) {
   // Nodes are in postorder, so operands are always computed first.
   std::vector<std::optional<Value>> values(tree.nodes().size());
   const auto known = [](const std::expected<Value, std::string> &v) {
@@ -241,7 +244,7 @@ pepp::tc::expr::constant_values(const Tree &tree, const Options &options, const 
 }
 
 std::vector<pepp::tc::expr::Type> pepp::tc::expr::node_types(const Tree &tree, const Options &options,
-                                                             const TypeOf &type_of, const ConstantOf &constant_of) {
+                                                             const TypeOf &type_of, const ValueOf &constant_of) {
   // Nodes are in postorder, so operands are always typed first.
   std::vector<Type> types(tree.nodes().size());
   const auto f = [&](const auto &n) -> Type {
@@ -259,7 +262,7 @@ std::vector<pepp::tc::expr::Type> pepp::tc::expr::node_types(const Tree &tree, c
 }
 
 pepp::tc::expr::Tree pepp::tc::expr::reassociate_constants(const Tree &tree, const Options &options,
-                                                           const TypeOf &type_of, const ConstantOf &constant_of) {
+                                                           const TypeOf &type_of, const ValueOf &constant_of) {
   using namespace bits;
   using enum BinaryOp;
   // && and || are associative too, but moving a constant ahead of them would change what short-circuiting evaluates.
@@ -309,7 +312,7 @@ pepp::tc::expr::Tree pepp::tc::expr::reassociate_constants(const Tree &tree, con
 }
 
 pepp::tc::expr::Tree pepp::tc::expr::fold_constants(const Tree &tree, const Options &options,
-                                                    const ConstantOf &constant_of) {
+                                                    const ValueOf &constant_of) {
   const auto values = constant_values(tree, options, constant_of);
 
   // Rebuild from the root, replacing each subtree which has a value with a single constant.
@@ -326,6 +329,6 @@ pepp::tc::expr::Tree pepp::tc::expr::fold_constants(const Tree &tree, const Opti
 }
 
 pepp::tc::expr::Tree pepp::tc::expr::simplify(const Tree &tree, const Options &options, const TypeOf &type_of,
-                                              const ConstantOf &constant_of) {
+                                              const ValueOf &constant_of) {
   return fold_constants(reassociate_constants(tree, options, type_of, constant_of), options, constant_of);
 }

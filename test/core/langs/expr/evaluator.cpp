@@ -30,7 +30,7 @@ Tree tree_of(const char *source) {
 }
 
 std::expected<Value, EvaluationError> evaluate(const char *source, const Options &options) {
-  return evaluate_constant(tree_of(source), options);
+  return evaluate_expression(tree_of(source), options);
 }
 } // namespace
 
@@ -102,7 +102,7 @@ TEST_CASE("Expression evaluation", "[scope:core][scope:core.langs][kind:unit][ar
         {"(-32767 - 1) % -1", "Signed division overflow"},
         {"1 << 16", "Shift amount out of range"},
         {"1 << -1", "Shift amount out of range"},
-        {"sym + 1", "Symbols are not allowed in a constant expression"},
+        {"sym + 1", "Symbol has no value: sym"},
     };
     for (const auto &c : cases) {
       CAPTURE(c.source);
@@ -115,21 +115,33 @@ TEST_CASE("Expression evaluation", "[scope:core][scope:core.langs][kind:unit][ar
     const auto parse_result = parse("2 + 1 / 0");
     REQUIRE(std::holds_alternative<Parsed>(parse_result));
     const auto &parsed = std::get<Parsed>(parse_result);
-    const auto result = evaluate_constant(parsed.tree, pep);
+    const auto result = evaluate_expression(parsed.tree, pep);
     REQUIRE(!result.has_value());
     const auto division = std::get<Binary>(parsed.tree[parsed.tree.root()]).rhs;
     CHECK(result.error().node == division);
     CHECK(parsed.locations[division].lower() == pepp::tc::support::Location(0, 4));
     CHECK(parsed.locations[division].upper() == pepp::tc::support::Location(0, 9));
 
-    const auto empty = evaluate_constant(Tree{}, pep);
+    const auto empty = evaluate_expression(Tree{}, pep);
     REQUIRE(!empty.has_value());
     CHECK(!empty.error().node.has_value());
     CHECK(empty.error().message == "Empty expression");
   }
+  SECTION("Symbols") {
+    const ValueOf value_of = [](const Identifier &id) -> std::optional<Value> {
+      if (id.name == "sym") return Value{4, {16, Unsigned}};
+      return std::nullopt;
+    };
+    CHECK(evaluate_expression(tree_of("sym + 1"), pep, value_of).value() == Value{5, {16, Unsigned}});
+    // The failing node is the symbol which has no value.
+    const auto result = evaluate_expression(tree_of("sym + other"), pep, value_of);
+    REQUIRE(!result.has_value());
+    CHECK(result.error().node == NodeId{1});
+    CHECK(result.error().message == "Symbol has no value: other");
+  }
   SECTION("Constant folding") {
     // k stands in for the symbol declared on an .EQUATE and sym for non-constant program location.
-    const ConstantOf constant_of = [&](const Identifier &id) -> std::optional<Value> {
+    const ValueOf constant_of = [&](const Identifier &id) -> std::optional<Value> {
       if (id.name == "k") return Value{5, {16, Bits}};
       return std::nullopt;
     };
@@ -161,10 +173,10 @@ TEST_CASE("Expression evaluation", "[scope:core][scope:core.langs][kind:unit][ar
     const auto folded = fold_constants(tree_of("0xFFFF / 2"), pep);
     REQUIRE(std::holds_alternative<FoldedConstant>(folded[folded.root()]));
     CHECK(std::get<FoldedConstant>(folded[folded.root()]).value == Value{0x7FFF, {16, Unsigned}});
-    CHECK(evaluate_constant(folded, pep).value() == Value{0x7FFF, {16, Unsigned}});
+    CHECK(evaluate_expression(folded, pep).value() == Value{0x7FFF, {16, Unsigned}});
   }
   SECTION("Node-level constant evaluation and typind") {
-    const ConstantOf constant_of = [&](const Identifier &id) -> std::optional<Value> {
+    const ValueOf constant_of = [&](const Identifier &id) -> std::optional<Value> {
       if (id.name == "k") return Value{5, {16, Bits}};
       return std::nullopt;
     };
@@ -182,7 +194,7 @@ TEST_CASE("Expression evaluation", "[scope:core][scope:core.langs][kind:unit][ar
   }
   SECTION("Reassociation") {
     // k stands in for the symbol declared on an .EQUATE, and every other symbol for a 16-bit program location.
-    const ConstantOf constant_of = [&](const Identifier &id) -> std::optional<Value> {
+    const ValueOf constant_of = [&](const Identifier &id) -> std::optional<Value> {
       if (id.name == "k") return Value{5, {16, Bits}};
       return std::nullopt;
     };
