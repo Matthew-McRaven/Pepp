@@ -15,6 +15,7 @@
  */
 #pragma once
 #include "core/integers.h"
+#include "core/math/bitmanip/mask.hpp"
 
 namespace pepp::tc::expr {
 
@@ -34,11 +35,7 @@ struct Value {
   Type type;
   bool operator==(const Value &) const = default;
   // The bits as a two's complement number of type's width.
-  constexpr i64 as_signed() const {
-    if (type.bits >= 64) return static_cast<i64>(bits);
-    const u64 sign = 1ull << (type.bits - 1);
-    return static_cast<i64>((bits ^ sign) - sign);
-  }
+  constexpr i64 as_signed() const { return static_cast<i64>(::bits::sign_extend(bits, type.bits / 8)); }
 };
 
 } // namespace pepp::tc::expr
