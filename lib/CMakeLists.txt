@@ -4,6 +4,9 @@ get_git_head_revision(GIT_REFSPEC GIT_SHA1)
 git_get_exact_tag(GIT_TAG)
 if(GIT_TAG MATCHES ".*NOTFOUND")
   set(GIT_TAG "unknown")
+  set(GIT_HAS_TAG 0)
+else()
+  set(GIT_HAS_TAG 1)
 endif()
 # Let program know if it was built from a clean dir. App can use that to render
 # about info.

@@ -83,7 +83,7 @@ endif()
 add_compile_options(-DSPDLOG_ACTIVE_LEVEL=3)
 
 if(EMSCRIPTEN)
-  add_compile_options(-O1 -gsource-map)
+  add_compile_options(-O1 -g)
   add_link_options(-sALLOW_MEMORY_GROWTH=1 -sTOTAL_MEMORY=1GB
                    -sINITIAL_MEMORY=150MB -g2 -gsource-map)
   set(QT_WASM_INITIAL_MEMORY

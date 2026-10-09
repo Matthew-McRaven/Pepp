@@ -20,6 +20,7 @@
 
 namespace about {
 const char *g_GIT_SHA1();
+bool g_GIT_HAS_TAG();
 const char *g_GIT_TAG();
 const char *g_CXX_COMPILER_ID();
 const char *g_CXX_COMPILER_VERSION();
@@ -33,15 +34,13 @@ int g_MINOR_VERSION();
 int g_PATCH_VERSION();
 bool g_GIT_LOCAL_CHANGES();
 
-QStringList diagnostics();
-
 class Version : public QObject {
   Q_OBJECT
-  // Full diagnostic string, meant for ease of copying.
-  Q_PROPERTY(QString diagnostic_str READ diagnostic_str CONSTANT)
   // Properties of pepp
   Q_PROPERTY(QString git_sha READ git_sha CONSTANT)
   Q_PROPERTY(QString git_tag READ git_tag CONSTANT)
+  // Return the 8 characater SHA or full tag. If a dirty working tree, append "-dirty" to the end of the string.
+  Q_PROPERTY(QString git_describe_short READ git_describe_short CONSTANT)
   Q_PROPERTY(bool git_dirty READ git_dirty CONSTANT)
   Q_PROPERTY(int version_major READ version_major CONSTANT)
   Q_PROPERTY(int version_minor READ version_minor CONSTANT)
@@ -52,6 +51,12 @@ class Version : public QObject {
   // Properties of the machine running the application
   Q_PROPERTY(QString target_platform READ target_platform CONSTANT)
   Q_PROPERTY(QString target_abi READ target_abi CONSTANT)
+  Q_PROPERTY(QString target_graphics_api READ target_graphics_api CONSTANT)
+  Q_PROPERTY(QString target_qt_platform READ target_qt_platform CONSTANT)
+  Q_PROPERTY(QString target_user_agent READ target_user_agent CONSTANT)
+  Q_PROPERTY(QString target_cross_origin_isolated READ target_cross_origin_isolated CONSTANT)
+  Q_PROPERTY(QString target_pixel_ratio READ target_pixel_ratio CONSTANT)
+  Q_PROPERTY(QString target_screen_size READ target_screen_size CONSTANT)
   // Properties of our dependencies
   Q_PROPERTY(QString qt_version READ qt_version CONSTANT)
   Q_PROPERTY(QString qt_debug READ qt_debug CONSTANT)
@@ -65,12 +70,12 @@ class Version : public QObject {
 public:
   explicit Version(QObject *parent = nullptr);
   ~Version() override = default;
-  static QString diagnostic_str();
-  Q_INVOKABLE static void copy_diagnostics_to_clipboard();
+  Q_INVOKABLE static void copy_diagnostics_to_clipboard(const QString &text);
 
   static QString git_sha();
   static QString git_tag();
   static bool git_dirty();
+  static QString git_describe_short();
   static int version_major();
   static int version_minor();
   static int version_patch();
@@ -79,6 +84,13 @@ public:
   static QString build_year();
   static QString target_platform();
   static QString target_abi();
+  static QString target_graphics_api();
+  static QString target_qt_platform();
+  // Browser-only; "Unknown" elsewhere.
+  static QString target_user_agent();
+  static QString target_cross_origin_isolated();
+  static QString target_pixel_ratio();
+  static QString target_screen_size();
 
   static QString qt_version();
   static QString qt_debug();

@@ -19,6 +19,7 @@
 const char GIT_SHA1_tmp[] = GIT_SHA1;
 const char *about::g_GIT_SHA1() { return GIT_SHA1_tmp; }
 
+
 #define GIT_TAG "@GIT_TAG@"
 const char GIT_TAG_tmp[] = GIT_TAG;
 const char *about::g_GIT_TAG() { return GIT_TAG_tmp; }
@@ -36,6 +37,8 @@ const char *about::g_GIT_TAG() { return GIT_TAG_tmp; }
 #define BUILD_SYSTEM_PROCESSOR "@CMAKE_HOST_SYSTEM_PROCESSOR@"
 #define BUILD_TIMESTAMP "@BUILD_TIMESTAMP@"
 #define BUILD_YEAR "@BUILD_YEAR@"
+#define GIT_HAS_TAG @GIT_HAS_TAG@
+
 // clang-format on
 
 int about::g_MAJOR_VERSION() { return VERSION_MAJOR; }
@@ -65,4 +68,5 @@ const char* about::g_BUILD_TIMESTAMP() {
 const char* about::g_BUILD_YEAR() {
     return BUILD_YEAR;
 }
+bool about::g_GIT_HAS_TAG() { return GIT_HAS_TAG; }
 

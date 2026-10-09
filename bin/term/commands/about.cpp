@@ -33,7 +33,6 @@ void AboutTask::run() {
       QStringLiteral("%1 %2").arg(about::g_CXX_COMPILER_ID()).arg(about::g_CXX_COMPILER_VERSION());
 
   std::cout << u"Pepp Terminal, Version %1"_s.arg(about::versionString()).toStdString();
-  for (const auto &line : about::diagnostics()) std::cout << "\n\t" << line.toStdString();
   std::cout << "\n\nReport issues or check for updates:\n";
   std::cout << "\t" << about::projectRepoURL().toStdString() << "\n\n";
   std::cout << "Authors:\n";
