@@ -8,6 +8,7 @@
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_symbol.hpp"
 #include "core/compile/ir_value/expr.hpp"
+#include "core/compile/ir_value/expression.hpp"
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/symbol/entry.hpp"
 #include "core/compile/symbol/value.hpp"
@@ -326,6 +327,8 @@ inline SymbolOperand classify_symbol_operand(pepp::ast::IRValue &value) {
   using Kind = SymbolOperand::Kind;
   using Op = pepp::ast::InfixExpression::Op;
   if (auto *symbolic = dynamic_cast<pepp::ast::Symbolic *>(&value)) return {Kind::Offset, symbolic->symbol(), 0};
+  // Relocating an Expression is not supported yet; see the code generators.
+  if (dynamic_cast<pepp::ast::Expression *>(&value)) return {};
   if (!contains_symbol(value)) return {};
   auto *infix = dynamic_cast<pepp::ast::InfixExpression *>(&value);
   const bool add = infix && infix->op() == Op::Addition, sub = infix && infix->op() == Op::Subtraction;

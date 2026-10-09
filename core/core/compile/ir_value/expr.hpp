@@ -55,6 +55,6 @@ protected:
   std::shared_ptr<IRValue> _lhs = nullptr, _rhs = nullptr;
 };
 
-// True if value is, or an infix expression containing, a Symbolic.
+// True if value is, or an infix expression containing, a Symbolic, or is an Expression which names a symbol.
 bool contains_symbol(const IRValue &value) noexcept;
 } // namespace pepp::ast

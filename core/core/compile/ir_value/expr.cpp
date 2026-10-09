@@ -1,4 +1,5 @@
 #include "expr.hpp"
+#include "core/compile/ir_value/expression.hpp"
 #include "core/math/bitmanip/copy.hpp"
 #include "core/math/bitmanip/log2.hpp"
 #include "fmt/format.h"
@@ -70,6 +71,7 @@ u64 pepp::ast::InfixExpression::evaluate() const noexcept {
 
 bool pepp::ast::contains_symbol(const IRValue &value) noexcept {
   if (dynamic_cast<const Symbolic *>(&value)) return true;
+  if (auto *expression = dynamic_cast<const Expression *>(&value)) return expression->contains_symbols();
   if (auto *infix = dynamic_cast<const InfixExpression *>(&value))
     return (infix->lhs() && contains_symbol(*infix->lhs())) || (infix->rhs() && contains_symbol(*infix->rhs()));
   return false;
