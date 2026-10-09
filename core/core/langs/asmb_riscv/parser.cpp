@@ -60,7 +60,9 @@ std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::RISCVParser::argument() {
     auto entry = _symtab->reference(maybeIdent->to_string());
     return std::make_shared<pepp::ast::Symbolic>(4, entry);
   } else if (auto maybeChar = _buffer->match<lex::CharacterConstant>(); maybeChar) {
-    return std::make_shared<pepp::ast::Character>(maybeChar->value[0]);
+    if (const auto value = bits::escapedToByte(maybeChar->value); !value)
+      throw RISCVParserError(RISCVParserError::UnaryError::Token_Invalid, maybeChar->repr(), _buffer->matched_interval());
+    else return std::make_shared<pepp::ast::Character>(static_cast<char>(*value));
   } else if (auto maybeStr = _buffer->match<lex::StringConstant>(); maybeStr) {
     auto asStr = std::string{maybeStr->view()};
     return std::make_shared<pepp::ast::String>(asStr);
