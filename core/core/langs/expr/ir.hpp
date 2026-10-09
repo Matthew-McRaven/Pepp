@@ -167,7 +167,7 @@ public:
   const std::vector<Node> &nodes() const { return _nodes; }
   // Source span of each node. An operator's span covers its whole subexpression, excluding enclosing parentheses.
   const std::vector<support::LocationInterval> &locations() const { return _locations; }
-  // Describes the strrcuture of the tree's nodes
+  // Each position has 1 bit set indicating the concrete type of each node.
   const std::vector<Kind> &kinds() const { return _kinds; }
 
 private:
