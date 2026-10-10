@@ -38,14 +38,14 @@ bool is_constant(const pepp::core::symbol::Entry &entry) {
 std::expected<pepp::tc::parser::ExpressionResult, pepp::tc::expr::Error>
 pepp::tc::parser::parse_expression(lex::Buffer &buf, lex::ALexer &lexer, std::shared_ptr<expr::IdentifierPool> pool) {
   // A rollback left an operand which was already parsed, and its text is no longer ahead of the lexer.
-  if (const auto buffered = buf.buffered_tokens();
-      !buffered.empty() && buffered.front()->type() == lex::ParsedExpression::TYPE)
-    return buf.match<lex::ParsedExpression>()->operand;
-  // The expression parser reads the lexer's text, so it must see any tokens which were already lexed.
-  buf.unbuffer();
+  if (const auto buffered = buf.buffered_tokens(); !buffered.empty()) {
+    if (buffered.front()->type() == lex::ParsedExpression::TYPE) return buf.match<lex::ParsedExpression>()->operand;
+    // The expression parser reads the lexer's text, which is past any buffered token. This is a bug in the assembler,
+    // but is reported as an error in the source rather than ending the program.
+    return std::unexpected(expr::Error{buffered.front()->location(), "Unexpected token before an expression"});
+  }
 
-  const auto start = lexer.cursor();
-  auto result = expr::parse(start, std::move(pool));
+  auto result = expr::parse(lexer.cursor(), std::move(pool));
   if (const auto *error = std::get_if<expr::Error>(&result)) return std::unexpected(*error);
   auto *parsed = std::get_if<expr::Parsed>(&result);
   if (!parsed) return nullptr;
@@ -53,8 +53,7 @@ pepp::tc::parser::parse_expression(lex::Buffer &buf, lex::ALexer &lexer, std::sh
   // Resume lexing after the operand, which the buffer sees as a single token.
   const support::LocationInterval span{parsed->locations[parsed->tree.root()].lower(), parsed->after.location()};
   lexer.resume_at(parsed->after);
-  buf.push_token(std::make_shared<lex::ParsedExpression>(span, std::make_shared<expr::Parsed>(std::move(*parsed))),
-                 start);
+  buf.push_token(std::make_shared<lex::ParsedExpression>(span, std::make_shared<expr::Parsed>(std::move(*parsed))));
   return buf.match<lex::ParsedExpression>()->operand;
 }
 

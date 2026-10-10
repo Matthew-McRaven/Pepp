@@ -495,22 +495,20 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::statement(Diagn
   const auto start_ival = lexer->current_location();
   // Consume tokens directly from lexer without buffering to avoid buffer-clearing bugs.
   while ((_active_macro_defs > 0 || in_false_conditional()) && lexer->input_remains()) {
-    auto start = lexer->cursor();
     auto token = lexer->next_token();
     if (_active_macro_defs > 0) {
       // Need to capture all body tokens! Else chaos ensues.
-      buf->push_token(token, start);
+      buf->push_token(token);
       // Need to count start / ends of macro definitions.
       if (token && token->type() == lex::DotCommand::TYPE) {
         auto dot_str = bits::to_upper(token->to_string());
         if (dot_str == "MACRO") _active_macro_defs++;
         else if (dot_str == "ENDM") {
           if (lexer->input_remains()) {
-            auto la2_start = lexer->cursor();
             auto la2 = lexer->next_token();
             if (!la2 || la2->type() != lex::Empty::TYPE)
               throw PepParserError(PepParserError::NullaryError::Token_MissingNewline, buf->matched_interval());
-            buf->push_token(la2, la2_start);
+            buf->push_token(la2);
           }
           _active_macro_defs--;
         }
@@ -555,14 +553,14 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::statement(Diagn
       else if ((dot_str == "ELSEIF" || dot_str == "ELSE") && start_depth == _conditionals.size() &&
                !_conditionals.back().matched_any) {
         // Need to parse this branch! It may make our condition true.
-        buf->push_token(token, start);
+        buf->push_token(token);
         break;
       } else if (dot_str == "ENDIF") {
         if (start_depth < _conditionals.size()) _conditionals.pop_back();
         // Do not consume ENDIF token closing the conditional that entered skip mode. Re-buffer that token so we can
         // take a normal parsing path for it and emit the proper IR for the closing directive.
         else {
-          buf->push_token(token, start);
+          buf->push_token(token);
           break;
         }
       }
