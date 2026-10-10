@@ -210,6 +210,9 @@ std::string to_infix(const Tree &tree);
 // A copy of the tree without explicit Parens nodes.
 Tree strip_parens(const Tree &tree);
 
+// Tree contains only constants and operations over constants.
+bool is_constant_expression(const Tree &tree);
+
 // Returns true if the two sequences &'ed together are non-zero for each position.
 constexpr bool matches(std::span<const Kind> kinds, std::span<const Kind> pattern) {
   using namespace bits;

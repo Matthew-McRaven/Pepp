@@ -14,6 +14,7 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "core/langs/expr/ir.hpp"
+#include <algorithm>
 #include <iterator>
 #include <limits>
 #include <stdexcept>
@@ -219,4 +220,8 @@ pepp::tc::expr::Tree pepp::tc::expr::strip_parens(const Tree &tree) {
   };
   if (!tree.empty()) rebuild(rebuild, tree.root());
   return ret;
+}
+
+bool pepp::tc::expr::is_constant_expression(const Tree &tree) {
+  return !std::ranges::contains(tree.kinds(), Kind::Identifier);
 }

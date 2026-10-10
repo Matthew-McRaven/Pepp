@@ -39,6 +39,11 @@ TEST_CASE("Expression parser IR", "[scope:core][scope:core.langs][kind:unit][arc
     CHECK(tree("-(a - 'b') * 2").kinds() ==
           std::vector<K>{K::Identifier, K::Character, K::Subtract, K::Parens, K::Minus, K::Integer, K::Multiply});
   }
+  SECTION("Tests for integral constant expressions") {
+    CHECK(is_constant_expression(tree("-(1 + 'a') * 0x2")));
+    CHECK(!is_constant_expression(tree("1 + (2 * sym)")));
+    CHECK(is_constant_expression(Tree{}));
+  }
   SECTION("Stripping parentheses") {
     const auto stripped = strip_parens(tree("((a + b)) * -(c)"));
     CHECK(to_postfix(stripped) == "a b + c u- *");

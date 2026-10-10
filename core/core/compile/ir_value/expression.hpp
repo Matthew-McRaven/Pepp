@@ -37,12 +37,15 @@ public:
 
   const tc::expr::Tree &tree() const noexcept { return _tree; }
   const tc::expr::Options &options() const noexcept { return _options; }
+  const std::shared_ptr<const core::symbol::LeafTable> &symbol_table() const noexcept { return _symtab; }
   bool contains_symbols() const noexcept;
 
   // Return a function which returns values of any defined symbol which is a constant and nullopt otherwise.
   tc::expr::ValueOf resolve_constants_of() const;
   // Return a function which returns the values of any defined symbol and nullopt for undefined symbols.
   tc::expr::ValueOf resolve_values_of() const;
+  // Return a function which returns the type of any symbol, as resolve_values_of() would type its value.
+  tc::expr::TypeOf resolve_types_of() const;
 
   // Evaluate with resolve_values_of().
   std::expected<tc::expr::Value, tc::expr::EvaluationError> evaluate() const;

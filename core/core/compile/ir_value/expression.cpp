@@ -48,7 +48,7 @@ pepp::ast::Expression::Expression(tc::expr::Tree tree, std::shared_ptr<const cor
     : _tree(std::move(tree)), _symtab(std::move(symtab)), _options(options), _size(size) {}
 
 bool pepp::ast::Expression::contains_symbols() const noexcept {
-  return std::ranges::contains(_tree.kinds(), tc::expr::Kind::Identifier);
+  return !tc::expr::is_constant_expression(_tree);
 }
 
 pepp::tc::expr::ValueOf pepp::ast::Expression::resolve_constants_of() const {
@@ -67,6 +67,15 @@ pepp::tc::expr::ValueOf pepp::ast::Expression::resolve_values_of() const {
   return [symtab, options](const tc::expr::Identifier &id) -> std::optional<Value> {
     if (const auto entry = symtab ? symtab->get(id.name) : std::nullopt) return symbol_value(**entry, options);
     return std::nullopt;
+  };
+}
+
+pepp::tc::expr::TypeOf pepp::ast::Expression::resolve_types_of() const {
+  auto symtab = _symtab;
+  auto options = _options;
+  return [symtab, options](const tc::expr::Identifier &id) -> tc::expr::Type {
+    if (const auto entry = symtab ? symtab->get(id.name) : std::nullopt) return symbol_value(**entry, options).type;
+    return {options.int_bits, Unsigned};
   };
 }
 
