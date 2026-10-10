@@ -53,7 +53,6 @@ private:
   // type does not match.
   std::shared_ptr<pepp::ast::IRValue> argument_integer_helper();
   std::shared_ptr<pepp::ast::IRValue> argument();
-  std::shared_ptr<pepp::ast::IRValue> expr_argument();
   std::shared_ptr<pepp::ast::IRValue> expression();
   std::shared_ptr<pepp::ast::IRValue> expression_or_argument();
   std::shared_ptr<pepp::ast::IRValue> numeric_argument();

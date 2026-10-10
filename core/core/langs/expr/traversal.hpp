@@ -30,6 +30,12 @@ template <typename F> Node map_operands(const Node &node, F &&f) {
   return node;
 }
 
+// Call f on each node of type T, in postorder.
+template <typename T, typename F> void for_each_node(const Tree &tree, F &&f) {
+  for (const auto &node : tree.nodes())
+    if (const auto *n = std::get_if<T>(&node)) f(*n);
+}
+
 // An operator which is associative and commutative under wrapping arithmetic, the operator which undoes it (if any), and
 // the value which leaves an operand unchanged. For example, + is undone by - and has an identity of 0.
 struct Group {

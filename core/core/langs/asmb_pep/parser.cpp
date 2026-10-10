@@ -2,6 +2,7 @@
 #include <deque>
 #include <fmt/ranges.h>
 #include <numeric>
+#include <stdexcept>
 #include "core/arch/pep/isa/pep10.hpp"
 #include "core/compile/ir_linear/attr_comment.hpp"
 #include "core/compile/ir_linear/line_comment.hpp"
@@ -10,6 +11,7 @@
 #include "core/compile/ir_linear/line_macro.hpp"
 #include "core/compile/ir_linear/line_symbol.hpp"
 #include "core/compile/ir_value/expr.hpp"
+#include "core/compile/ir_value/expression.hpp"
 #include "core/compile/ir_value/numeric.hpp"
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/ir_value/text.hpp"
@@ -23,6 +25,8 @@
 #include "core/langs/asmb_pep/lexer.hpp"
 #include "core/langs/asmb_pep/parser_error.hpp"
 #include "core/langs/asmb_pep/text_format.hpp"
+#include "core/langs/expr/parser.hpp"
+#include "core/langs/expr/traversal.hpp"
 #include "core/math/bitmanip/strings.hpp"
 
 pepp::tc::parser::PepParser::PepParser(pepp::tc::support::SeekableData &&data, std::shared_ptr<MacroRegistry> reg)
@@ -87,32 +91,57 @@ std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::PepParser::argument() {
   } else return nullptr;
 }
 
-std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::PepParser::expr_argument() {
-  auto buf = active_buffer();
-  lex::Checkpoint cp(*buf);
-  if (auto integer = argument_integer_helper(); integer) return integer;
-  else if (auto maybeIdent = buf->match<lex::Identifier>(); maybeIdent) {
-    auto entry = _symtab->reference(maybeIdent->to_string());
-    return std::make_shared<pepp::ast::Symbolic>(2, entry);
-  } else return nullptr;
+namespace {
+// A lone integer, character, or symbol, optionally signed, which argument() parses instead.
+bool is_atom(const pepp::tc::expr::Tree &tree) {
+  using K = pepp::tc::expr::Kind;
+  const auto &kinds = tree.kinds();
+  if (kinds.size() == 1) return true;
+  return kinds.size() == 2 && kinds[0] == K::Integer && (kinds[1] == K::Plus || kinds[1] == K::Minus);
 }
+} // namespace
 
 std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::PepParser::expression() {
   auto buf = active_buffer();
-  lex::Checkpoint cp(*buf);
-  std::shared_ptr<pepp::ast::IRValue> lhs = nullptr, rhs = nullptr;
-  if (lhs = expr_argument(); !lhs) return nullptr;
+  // Sub-parser can't consume our buffered tokens (since they may be of different types).
+  // If the buffer contains a ParsedExpression, then a previous call to expression() succeded in the past and return its
+  // value. Otherwise we raise an error which I expect to be unreachable.
+  if (const auto buffered = buf->buffered_tokens(); !buffered.empty()) {
+    if (buffered.front()->type() == lex::ParsedExpression::TYPE) return buf->match<lex::ParsedExpression>()->value;
+    throw std::logic_error("expression() called with unmatched tokens buffered");
+  }
 
-  ast::InfixExpression::Op op = ast::InfixExpression::Op::Nil;
-  // Match literal + or -
-  if (auto plus = active_buffer()->match_literal("+"); plus) op = ast::InfixExpression::Op::Addition;
-  else if (auto minus = active_buffer()->match_literal("-"); minus) op = ast::InfixExpression::Op::Subtraction;
-  else return cp.rollback(), nullptr;
+  // Temporarily delegate parsing expression sub-parser.
+  auto lexer = active_lexer();
+  const auto start = lexer->cursor().location();
+  const auto result = expr::parse(lexer->cursor(), _pool);
+  if (const auto *error = std::get_if<expr::Error>(&result))
+    throw PepParserError(PepParserError::UnaryError::Expression_Invalid, error->message, error->location);
+  const auto *parsed = std::get_if<expr::Parsed>(&result);
 
-  rhs = expr_argument();
-  // TODO, is a non-specific error.
-  if (!rhs) throw PepParserError(PepParserError::NullaryError::Argument_Missing, buf->matched_interval());
-  return std::make_shared<ast::InfixExpression>(op, lhs, rhs, 2);
+  // Atoms (identifiers, unsigned decimals, hex, chars) are better represented with our specialized IR values rather
+  // than a generic expression.
+  if (!parsed || is_atom(parsed->tree)) return nullptr;
+
+  // Evaluate constant expression to report errors, such as 1/0, at parse time.
+  const expr::Options options{.int_bits = 16, .default_sign = expr::Signedness::Unsigned};
+  auto value = std::make_shared<ast::Expression>(parsed->tree, _symtab, options, 2);
+  const support::LocationInterval span{start, parsed->after.location()};
+  if (!value->contains_symbols())
+    if (const auto evaluated = value->evaluate(); !evaluated) {
+      const auto &error = evaluated.error();
+      const auto location = error.node ? parsed->locations[*error.node] : span;
+      throw PepParserError(PepParserError::UnaryError::Expression_Invalid, error.message, location);
+    }
+
+  // Ensure that all identifiers are registered in the symbol table.
+  auto visit = [&](const expr::Identifier &id) { (void)_symtab->reference(id.name); };
+  expr::for_each_node<expr::Identifier>(parsed->tree, visit);
+
+  // Resume lexing after the expression, which the buffer sees as a single token.
+  lexer->resume_at(parsed->after);
+  buf->push_token(std::make_shared<lex::ParsedExpression>(span, value));
+  return buf->match<lex::ParsedExpression>()->value;
 }
 
 std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::PepParser::expression_or_argument() {

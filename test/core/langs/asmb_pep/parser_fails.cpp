@@ -157,17 +157,17 @@ TEST_CASE("Pepp ASM parser errors",
     CHECK(start != end);
     CHECK(start->second == PE::to_string(NullaryError::AddressingMode_Missing));
   }
-  SECTION("Operators and signs") {
+  SECTION("Operators, signs, and expressions") {
     struct Case {
       const char *source;
-      NullaryError error;
+      std::string message;
     };
     const std::vector<Case> cases = {
-        {"\nadda *3,i", NullaryError::Argument_InvalidOperator},   // only + and - may prefix an integer
-        {"\nadda -,i", NullaryError::Argument_ExpectedInteger},    // sign needs an integer
-        {"\nadda -x,i", NullaryError::Argument_ExpectedInteger},   // ... not a symbol
-        {"\nadda -0x10,i", NullaryError::Argument_InvalidIntegerFormat}, // ... and only a decimal
-        {"\nadda 1 + ,i", NullaryError::Argument_Missing},         // infix needs a right-hand side
+        {"\nadda *3,i", PE::to_string(NullaryError::Argument_InvalidOperator)}, // only + and - may prefix an integer
+        {"\nadda -0x10,i", PE::to_string(NullaryError::Argument_InvalidIntegerFormat)}, // only a decimal may be signed
+        {"\nadda -,i", PE::to_string(UnaryError::Expression_Invalid, "Expected an operand")},
+        {"\nadda 1 + ,i", PE::to_string(UnaryError::Expression_Invalid, "Expected an operand")},
+        {"\nadda 1 / 0,i", PE::to_string(UnaryError::Expression_Invalid, "Division by zero")}, // Constant expression
     };
     for (const auto &c : cases) {
       CAPTURE(c.source);
@@ -177,7 +177,7 @@ TEST_CASE("Pepp ASM parser errors",
       CHECK(diag.count() == 1);
       auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
       REQUIRE(start != end);
-      CHECK(start->second == PE::to_string(c.error));
+      CHECK(start->second == c.message);
     }
   }
   SECTION(".EQUATE rejects symbols") {

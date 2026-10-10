@@ -39,6 +39,10 @@ struct ALexer {
   virtual support::LocationInterval synchronize();
 
   support::Location current_location() const;
+  const support::SeekableData &cursor() const { return _cursor; }
+  // When using nested parsers (e.g., an expression parser in the assembler), this method allows the main lexer to
+  // resume where the nested lexer stopped.
+  void resume_at(support::SeekableData cursor) { _cursor = std::move(cursor); }
   // Indicate to lexer that it should print out each token as it is lexed.
   bool print_tokens = false;
 

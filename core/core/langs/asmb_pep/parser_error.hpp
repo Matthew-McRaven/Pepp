@@ -49,6 +49,7 @@ public:
     Dot_Invalid,
     Token_Invalid,
     Macro_Redefinition,
+    Expression_Invalid,
   };
 
   static const std::string to_string(NullaryError);

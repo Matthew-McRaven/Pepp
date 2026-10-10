@@ -26,7 +26,12 @@ TEST_CASE("Expression tree traversal", "[scope:core][scope:core.langs][kind:unit
     REQUIRE(std::holds_alternative<Parsed>(result));
     return std::get<Parsed>(std::move(result)).tree;
   };
-  SECTION("Flattening chains") {
+  SECTION("Visit nodes of a single type") {
+    std::vector<std::string> names;
+    for_each_node<Identifier>(tree("a * (b - a) + 1"), [&](const Identifier &id) { names.push_back(id.name); });
+    CHECK(names == std::vector<std::string>{"a", "b", "a"});
+  }
+  SECTION("Flatten expression chains") {
     // Stops at any node outside the group, and the right of each inverse flips inversion.
     const auto operands = [&](const char *source, const Group &group) {
       const auto t = strip_parens(tree(source));

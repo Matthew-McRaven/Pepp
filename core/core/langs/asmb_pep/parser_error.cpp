@@ -50,6 +50,7 @@ const std::string pepp::tc::PepParserError::to_string(UnaryError err, const std:
   case UnaryError::Dot_Invalid: return fmt::format("Invalid pseudo-operation \"{}\".", arg);
   case UnaryError::Token_Invalid: return fmt::format("Unrecognized token: {}", arg);
   case UnaryError::Macro_Redefinition: return fmt::format("Redefinition of macro \"{}\".", arg);
+  case UnaryError::Expression_Invalid: return fmt::format("Invalid expression: {}", arg);
   }
   PEPP_UNREACHABLE();
 }
