@@ -80,6 +80,8 @@ private:
     bool matched_else = false;      // Prevent matching an elseif after an else
   };
   std::vector<ConditionalStack> _conditionals;
+  // The location counter (`.`) of the line being parsed, if used on the current line.
+  std::shared_ptr<pepp::core::symbol::Entry> _location_counter;
   // if non-zero, takes precedence over _conditionals until 0.
   // incremented when macro returns non-nullptr, decremented by the skip loop in statement
   u16 _active_macro_defs = 0;

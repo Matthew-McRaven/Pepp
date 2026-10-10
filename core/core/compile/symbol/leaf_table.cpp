@@ -143,5 +143,6 @@ std::string pepp::core::symbol::table_listing(const LeafTable &table, u8 max_byt
 }
 
 bool pepp::core::symbol::is_location_counter(const Entry &entry) noexcept {
-  return entry.value && entry.value->type() == Type::LocationCounter;
+  // Not the value's type, since a location counter may alias a label.
+  return entry.name.starts_with("<.");
 }

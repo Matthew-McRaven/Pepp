@@ -223,6 +223,8 @@ Tree strip_parens(const Tree &tree);
 
 // Tree contains only constants and operations over constants.
 bool is_constant_expression(const Tree &tree);
+// True if the tree uses the location counter (`.`).
+bool uses_location_counter(const Tree &tree);
 
 // Returns true if the two sequences &'ed together are non-zero for each position.
 constexpr bool matches(std::span<const Kind> kinds, std::span<const Kind> pattern) {

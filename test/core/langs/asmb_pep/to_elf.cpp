@@ -440,6 +440,36 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     CHECK(static_cast<u8>(text[10]) == 0x00);
     CHECK(static_cast<u8>(text[11]) == 0x06);
   }
+  SECTION("location counters") {
+    pepp::tc::DiagnosticTable diag;
+    // The second . aliases the label on its line.
+    auto p = Parser(data("LDWA 0,i\nBR .\nl: BR . + 3"), std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    auto code = pepp::tc::parser::flatten_macros(results);
+    auto result = pepp::tc::pepp_split_to_sections(diag, code);
+    CHECK(diag.count() == 0);
+    auto symbol_tab = p.symbol_table();
+    auto &sections = result.grouped_ir;
+    auto addresses = pepp::tc::pepp_assign_addresses(sections);
+    auto object_code = pepp::tc::pepp_to_object_code(addresses, sections);
+    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
+    auto elf = read_back(elf_result);
+    const auto symbols = symbols_of(elf);
+
+    const auto *text = elf.sections[".text"]->get_data();
+    CHECK(static_cast<u8>(text[4]) == 0x00); // BR .
+    CHECK(static_cast<u8>(text[5]) == 0x03);
+    CHECK(static_cast<u8>(text[7]) == 0x00); // BR . + 3
+    CHECK(static_cast<u8>(text[8]) == 0x09);
+    // . moves with its section, like a label.
+    using enum pepp::bts::RelocationsPep;
+    CHECK(relocations_of(elf, ".rela.text", symbols) ==
+          std::vector<Rela>{{4, ".text", bits::to_underlying(R_PEP10_ABS16), 3},
+                            {7, ".text", bits::to_underlying(R_PEP10_ABS16), 6 + 3}});
+    // Location counters are serialized to ELF file
+    for (const auto &symbol : symbols) CHECK(!symbol.name.starts_with("<."));
+  }
   SECTION("operands referencing symbols must be symbol [+ constant]") {
     const auto diagnostics = [&](const char *source) {
       pepp::tc::DiagnosticTable diag;

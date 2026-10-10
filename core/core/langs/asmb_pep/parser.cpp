@@ -4,6 +4,7 @@
 #include <numeric>
 #include <optional>
 #include <stdexcept>
+#include <utility>
 #include "core/arch/pep/isa/pep10.hpp"
 #include "core/compile/ir_linear/attr_comment.hpp"
 #include "core/compile/ir_linear/line_comment.hpp"
@@ -46,12 +47,20 @@ void pepp::tc::parser::PepParser::debug_print_tokens(bool debug) { _root_lexer->
 
 std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::PepParser::argument() {
   constexpr expr::Options options{.int_bits = 16, .default_sign = expr::Signedness::Unsigned};
+  constexpr expr::Features features{.dot = expr::Features::Dot::Identifier};
   constexpr auto invalid = [](const expr::Error &error) {
     return PepParserError(PepParserError::UnaryError::Expression_Invalid, error.message, error.location);
   };
+  // Re-use existing location counter for this line if possible.
+  const auto location_counter = [this] {
+    if (!_location_counter) _location_counter = _symtab->location_counter();
+    return std::string{_location_counter->name};
+  };
+
   auto buf = active_buffer();
   // Must try expression first, otherwise we might lex part of the expression searching for a string constant.
-  if (const auto expr = parse_expression(*buf, *active_lexer(), _pool); !expr) throw invalid(expr.error());
+  if (const auto expr = parse_expression(*buf, *active_lexer(), _pool, features, location_counter); !expr)
+    throw invalid(expr.error());
   else if (*expr) {
     if (const auto value = lower(**expr, _symtab, options, 2); !value) throw invalid(value.error());
     else return *value;
@@ -428,7 +437,17 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
   return nullptr;
 }
 
+namespace {
+// RAII helper to prevent a macro expansion for sharing its host line's location counter.
+struct Restore {
+  std::shared_ptr<pepp::core::symbol::Entry> &slot, saved;
+  ~Restore() { slot = std::move(saved); }
+};
+} // namespace
+
 std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::line(DiagnosticTable &diag, OptionalSymbol symbol) {
+  // This line gets its own location counter, and a macro expanded from it does not share the line's.
+  Restore restore{_location_counter, std::exchange(_location_counter, nullptr)};
   auto buf = active_buffer();
   std::shared_ptr<pepp::tc::LinearIR> ret = nullptr;
   if (auto dot = pseudo(symbol); dot) ret = dot;
@@ -441,6 +460,11 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::line(Diagnostic
 
   // Avoid re-attaching existing symbol declaration (e.g., .EQUATE in pseudo).
   if (symbol && !ret->has_attribute<SymbolDeclaration>()) ret->insert(std::make_unique<SymbolDeclaration>(*symbol));
+
+  if (_location_counter) { // If the line declared a symbol, alias the location counter to it.
+    if (symbol) _location_counter->value = std::make_shared<core::symbol::AliasValue>(2, *symbol);
+    ret->insert(std::make_unique<LocationCounterDeclaration>(_location_counter));
+  }
   return ret;
 }
 

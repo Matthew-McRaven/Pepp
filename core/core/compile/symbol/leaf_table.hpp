@@ -95,7 +95,8 @@ private:
   u32 _location_counters = 0;
 };
 
-// True if the symbol is a line's location counter, which is internal to the assembler.
+// True if the symbol is a line's location counter, which is internal to the assembler. Their names, <.N>, cannot be
+// written in source.
 bool is_location_counter(const Entry &entry) noexcept;
 
 // For each symbol in the table, whose "base" is >= threshold, increment its "offset".

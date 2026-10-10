@@ -180,6 +180,11 @@ IRMemoryAddressTable<Address> assign_addresses(std::vector<std::pair<SectionDesc
       }
       sec_desc.byte_count += size;
 
+      // A location counter which aliases the line's label imlicitly has the line's address
+      if (auto counter = line->template typed_attribute<LocationCounterDeclaration>();
+          counter && !dynamic_cast<const pepp::core::symbol::AliasValue *>(counter->entry->value.get()))
+        counter->entry->value = std::make_shared<pepp::core::symbol::LocationValue>(
+            size, sizeof(addr_t), symbol_base, 0, pepp::core::symbol::Type::LocationCounter);
       if (auto line_symbol = line->template typed_attribute<SymbolDeclaration>(); line_symbol) {
         // Do not update the value of a symbol which aliases another.
         if (dynamic_cast<const pepp::core::symbol::AliasValue *>(line_symbol->entry->value.get())) continue;

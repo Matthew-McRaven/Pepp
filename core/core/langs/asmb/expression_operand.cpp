@@ -36,7 +36,8 @@ bool is_constant(const pepp::core::symbol::Entry &entry) {
 } // namespace
 
 std::expected<pepp::tc::parser::ExpressionResult, pepp::tc::expr::Error>
-pepp::tc::parser::parse_expression(lex::Buffer &buf, lex::ALexer &lexer, std::shared_ptr<expr::IdentifierPool> pool) {
+pepp::tc::parser::parse_expression(lex::Buffer &buf, lex::ALexer &lexer, std::shared_ptr<expr::IdentifierPool> pool,
+                                   const expr::Features &features, const expr::NameLocationCounter &location_counter) {
   // A rollback left an operand which was already parsed, and its text is no longer ahead of the lexer.
   if (const auto buffered = buf.buffered_tokens(); !buffered.empty()) {
     if (buffered.front()->type() == lex::ParsedExpression::TYPE) return buf.match<lex::ParsedExpression>()->operand;
@@ -45,7 +46,7 @@ pepp::tc::parser::parse_expression(lex::Buffer &buf, lex::ALexer &lexer, std::sh
     return std::unexpected(expr::Error{buffered.front()->location(), "Unexpected token before an expression"});
   }
 
-  auto result = expr::parse(lexer.cursor(), std::move(pool));
+  auto result = expr::parse(lexer.cursor(), std::move(pool), features, location_counter);
   if (const auto *error = std::get_if<expr::Error>(&result)) return std::unexpected(*error);
   auto *parsed = std::get_if<expr::Parsed>(&result);
   if (!parsed) return nullptr;

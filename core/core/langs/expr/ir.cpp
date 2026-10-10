@@ -228,3 +228,7 @@ bool pepp::tc::expr::is_constant_expression(const Tree &tree) {
   using namespace bits;
   return std::ranges::none_of(tree.kinds(), [](Kind kind) { return any(kind & Kind::Symbolic); });
 }
+
+bool pepp::tc::expr::uses_location_counter(const Tree &tree) {
+  return std::ranges::contains(tree.kinds(), Kind::LocationCounter);
+}

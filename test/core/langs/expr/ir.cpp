@@ -46,6 +46,8 @@ TEST_CASE("Expression parser IR", "[scope:core][scope:core.langs][kind:unit][arc
     Tree here;
     here.add(LocationCounter{"<.0>"});
     CHECK(!is_constant_expression(here));
+    CHECK(uses_location_counter(here));
+    CHECK(!uses_location_counter(tree("1 + (2 * sym)")));
   }
   SECTION("Stripping parentheses") {
     const auto stripped = strip_parens(tree("((a + b)) * -(c)"));

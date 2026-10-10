@@ -32,13 +32,15 @@ SymbolOperand classify_expression(const pepp::ast::Expression &exp) {
   const auto tree = expr::simplify(exp.tree(), exp.options(), exp.resolve_types_of(), exp.resolve_constants_of());
   // Every symbol was a constant, so the value never moves.
   if (expr::is_constant_expression(tree)) return {};
-  // Parser ensured all identifiers are register in the symbol table.
+  // Lowering referenced every identifier, including location counters, into the symbol table.
   const auto symbol = [&](expr::NodeId id) {
-    return exp.symbol_table()->get(std::get<expr::Identifier>(tree[id]).name).value();
+    const auto *identifier = std::get_if<expr::Identifier>(&tree[id]);
+    const auto &name = identifier ? identifier->name : std::get<expr::LocationCounter>(tree[id]).name;
+    return exp.symbol_table()->get(name).value();
   };
 
-  static constexpr std::array symbol_only{K::Identifier};
-  static constexpr std::array constant_plus_symbol{K::Constant, K::Identifier, K::Add};
+  static constexpr std::array symbol_only{K::Symbolic};
+  static constexpr std::array constant_plus_symbol{K::Constant, K::Symbolic, K::Add};
   if (expr::matches(tree.kinds(), symbol_only)) return {Kind::Offset, symbol(0), 0};
   else if (expr::matches(tree.kinds(), constant_plus_symbol)) {
     // Sign extend addend so that ABS16 effectively wraps mod 2^16, which is important for expressions like `sym-2`.
