@@ -99,6 +99,7 @@ pepp::tc::parser::lower(const expr::Parsed &operand, std::shared_ptr<core::symbo
 
 std::expected<std::optional<u64>, pepp::tc::expr::Error>
 pepp::tc::parser::equate_value(ast::IRValue &arg, support::LocationInterval location) {
+  using namespace bits;
   if (auto *symbolic = dynamic_cast<ast::Symbolic *>(&arg)) {
     if (!is_constant(*symbolic->symbol())) return std::nullopt;
     auto masked = symbolic->symbol()->value->value();
@@ -108,7 +109,7 @@ pepp::tc::parser::equate_value(ast::IRValue &arg, support::LocationInterval loca
     const auto result = expr::evaluate_expression(tree, expression->options(), expression->resolve_constants_of());
     if (result) return result->bits;
     // Failing at a symbol means the symbol is not a constant
-    else if (result.error().node && std::holds_alternative<expr::Identifier>(tree[*result.error().node]))
+    else if (result.error().node && any(tree.kinds()[*result.error().node] & expr::Kind::Symbolic))
       return std::nullopt;
     return std::unexpected(expr::Error{location, result.error().message});
   }

@@ -31,6 +31,7 @@ const std::string pepp::tc::PepParserError::to_string(NullaryError err) {
   case NullaryError::Token_MissingNewline: return "Expected \\n";
   case NullaryError::Conditional_UnmatchedEndif: return "Unmatched .ENDIF directive";
   case NullaryError::Conditional_Unterminated: return "Unterminated conditional directive";
+  case NullaryError::Conditional_NotConstant: return "A conditional must be constant or previously-EQUATE'd symbol";
   case NullaryError::Conditional_UnmatchedElseif: return "Unmatched .ELSEIF directive";
   case NullaryError::Conditional_UnmatchedElse: return "Unmatched .ELSE directive";
   case NullaryError::Conditional_MultipleElse: return "Multiple .ELSE directives in the same conditional";

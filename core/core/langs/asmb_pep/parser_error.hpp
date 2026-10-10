@@ -38,6 +38,7 @@ public:
     Conditional_UnmatchedElse,
     Conditional_MultipleElse,
     Conditional_Unterminated,
+    Conditional_NotConstant,
     Macro_Unterminated,
     Macro_UnmatchedEndm,
     Macro_ExcessiveRecursion,

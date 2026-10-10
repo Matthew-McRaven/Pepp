@@ -53,9 +53,9 @@ std::expected<std::shared_ptr<ast::IRValue>, expr::Error> lower(const expr::Pars
                                                                 std::shared_ptr<core::symbol::LeafTable> symtab,
                                                                 const expr::Options &options, u8 size);
 
-// An .EQUATE's value, or nullopt if the expression cannot be constant-evaluated.
-// consteval could fail because a symbolic argument refers to a program location, or because the symbol has not been
-// defined (e.g., a later equate).
+// The value of an argument which must be known as it is parsed (e.g., .EQUATE, .IF), or nullopt if it names a symbol
+// which is not yet a constant, or the location counter. consteval could fail because a symbolic argument refers to a
+// program location, or because the symbol has not been defined (e.g., a later equate).
 std::expected<std::optional<u64>, expr::Error> equate_value(ast::IRValue &arg, support::LocationInterval location);
 
 } // namespace pepp::tc::parser

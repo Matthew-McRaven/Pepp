@@ -260,6 +260,19 @@ TEST_CASE("Pepp ASM parser errors",
       CHECK(start->second == PE::to_string(NullaryError::Section_StringFlags));
     }
   }
+  SECTION("Conditionals require constant expressions") {
+    // A label, the location counter, and an equate defined later are not known yet.
+    for (const char *source :
+         {"x: .BLOCK 1\n.IF x", "\n.IF .", "\n.IF k + 1\nk: .EQUATE 1", ".IF 0\n.ELSEIF x\n.ENDIF"}) {
+      CAPTURE(source);
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data(source), std::make_shared<MR>());
+      auto results = p.parse(diag);
+      auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
+      REQUIRE(start != end);
+      CHECK(start->second == PE::to_string(NullaryError::Conditional_NotConstant));
+    }
+  }
   SECTION("Unterminated .IF") {
     {
       pepp::tc::DiagnosticTable diag;

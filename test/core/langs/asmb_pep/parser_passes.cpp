@@ -384,6 +384,22 @@ TEST_CASE("Pepp ASM parser dot commands",
     CHECK(std::dynamic_pointer_cast<DotConditional>(results[0]));
     CHECK(std::dynamic_pointer_cast<DotConditional>(results[2]));
   }
+  SECTION(".IF using earlier .EQUATE") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data("k: .EQUATE 2\n.IF k * 3 == 6\n.BYTE 5\n.ENDIF"), std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 4);
+    CHECK(std::dynamic_pointer_cast<DotLiteral>(results[2]));
+  }
+  SECTION(".ELSEIF argument only evaluated if no previous branches taken") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".IF 1\n.BYTE 5\n.ELSEIF undefined\n.BYTE 6\n.ENDIF"), std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 4);
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[2]));
+  }
   SECTION("Trivial false .IF") {
     pepp::tc::DiagnosticTable diag;
     auto p = Parser(data(".IF 0\n.BYTE 5\n.ENDIF"), std::make_shared<MR>());

@@ -81,6 +81,18 @@ std::shared_ptr<pepp::ast::Symbolic> pepp::tc::parser::PepParser::identifier_arg
   return std::dynamic_pointer_cast<pepp::ast::Symbolic>(argument());
 }
 
+namespace {
+// Conditionals choose which lines are parsed, so like equates they are evaluated as they are parsed.
+bool condition_holds(pepp::ast::IRValue &arg, pepp::tc::support::LocationInterval location) {
+  using pepp::tc::PepParserError;
+
+  if (const auto value = pepp::tc::parser::equate_value(arg, location); !value)
+    throw PepParserError(PepParserError::UnaryError::Expression_Invalid, value.error().message, value.error().location);
+  else if (!*value) throw PepParserError(PepParserError::NullaryError::Conditional_NotConstant, location);
+  else return (**value & bits::mask(2)) != 0;
+}
+} // namespace
+
 static const u8 MAX_PARSE_DEPTH = 4;
 pepp::tc::IRProgram pepp::tc::parser::PepParser::do_parse(DiagnosticTable &diag,
                                                           std::optional<support::LocationInterval> root_loc) {
@@ -361,7 +373,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
     if (!arg) throw PepParserError(PepParserError::NullaryError::Argument_Missing, buf->matched_interval());
     else if (symbol)
       throw PepParserError(PepParserError::NullaryError::SymbolDeclaration_Forbidden, buf->matched_interval());
-    bool matched = arg->value_as<i16>() != 0;
+    const bool matched = condition_holds(*arg, buf->matched_interval());
     _conditionals.emplace_back(
         ConditionalStack{.matched_any = matched, .matched_this_stmt = matched, .matched_else = false});
     return std::make_shared<DotConditional>(DotConditional::Behavior::IF, Argument{arg});
@@ -378,8 +390,9 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
     if (tos.matched_else) {
       throw PepParserError(PepParserError::NullaryError::Conditional_UnmatchedElseif, buf->matched_interval());
     } else if (tos.matched_any) _conditionals.back().matched_this_stmt = false;
+    // Only evaluated if no earlier branch was taken, meaning it doesn't need to be constexpr if unevaluated.
     else {
-      tos.matched_this_stmt = (arg->value_as<i16>() != 0);
+      tos.matched_this_stmt = condition_holds(*arg, buf->matched_interval());
       tos.matched_any = tos.matched_any || tos.matched_this_stmt;
     }
     return std::make_shared<DotConditional>(DotConditional::Behavior::ELSEIF, Argument{arg});
