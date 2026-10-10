@@ -175,10 +175,6 @@ bool needs_relocation(const pepp::core::symbol::Entry &symbol) {
 } // namespace
 
 void pepp::tc::PeppObjectVistitor::relocate(pepp::ast::IRValue &arg, u16 offset, u32 type) {
-  // TODO: generate relocations for expressions.
-  // WARNING: until then, an expression naming a symbol which can move (a label, or one which is undefined) is assembled
-  // with that symbol's current value and no relocation, so it is wrong if the symbol is ever relocated.
-  if (dynamic_cast<const pepp::ast::Expression *>(&arg)) return;
   const auto operand = classify_symbol_operand(arg);
   using Kind = SymbolOperand::Kind;
   // pepp_split_to_sections reports this to the user, so reaching it here is a bug.

@@ -397,8 +397,6 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
                             {9, ".data", bits::to_underlying(R_PEP10_ABS16), 2}});
   }
   SECTION("relocations with symbol + constant") {
-    // TODO: re-enable once expressions generate relocations again.
-    SKIP("Expressions do not generate relocations yet");
     pepp::tc::DiagnosticTable diag;
     auto p = Parser(data(R"(
 			c:.EQUATE 5
@@ -410,6 +408,7 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
 			LDWA u + -2,d
 			LDWA l - 1,d
 			LDWA u - 2,d
+			LDWA 1 + l - 4,d
 )"),
                     std::make_shared<MR>());
     auto results = p.parse(diag);
@@ -434,39 +433,31 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
                             {7, "u", bits::to_underlying(R_PEP10_ABS16), 2},
                             {13, "u", bits::to_underlying(R_PEP10_ABS16), -2},
                             {16, ".text", bits::to_underlying(R_PEP10_ABS16), 1 - 1},
-                            {19, "u", bits::to_underlying(R_PEP10_ABS16), -2}});
+                            {19, "u", bits::to_underlying(R_PEP10_ABS16), -2},
+                            {22, ".text", bits::to_underlying(R_PEP10_ABS16), 1 + 1 - 4}});
     const auto *text = elf.sections[".text"]->get_data();
     CHECK(static_cast<u8>(text[9]) == 0xC0); // LDWA c+1,i
     CHECK(static_cast<u8>(text[10]) == 0x00);
     CHECK(static_cast<u8>(text[11]) == 0x06);
   }
-  SECTION("expressions are assembled with their symbols' current values") {
-    const auto object_code = [](const char *source) {
+  SECTION("operands referencing symbols must be symbol [+ constant]") {
+    const auto diagnostics = [&](const char *source) {
       pepp::tc::DiagnosticTable diag;
       auto p = Parser(data(source), std::make_shared<MR>());
       auto results = p.parse(diag);
       REQUIRE(diag.count() == 0);
       auto code = pepp::tc::parser::flatten_macros(results);
-      auto result = pepp::tc::pepp_split_to_sections(diag, code);
-      REQUIRE(diag.count() == 0);
-      auto addresses = pepp::tc::pepp_assign_addresses(result.grouped_ir);
-      return pepp::tc::pepp_to_object_code(addresses, result.grouped_ir);
+      (void)pepp::tc::pepp_split_to_sections(diag, code);
+      return diag.count();
     };
-    const auto operand = [](const pepp::tc::ProgramObjectCodeResult &code, size_t offset) {
-      const auto bytes = code.section_slices.at(0).get(offset, 2);
-      return static_cast<u16>(bytes[0] << 8 | bytes[1]);
-    };
-    // TODO: labels and undefined symbols can move, so these need relocations, which are not generated yet.
-    const auto label = object_code("l:.WORD 0\nLDWA l + 3,d"); // l is at 0.
-    CHECK(operand(label, 3) == 3);
-    CHECK(label.relocations.at(0).empty());
-    const auto undefined = object_code("LDWA u - 2,d"); // u has no value, so reads as 0.
-    CHECK(operand(undefined, 1) == 0xFFFE);
-    CHECK(undefined.relocations.at(0).empty());
-    // A constant never moves, so it needs no relocation.
-    const auto constant = object_code("c:.EQUATE 5\nLDWA c + 1,i");
-    CHECK(operand(constant, 1) == 6);
-    CHECK(constant.relocations.at(0).empty());
+    CHECK(diagnostics("a:.BLOCK 1\nLDWA a,d\nLDWA a + 1,d\nLDWA 1 + a,d\nLDWA 1 + 2,d") == 0);
+    CHECK(diagnostics("a:.BLOCK 1\nLDWA a - 1,d\nm:.EQUATE 1 + 2") == 0);
+    CHECK(diagnostics("a:.BLOCK 1\nb:.BLOCK 1\nLDWA a + b,d") == 1);
+    CHECK(diagnostics("a:.BLOCK 1\nb:.BLOCK 1\nLDWA a - b,d") == 1);
+    CHECK(diagnostics("a:.BLOCK 1\nLDWA 1 - a,d") == 1); // A - S is not a valid relocation type.
+    // Constants are gathered first, so this reduces to constant + symbol.
+    CHECK(diagnostics("a:.BLOCK 1\nLDWA 1 + a - 4 * 3,d") == 0);
+    CHECK(diagnostics("a:.BLOCK 1\nLDWA (a + 1) * 2,d") == 1); // A scaled symbol cannot be relocated.
   }
 }
 

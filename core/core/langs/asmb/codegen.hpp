@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <list>
 #include <map>
 #include <numeric>
@@ -8,7 +9,6 @@
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_symbol.hpp"
 #include "core/compile/ir_value/expr.hpp"
-#include "core/compile/ir_value/expression.hpp"
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/symbol/entry.hpp"
 #include "core/compile/symbol/value.hpp"
@@ -323,26 +323,8 @@ struct SymbolOperand {
 
 using pepp::ast::contains_symbol;
 
-inline SymbolOperand classify_symbol_operand(pepp::ast::IRValue &value) {
-  using Kind = SymbolOperand::Kind;
-  using Op = pepp::ast::InfixExpression::Op;
-  if (auto *symbolic = dynamic_cast<pepp::ast::Symbolic *>(&value)) return {Kind::Offset, symbolic->symbol(), 0};
-  // Relocating an Expression is not supported yet; see the code generators.
-  if (dynamic_cast<pepp::ast::Expression *>(&value)) return {};
-  if (!contains_symbol(value)) return {};
-  auto *infix = dynamic_cast<pepp::ast::InfixExpression *>(&value);
-  const bool add = infix && infix->op() == Op::Addition, sub = infix && infix->op() == Op::Subtraction;
-  if ((add || sub) && infix->lhs() && infix->rhs()) {
-    auto &lhs = *infix->lhs(), &rhs = *infix->rhs();
-    // If LHS is a symbol, rhs must be a constant. Handles symbol - value and symbol + value
-    if (auto *symbolic = dynamic_cast<pepp::ast::Symbolic *>(&lhs); symbolic && !contains_symbol(rhs))
-      return {Kind::Offset, symbolic->symbol(), sub ? -rhs.value_as<i64>() : rhs.value_as<i64>()};
-    // If RHS is a symbol, lhs must be a constant. Handles value + symbol. value - symbol is forbidden.
-    if (auto *symbolic = dynamic_cast<pepp::ast::Symbolic *>(&rhs); add && symbolic && !contains_symbol(lhs))
-      return {Kind::Offset, symbolic->symbol(), lhs.value_as<i64>()};
-  }
-  return {Kind::Invalid};
-}
+// Determine the relocation type for a symbolic operand.
+SymbolOperand classify_symbol_operand(pepp::ast::IRValue &value);
 
 struct ProgramObjectCodeResult {
   IR2ObjectCodeMap ir_to_object_code;
