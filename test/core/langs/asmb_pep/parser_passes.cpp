@@ -109,10 +109,11 @@ TEST_CASE("Pepp ASM parser", "[scope:core][scope:core.langs][level:asmb3][level:
   }
   SECTION("Expression operands") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data("LDWA 5 - 3,i\nLDWA -3,i\nLDWA 0x10,i\nLDWA (7),i\nLDWA sym + 1,d"), std::make_shared<MR>());
+    auto p = Parser(data("LDWA 5 - 3,i\nLDWA -3,i\nLDWA 0x10,i\nLDWA (7),i\nLDWA sym + 1,d\nLDWA -0x10,i\nLDWA - 3,i"),
+                    std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
-    REQUIRE(results.size() == 5);
+    REQUIRE(results.size() == 7);
     const auto arg = [&](size_t index) {
       auto line = std::dynamic_pointer_cast<DyadicInstruction>(results[index]);
       REQUIRE(line);
@@ -134,6 +135,9 @@ TEST_CASE("Pepp ASM parser", "[scope:core][scope:core.langs][level:asmb3][level:
     // Symbols are referenced in the symbol table as they are parsed.
     CHECK(expression(4)->contains_symbols());
     CHECK(p.symbol_table()->exists("sym"));
+    // The lexer only signs a decimal written directly after its sign, so these are expressions.
+    CHECK(expression(5)->value_as<u16>() == 0xFFF0);
+    CHECK(expression(6)->value_as<i16>() == -3);
   }
   SECTION("Expressions evaluate symbols but onlt fold constants") {
     pepp::tc::DiagnosticTable diag;

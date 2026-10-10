@@ -48,10 +48,6 @@ struct PepParser {
 
 private:
   using OptionalSymbol = std::optional<std::shared_ptr<pepp::core::symbol::Entry>>;
-  // [+-] DECIMAL | DECIMAL | HEX. Returns nullptr and consumes nothing if the next token(s) is not an integer.
-  // Does not function like *_argument variants, which always consume argument() and potentially raise an error if the
-  // type does not match.
-  std::shared_ptr<pepp::ast::IRValue> argument_integer_helper();
   std::shared_ptr<pepp::ast::IRValue> argument();
   std::shared_ptr<pepp::ast::IRValue> expression();
   std::shared_ptr<pepp::ast::IRValue> expression_or_argument();

@@ -101,13 +101,10 @@ TEST_CASE("Assembly lexer", "[scope:core][scope:core.langs][level:asmb3][level:a
     CHECK(!l.input_remains());
   }
   SECTION("Arithmetic ops") {
-    // Operators are literals; the parser decides which are valid and whether +- are signs or infix operators.
     auto l = Lexer(idpool(), data("   *\n&  "), p10);
-    auto c = check_next(l, (int)CTT::Literal);
-    CHECK(c->to_string() == "*");
+    auto c = check_next(l, (int)CTT::Invalid);
     check_next(l, (int)CTT::Empty);
-    c = check_next(l, (int)CTT::Literal);
-    CHECK(c->to_string() == "&");
+    c = check_next(l, (int)CTT::Invalid);
     check_next(l, (int)CTT::Empty);
     CHECK(!l.input_remains());
   }
@@ -209,30 +206,29 @@ TEST_CASE("Assembly lexer", "[scope:core][scope:core.langs][level:asmb3][level:a
     CHECK(!l.input_remains());
   }
   SECTION("Positive decimal") {
-    // The sign is its own token; the digits that follow are an unsigned decimal.
     auto l = Lexer(idpool(), data("+0 +00 +000 +10 +65537"), p10);
-    for (const auto value : {0, 0, 0, 10, 65537}) {
-      check_next_string(l, (int)CTT::Literal, u"+"_s);
-      check_next_udec(l, value);
-    }
+    check_next_udec(l, 0);
+    check_next_udec(l, 0);
+    check_next_udec(l, 0);
+    check_next_udec(l, 10);
+    check_next_udec(l, 65537);
     check_next(l, (int)CTT::Empty);
     CHECK(!l.input_remains());
   }
   SECTION("Negative decimal") {
-    // Likewise, the parser (not the lexer) negates the digits that follow a minus.
     auto l = Lexer(idpool(), data("-0 -00 -000 -10 -65537"), p10);
-    for (const auto value : {0, 0, 0, 10, 65537}) {
-      check_next_string(l, (int)CTT::Literal, u"-"_s);
-      check_next_udec(l, value);
-    }
+    check_next_sdec(l, -0);
+    check_next_sdec(l, -0);
+    check_next_sdec(l, -0);
+    check_next_sdec(l, -10);
+    check_next_sdec(l, -65537);
     check_next(l, (int)CTT::Empty);
     CHECK(!l.input_remains());
   }
 
   SECTION("Sign needs digit") {
-    // A bare sign lexes fine; rejecting it is the parser's job.
     auto l = Lexer(idpool(), data("- "), p10);
-    check_next_string(l, (int)CTT::Literal, u"-"_s);
+    check_next(l, (int)CTT::Invalid);
     check_next(l, (int)CTT::Empty);
     CHECK(!l.input_remains());
   }

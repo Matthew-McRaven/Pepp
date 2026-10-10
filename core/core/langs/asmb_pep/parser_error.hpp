@@ -14,7 +14,6 @@ class PepParserError final : public std::logic_error {
 public:
   enum class NullaryError {
     Argument_InvalidIntegerFormat,
-    Argument_InvalidOperator,
     Argument_SymbolicEquate,
     Argument_Exceeded2Bytes,
     Argument_Exceeded1Byte,

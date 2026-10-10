@@ -163,8 +163,7 @@ TEST_CASE("Pepp ASM parser errors",
       std::string message;
     };
     const std::vector<Case> cases = {
-        {"\nadda *3,i", PE::to_string(NullaryError::Argument_InvalidOperator)}, // only + and - may prefix an integer
-        {"\nadda -0x10,i", PE::to_string(NullaryError::Argument_InvalidIntegerFormat)}, // only a decimal may be signed
+        {"\nadda *3,i", PE::to_string(NullaryError::Argument_Missing)}, // * cannot start an operand
         {"\nadda -,i", PE::to_string(UnaryError::Expression_Invalid, "Expected an operand")},
         {"\nadda 1 + ,i", PE::to_string(UnaryError::Expression_Invalid, "Expected an operand")},
         {"\nadda 1 / 0,i", PE::to_string(UnaryError::Expression_Invalid, "Division by zero")}, // Constant expression
