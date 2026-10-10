@@ -154,23 +154,8 @@ IRMemoryAddressTable<Address> assign_addresses(std::vector<std::pair<SectionDesc
         base_address = std::static_pointer_cast<DotOrg>(line)->argument.value->template value_as<u16>();
         symbol_base = next_base = base_address;
         break;
-      case (int)Type::DotEquate: {
-        auto as_equate = std::static_pointer_cast<DotEquate>(line);
-        auto symbol = as_equate->symbol.entry;
-        auto argument = as_equate->argument.value;
-        // Re-use from previous assembler
-        if (auto symbolic = dynamic_cast<pepp::ast::Symbolic *>(&*argument); symbolic != nullptr) {
-          auto other = symbolic->symbol();
-          symbol->value = std::make_shared<pepp::core::symbol::AliasValue>(sizeof(addr_t), other);
-        } else {
-          auto masked_bits = bits::MaskedBits{.byteCount = sizeof(addr_t), .bitPattern = 0, .mask = MODULUS - 1};
-          (void)argument->serialize(
-              bits::span<u8>{reinterpret_cast<u8 *>(&masked_bits.bitPattern), masked_bits.byteCount},
-              bits::hostOrder());
-          symbol->value = std::make_shared<pepp::core::symbol::ConstantValue>(masked_bits);
-        }
-        continue; // Must resume loop early, or symbol will be clobbered below.
-      }
+      // The parser values an equate's symbol, which must not be clobbered with an address below.
+      case (int)Type::DotEquate: continue;
       default: break;
       }
 

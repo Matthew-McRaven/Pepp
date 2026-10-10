@@ -270,6 +270,18 @@ TEST_CASE("Pepp ASM parser dot commands",
     REQUIRE(results.size() == 1);
     CHECK(std::dynamic_pointer_cast<DotEquate>(results[0]));
   }
+  SECTION(".EQUATE may be used in a later .EQUATE's expression") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data("a: .EQUATE 2\nb: .EQUATE a * 3 + 1\nc: .EQUATE b"), std::make_shared<MR>());
+    (void)p.parse(diag);
+    CHECK(diag.count() == 0);
+    const auto value = [&](const char *name) {
+      auto masked = p.symbol_table()->get(name).value()->value->value();
+      return masked();
+    };
+    CHECK(value("b") == 7);
+    CHECK(value("c") == 7);
+  }
 
   SECTION(".EXPORT") {
     pepp::tc::DiagnosticTable diag;

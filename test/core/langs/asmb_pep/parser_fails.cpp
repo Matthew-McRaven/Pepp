@@ -179,10 +179,10 @@ TEST_CASE("Pepp ASM parser errors",
       CHECK(start->second == c.message);
     }
   }
-  SECTION(".EQUATE rejects symbols") {
-    // Rather than deal with the possibility of loops / forward declarations on symbol values, forbid symbols used as an
-    // argument.
-    for (const char *source : {"\nx: .EQUATE y", "\nx: .EQUATE y + 1", "\nx: .EQUATE 1 - y"}) {
+  SECTION(".EQUATE only references .EQUATEs defined before it") {
+    // Equates are assigned values during parsing, eliminating loops, forward references, and labels' unknown addresses.
+    for (const char *source : {"\nx: .EQUATE y", "\nx: .EQUATE y + 1", "\nx: .EQUATE 1 - y", "\nx: .EQUATE x + 1",
+                               "\nx: .EQUATE y\ny: .EQUATE 1", "l: .BLOCK 1\nx: .EQUATE l + 1"}) {
       CAPTURE(source);
       pepp::tc::DiagnosticTable diag;
       auto p = Parser(data(source), std::make_shared<MR>());

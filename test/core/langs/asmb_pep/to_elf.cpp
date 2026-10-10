@@ -455,8 +455,8 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     CHECK(diagnostics("a:.BLOCK 1\nb:.BLOCK 1\nLDWA a + b,d") == 1);
     CHECK(diagnostics("a:.BLOCK 1\nb:.BLOCK 1\nLDWA a - b,d") == 1);
     CHECK(diagnostics("a:.BLOCK 1\nLDWA 1 - a,d") == 1); // A - S is not a valid relocation type.
-    // Constants are gathered first, so this reduces to constant + symbol.
-    CHECK(diagnostics("a:.BLOCK 1\nLDWA 1 + a - 4 * 3,d") == 0);
+    // Constants, including equates, are gathered first, so this reduces to constant + symbol.
+    CHECK(diagnostics("k:.EQUATE 4\na:.BLOCK 1\nLDWA 1 + a - k * 3,d") == 0);
     CHECK(diagnostics("a:.BLOCK 1\nLDWA (a + 1) * 2,d") == 1); // A scaled symbol cannot be relocated.
   }
 }
