@@ -67,6 +67,8 @@ public:
   // If name not already defined, creates a new, singly-defined symbol entry.
   // Otherwise, modifies the existing symbol to be multiply-defined.
   entry_ptr_t define(std::string_view name) noexcept;
+  // Create a symbol for one line's location counter (`.`)
+  entry_ptr_t location_counter() noexcept;
   // Unlike reference, will return nullopt if symbol not found.
   std::optional<entry_ptr_t> get(std::string_view name) const noexcept;
   // Returns true if this table contains the matching symbol.
@@ -90,13 +92,19 @@ private:
   map_t _entries;
   // Creation order for symbols.
   std::vector<bts::PooledString> _created;
+  u32 _location_counters = 0;
 };
+
+// True if the symbol is a line's location counter, which is internal to the assembler.
+bool is_location_counter(const Entry &entry) noexcept;
 
 // For each symbol in the table, whose "base" is >= threshold, increment its "offset".
 void increment_offset(LeafTable &table, u64 offset, u64 threshold = 0) noexcept;
 void set_offset(LeafTable &table, u64 offset, u64 threshold = 0) noexcept;
-// Create a vector of all symbols within this table.
+// Fill a vector with all symbols within this table excluding location counters.
 void enumerate(LeafTable const &table, std::vector<std::shared_ptr<Entry>> &out);
+// As above, including location counters (e.g., for debugging).
+void enumerate_all(LeafTable const &table, std::vector<std::shared_ptr<Entry>> &out);
 // Create a string representation of a symbol table
 std::string table_listing(LeafTable const &table, u8 max_bytes);
 

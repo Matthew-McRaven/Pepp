@@ -70,6 +70,13 @@ pepp::core::symbol::LeafTable::entry_ptr_t pepp::core::symbol::LeafTable::define
   return entry;
 }
 
+pepp::core::symbol::LeafTable::entry_ptr_t pepp::core::symbol::LeafTable::location_counter() noexcept {
+  auto entry = define(fmt::format("<.{}>", _location_counters++));
+  entry->value = std::make_shared<LocationValue>(0, _pointer_size, 0, 0, Type::LocationCounter);
+  entry->visibility = Visibility::Protected;
+  return entry;
+}
+
 std::optional<pepp::core::symbol::LeafTable::entry_ptr_t>
 pepp::core::symbol::LeafTable::get(std::string_view name) const noexcept {
   if (auto pooled = _pool->find(name); !pooled) return std::nullopt;
@@ -105,6 +112,11 @@ void pepp::core::symbol::set_offset(LeafTable &table, u64 offset, u64 threshold)
 }
 
 void pepp::core::symbol::enumerate(const LeafTable &table, std::vector<std::shared_ptr<Entry>> &out) {
+  for (const auto &[_, entry] : table.entries())
+    if (!is_location_counter(*entry)) out.push_back(entry);
+}
+
+void pepp::core::symbol::enumerate_all(const LeafTable &table, std::vector<std::shared_ptr<Entry>> &out) {
   for (const auto &[_, entry] : table.entries()) out.push_back(entry);
 }
 
@@ -128,4 +140,8 @@ std::string pepp::core::symbol::table_listing(const LeafTable &table, u8 max_byt
   // The last entry was on the left, but we did not append a newline. Explicit insert newline to fix #399
   if (!lhs) ss << std::endl;
   return ss.str();
+}
+
+bool pepp::core::symbol::is_location_counter(const Entry &entry) noexcept {
+  return entry.value && entry.value->type() == Type::LocationCounter;
 }
