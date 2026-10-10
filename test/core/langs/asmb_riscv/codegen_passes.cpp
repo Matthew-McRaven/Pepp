@@ -85,6 +85,9 @@ TEST_CASE("RISCV ASM code generator",
     };
     // The j at 0x104 targets 0x108, which is 4 bytes ahead.
     CHECK(jump("nop\nj target\ntarget: nop") == jump("nop\nj 4\nnop"));
+    // . jumps to self
+    CHECK(jump("nop\nj .") == jump("nop\nj 0"));
+    CHECK(jump("nop\nl: j . + 4\nnop") == jump("nop\nj 4\nnop"));
   }
 }
 

@@ -79,6 +79,8 @@ pepp::tc::RISCVSectionAnalysisResults pepp::tc::riscv_split_to_sections(Diagnost
       // Symbols need to know their defining section to enable relocations.
       symbol_attr->entry->section_index = active->first.section_index;
     }
+    if (auto counter = line->typed_attribute<LocationCounterDeclaration>(); counter)
+      counter->entry->section_index = active->first.section_index;
 
     active->second.emplace_back(line);
   }

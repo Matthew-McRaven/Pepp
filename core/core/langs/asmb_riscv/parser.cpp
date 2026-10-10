@@ -20,6 +20,19 @@
 #include "core/math/bitmanip/mask.hpp"
 #include "core/math/bitmanip/strings.hpp"
 
+namespace {
+constexpr pepp::tc::expr::Features features{.dot = pepp::tc::expr::Features::Dot::Identifier};
+
+// Re-use existing location counter for this line if possible.
+pepp::tc::expr::NameLocationCounter resolve_location_counter(pepp::core::symbol::LeafTable &symtab,
+                                                             std::shared_ptr<pepp::core::symbol::Entry> &counter) {
+  return [&symtab, &counter] {
+    if (!counter) counter = symtab.location_counter();
+    return std::string{counter->name};
+  };
+}
+} // namespace
+
 pepp::tc::parser::RISCVParser::RISCVParser(support::SeekableData &&data)
     : _pool(std::make_shared<std::unordered_set<std::string>>()),
       _lexer(std::make_shared<langs::RISCVLexer>(_pool, std::move(data))),
@@ -47,8 +60,10 @@ std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::RISCVParser::argument() {
   constexpr auto invalid = [](const expr::Error &error) {
     return RISCVParserError(RISCVParserError::UnaryError::Expression_Invalid, error.message, error.location);
   };
+  const auto location_counter = resolve_location_counter(*_symtab, _location_counter);
 
-  if (const auto expr = parse_expression(*_buffer, *_lexer, _pool); !expr) throw invalid(expr.error());
+  if (const auto expr = parse_expression(*_buffer, *_lexer, _pool, features, location_counter); !expr)
+    throw invalid(expr.error());
   else if (*expr) {
     if (const auto value = lower(**expr, _symtab, options, 4); !value) throw invalid(value.error());
     else return *value;
@@ -166,12 +181,14 @@ std::vector<pepp::tc::parser::RISCVOperand> pepp::tc::parser::RISCVParser::mnemo
   constexpr auto invalid = [](const expr::Error &error) {
     return RISCVParserError(RISCVParserError::UnaryError::Expression_Invalid, error.message, error.location);
   };
+  const auto location_counter = resolve_location_counter(*_symtab, _location_counter);
   std::vector<RISCVOperand> ret;
   bool comma = false;
   // Try an expression before a comma, so that the lexer never lexes an operand's text. An operand may also follow the
   // previous one without a comma, as (x3) does in 0(x3).
   while (true) {
-    if (const auto expr = parse_expression(*_buffer, *_lexer, _pool); !expr) throw invalid(expr.error());
+    if (const auto expr = parse_expression(*_buffer, *_lexer, _pool, features, location_counter); !expr)
+      throw invalid(expr.error());
     else if (*expr) ret.push_back({*expr, std::exchange(comma, false)});
     else if (!comma && _buffer->match_literal(",")) comma = true;
     else break;
@@ -449,6 +466,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::pseudo(Option
 }
 
 std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::line(OptionalSymbol symbol) {
+  _location_counter = nullptr;
   std::shared_ptr<pepp::tc::LinearIR> ret = nullptr;
   if (auto instr = instruction(); instr) ret = instr;
   else if (auto dot = pseudo(symbol); dot) ret = dot;
@@ -459,6 +477,10 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::line(Optional
 
   // Avoid re-attaching existing symbol declaration (e.g., .EQUATE in pseudo).
   if (symbol && !ret->has_attribute<SymbolDeclaration>()) ret->insert(std::make_unique<SymbolDeclaration>(*symbol));
+  if (_location_counter) { // If the line declared a symbol, alias the location counter to it.
+    if (symbol) _location_counter->value = std::make_shared<core::symbol::AliasValue>(4, *symbol);
+    ret->insert(std::make_unique<LocationCounterDeclaration>(_location_counter));
+  }
   return ret;
 }
 

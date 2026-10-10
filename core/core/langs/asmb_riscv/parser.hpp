@@ -81,6 +81,8 @@ private:
   std::shared_ptr<pepp::langs::RISCVLexer> _lexer;
   std::shared_ptr<lex::Buffer> _buffer;
   std::shared_ptr<pepp::core::symbol::LeafTable> _symtab;
+  // The location counter (`.`) of the line being parsed, created on first use.
+  std::shared_ptr<pepp::core::symbol::Entry> _location_counter;
 };
 } // namespace parser
 } // namespace tc
