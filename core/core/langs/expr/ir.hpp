@@ -22,6 +22,7 @@
 #include <variant>
 #include <vector>
 #include "core/integers.h"
+#include "core/langs/expr/features.hpp"
 #include "core/langs/expr/value.hpp"
 #include "core/math/bitmanip/enums.hpp"
 
@@ -69,8 +70,11 @@ enum class Kind : u32 {
   LocationCounter = Identifier << 1,
   FoldedConstant = LocationCounter << 1,
   Parens = FoldedConstant << 1,
+  // A call to a function.
+  ConstExprCall = Parens << 1,
+  NonConstExprCall = ConstExprCall << 1,
   // UnaryOp in declaration order.
-  UnaryStart = Parens << 1,
+  UnaryStart = NonConstExprCall << 1,
   Plus = UnaryStart,
   Minus = Plus << 1,
   BitNot = Minus << 1,
@@ -102,6 +106,7 @@ enum class Kind : u32 {
   Constant = Integer | Character | FoldedConstant,
   // Values which are not known until the program is laid out.
   Symbolic = Identifier | LocationCounter,
+  AnyCall = ConstExprCall | NonConstExprCall,
   AnyUnary = (UnaryLast << 1) - UnaryStart,
   AnyBinary = (BinaryLast << 1) - BinaryStart,
   Any = (End << 1) - 1,
@@ -122,7 +127,8 @@ static_assert(bits::to_underlying(Kind::Any) ==
                   (bits::to_underlying(Kind::Integer) | bits::to_underlying(Kind::Character) |
                    bits::to_underlying(Kind::Identifier) | bits::to_underlying(Kind::LocationCounter) |
                    bits::to_underlying(Kind::FoldedConstant) |
-                   bits::to_underlying(Kind::Parens) | bits::to_underlying(Kind::AnyUnary) | bits::to_underlying(Kind::AnyBinary)),
+                   bits::to_underlying(Kind::Parens) | bits::to_underlying(Kind::AnyCall) |
+                   bits::to_underlying(Kind::AnyUnary) | bits::to_underlying(Kind::AnyBinary)),
               "Kind's masks must cover every kind exactly");
 
 struct Integer {
@@ -166,6 +172,13 @@ struct Parens {
   NodeId inner;
 };
 
+// A call to a function defined in Features, e.g. %hi(sym).
+struct Call {
+  static constexpr Kind KIND = Kind::AnyCall;
+  const Function *function;
+  NodeId argument;
+};
+
 struct Unary {
   static constexpr Kind KIND = Kind::AnyUnary;
   UnaryOp op;
@@ -178,7 +191,8 @@ struct Binary {
   NodeId lhs, rhs;
 };
 
-using Node = std::variant<Integer, Character, Identifier, LocationCounter, FoldedConstant, Parens, Unary, Binary>;
+using Node = std::variant<Integer, Character, Identifier, LocationCounter, FoldedConstant, Parens, Call, Unary,
+                          Binary>;
 Kind kind(const Node &node);
 
 // A syntax tree of nodes stored in a postordered, flat vector. Nodes refer to each other by index. By definition,
@@ -221,7 +235,7 @@ std::string to_infix(const Tree &tree);
 // A copy of the tree without explicit Parens nodes.
 Tree strip_parens(const Tree &tree);
 
-// Tree contains only constants and operations over constants.
+// Tree whose leaf nodes are constants and interior nodes that are constexpr operators or functions.
 bool is_constant_expression(const Tree &tree);
 // True if the tree uses the location counter (`.`).
 bool uses_location_counter(const Tree &tree);

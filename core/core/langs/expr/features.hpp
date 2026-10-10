@@ -14,9 +14,33 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #pragma once
+#include <expected>
+#include <span>
+#include <string>
+#include <string_view>
 #include "core/integers.h"
+#include "core/langs/expr/value.hpp"
 
 namespace pepp::tc::expr {
+
+// How a language reads its expressions.
+struct Options {
+  // Width of the target's int
+  u8 int_bits = 32;
+  // By default, should bits be intepreted as signed or unsigned quantities?
+  Signedness default_sign = Signedness::Signed;
+};
+
+// Unary functions such as RISC-V %hi(sym).
+struct Function {
+  std::string_view name;
+  // Constexpr functions depend only on their argument, and are eligible for constant folding.
+  // Non-constexpr functions do not yet an evaluation path yet, but depend on the execution environment.
+  std::expected<Value, std::string> (*evaluate)(Value argument, const Options &options) = nullptr;
+  // The type of the result, given the argument's.
+  Type (*result_type)(Type argument, const Options &options) = nullptr;
+  constexpr bool is_constexpr() const { return evaluate != nullptr; }
+};
 
 // Grammar which varies between the languages sharing this parser.
 struct Features {
@@ -26,6 +50,10 @@ struct Features {
     Identifier, // The location counter. TODO: also allowed in identifiers, e.g., .L1 (a GNU local symbol).
     Operator,   // Member access (e.g., the debugger's a.b). Not implemented yet.
   } dot = Dot::Forbidden;
+  // Lex %name as an identifier, which must then name a function (e.g., RISC-V's %hi). Otherwise, % is modulo.
+  bool percent_identifiers = false;
+  // Functions that should be recognized by the language.
+  std::span<const Function> functions;
 };
 
 } // namespace pepp::tc::expr

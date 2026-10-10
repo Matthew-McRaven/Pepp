@@ -14,6 +14,7 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "core/langs/expr/parser.hpp"
+#include <algorithm>
 #include <optional>
 #include "core/compile/lex/buffer.hpp"
 #include "core/compile/lex/tokens.hpp"
@@ -99,7 +100,12 @@ private:
       return add(Character{*value, character->value}, character->location());
     } else if (auto identifier = _buf.match<lex::Identifier>(); identifier) {
       consume(identifier);
-      return add(Identifier{std::string(identifier->view())}, identifier->location());
+      const auto name = identifier->view();
+      const auto function = std::ranges::find(_features.functions, name, &Function::name);
+      if (function != _features.functions.end()) return call(*function, identifier->location());
+      // Only functions may be named with a %.
+      else if (name.starts_with('%')) throw Failure{identifier->location(), "Unknown function " + std::string(name)};
+      return add(Identifier{std::string(name)}, identifier->location());
     } else if (_features.dot == Features::Dot::Identifier && _buf.peek_literal(".")) {
       const auto dot = _buf.match_literal(".");
       consume(dot);
@@ -115,6 +121,18 @@ private:
       return add(Parens{*inner}, LocationInterval(open->location().lower(), close->location().upper()));
     }
     return std::nullopt;
+  }
+
+  // <function> ( <expression> )
+  NodeId call(const Function &function, LocationInterval name) {
+    if (!_buf.peek_literal("(")) throw Failure{_buf.peek()->location(), "Expected '('"};
+    consume(_buf.match_literal("("));
+    const auto argument = expression(0);
+    if (!argument) expected_operand();
+    if (!_buf.peek_literal(")")) throw Failure{_buf.peek()->location(), "Expected ')'"};
+    const auto close = _buf.match_literal(")");
+    consume(close);
+    return add(Call{&function, *argument}, LocationInterval(name.lower(), close->location().upper()));
   }
 
   // All . in the same expression refer to the same symbol.

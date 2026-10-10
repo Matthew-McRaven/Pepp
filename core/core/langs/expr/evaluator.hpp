@@ -21,6 +21,7 @@
 #include <vector>
 #include "core/integers.h"
 #include "core/langs/expr/error.hpp"
+#include "core/langs/expr/features.hpp"
 #include "core/langs/expr/ir.hpp"
 #include "core/langs/expr/value.hpp"
 
@@ -30,13 +31,6 @@
 // signedness is used. C's integer promotion and arithmetic rules apply when operands have different widths or
 // signedness. All arithmetic occurs mod(2^size).
 namespace pepp::tc::expr {
-
-struct Options {
-  // Width of the target's int
-  u8 int_bits = 32;
-  // By default, should bits be intepreted as signed or unsigned quantities?
-  Signedness default_sign = Signedness::Signed;
-};
 
 // Evaluate integer constants
 Value literal(const Integer &integer, const Options &options);

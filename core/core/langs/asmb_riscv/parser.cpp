@@ -1,4 +1,6 @@
 #include "core/langs/asmb_riscv/parser.hpp"
+#include <array>
+#include <expected>
 #include <utility>
 #include "core/arch/riscv/isa/rv_instruction_list.hpp"
 #include "core/compile/ir_linear/attr_symbol.hpp"
@@ -21,7 +23,36 @@
 #include "core/math/bitmanip/strings.hpp"
 
 namespace {
-constexpr pepp::tc::expr::Features features{.dot = pepp::tc::expr::Features::Dot::Identifier};
+namespace expr = pepp::tc::expr;
+
+// The upper 20 bits shifted into the lower 20 bits. Must add +0x800.
+// e.g., 0x12345FFF. Without addition, lo=0xFFF, hi=x012345000
+// lo is sign extend to 0xFFFF'FFFF, so a lui/addi pair would compute 12344FFF
+// So we need to round hi up when lo is negative (bit 11 / 0x800)is set.
+std::expected<expr::Value, std::string> hi20(expr::Value x, const expr::Options &) {
+  return expr::Value{(((x.bits & 0xFFFF'FFFF) + 0x800) >> 12) & 0xF'FFFF, {32, expr::Signedness::Unsigned}};
+}
+expr::Type hi_type(expr::Type, const expr::Options &) { return {32, expr::Signedness::Unsigned}; }
+
+// Sign-extended lower 12 bits.
+std::expected<expr::Value, std::string> lo12(expr::Value x, const expr::Options &) {
+  // branch-free sign extension of 12-bit quantity to 32-bits.
+  const auto sign_extended = (((x.bits & 0xFFF) ^ 0x800) - 0x800);
+  return expr::Value{sign_extended & 0xFFFF'FFFF, {32, expr::Signedness::Signed}};
+}
+expr::Type lo_type(expr::Type, const expr::Options &) { return {32, expr::Signedness::Signed}; }
+
+// Currently implemented relocation modifiers
+constexpr std::array<expr::Function, 4> functions{{
+    {"%hi", hi20, hi_type},
+    {"%lo", lo12, lo_type},
+    {"%pcrel_hi", nullptr, hi_type},
+    {"%pcrel_lo", nullptr, lo_type},
+}};
+
+// `.` is the location counter, and %name a relocation modifier.
+constexpr expr::Features features{
+    .dot = expr::Features::Dot::Identifier, .percent_identifiers = true, .functions = functions};
 
 // Re-use existing location counter for this line if possible.
 pepp::tc::expr::NameLocationCounter resolve_location_counter(pepp::core::symbol::LeafTable &symtab,

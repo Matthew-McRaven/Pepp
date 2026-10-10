@@ -15,6 +15,8 @@
  */
 #include "core/langs/expr/parser.hpp"
 #include <catch.hpp>
+#include <array>
+#include <expected>
 #include <limits>
 #include <string>
 
@@ -22,6 +24,11 @@ namespace {
 using namespace pepp::tc::expr;
 using pepp::tc::expr::Integer;
 using pepp::tc::support::Location;
+
+// One constexpr and one contextual function, which take the argument's type.
+std::expected<Value, std::string> twice(Value x, const Options &) { return Value{x.bits * 2, x.type}; }
+Type same(Type type, const Options &) { return type; }
+constexpr std::array<Function, 2> functions{{{"%twice", twice, same}, {"%where", nullptr, same}}};
 
 Parsed parsed(const ParseResult &result) {
   REQUIRE(std::holds_alternative<Parsed>(result));
@@ -158,6 +165,21 @@ TEST_CASE("Expression parser", "[scope:core][scope:core.langs][kind:unit][arch:*
     const auto member = parse("a.b", Location(0, 0), nullptr, {Dot::Operator});
     REQUIRE(std::holds_alternative<Error>(member));
     CHECK(std::get<Error>(member).message == "Member access is not implemented");
+  }
+  SECTION("Function calls") {
+    const Features features{.percent_identifiers = true, .functions = functions};
+    const auto call = [&](const char *source) { return parse(source, Location(0, 0), nullptr, features); };
+    const auto &tree = parsed(call("%twice(1 + 2) * 3")).tree;
+    CHECK(to_postfix(tree) == "1 2 + %twice 3 *");
+    CHECK(to_infix(tree) == "%twice(1 + 2) * 3");
+    CHECK(tree.kinds()[3] == Kind::ConstExprCall);
+    CHECK(parsed(call("%where(x)")).tree.kinds()[1] == Kind::NonConstExprCall);
+    // Identifiers with % must be functions
+    const auto unknown = call("%nope(1)"), uncalled = call("%twice 1");
+    REQUIRE(std::holds_alternative<Error>(unknown));
+    CHECK(std::get<Error>(unknown).message == "Unknown function %nope");
+    REQUIRE(std::holds_alternative<Error>(uncalled));
+    CHECK(std::get<Error>(uncalled).message == "Expected '('");
   }
   SECTION("Consume no input if the text does not start with an expression") {
     for (const char *source :

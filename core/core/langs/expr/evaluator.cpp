@@ -128,7 +128,12 @@ Result evaluate(const Tree &tree, NodeId id, const Options &options, const Value
       if (auto value = value_of ? value_of(Identifier{n.name}) : std::nullopt) return *value;
       return fail("The location counter has no value");
     } else if constexpr (std::is_same_v<T, Parens>) return evaluate(tree, n.inner, options, value_of);
-    else if constexpr (std::is_same_v<T, Unary>) {
+    else if constexpr (std::is_same_v<T, Call>) {
+      if (!n.function->is_constexpr()) return fail(std::string(n.function->name) + " cannot be evaluated here");
+      else if (const auto argument = evaluate(tree, n.argument, options, value_of); !argument) return argument;
+      else if (auto ret = n.function->evaluate(*argument, options); ret) return *ret;
+      else return fail(ret.error());
+    } else if constexpr (std::is_same_v<T, Unary>) {
       if (const auto operand = evaluate(tree, n.operand, options, value_of); !operand) return operand;
       else if (auto ret = apply(n.op, *operand, options); ret) return *ret;
       else return fail(ret.error());
@@ -236,6 +241,11 @@ pepp::tc::expr::constant_values(const Tree &tree, const Options &options, const 
     else if constexpr (std::is_same_v<T, Identifier>) return constant_of ? constant_of(n) : std::nullopt;
     else if constexpr (std::is_same_v<T, LocationCounter>) return std::nullopt;
     else if constexpr (std::is_same_v<T, Parens>) return values[n.inner];
+    // A constexpr call is constant when its argument is.
+    else if constexpr (std::is_same_v<T, Call>) {
+      if (!n.function->is_constexpr() || !values[n.argument]) return std::nullopt;
+      return known(n.function->evaluate(*values[n.argument], options));
+    }
     else if constexpr (std::is_same_v<T, Unary>) {
       if (!values[n.operand]) return std::nullopt;
       return known(apply(n.op, *values[n.operand], options));
@@ -261,6 +271,7 @@ std::vector<pepp::tc::expr::Type> pepp::tc::expr::node_types(const Tree &tree, c
       return type_of(n);
     } else if constexpr (std::is_same_v<T, LocationCounter>) return type_of(Identifier{n.name});
     else if constexpr (std::is_same_v<T, Parens>) return types[n.inner];
+    else if constexpr (std::is_same_v<T, Call>) return n.function->result_type(types[n.argument], options);
     else if constexpr (std::is_same_v<T, Unary>) return result_type(n.op, types[n.operand], options);
     else return result_type(n.op, types[n.lhs], types[n.rhs], options);
   };

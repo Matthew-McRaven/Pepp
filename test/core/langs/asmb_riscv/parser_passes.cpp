@@ -164,6 +164,20 @@ TEST_CASE("RISCV ASM parser", "[scope:core][scope:core.langs][level:asmb3][level
     CHECK(!p.symbol_table()->exists("x3"));
     CHECK(!p.symbol_table()->exists("x1"));
   }
+  SECTION("Relocation modifiers") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data("lui x1, %hi(0x12345FFF)\naddi x1, x1, %lo(0x12345FFF)"));
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 2);
+    // %hi rounds up, since %lo's lower 12 bits are sign-extended: 0x12346000 - 1 == 0x12345FFF.
+    CHECK(std::dynamic_pointer_cast<IntegerInstruction>(results[0])->imm->value_as<u32>() == 0x12346);
+    CHECK(std::dynamic_pointer_cast<IntegerInstruction>(results[1])->imm->value_as<i32>() == -1);
+    // Only the known modifiers may be named with a %.
+    pepp::tc::DiagnosticTable unknown;
+    (void)Parser(data("addi x1, x1, %nope(1)")).parse(unknown);
+    CHECK(unknown.count() == 1);
+  }
   SECTION("Constant expressions are checked as they are parsed") {
     pepp::tc::DiagnosticTable diag;
     auto p = Parser(data("addi x1, x2, 1 / 0"));

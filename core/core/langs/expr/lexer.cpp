@@ -30,7 +30,10 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::expr::ExpressionLexer::next_toke
   using Integer = pepp::tc::lex::Integer;
   using LocationInterval = support::LocationInterval;
   using Dot = Features::Dot;
-  static const std::regex identifier("[a-zA-Z_][a-zA-Z0-9_]*");
+  static const std::regex plain_identifier("[a-zA-Z_][a-zA-Z0-9_]*");
+  // A function name such as %hi. The parser rejects any which is not a function.
+  static const std::regex percent_identifier("%?[a-zA-Z_][a-zA-Z0-9_]*");
+  const auto &identifier = _features.percent_identifiers ? percent_identifier : plain_identifier;
   static const std::regex decimal("[0-9]+");
   static const std::regex hexadecimal("0[xX][0-9a-fA-F]+");
   static const std::regex badHex("0[xX]");

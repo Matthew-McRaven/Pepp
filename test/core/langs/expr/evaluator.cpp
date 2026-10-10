@@ -15,6 +15,7 @@
  */
 #include "core/langs/expr/evaluator.hpp"
 #include <catch.hpp>
+#include <array>
 #include <limits>
 #include <vector>
 #include "core/langs/expr/parser.hpp"
@@ -22,6 +23,11 @@
 namespace {
 using namespace pepp::tc::expr;
 using enum Signedness;
+
+// One constexpr and one  non-constexpr function which preserve argument's types.
+std::expected<Value, std::string> twice(Value x, const Options &) { return Value{x.bits * 2, x.type}; }
+Type same(Type type, const Options &) { return type; }
+constexpr std::array<Function, 2> functions{{{"%twice", twice, same}, {"%where", nullptr, same}}};
 
 Tree tree_of(const char *source) {
   auto result = parse(source);
@@ -126,6 +132,22 @@ TEST_CASE("Expression evaluation", "[scope:core][scope:core.langs][kind:unit][ar
     REQUIRE(!empty.has_value());
     CHECK(!empty.error().node.has_value());
     CHECK(empty.error().message == "Empty expression");
+  }
+  SECTION("Function calls") {
+    const auto call = [](const char *source) {
+      auto result = parse(source, pepp::tc::support::Location(0, 0), nullptr,
+                          Features{.percent_identifiers = true, .functions = functions});
+      REQUIRE(std::holds_alternative<Parsed>(result));
+      return std::get<Parsed>(std::move(result)).tree;
+    };
+    // A constexpr call is evaluated, and folded, like an operator.
+    CHECK(evaluate_expression(call("%twice(3) + 1"), pep).value() == Value{7, {16, Bits}});
+    CHECK(to_postfix(fold_constants(call("%twice(3) + sym"), pep)) == "6 sym +");
+    CHECK(is_constant_expression(call("%twice(3)")));
+    // A  non-constexpr call depends on where it is used, so it is never evaluated.
+    CHECK(evaluate_expression(call("%where(3)"), pep).error().message == "%where cannot be evaluated here");
+    CHECK(to_postfix(fold_constants(call("%where(3)"), pep)) == "3 %where");
+    CHECK(!is_constant_expression(call("%where(3)")));
   }
   SECTION("Symbols") {
     const ValueOf value_of = [](const Identifier &id) -> std::optional<Value> {

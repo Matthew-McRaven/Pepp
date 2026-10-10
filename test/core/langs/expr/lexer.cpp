@@ -62,6 +62,13 @@ TEST_CASE("Expression lexer", "[scope:core][scope:core.langs][kind:unit][arch:*]
     // As an operator
     CHECK(reprs("a.b", {Dot::Operator}) == V{"Identifier(a)", "Literal(.)", "Identifier(b)", "EoF()"});
   }
+  SECTION("% may start an identifier depending on lexer options") {
+    CHECK(reprs("%hi a%b", {.percent_identifiers = true}) ==
+          V{"Identifier(%hi)", "Identifier(a)", "Identifier(%b)", "EoF()"});
+    // When free standing or percent is not in identifiers, % is a literal
+    CHECK(reprs("%hi a % b") ==
+          V{"Literal(%)", "Identifier(hi)", "Identifier(a)", "Literal(%)", "Identifier(b)", "EoF()"});
+  }
   SECTION("Various integers") {
     CHECK(reprs("0 42 0x1F 0XfF") == V{"Integer(0)", "Integer(42)", "Integer(0x1F)", "Integer(0xFF)", "EoF()"});
     CHECK(reprs("18446744073709551615 0xFFFFFFFFFFFFFFFF") ==
