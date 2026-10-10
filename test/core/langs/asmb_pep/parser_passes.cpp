@@ -135,9 +135,10 @@ TEST_CASE("Pepp ASM parser", "[scope:core][scope:core.langs][level:asmb3][level:
     // Symbols are referenced in the symbol table as they are parsed.
     CHECK(expression(4)->contains_symbols());
     CHECK(p.symbol_table()->exists("sym"));
-    // The lexer only signs a decimal written directly after its sign, so these are expressions.
+    // Only a sign over a decimal lowers to a SignedDecimal, whether or not it is spaced.
     CHECK(expression(5)->value_as<u16>() == 0xFFF0);
-    CHECK(expression(6)->value_as<i16>() == -3);
+    CHECK(std::dynamic_pointer_cast<pepp::ast::SignedDecimal>(arg(6)));
+    CHECK(arg(6)->value_as<i16>() == -3);
   }
   SECTION("Expressions evaluate symbols but onlt fold constants") {
     pepp::tc::DiagnosticTable diag;

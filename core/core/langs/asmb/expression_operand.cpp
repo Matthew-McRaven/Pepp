@@ -14,8 +14,11 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "core/langs/asmb/expression_operand.hpp"
+#include <array>
 #include "core/compile/ir_value/expression.hpp"
+#include "core/compile/ir_value/numeric.hpp"
 #include "core/compile/ir_value/symbolic.hpp"
+#include "core/compile/ir_value/text.hpp"
 #include "core/compile/lex/buffer.hpp"
 #include "core/compile/lex/lexer.hpp"
 #include "core/compile/symbol/entry.hpp"
@@ -27,67 +30,71 @@
 namespace {
 namespace expr = pepp::tc::expr;
 
-bool is_atom(const expr::Parsed &parsed) {
-  using K = expr::Kind;
-  const auto &kinds = parsed.tree.kinds();
-  if (kinds.size() == 1) return true;
-  else if (kinds.size() != 2 || (kinds[1] != K::Plus && kinds[1] != K::Minus)) return false;
-  // The lexer only combines a sign into a decimal without spacing, so -0x10 and - 3 are expressions.
-  const auto *integer = std::get_if<expr::Integer>(&parsed.tree[0]);
-  const bool attached = parsed.locations[1].lower().column + 1 == parsed.locations[0].lower().column;
-  return integer && integer->format == expr::Integer::Format::Decimal && attached;
-}
-
 bool is_constant(const pepp::core::symbol::Entry &entry) {
   return entry.value && entry.value->type() == pepp::core::symbol::Type::Constant;
 }
 } // namespace
 
-std::expected<std::shared_ptr<pepp::ast::IRValue>, pepp::tc::expr::Error>
-pepp::tc::parser::expression_operand(lex::Buffer &buf, lex::ALexer &lexer, std::shared_ptr<expr::IdentifierPool> pool,
-                                     std::shared_ptr<core::symbol::LeafTable> symtab, const expr::Options &options,
-                                     u8 size) {
-  const auto reference = [&](const expr::Identifier &id) { (void)symtab->reference(id.name); };
-  // A rollback left an expression which was already parsed, and its text is no longer ahead of the lexer. Reference its
-  // symbols again, since abandoning an alternative may have removed them.
+std::expected<pepp::tc::parser::ExpressionResult, pepp::tc::expr::Error>
+pepp::tc::parser::parse_expression(lex::Buffer &buf, lex::ALexer &lexer, std::shared_ptr<expr::IdentifierPool> pool) {
+  // A rollback left an operand which was already parsed, and its text is no longer ahead of the lexer.
   if (const auto buffered = buf.buffered_tokens();
-      !buffered.empty() && buffered.front()->type() == lex::ParsedExpression::TYPE) {
-    auto value = buf.match<lex::ParsedExpression>()->value;
-    // Ensure that all identifiers are entered in the symbol table, because previous references may have been dropped.
-    if (const auto expression = std::dynamic_pointer_cast<ast::Expression>(value))
-      expr::for_each_node<expr::Identifier>(expression->tree(), reference);
-    return value;
-  }
-  // Sub-parser can't consume our buffered tokens (since they may be of different types).
-  // Discard uncommited tokens so we can pick a different grammar-level alternative before.
-  // e.g., prevent a keyword (literal) from being lexed as an expression in a different context.
+      !buffered.empty() && buffered.front()->type() == lex::ParsedExpression::TYPE)
+    return buf.match<lex::ParsedExpression>()->operand;
+  // The expression parser reads the lexer's text, so it must see any tokens which were already lexed.
   buf.unbuffer();
 
-  // Temporarily delegate parsing expression sub-parser.
   const auto start = lexer.cursor();
-  const auto result = expr::parse(start, std::move(pool));
+  auto result = expr::parse(start, std::move(pool));
   if (const auto *error = std::get_if<expr::Error>(&result)) return std::unexpected(*error);
-  const auto *parsed = std::get_if<expr::Parsed>(&result);
-  // Atoms (identifiers, unsigned decimals, hex, chars) are better represented with our specialized IR values rather
-  // than a generic expression.
-  if (!parsed || is_atom(*parsed)) return nullptr;
+  auto *parsed = std::get_if<expr::Parsed>(&result);
+  if (!parsed) return nullptr;
 
-  // Evaluate constant expression to report errors, such as 1/0, at parse time.
-  auto value = std::make_shared<ast::Expression>(parsed->tree, symtab, options, size);
+  // Resume lexing after the operand, which the buffer sees as a single token.
   const support::LocationInterval span{parsed->locations[parsed->tree.root()].lower(), parsed->after.location()};
+  lexer.resume_at(parsed->after);
+  buf.push_token(std::make_shared<lex::ParsedExpression>(span, std::make_shared<expr::Parsed>(std::move(*parsed))),
+                 start);
+  return buf.match<lex::ParsedExpression>()->operand;
+}
+
+std::expected<std::shared_ptr<pepp::ast::IRValue>, pepp::tc::expr::Error>
+pepp::tc::parser::lower(const expr::Parsed &operand, std::shared_ptr<core::symbol::LeafTable> symtab,
+                        const expr::Options &options, u8 size) {
+  using namespace bits;
+  using K = expr::Kind;
+  static constexpr std::array lone_integer{K::Integer};
+  static constexpr std::array lone_character{K::Character};
+  static constexpr std::array lone_identifier{K::Identifier};
+  static constexpr std::array signed_integer{K::Integer, K::Plus | K::Minus};
+  const auto &tree = operand.tree;
+  const auto &kinds = tree.kinds();
+  const auto *integer = std::get_if<expr::Integer>(&tree[0]);
+  const bool decimal = integer && integer->format == expr::Integer::Format::Decimal;
+
+  if (expr::matches(kinds, lone_integer) && decimal)
+    return std::make_shared<ast::UnsignedDecimal>(integer->value, size);
+  else if (expr::matches(kinds, lone_integer)) return std::make_shared<ast::Hexadecimal>(integer->value, size);
+  else if (expr::matches(kinds, lone_character))
+    return std::make_shared<ast::Character>(static_cast<char>(std::get<expr::Character>(tree[0]).value));
+  else if (expr::matches(kinds, lone_identifier))
+    return std::make_shared<ast::Symbolic>(size, symtab->reference(std::get<expr::Identifier>(tree[0]).name));
+  // Only a decimal may be signed. -0x10 is an expression.
+  else if (expr::matches(kinds, signed_integer) && decimal && kinds[1] == K::Minus)
+    return std::make_shared<ast::SignedDecimal>(-static_cast<i64>(integer->value), size);
+  else if (expr::matches(kinds, signed_integer) && decimal)
+    return std::make_shared<ast::UnsignedDecimal>(integer->value, size);
+
+  const auto reference = [&](const expr::Identifier &id) { (void)symtab->reference(id.name); };
+  expr::for_each_node<expr::Identifier>(tree, reference);
+  auto value = std::make_shared<ast::Expression>(tree, symtab, options, size);
   if (!value->contains_symbols())
     if (const auto evaluated = value->evaluate(); !evaluated) {
       const auto &error = evaluated.error();
-      return std::unexpected(expr::Error{error.node ? parsed->locations[*error.node] : span, error.message});
+      const auto root = operand.locations[tree.root()];
+      return std::unexpected(expr::Error{error.node ? operand.locations[*error.node] : root, error.message});
     }
-
-  // Ensure that all identifiers are registered in the symbol table.
-  expr::for_each_node<expr::Identifier>(parsed->tree, reference);
-
-  // Resume lexing after the expression, which the buffer sees as a single token.
-  lexer.resume_at(parsed->after);
-  buf.push_token(std::make_shared<lex::ParsedExpression>(span, value), start);
-  return buf.match<lex::ParsedExpression>()->value;
+  return value;
 }
 
 std::expected<std::optional<u64>, pepp::tc::expr::Error>

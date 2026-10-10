@@ -1,8 +1,8 @@
 #pragma once
 #include <memory>
 #include "core/compile/lex/tokens.hpp"
-namespace pepp::ast {
-class IRValue;
+namespace pepp::tc::expr {
+struct Parsed;
 }
 namespace pepp::tc::lex {
 
@@ -53,13 +53,13 @@ struct MacroPlaceholder : public Identifier {
 
 // An expression parsed by a nested parser (e.g., the expression parser)
 struct ParsedExpression : public Token {
-  ParsedExpression(support::LocationInterval loc, std::shared_ptr<pepp::ast::IRValue> value);
+  ParsedExpression(support::LocationInterval loc, std::shared_ptr<const pepp::tc::expr::Parsed> operand);
   static constexpr int TYPE = static_cast<int>(AsmTokenType::ParsedExpression);
   int type() const override;
   std::string type_name() const override;
   std::string to_string() const override;
 
-  std::shared_ptr<pepp::ast::IRValue> value;
+  std::shared_ptr<const pepp::tc::expr::Parsed> operand;
 };
 
 } // namespace pepp::tc::lex

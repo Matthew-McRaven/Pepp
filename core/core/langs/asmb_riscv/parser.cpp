@@ -41,51 +41,45 @@ pepp::tc::IRProgram pepp::tc::parser::RISCVParser::parse(DiagnosticTable &diag) 
 
 void pepp::tc::parser::RISCVParser::debug_print_tokens(bool debug) { _lexer->print_tokens = debug; }
 
-std::optional<u8> pepp::tc::parser::RISCVParser::register_integer() {
+std::optional<u8> pepp::tc::parser::RISCVParser::register_operand(bool parenthesized) {
   lex::Checkpoint cp(*_buffer);
-  if (auto regs = _buffer->match<lex::Identifier>(); !regs) return cp.rollback(), std::nullopt;
-  else if (auto reg_num = riscv::parse_register(regs->to_string()); reg_num.has_value()) return reg_num.value();
-  else return cp.rollback(), std::nullopt;
+  // A malformed operand is not a register, and another alternative may still parse it.
+  const auto operand = parse_expression(*_buffer, *_lexer, _pool);
+  if (!operand || !*operand) return cp.rollback(), std::nullopt;
+  // Compare to the expression IDENTIFIER or ( IDENTIFIER )
+  const auto &tree = (**operand).tree;
+  const auto &kinds = tree.kinds();
+  const bool valid_structure = parenthesized ? kinds.size() == 2 && kinds[1] == expr::Kind::Parens : kinds.size() == 1;
+  if (const auto *identifier = std::get_if<expr::Identifier>(&tree[0]); valid_structure && identifier)
+    if (const auto reg = riscv::parse_register(identifier->name)) return *reg;
+  return cp.rollback(), std::nullopt;
+}
+
+std::optional<u8> pepp::tc::parser::RISCVParser::fence_ordering() {
+  lex::Checkpoint cp(*_buffer);
+  // Either an ordering such as iorw, or the integer 0.
+  const auto operand = parse_expression(*_buffer, *_lexer, _pool);
+  if (!operand || !*operand || (**operand).tree.kinds().size() != 1) return cp.rollback(), std::nullopt;
+  const auto &node = (**operand).tree[0];
+  if (const auto *identifier = std::get_if<expr::Identifier>(&node)) {
+    if (const auto ordering = riscv::parse_fence_ordering(bits::to_lower(identifier->name))) return *ordering;
+  } else if (const auto *integer = std::get_if<expr::Integer>(&node); integer && integer->value == 0) return 0;
+  return cp.rollback(), std::nullopt;
 }
 
 std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::RISCVParser::argument() {
-  lex::Checkpoint cp(*_buffer);
-  if (auto maybeInteger = _buffer->match<lex::Integer>(); maybeInteger) {
-    if (maybeInteger->format == lex::Integer::Format::SignedDec)
-      return std::make_shared<pepp::ast::SignedDecimal>(maybeInteger->value, 4);
-    else if (maybeInteger->format == lex::Integer::Format::Hex)
-      return std::make_shared<pepp::ast::Hexadecimal>(maybeInteger->value, 4);
-    else if (maybeInteger->format == lex::Integer::Format::UnsignedDec)
-      return std::make_shared<pepp::ast::UnsignedDecimal>(maybeInteger->value, 4);
-    else
-      throw RISCVParserError(RISCVParserError::NullaryError::Argument_InvalidIntegerFormat,
-                             _buffer->matched_interval());
-  } else if (auto maybeIdent = _buffer->match<lex::Identifier>(); maybeIdent) {
-    auto entry = _symtab->reference(maybeIdent->to_string());
-    return std::make_shared<pepp::ast::Symbolic>(4, entry);
-  } else if (auto maybeChar = _buffer->match<lex::CharacterConstant>(); maybeChar) {
-    if (const auto value = bits::escapedToByte(maybeChar->value); !value)
-      throw RISCVParserError(RISCVParserError::UnaryError::Token_Invalid, maybeChar->repr(), _buffer->matched_interval());
-    else return std::make_shared<pepp::ast::Character>(static_cast<char>(*value));
-  } else if (auto maybeStr = _buffer->match<lex::StringConstant>(); maybeStr) {
-    auto asStr = std::string{maybeStr->view()};
-    return std::make_shared<pepp::ast::String>(asStr);
-  } else return nullptr;
-}
+  constexpr expr::Options options{.int_bits = 32, .default_sign = expr::Signedness::Signed};
+  constexpr auto invalid = [](const expr::Error &error) {
+    return RISCVParserError(RISCVParserError::UnaryError::Expression_Invalid, error.message, error.location);
+  };
 
-std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::RISCVParser::expression() {
-  const expr::Options options{.int_bits = 32, .default_sign = expr::Signedness::Signed};
-  const auto result = expression_operand(*_buffer, *_lexer, _pool, _symtab, options, 4);
-  if (!result)
-    throw RISCVParserError(RISCVParserError::UnaryError::Expression_Invalid, result.error().message,
-                           result.error().location);
-  return *result;
-}
-
-std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::RISCVParser::expression_or_argument() {
-  auto arg = expression();
-  if (!arg) arg = argument();
-  return arg;
+  if (const auto expr = parse_expression(*_buffer, *_lexer, _pool); !expr) throw invalid(expr.error());
+  else if (*expr) {
+    if (const auto value = lower(**expr, _symtab, options, 4); !value) throw invalid(value.error());
+    else return *value;
+  } else if (auto maybeStr = _buffer->match<lex::StringConstant>())
+    return std::make_shared<pepp::ast::String>(std::string{maybeStr->view()});
+  else return nullptr;
 }
 
 std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::RISCVParser::numeric_argument() {
@@ -161,7 +155,7 @@ pepp::tc::parser::RISCVParser::instruction_alternative(const riscv::Mnemonic &en
       const auto &operand = operands[i];
       switch (operand.type) {
       case OT::Register: {
-        const auto reg = register_integer();
+        const auto reg = register_operand(false);
         if (!reg) throw RVPE(expected_error(operand.destination), _buffer->matched_interval());
         store_value(values, operand.destination, *reg);
         break;
@@ -169,15 +163,13 @@ pepp::tc::parser::RISCVParser::instruction_alternative(const riscv::Mnemonic &en
 
       // Handle registers surrounded by parens, which are used for loads+stores
       case OT::ParenthesizedRegister: {
-        if (!_buffer->match_literal("(")) throw RVPE(E::Token_MissingLParen, _buffer->matched_interval());
-        else if (const auto reg = register_integer(); !reg)
+        if (const auto reg = register_operand(true); !reg)
           throw RVPE(expected_error(operand.destination), _buffer->matched_interval());
-        else if (!_buffer->match_literal(")")) throw RVPE(E::Token_MissingRParen, _buffer->matched_interval());
         else store_value(values, operand.destination, *reg);
         break;
       }
       case OT::Immediate: {
-        if (auto arg = expression_or_argument(); !arg)
+        if (auto arg = argument(); !arg)
           throw RVPE(::expected_error(operand.destination), _buffer->matched_interval());
         else values.imm = arg;
         break;
@@ -187,14 +179,8 @@ pepp::tc::parser::RISCVParser::instruction_alternative(const riscv::Mnemonic &en
       case OT::XLEN16: break;
       // Parse pred,succ into specialized field of ParsedValue to avoid read-modify-write on IRValue.
       case OT::Fence: {
-        std::optional<u8> ordering = std::nullopt;
-        // Ordering could be identifier iorw or integer 0; need to parse both.
-        if (const auto token = _buffer->match<lex::Identifier>()) {
-          auto text = token->to_string();
-          bits::to_lower_inplace(text);
-          ordering = riscv::parse_fence_ordering(text);
-        } else if (const auto number = _buffer->match<lex::Integer>(); number && number->value == 0) ordering = 0;
-        if (!ordering) throw RVPE(E::Argument_ExpectedFenceOrdering, _buffer->matched_interval());
+        if (const auto ordering = fence_ordering(); !ordering)
+          throw RVPE(E::Argument_ExpectedFenceOrdering, _buffer->matched_interval());
         else store_value(values, operand.destination, *ordering);
         break;
       }
@@ -305,7 +291,6 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::pseudo(Option
   case (int)LDC::SYMBOL_HIDDEN: [[fallthrough]];
   case (int)LDC::SYMBOL_LOCAL: [[fallthrough]];
   case (int)LDC::SYMBOL_WEAK: {
-
     auto arg = identifier_argument();
     if (!arg) throw RVPE(RVPE::NullaryError::Argument_ExpectedIdentifier, _buffer->matched_interval());
     DotSymbol::Which w;
@@ -350,7 +335,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::pseudo(Option
     return std::make_shared<DotBlock>(Argument{arg});
   }
   case (int)DC::BYTE: {
-    auto arg = expression_or_argument();
+    auto arg = argument();
     if (auto numeric = std::dynamic_pointer_cast<pepp::ast::Numeric>(arg); numeric) {
       if (numeric->minimum_size() > 1)
         throw RVPE(RVPE::NullaryError::Argument_Exceeded1Byte, _buffer->matched_interval());
@@ -367,7 +352,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::pseudo(Option
       throw RVPE(RVPE::NullaryError::Argument_ExpectedInteger, _buffer->matched_interval());
   }
   case (int)DC::HALF: {
-    auto arg = expression_or_argument();
+    auto arg = argument();
     if (auto numeric = std::dynamic_pointer_cast<pepp::ast::Numeric>(arg); numeric) {
       if (numeric->minimum_size() > 2)
         throw RVPE(RVPE::NullaryError::Argument_Exceeded2Bytes, _buffer->matched_interval());
@@ -382,7 +367,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::pseudo(Option
       throw RVPE(RVPE::NullaryError::Argument_ExpectedInteger, _buffer->matched_interval());
   }
   case (int)DC::WORD: {
-    auto arg = expression_or_argument();
+    auto arg = argument();
     if (auto numeric = std::dynamic_pointer_cast<pepp::ast::Numeric>(arg); numeric) {
       if (numeric->minimum_size() > 4)
         throw RVPE(RVPE::NullaryError::Argument_Exceeded2Bytes, _buffer->matched_interval());
@@ -395,7 +380,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::pseudo(Option
       throw RVPE(RVPE::NullaryError::Argument_ExpectedInteger, _buffer->matched_interval());
   }
   case (int)DC::EQUATE: {
-    auto arg = expression_or_argument();
+    auto arg = argument();
     if (!arg) throw RVPE(RVPE::NullaryError::Argument_ExpectedInteger, _buffer->matched_interval());
     else if (arg->minimum_size() > 2)
       throw RVPE(RVPE::NullaryError::Argument_Exceeded2Bytes, _buffer->matched_interval());

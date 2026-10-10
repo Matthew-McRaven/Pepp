@@ -45,61 +45,31 @@ std::shared_ptr<pepp::core::symbol::LeafTable> pepp::tc::parser::PepParser::symb
 void pepp::tc::parser::PepParser::debug_print_tokens(bool debug) { _root_lexer->print_tokens = debug; }
 
 std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::PepParser::argument() {
+  constexpr expr::Options options{.int_bits = 16, .default_sign = expr::Signedness::Unsigned};
+  constexpr auto invalid = [](const expr::Error &error) {
+    return PepParserError(PepParserError::UnaryError::Expression_Invalid, error.message, error.location);
+  };
   auto buf = active_buffer();
-  lex::Checkpoint cp(*buf);
-  if (auto maybeInteger = buf->match<lex::Integer>(); maybeInteger) {
-    if (maybeInteger->format == lex::Integer::Format::SignedDec)
-      return std::make_shared<pepp::ast::SignedDecimal>(maybeInteger->value, 2);
-    else if (maybeInteger->format == lex::Integer::Format::Hex)
-      return std::make_shared<pepp::ast::Hexadecimal>(maybeInteger->value, 2);
-    else if (maybeInteger->format == lex::Integer::Format::UnsignedDec)
-      return std::make_shared<pepp::ast::UnsignedDecimal>(maybeInteger->value, 2);
-    else throw PepParserError(PepParserError::NullaryError::Argument_InvalidIntegerFormat, buf->matched_interval());
-  } else if (auto maybeIdent = buf->match<lex::Identifier>(); maybeIdent) {
-    auto entry = _symtab->reference(maybeIdent->to_string());
-    return std::make_shared<pepp::ast::Symbolic>(2, entry);
-  } else if (auto maybeChar = buf->match<lex::CharacterConstant>(); maybeChar) {
-    if (const auto value = bits::escapedToByte(maybeChar->value); !value)
-      throw PepParserError(PepParserError::UnaryError::Token_Invalid, maybeChar->repr(), buf->matched_interval());
-    else return std::make_shared<pepp::ast::Character>(static_cast<char>(*value));
-  } else if (auto maybeStr = buf->match<lex::StringConstant>(); maybeStr) {
-    auto asStr = std::string{maybeStr->view()};
-    return std::make_shared<pepp::ast::String>(asStr);
-  } else return nullptr;
-}
-
-std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::PepParser::expression() {
-  const expr::Options options{.int_bits = 16, .default_sign = expr::Signedness::Unsigned};
-  const auto result = expression_operand(*active_buffer(), *active_lexer(), _pool, _symtab, options, 2);
-  if (!result)
-    throw PepParserError(PepParserError::UnaryError::Expression_Invalid, result.error().message, result.error().location);
-  return *result;
-}
-
-std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::PepParser::expression_or_argument() {
-  auto arg = expression();
-  if (!arg) arg = argument();
-  return arg;
+  // Must try expression first, otherwise we might lex part of the expression searching for a string constant.
+  if (const auto expr = parse_expression(*buf, *active_lexer(), _pool); !expr) throw invalid(expr.error());
+  else if (*expr) {
+    if (const auto value = lower(**expr, _symtab, options, 2); !value) throw invalid(value.error());
+    else return *value;
+  } else if (auto maybeStr = buf->match<lex::StringConstant>())
+    return std::make_shared<pepp::ast::String>(std::string{maybeStr->view()});
+  else return nullptr;
 }
 
 std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::PepParser::numeric_argument() {
-  auto arg = argument();
-  return std::dynamic_pointer_cast<pepp::ast::Numeric>(arg);
+  return std::dynamic_pointer_cast<pepp::ast::Numeric>(argument());
 }
 
 std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::PepParser::hex_argument() {
-  auto arg = argument();
-  return std::dynamic_pointer_cast<pepp::ast::Hexadecimal>(arg);
+  return std::dynamic_pointer_cast<pepp::ast::Hexadecimal>(argument());
 }
 
 std::shared_ptr<pepp::ast::Symbolic> pepp::tc::parser::PepParser::identifier_argument() {
-  auto buf = active_buffer();
-  lex::Checkpoint cp(*buf);
-  if (auto maybeIdent = buf->match<lex::Identifier>(); maybeIdent) {
-    auto entry = _symtab->reference(maybeIdent->to_string());
-    return std::make_shared<pepp::ast::Symbolic>(2, entry);
-  }
-  return nullptr;
+  return std::dynamic_pointer_cast<pepp::ast::Symbolic>(argument());
 }
 
 static const u8 MAX_PARSE_DEPTH = 4;
@@ -204,7 +174,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::instruction() {
     ret = std::make_shared<MonadicInstruction>(Pep10Mnemonic(instr));
   } else { // Dyadic instruction
     ISA::AddressingMode am = ISA::AddressingMode::INVALID;
-    auto arg = expression_or_argument();
+    auto arg = argument();
     if (!arg) throw PepParserError(PepParserError::NullaryError::Argument_Missing, buf->matched_interval());
     else if (arg->minimum_size() > 2)
       throw PepParserError(PepParserError::NullaryError::Argument_Exceeded2Bytes, buf->matched_interval());
@@ -279,7 +249,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
     return std::make_shared<DotBlock>(Argument{arg});
   }
   case (int)DC::BYTE: {
-    auto arg = expression_or_argument();
+    auto arg = argument();
     if (auto numeric = std::dynamic_pointer_cast<pepp::ast::Numeric>(arg); numeric) {
       if (numeric->minimum_size() > 1)
         throw PepParserError(PepParserError::NullaryError::Argument_Exceeded1Byte, buf->matched_interval());
@@ -291,7 +261,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
     } else throw PepParserError(PepParserError::NullaryError::Argument_ExpectedInteger, buf->matched_interval());
   }
   case (int)DC::EQUATE: {
-    auto arg = expression_or_argument();
+    auto arg = argument();
     if (!arg) throw PepParserError(PepParserError::NullaryError::Argument_ExpectedInteger, buf->matched_interval());
     else if (!symbol)
       throw PepParserError(PepParserError::NullaryError::SymbolDeclaration_Required, buf->matched_interval());
@@ -368,7 +338,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
     }
   }
   case (int)DC::WORD: {
-    auto arg = expression_or_argument();
+    auto arg = argument();
     if (auto numeric = std::dynamic_pointer_cast<pepp::ast::Numeric>(arg); numeric) {
       if (numeric->minimum_size() > 2)
         throw PepParserError(PepParserError::NullaryError::Argument_Exceeded2Bytes, buf->matched_interval());
@@ -431,7 +401,8 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
     return std::make_shared<DotConditional>(DotConditional::Behavior::ENDIF);
   }
   case (int)DC::INLINE_MACRO: {
-    auto name = identifier_argument();
+    // A macro's name is not a symbol, and may use characters which expressions cannot (e.g., @TEST).
+    auto name = buf->match<lex::Identifier>();
     if (!name) throw PepParserError(PepParserError::NullaryError::Argument_ExpectedIdentifier, buf->matched_interval());
     // Mark the start of the macro's arguments
     lex::Marker marker(*buf);
@@ -447,7 +418,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
       args.emplace_back(arg);
     }
     _active_macro_defs++;
-    return std::make_shared<InlineMacroDefinition>(name->string(), args);
+    return std::make_shared<InlineMacroDefinition>(name->to_string(), args);
   }
   case (int)DC::END_MACRO: {
     throw PepParserError(PepParserError::NullaryError::Macro_UnmatchedEndm, buf->matched_interval());

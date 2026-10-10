@@ -1,6 +1,6 @@
 #include "asmb_tokens.hpp"
 #include <fmt/format.h>
-#include "core/compile/ir_value/base.hpp"
+#include "core/langs/expr/parser.hpp"
 
 pepp::tc::lex::DotCommand::DotCommand(support::LocationInterval loc, std::string const *v) : Identifier(loc, v) {}
 
@@ -39,11 +39,12 @@ std::string pepp::tc::lex::MacroPlaceholder::to_string() const { return fmt::for
 
 std::string pepp::tc::lex::MacroPlaceholder::repr() const { return fmt::format("{}({})", type_name(), view()); }
 
-pepp::tc::lex::ParsedExpression::ParsedExpression(support::LocationInterval loc, std::shared_ptr<pepp::ast::IRValue> value)
-    : Token(loc), value(std::move(value)) {}
+pepp::tc::lex::ParsedExpression::ParsedExpression(support::LocationInterval loc,
+                                                  std::shared_ptr<const pepp::tc::expr::Parsed> operand)
+    : Token(loc), operand(std::move(operand)) {}
 
 int pepp::tc::lex::ParsedExpression::type() const { return TYPE; }
 
 std::string pepp::tc::lex::ParsedExpression::type_name() const { return "ParsedExpression"; }
 
-std::string pepp::tc::lex::ParsedExpression::to_string() const { return value->string(); }
+std::string pepp::tc::lex::ParsedExpression::to_string() const { return pepp::tc::expr::to_infix(operand->tree); }

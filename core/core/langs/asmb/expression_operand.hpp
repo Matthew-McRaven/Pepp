@@ -34,14 +34,22 @@ class LeafTable;
 // Expression operands for the assemblers, which share expression syntax but not their parsers.
 namespace pepp::tc::parser {
 
-// Enter the subexpression parser starting at buf's next token. Returns a nullptr if an expression cannot be constructed
-// or if the expression is an atom (a lone integer, character, or symbol, signed decimal). Otherwise its identifiers are
-// referenced in symtab, and the expression becomes one ParsedExpression token in buf, allowing a rollback over this
-// token to skip the nested parser in the future. A symbol-free expression which cannot be evaluated is an error. buf's
-// unmatched tokens are first returned to lexer, so no currently-live Checkpoint may be past buf's head.
-std::expected<std::shared_ptr<ast::IRValue>, expr::Error>
-expression_operand(lex::Buffer &buf, lex::ALexer &lexer, std::shared_ptr<expr::IdentifierPool> pool,
-                   std::shared_ptr<core::symbol::LeafTable> symtab, const expr::Options &options, u8 size);
+// An operand parsed as an expression, but not yet given a meaning. lower() converts it to an IRValue for use in the
+// assembler.
+using ExpressionResult = std::shared_ptr<const expr::Parsed>;
+
+// Enter the subexpression parser at buf's next token. Returns nullptr if no expression starts there. Otherwise the
+// operand becomes one ParsedExpression token in buf, so a rollback over it replays the operand rather than parsing
+// again. No symbols are referenced.
+std::expected<ExpressionResult, expr::Error> parse_expression(lex::Buffer &buf, lex::ALexer &lexer,
+                                                              std::shared_ptr<expr::IdentifierPool> pool);
+
+// Convert a parsed expression to an IRValue, prefering the most specfic IRValue possible. Only if no specific pattern
+// matches is an Expression IRValue created. Identifiers are referenced into the symbol table at this time. Symbol-free
+// expressions that fail to evaluate raise an error at this time.
+std::expected<std::shared_ptr<ast::IRValue>, expr::Error> lower(const expr::Parsed &operand,
+                                                                std::shared_ptr<core::symbol::LeafTable> symtab,
+                                                                const expr::Options &options, u8 size);
 
 // An .EQUATE's value, or nullopt if the expression cannot be constant-evaluated.
 // consteval could fail because a symbolic argument refers to a program location, or because the symbol has not been

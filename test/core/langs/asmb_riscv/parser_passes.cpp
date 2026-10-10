@@ -160,6 +160,9 @@ TEST_CASE("RISCV ASM parser", "[scope:core][scope:core.langs][level:asmb3][level
     CHECK(imm(4)->string() == "l + 4");
     // A register tried as an immediate does not linger as a symbol.
     CHECK(!p.symbol_table()->exists("ra"));
+    // Registers must not accidentally become symbols.
+    CHECK(!p.symbol_table()->exists("x3"));
+    CHECK(!p.symbol_table()->exists("x1"));
   }
   SECTION("Constant expressions are checked as they are parsed") {
     pepp::tc::DiagnosticTable diag;
