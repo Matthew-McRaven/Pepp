@@ -12,7 +12,6 @@ public:
     Argument_ExpectedRS2,
     Argument_ExpectedIdentNumeric,
     Argument_ExpectedImm,
-    Argument_InvalidIntegerFormat,
     Argument_ExpectedInteger,
     Argument_ExpectedIdentifier,
     Argument_ExpectedHex,
@@ -29,8 +28,6 @@ public:
     SymbolDeclaration_Forbidden,
     Token_MissingNewline,
     Token_MissingComma,
-    Token_MissingLParen,
-    Token_MissingRParen,
   };
   enum class UnaryError { Token_Invalid, Dot_Invalid, Expression_Invalid };
 

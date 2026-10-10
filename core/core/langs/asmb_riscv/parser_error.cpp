@@ -12,7 +12,6 @@ const std::string pepp::tc::RISCVParserError::to_string(NullaryError err) {
   case NullaryError::Argument_ExpectedRS2: return "Expected register rs2";
   case NullaryError::Argument_ExpectedIdentNumeric: return "Expected identifier or numeric argument";
   case NullaryError::Argument_ExpectedImm: return "Expected immediate operand";
-  case NullaryError::Argument_InvalidIntegerFormat: return "Invalid integer format";
   case NullaryError::Argument_ExpectedInteger: return "Expected integer argument";
   case NullaryError::Argument_ExpectedIdentifier: return "Expected identifier argument";
   case NullaryError::Argument_ExpectedHex: return "Expected hexadecimal argument";
@@ -27,8 +26,6 @@ const std::string pepp::tc::RISCVParserError::to_string(NullaryError err) {
   case NullaryError::Section_StringFlags: return "Expected section flags string";
   case NullaryError::SymbolDeclaration_Required: return "Expected symbol declaration";
   case NullaryError::SymbolDeclaration_Forbidden: return "Unexpected symbol declaration";
-  case NullaryError::Token_MissingLParen: return "Expected '('";
-  case NullaryError::Token_MissingRParen: return "Expected ')'";
   }
   PEPP_UNREACHABLE();
 }

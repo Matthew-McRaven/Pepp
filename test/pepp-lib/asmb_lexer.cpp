@@ -53,9 +53,6 @@ auto check_next_int(pepp::tc::lex::AsmbLexer &l, int64_t val, pepp::tc::lex::Int
 auto check_next_udec(pepp::tc::lex::AsmbLexer &l, uint64_t val) {
   return check_next_int(l, val, pepp::tc::lex::Integer::Format::UnsignedDec);
 }
-auto check_next_sdec(pepp::tc::lex::AsmbLexer &l, uint64_t val) {
-  return check_next_int(l, val, pepp::tc::lex::Integer::Format::SignedDec);
-}
 auto check_next_hex(pepp::tc::lex::AsmbLexer &l, uint64_t val) {
   return check_next_int(l, val, pepp::tc::lex::Integer::Format::Hex);
 }
@@ -205,29 +202,11 @@ TEST_CASE("Assembly lexer", "[scope:core][scope:core.langs][level:asmb3][level:a
     check_next(l, (int)CTT::Empty);
     CHECK(!l.input_remains());
   }
-  SECTION("Positive decimal") {
-    auto l = Lexer(idpool(), data("+0 +00 +000 +10 +65537"), p10);
-    check_next_udec(l, 0);
-    check_next_udec(l, 0);
-    check_next_udec(l, 0);
-    check_next_udec(l, 10);
-    check_next_udec(l, 65537);
-    check_next(l, (int)CTT::Empty);
-    CHECK(!l.input_remains());
-  }
-  SECTION("Negative decimal") {
-    auto l = Lexer(idpool(), data("-0 -00 -000 -10 -65537"), p10);
-    check_next_sdec(l, -0);
-    check_next_sdec(l, -0);
-    check_next_sdec(l, -0);
-    check_next_sdec(l, -10);
-    check_next_sdec(l, -65537);
-    check_next(l, (int)CTT::Empty);
-    CHECK(!l.input_remains());
-  }
-
-  SECTION("Sign needs digit") {
-    auto l = Lexer(idpool(), data("- "), p10);
+  SECTION("Signs are not lexed") {
+    // Operands are parsed by the expression parser, so a sign is not part of an integer.
+    auto l = Lexer(idpool(), data("+1 -"), p10);
+    check_next(l, (int)CTT::Invalid);
+    check_next_udec(l, 1);
     check_next(l, (int)CTT::Invalid);
     check_next(l, (int)CTT::Empty);
     CHECK(!l.input_remains());
