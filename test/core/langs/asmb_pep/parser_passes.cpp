@@ -157,7 +157,7 @@ TEST_CASE("Pepp ASM parser", "[scope:core][scope:core.langs][level:asmb3][level:
     CHECK(expression->evaluate().value().bits == 6);
     // x is relocatable and must not be constant folded.
     const auto folded =
-        pepp::tc::expr::fold_constants(expression->tree(), expression->options(), expression->resolve_constants_of());
+        pepp::tc::expr::fold_constants(expression->tree(), expression->default_type(), expression->resolve_constants_of());
     CHECK(pepp::tc::expr::to_postfix(folded) == "x 6 +");
   }
   SECTION("Dyadic instructions with large argument") {

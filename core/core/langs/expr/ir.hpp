@@ -22,7 +22,7 @@
 #include <variant>
 #include <vector>
 #include "core/integers.h"
-#include "core/langs/expr/features.hpp"
+#include "core/langs/expr/options.hpp"
 #include "core/langs/expr/value.hpp"
 #include "core/math/bitmanip/enums.hpp"
 
@@ -172,7 +172,7 @@ struct Parens {
   NodeId inner;
 };
 
-// A call to a function defined in Features, e.g. %hi(sym).
+// A call to a function defined in Options, e.g. %hi(sym).
 struct Call {
   static constexpr Kind KIND = Kind::AnyCall;
   const Function *function;

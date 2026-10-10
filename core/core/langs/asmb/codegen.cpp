@@ -29,7 +29,7 @@ SymbolOperand classify_expression(const pepp::ast::Expression &exp) {
   using Kind = SymbolOperand::Kind;
   using K = pepp::tc::expr::Kind;
   namespace expr = pepp::tc::expr;
-  const auto tree = expr::simplify(exp.tree(), exp.options(), exp.resolve_types_of(), exp.resolve_constants_of());
+  const auto tree = expr::simplify(exp.tree(), exp.default_type(), exp.resolve_types_of(), exp.resolve_constants_of());
   // Every symbol was a constant, so the value never moves.
   if (expr::is_constant_expression(tree)) return {};
   // Lowering referenced every identifier, including location counters, into the symbol table.
@@ -44,7 +44,7 @@ SymbolOperand classify_expression(const pepp::ast::Expression &exp) {
   if (expr::matches(tree.kinds(), symbol_only)) return {Kind::Offset, symbol(0), 0};
   else if (expr::matches(tree.kinds(), constant_plus_symbol)) {
     // Sign extend addend so that ABS16 effectively wraps mod 2^16, which is important for expressions like `sym-2`.
-    const i64 addend = expr::constant_values(tree, exp.options())[0]->as_signed();
+    const i64 addend = expr::constant_values(tree, exp.default_type())[0]->as_signed();
     return {Kind::Offset, symbol(1), addend};
   }
   return {Kind::Invalid};

@@ -32,11 +32,11 @@ class Expression : public IRValue {
 public:
   // Identifiers are looked up in symtab, which may be null if the tree names no symbols.
   // `size` parameter is the default size of the expression in bytes for when evaluation fails.
-  Expression(tc::expr::Tree tree, std::shared_ptr<const core::symbol::LeafTable> symtab, tc::expr::Options options,
+  Expression(tc::expr::Tree tree, std::shared_ptr<const core::symbol::LeafTable> symtab, tc::expr::Type default_type,
              u8 size);
 
   const tc::expr::Tree &tree() const noexcept { return _tree; }
-  const tc::expr::Options &options() const noexcept { return _options; }
+  tc::expr::Type default_type() const noexcept { return _default_type; }
   const std::shared_ptr<const core::symbol::LeafTable> &symbol_table() const noexcept { return _symtab; }
   bool contains_symbols() const noexcept;
 
@@ -62,7 +62,7 @@ public:
 private:
   tc::expr::Tree _tree;
   std::shared_ptr<const core::symbol::LeafTable> _symtab;
-  tc::expr::Options _options;
+  tc::expr::Type _default_type;
   u8 _size = 0;
 };
 

@@ -26,20 +26,20 @@ using Integer = pepp::tc::expr::Integer;
 using enum Signedness;
 
 // How to read t's bits when an operator needs a sign.
-Signedness resolve_typeof_bits(Type t, Type other, const Options &options) {
+Signedness resolve_typeof_bits(Type t, Type other, Type default_type) {
   if (t.sign != Bits) return t.sign;
   if (other.sign != Bits) return other.sign;
-  return options.default_sign;
+  return default_type.sign;
 }
 
-Type int_type(const Options &options) { return {options.int_bits, Signed}; }
+Type int_type(Type default_type) { return {default_type.bits, Signed}; }
 
 // C's integer promotion rules. Anything narrower than int becomes a (signed) int.
 // If the value is (untyped) bits, then infer the sign from its partner or the default.
-Type promote(Type t, Type other, const Options &options) {
-  const auto sign = resolve_typeof_bits(t, other, options);
-  if (t.bits >= options.int_bits) return {t.bits, sign};
-  return {options.int_bits, t.sign == Bits ? sign : Signed};
+Type promote(Type t, Type other, Type default_type) {
+  const auto sign = resolve_typeof_bits(t, other, default_type);
+  if (t.bits >= default_type.bits) return {t.bits, sign};
+  return {default_type.bits, t.sign == Bits ? sign : Signed};
 }
 
 // C's usual arithmetic conversions on two signed or unsigned types.
@@ -73,29 +73,29 @@ struct OperationTypes {
   Type operand, result;
 };
 
-OperationTypes operation_types(UnaryOp op, Type t, const Options &options) {
-  if (op == UnaryOp::LogicalNot) return {t, int_type(options)};
+OperationTypes operation_types(UnaryOp op, Type t, Type default_type) {
+  if (op == UnaryOp::LogicalNot) return {t, int_type(default_type)};
   // If input is larger than int, keep its sign. Otherwise we follow C's integer promotion rules
-  const auto converted = t.bits >= options.int_bits ? t : promote(t, t, options);
+  const auto converted = t.bits >= default_type.bits ? t : promote(t, t, default_type);
   // Unary minus (signed negation) forces the result to be signed.
   const auto result = op == UnaryOp::Minus ? Type{converted.bits, Signed} : converted;
   return {converted, result};
 }
 
-OperationTypes operation_types(BinaryOp op, Type a, Type b, const Options &options) {
+OperationTypes operation_types(BinaryOp op, Type a, Type b, Type default_type) {
   using enum BinaryOp;
   // Comparisons against 0, so we can just work on ints.
-  if (op == LogicalAnd || op == LogicalOr) return {int_type(options), int_type(options)};
+  if (op == LogicalAnd || op == LogicalOr) return {int_type(default_type), int_type(default_type)};
   if (op == ShiftLeft || op == ShiftRight) {
     // Promote shift amount to be the same as the value's type. Shifts are < 64 bits, which would fit even in an i8!
-    const auto lhs = op == ShiftLeft && a.bits >= options.int_bits ? a : promote(a, a, options);
+    const auto lhs = op == ShiftLeft && a.bits >= default_type.bits ? a : promote(a, a, default_type);
     return {lhs, lhs};
   }
   // (bit x bit) inputs retain their non-signedness if they can dodge integer promotion (by being sufficiently large),
   // are the same size, and when the operator doesn't care about it's inputs' signedness.
-  const bool sign_agnostic = a == b && a.sign == Bits && a.bits >= options.int_bits && !needs_sign(op);
-  const auto common = sign_agnostic ? a : usual(promote(a, b, options), promote(b, a, options));
-  return {common, is_comparison(op) ? int_type(options) : common};
+  const bool sign_agnostic = a == b && a.sign == Bits && a.bits >= default_type.bits && !needs_sign(op);
+  const auto common = sign_agnostic ? a : usual(promote(a, b, default_type), promote(b, a, default_type));
+  return {common, is_comparison(op) ? int_type(default_type) : common};
 }
 
 // Widen or truncate v to the destination type with the appropriate masking or sign/0 extension.
@@ -115,11 +115,11 @@ bool short_circuits(BinaryOp op, Value lhs) {
   return (op == BinaryOp::LogicalAnd && lhs.bits == 0) || (op == BinaryOp::LogicalOr && lhs.bits != 0);
 }
 
-Result evaluate(const Tree &tree, NodeId id, const Options &options, const ValueOf &value_of) {
+Result evaluate(const Tree &tree, NodeId id, Type default_type, const ValueOf &value_of) {
   const auto fail = [&](std::string message) { return std::unexpected(EvaluationError{id, std::move(message)}); };
   const auto f = [&](const auto &n) -> Result {
     using T = std::decay_t<decltype(n)>;
-    if constexpr (std::is_same_v<T, Integer> || std::is_same_v<T, Character>) return literal(n, options);
+    if constexpr (std::is_same_v<T, Integer> || std::is_same_v<T, Character>) return literal(n, default_type);
     else if constexpr (std::is_same_v<T, FoldedConstant>) return n.value;
     else if constexpr (std::is_same_v<T, Identifier>) {
       if (auto value = value_of ? value_of(n) : std::nullopt) return *value;
@@ -127,20 +127,20 @@ Result evaluate(const Tree &tree, NodeId id, const Options &options, const Value
     } else if constexpr (std::is_same_v<T, LocationCounter>) { // Location counter is just another symbol.
       if (auto value = value_of ? value_of(Identifier{n.name}) : std::nullopt) return *value;
       return fail("The location counter has no value");
-    } else if constexpr (std::is_same_v<T, Parens>) return evaluate(tree, n.inner, options, value_of);
+    } else if constexpr (std::is_same_v<T, Parens>) return evaluate(tree, n.inner, default_type, value_of);
     else if constexpr (std::is_same_v<T, Call>) {
       if (!n.function->is_constexpr()) return fail(std::string(n.function->name) + " cannot be evaluated here");
-      else if (const auto argument = evaluate(tree, n.argument, options, value_of); !argument) return argument;
-      else if (auto ret = n.function->evaluate(*argument, options); ret) return *ret;
+      else if (const auto argument = evaluate(tree, n.argument, default_type, value_of); !argument) return argument;
+      else if (auto ret = n.function->evaluate(*argument, default_type); ret) return *ret;
       else return fail(ret.error());
     } else if constexpr (std::is_same_v<T, Unary>) {
-      if (const auto operand = evaluate(tree, n.operand, options, value_of); !operand) return operand;
-      else if (auto ret = apply(n.op, *operand, options); ret) return *ret;
+      if (const auto operand = evaluate(tree, n.operand, default_type, value_of); !operand) return operand;
+      else if (auto ret = apply(n.op, *operand, default_type); ret) return *ret;
       else return fail(ret.error());
     } else {
-      if (const auto lhs = evaluate(tree, n.lhs, options, value_of); !lhs) return lhs;
-      else if (const auto rhs = short_circuits(n.op, *lhs) ? lhs : evaluate(tree, n.rhs, options, value_of); !rhs) return rhs;
-      else if (auto ret = apply(n.op, *lhs, *rhs, options); ret) return *ret;
+      if (const auto lhs = evaluate(tree, n.lhs, default_type, value_of); !lhs) return lhs;
+      else if (const auto rhs = short_circuits(n.op, *lhs) ? lhs : evaluate(tree, n.rhs, default_type, value_of); !rhs) return rhs;
+      else if (auto ret = apply(n.op, *lhs, *rhs, default_type); ret) return *ret;
       else return fail(ret.error());
     }
   };
@@ -148,28 +148,28 @@ Result evaluate(const Tree &tree, NodeId id, const Options &options, const Value
 }
 } // namespace
 
-pepp::tc::expr::Value pepp::tc::expr::literal(const Integer &integer, const Options &options) {
+pepp::tc::expr::Value pepp::tc::expr::literal(const Integer &integer, Type default_type) {
   // Find the smallest int type which could hold the bit pattern.
-  for (u8 width = options.int_bits; width < 64; width *= 2)
+  for (u8 width = default_type.bits; width < 64; width *= 2)
     if (integer.value <= bits::mask(width / 8)) return {integer.value, {width, Bits}};
   return {integer.value, {64, Bits}};
 }
 
-pepp::tc::expr::Value pepp::tc::expr::literal(const Character &character, const Options &options) {
-  return {character.value, {options.int_bits, Bits}};
+pepp::tc::expr::Value pepp::tc::expr::literal(const Character &character, Type default_type) {
+  return {character.value, {default_type.bits, Bits}};
 }
 
-pepp::tc::expr::Type pepp::tc::expr::result_type(UnaryOp op, Type operand, const Options &options) {
-  return operation_types(op, operand, options).result;
+pepp::tc::expr::Type pepp::tc::expr::result_type(UnaryOp op, Type operand, Type default_type) {
+  return operation_types(op, operand, default_type).result;
 }
 
-pepp::tc::expr::Type pepp::tc::expr::result_type(BinaryOp op, Type lhs, Type rhs, const Options &options) {
-  return operation_types(op, lhs, rhs, options).result;
+pepp::tc::expr::Type pepp::tc::expr::result_type(BinaryOp op, Type lhs, Type rhs, Type default_type) {
+  return operation_types(op, lhs, rhs, default_type).result;
 }
 
 std::expected<pepp::tc::expr::Value, std::string> pepp::tc::expr::apply(UnaryOp op, Value operand,
-                                                                        const Options &options) {
-  const auto types = operation_types(op, operand.type, options);
+                                                                        Type default_type) {
+  const auto types = operation_types(op, operand.type, default_type);
   const auto v = convert(operand, types.operand);
   switch (op) {
   case UnaryOp::Plus: return v;
@@ -181,9 +181,9 @@ std::expected<pepp::tc::expr::Value, std::string> pepp::tc::expr::apply(UnaryOp 
 }
 
 std::expected<pepp::tc::expr::Value, std::string> pepp::tc::expr::apply(BinaryOp op, Value lhs, Value rhs,
-                                                                        const Options &options) {
+                                                                        Type default_type) {
   using enum BinaryOp;
-  const auto types = operation_types(op, lhs.type, rhs.type, options);
+  const auto types = operation_types(op, lhs.type, rhs.type, default_type);
   const auto l = convert(lhs, types.operand), r = convert(rhs, types.operand);
   const bool is_signed = types.operand.sign == Signed;
   switch (op) {
@@ -221,13 +221,13 @@ std::expected<pepp::tc::expr::Value, std::string> pepp::tc::expr::apply(BinaryOp
 }
 
 std::expected<pepp::tc::expr::Value, pepp::tc::expr::EvaluationError>
-pepp::tc::expr::evaluate_expression(const Tree &tree, const Options &options, const ValueOf &value_of) {
+pepp::tc::expr::evaluate_expression(const Tree &tree, Type default_type, const ValueOf &value_of) {
   if (tree.empty()) return std::unexpected(EvaluationError{std::nullopt, "Empty expression"});
-  return evaluate(tree, tree.root(), options, value_of);
+  return evaluate(tree, tree.root(), default_type, value_of);
 }
 
 std::vector<std::optional<pepp::tc::expr::Value>>
-pepp::tc::expr::constant_values(const Tree &tree, const Options &options, const ValueOf &constant_of) {
+pepp::tc::expr::constant_values(const Tree &tree, Type default_type, const ValueOf &constant_of) {
   // Nodes are in postorder, so operands are always computed first.
   std::vector<std::optional<Value>> values(tree.nodes().size());
   const auto known = [](const std::expected<Value, std::string> &v) {
@@ -236,7 +236,7 @@ pepp::tc::expr::constant_values(const Tree &tree, const Options &options, const 
   // Evaluate a node to a value if it is constant or a nullopt if it is a symbol (or an expression containing a symbol).
   const auto f = [&](const auto &n) -> std::optional<Value> {
     using T = std::decay_t<decltype(n)>;
-    if constexpr (std::is_same_v<T, Integer> || std::is_same_v<T, Character>) return literal(n, options);
+    if constexpr (std::is_same_v<T, Integer> || std::is_same_v<T, Character>) return literal(n, default_type);
     else if constexpr (std::is_same_v<T, FoldedConstant>) return n.value;
     else if constexpr (std::is_same_v<T, Identifier>) return constant_of ? constant_of(n) : std::nullopt;
     else if constexpr (std::is_same_v<T, LocationCounter>) return std::nullopt;
@@ -244,42 +244,42 @@ pepp::tc::expr::constant_values(const Tree &tree, const Options &options, const 
     // A constexpr call is constant when its argument is.
     else if constexpr (std::is_same_v<T, Call>) {
       if (!n.function->is_constexpr() || !values[n.argument]) return std::nullopt;
-      return known(n.function->evaluate(*values[n.argument], options));
+      return known(n.function->evaluate(*values[n.argument], default_type));
     }
     else if constexpr (std::is_same_v<T, Unary>) {
       if (!values[n.operand]) return std::nullopt;
-      return known(apply(n.op, *values[n.operand], options));
+      return known(apply(n.op, *values[n.operand], default_type));
     } else {
       if (const auto &lhs = values[n.lhs], &rhs = values[n.rhs]; !lhs || !rhs) return std::nullopt;
-      else return known(apply(n.op, *lhs, *rhs, options));
+      else return known(apply(n.op, *lhs, *rhs, default_type));
     }
   };
   for (NodeId id = 0; id < values.size(); id++) values[id] = std::visit(f, tree[id]);
   return values;
 }
 
-std::vector<pepp::tc::expr::Type> pepp::tc::expr::node_types(const Tree &tree, const Options &options,
+std::vector<pepp::tc::expr::Type> pepp::tc::expr::node_types(const Tree &tree, Type default_type,
                                                              const TypeOf &type_of, const ValueOf &constant_of) {
   // Nodes are in postorder, so operands are always typed first.
   std::vector<Type> types(tree.nodes().size());
   const auto f = [&](const auto &n) -> Type {
     using T = std::decay_t<decltype(n)>;
-    if constexpr (std::is_same_v<T, Integer> || std::is_same_v<T, Character>) return literal(n, options).type;
+    if constexpr (std::is_same_v<T, Integer> || std::is_same_v<T, Character>) return literal(n, default_type).type;
     else if constexpr (std::is_same_v<T, FoldedConstant>) return n.value.type;
     else if constexpr (std::is_same_v<T, Identifier>) {
       if (const auto value = constant_of ? constant_of(n) : std::nullopt) return value->type;
       return type_of(n);
     } else if constexpr (std::is_same_v<T, LocationCounter>) return type_of(Identifier{n.name});
     else if constexpr (std::is_same_v<T, Parens>) return types[n.inner];
-    else if constexpr (std::is_same_v<T, Call>) return n.function->result_type(types[n.argument], options);
-    else if constexpr (std::is_same_v<T, Unary>) return result_type(n.op, types[n.operand], options);
-    else return result_type(n.op, types[n.lhs], types[n.rhs], options);
+    else if constexpr (std::is_same_v<T, Call>) return n.function->result_type(types[n.argument], default_type);
+    else if constexpr (std::is_same_v<T, Unary>) return result_type(n.op, types[n.operand], default_type);
+    else return result_type(n.op, types[n.lhs], types[n.rhs], default_type);
   };
   for (NodeId id = 0; id < types.size(); id++) types[id] = std::visit(f, tree[id]);
   return types;
 }
 
-pepp::tc::expr::Tree pepp::tc::expr::reassociate_constants(const Tree &tree, const Options &options,
+pepp::tc::expr::Tree pepp::tc::expr::reassociate_constants(const Tree &tree, Type default_type,
                                                            const TypeOf &type_of, const ValueOf &constant_of) {
   using namespace bits;
   using enum BinaryOp;
@@ -291,8 +291,8 @@ pepp::tc::expr::Tree pepp::tc::expr::reassociate_constants(const Tree &tree, con
       {BitOr, std::nullopt, 0},
       {BitXor, std::nullopt, 0},
   }};
-  const auto types = node_types(tree, options, type_of, constant_of);
-  const auto values = constant_values(tree, options, constant_of);
+  const auto types = node_types(tree, default_type, type_of, constant_of);
+  const auto values = constant_values(tree, default_type, constant_of);
 
   // Rebuild from the root, left to right so that the output stays in postorder.
   Tree ret;
@@ -329,9 +329,9 @@ pepp::tc::expr::Tree pepp::tc::expr::reassociate_constants(const Tree &tree, con
   return ret;
 }
 
-pepp::tc::expr::Tree pepp::tc::expr::fold_constants(const Tree &tree, const Options &options,
+pepp::tc::expr::Tree pepp::tc::expr::fold_constants(const Tree &tree, Type default_type,
                                                     const ValueOf &constant_of) {
-  const auto values = constant_values(tree, options, constant_of);
+  const auto values = constant_values(tree, default_type, constant_of);
 
   // Rebuild from the root, replacing each subtree which has a value with a single constant.
   Tree ret;
@@ -346,7 +346,7 @@ pepp::tc::expr::Tree pepp::tc::expr::fold_constants(const Tree &tree, const Opti
   return ret;
 }
 
-pepp::tc::expr::Tree pepp::tc::expr::simplify(const Tree &tree, const Options &options, const TypeOf &type_of,
+pepp::tc::expr::Tree pepp::tc::expr::simplify(const Tree &tree, Type default_type, const TypeOf &type_of,
                                               const ValueOf &constant_of) {
-  return fold_constants(reassociate_constants(strip_parens(tree), options, type_of, constant_of), options, constant_of);
+  return fold_constants(reassociate_constants(strip_parens(tree), default_type, type_of, constant_of), default_type, constant_of);
 }

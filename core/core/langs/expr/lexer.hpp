@@ -15,19 +15,19 @@
  */
 #pragma once
 #include "core/compile/lex/lexer.hpp"
-#include "core/langs/expr/features.hpp"
+#include "core/langs/expr/options.hpp"
 
 namespace pepp::tc::expr {
 
 class ExpressionLexer : public lex::ALexer {
 public:
   ExpressionLexer(std::shared_ptr<std::unordered_set<std::string>> identifier_pool, support::SeekableData &&data,
-                  Features features = {});
+                  Options options = {});
   bool input_remains() const override;
   std::shared_ptr<lex::Token> next_token() override;
 
 private:
-  Features _features;
+  Options _options;
 };
 
 } // namespace pepp::tc::expr

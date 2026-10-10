@@ -26,8 +26,8 @@ using pepp::tc::expr::Integer;
 using pepp::tc::support::Location;
 
 // One constexpr and one contextual function, which take the argument's type.
-std::expected<Value, std::string> twice(Value x, const Options &) { return Value{x.bits * 2, x.type}; }
-Type same(Type type, const Options &) { return type; }
+std::expected<Value, std::string> twice(Value x, Type) { return Value{x.bits * 2, x.type}; }
+Type same(Type type, Type) { return type; }
 constexpr std::array<Function, 2> functions{{{"%twice", twice, same}, {"%where", nullptr, same}}};
 
 Parsed parsed(const ParseResult &result) {
@@ -145,10 +145,10 @@ TEST_CASE("Expression parser", "[scope:core][scope:core.langs][kind:unit][arch:*
     }
   }
   SECTION("location counter") {
-    using Dot = Features::Dot;
+    using Dot = Options::Dot;
     int named = 0;
     const NameLocationCounter name = [&] { return "<." + std::to_string(named++) + ">"; };
-    const auto result = parse(". + 4 - .", Location(0, 0), nullptr, {Dot::Identifier}, name);
+    const auto result = parse(". + 4 - .", Location(0, 0), nullptr, {.dot = Dot::Identifier}, name);
     const auto &tree = parsed(result).tree;
     CHECK(to_postfix(tree) == ". 4 + . -");
     CHECK(to_infix(tree) == ". + 4 - .");
@@ -159,16 +159,16 @@ TEST_CASE("Expression parser", "[scope:core][scope:core.langs][kind:unit][arch:*
 
     // . is conditionally enabled in the grammar
     CHECK(std::holds_alternative<NoExpression>(parse(".")));
-    const auto unnamed = parse(".", Location(0, 0), nullptr, {Dot::Identifier});
+    const auto unnamed = parse(".", Location(0, 0), nullptr, {.dot = Dot::Identifier});
     REQUIRE(std::holds_alternative<Error>(unnamed));
     CHECK(std::get<Error>(unnamed).message == "The location counter is not available");
-    const auto member = parse("a.b", Location(0, 0), nullptr, {Dot::Operator});
+    const auto member = parse("a.b", Location(0, 0), nullptr, {.dot = Dot::Operator});
     REQUIRE(std::holds_alternative<Error>(member));
     CHECK(std::get<Error>(member).message == "Member access is not implemented");
   }
   SECTION("Function calls") {
-    const Features features{.percent_identifiers = true, .functions = functions};
-    const auto call = [&](const char *source) { return parse(source, Location(0, 0), nullptr, features); };
+    const Options options{.percent_identifiers = true, .functions = functions};
+    const auto call = [&](const char *source) { return parse(source, Location(0, 0), nullptr, options); };
     const auto &tree = parsed(call("%twice(1 + 2) * 3")).tree;
     CHECK(to_postfix(tree) == "1 2 + %twice 3 *");
     CHECK(to_infix(tree) == "%twice(1 + 2) * 3");

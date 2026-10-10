@@ -20,8 +20,8 @@
 #include "core/langs/asmb/asmb_tokens.hpp"
 
 pepp::tc::expr::ExpressionLexer::ExpressionLexer(std::shared_ptr<std::unordered_set<std::string>> identifier_pool,
-                                                 support::SeekableData &&data, Features features)
-    : ALexer(std::move(identifier_pool), std::move(data)), _features(features) {}
+                                                 support::SeekableData &&data, Options options)
+    : ALexer(std::move(identifier_pool), std::move(data)), _options(options) {}
 
 bool pepp::tc::expr::ExpressionLexer::input_remains() const { return _cursor.input_remains(); }
 
@@ -29,11 +29,11 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::expr::ExpressionLexer::next_toke
   using namespace pepp::tc::lex;
   using Integer = pepp::tc::lex::Integer;
   using LocationInterval = support::LocationInterval;
-  using Dot = Features::Dot;
+  using Dot = Options::Dot;
   static const std::regex plain_identifier("[a-zA-Z_][a-zA-Z0-9_]*");
   // A function name such as %hi. The parser rejects any which is not a function.
   static const std::regex percent_identifier("%?[a-zA-Z_][a-zA-Z0-9_]*");
-  const auto &identifier = _features.percent_identifiers ? percent_identifier : plain_identifier;
+  const auto &identifier = _options.percent_identifiers ? percent_identifier : plain_identifier;
   static const std::regex decimal("[0-9]+");
   static const std::regex hexadecimal("0[xX][0-9a-fA-F]+");
   static const std::regex badHex("0[xX]");
@@ -86,7 +86,7 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::expr::ExpressionLexer::next_toke
     _cursor.advance(maybeIdent.length(0));
     auto const *id = &*_pool->emplace(_cursor.select()).first;
     current_token = std::make_shared<Identifier>(here(), id);
-  } else if (_cursor.peek() == '.' && _features.dot != Dot::Forbidden) {
+  } else if (_cursor.peek() == '.' && _options.dot != Dot::Forbidden) {
     // The parser decides whether it is the location counter or an operator.
     _cursor.advance(1);
     current_token = std::make_shared<Literal>(here(), ".");

@@ -46,8 +46,8 @@ std::shared_ptr<pepp::core::symbol::LeafTable> pepp::tc::parser::PepParser::symb
 void pepp::tc::parser::PepParser::debug_print_tokens(bool debug) { _root_lexer->print_tokens = debug; }
 
 std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::PepParser::argument() {
-  constexpr expr::Options options{.int_bits = 16, .default_sign = expr::Signedness::Unsigned};
-  constexpr expr::Features features{.dot = expr::Features::Dot::Identifier};
+  constexpr expr::Options options{.default_type = {16, expr::Signedness::Unsigned},
+                                  .dot = expr::Options::Dot::Identifier};
   constexpr auto invalid = [](const expr::Error &error) {
     return PepParserError(PepParserError::UnaryError::Expression_Invalid, error.message, error.location);
   };
@@ -59,10 +59,10 @@ std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::PepParser::argument() {
 
   auto buf = active_buffer();
   // Must try expression first, otherwise we might lex part of the expression searching for a string constant.
-  if (const auto expr = parse_expression(*buf, *active_lexer(), _pool, features, location_counter); !expr)
+  if (const auto expr = parse_expression(*buf, *active_lexer(), _pool, options, location_counter); !expr)
     throw invalid(expr.error());
   else if (*expr) {
-    if (const auto value = lower(**expr, _symtab, options, 2); !value) throw invalid(value.error());
+    if (const auto value = lower(**expr, _symtab, options.default_type, 2); !value) throw invalid(value.error());
     else return *value;
   } else if (auto maybeStr = buf->match<lex::StringConstant>())
     return std::make_shared<pepp::ast::String>(std::string{maybeStr->view()});

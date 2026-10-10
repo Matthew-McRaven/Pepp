@@ -25,8 +25,8 @@ using namespace pepp::tc::expr;
 using enum Signedness;
 
 // One constexpr and one  non-constexpr function which preserve argument's types.
-std::expected<Value, std::string> twice(Value x, const Options &) { return Value{x.bits * 2, x.type}; }
-Type same(Type type, const Options &) { return type; }
+std::expected<Value, std::string> twice(Value x, Type) { return Value{x.bits * 2, x.type}; }
+Type same(Type type, Type) { return type; }
 constexpr std::array<Function, 2> functions{{{"%twice", twice, same}, {"%where", nullptr, same}}};
 
 Tree tree_of(const char *source) {
@@ -35,21 +35,21 @@ Tree tree_of(const char *source) {
   return std::get<Parsed>(std::move(result)).tree;
 }
 
-std::expected<Value, EvaluationError> evaluate(const char *source, const Options &options) {
-  return evaluate_expression(tree_of(source), options);
+std::expected<Value, EvaluationError> evaluate(const char *source, Type default_type) {
+  return evaluate_expression(tree_of(source), default_type);
 }
 } // namespace
 
 TEST_CASE("Expression evaluation", "[scope:core][scope:core.langs][kind:unit][arch:*]") {
   // Pep/10 has a 16-bit int and treats numbers as u16 by default.
   // RISC-V has a 32-bit int and is signed by default.
-  const Options pep{16, Unsigned}, pep_signed{16, Signed}, rv{32, Signed};
+  const Type pep{16, Unsigned}, pep_signed{16, Signed}, rv{32, Signed};
   constexpr u64 max = std::numeric_limits<u64>::max();
 
   SECTION("Values and types") {
     struct Case {
       const char *source;
-      Options options;
+      Type default_type;
       Value value;
     };
     const std::vector<Case> cases = {
@@ -88,8 +88,8 @@ TEST_CASE("Expression evaluation", "[scope:core][scope:core.langs][kind:unit][ar
         {"1 || 1 / 0", pep, {1, {16, Signed}}},
     };
     for (const auto &c : cases) {
-      CAPTURE(c.source, c.options.int_bits, static_cast<int>(c.options.default_sign));
-      const auto result = evaluate(c.source, c.options);
+      CAPTURE(c.source, c.default_type.bits, static_cast<int>(c.default_type.sign));
+      const auto result = evaluate(c.source, c.default_type);
       REQUIRE(result.has_value());
       CHECK(result->bits == c.value.bits);
       CHECK(result->type.bits == c.value.type.bits);
@@ -136,7 +136,7 @@ TEST_CASE("Expression evaluation", "[scope:core][scope:core.langs][kind:unit][ar
   SECTION("Function calls") {
     const auto call = [](const char *source) {
       auto result = parse(source, pepp::tc::support::Location(0, 0), nullptr,
-                          Features{.percent_identifiers = true, .functions = functions});
+                          Options{.percent_identifiers = true, .functions = functions});
       REQUIRE(std::holds_alternative<Parsed>(result));
       return std::get<Parsed>(std::move(result)).tree;
     };

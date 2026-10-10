@@ -24,7 +24,6 @@
 #include "core/math/bitmanip/mask.hpp"
 
 namespace {
-using pepp::tc::expr::Options;
 using pepp::tc::expr::Value;
 using enum pepp::tc::expr::Signedness;
 
@@ -33,20 +32,20 @@ bool is_constant(const pepp::core::symbol::Entry &entry) {
 }
 
 // An .EQUATE is a constant of its own width; any other symbol names an address.
-Value symbol_value(const pepp::core::symbol::Entry &entry, const Options &options) {
-  if (!entry.value) return {0, {options.int_bits, Unsigned}};
+Value symbol_value(const pepp::core::symbol::Entry &entry, pepp::tc::expr::Type default_type) {
+  if (!entry.value) return {0, {default_type.bits, Unsigned}};
   auto value = entry.value->value();
   if (is_constant(entry)) {
     const u8 width = static_cast<u8>(value.byteCount * 8);
     if (width == 8 || width == 16 || width == 32 || width == 64) return {value(), {width, Bits}};
   }
-  return {value() & bits::mask(options.int_bits / 8), {options.int_bits, Unsigned}};
+  return {value() & bits::mask(default_type.bits / 8), {default_type.bits, Unsigned}};
 }
 } // namespace
 
 pepp::ast::Expression::Expression(tc::expr::Tree tree, std::shared_ptr<const core::symbol::LeafTable> symtab,
-                                  tc::expr::Options options, u8 size)
-    : _tree(std::move(tree)), _symtab(std::move(symtab)), _options(options), _size(size) {}
+                                  tc::expr::Type default_type, u8 size)
+    : _tree(std::move(tree)), _symtab(std::move(symtab)), _default_type(default_type), _size(size) {}
 
 bool pepp::ast::Expression::contains_symbols() const noexcept {
   return !tc::expr::is_constant_expression(_tree);
@@ -54,34 +53,34 @@ bool pepp::ast::Expression::contains_symbols() const noexcept {
 
 pepp::tc::expr::ValueOf pepp::ast::Expression::resolve_constants_of() const {
   auto symtab = _symtab;
-  auto options = _options;
-  return [symtab, options](const tc::expr::Identifier &id) -> std::optional<Value> {
+  auto default_type = _default_type;
+  return [symtab, default_type](const tc::expr::Identifier &id) -> std::optional<Value> {
     if (const auto entry = symtab ? symtab->get(id.name) : std::nullopt; entry && is_constant(**entry))
-      return symbol_value(**entry, options);
+      return symbol_value(**entry, default_type);
     return std::nullopt;
   };
 }
 
 pepp::tc::expr::ValueOf pepp::ast::Expression::resolve_values_of() const {
   auto symtab = _symtab;
-  auto options = _options;
-  return [symtab, options](const tc::expr::Identifier &id) -> std::optional<Value> {
-    if (const auto entry = symtab ? symtab->get(id.name) : std::nullopt) return symbol_value(**entry, options);
+  auto default_type = _default_type;
+  return [symtab, default_type](const tc::expr::Identifier &id) -> std::optional<Value> {
+    if (const auto entry = symtab ? symtab->get(id.name) : std::nullopt) return symbol_value(**entry, default_type);
     return std::nullopt;
   };
 }
 
 pepp::tc::expr::TypeOf pepp::ast::Expression::resolve_types_of() const {
   auto symtab = _symtab;
-  auto options = _options;
-  return [symtab, options](const tc::expr::Identifier &id) -> tc::expr::Type {
-    if (const auto entry = symtab ? symtab->get(id.name) : std::nullopt) return symbol_value(**entry, options).type;
-    return {options.int_bits, Unsigned};
+  auto default_type = _default_type;
+  return [symtab, default_type](const tc::expr::Identifier &id) -> tc::expr::Type {
+    if (const auto entry = symtab ? symtab->get(id.name) : std::nullopt) return symbol_value(**entry, default_type).type;
+    return {default_type.bits, Unsigned};
   };
 }
 
 std::expected<pepp::tc::expr::Value, pepp::tc::expr::EvaluationError> pepp::ast::Expression::evaluate() const {
-  return tc::expr::evaluate_expression(_tree, _options, resolve_values_of());
+  return tc::expr::evaluate_expression(_tree, _default_type, resolve_values_of());
 }
 
 u64 pepp::ast::Expression::minimum_size() const noexcept {

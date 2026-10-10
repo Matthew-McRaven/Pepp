@@ -29,18 +29,18 @@ namespace expr = pepp::tc::expr;
 // e.g., 0x12345FFF. Without addition, lo=0xFFF, hi=x012345000
 // lo is sign extend to 0xFFFF'FFFF, so a lui/addi pair would compute 12344FFF
 // So we need to round hi up when lo is negative (bit 11 / 0x800)is set.
-std::expected<expr::Value, std::string> hi20(expr::Value x, const expr::Options &) {
+std::expected<expr::Value, std::string> hi20(expr::Value x, expr::Type) {
   return expr::Value{(((x.bits & 0xFFFF'FFFF) + 0x800) >> 12) & 0xF'FFFF, {32, expr::Signedness::Unsigned}};
 }
-expr::Type hi_type(expr::Type, const expr::Options &) { return {32, expr::Signedness::Unsigned}; }
+expr::Type hi_type(expr::Type, expr::Type) { return {32, expr::Signedness::Unsigned}; }
 
 // Sign-extended lower 12 bits.
-std::expected<expr::Value, std::string> lo12(expr::Value x, const expr::Options &) {
+std::expected<expr::Value, std::string> lo12(expr::Value x, expr::Type) {
   // branch-free sign extension of 12-bit quantity to 32-bits.
   const auto sign_extended = (((x.bits & 0xFFF) ^ 0x800) - 0x800);
   return expr::Value{sign_extended & 0xFFFF'FFFF, {32, expr::Signedness::Signed}};
 }
-expr::Type lo_type(expr::Type, const expr::Options &) { return {32, expr::Signedness::Signed}; }
+expr::Type lo_type(expr::Type, expr::Type) { return {32, expr::Signedness::Signed}; }
 
 // Currently implemented relocation modifiers
 constexpr std::array<expr::Function, 4> functions{{
@@ -51,8 +51,10 @@ constexpr std::array<expr::Function, 4> functions{{
 }};
 
 // `.` is the location counter, and %name a relocation modifier.
-constexpr expr::Features features{
-    .dot = expr::Features::Dot::Identifier, .percent_identifiers = true, .functions = functions};
+constexpr expr::Options options{.default_type = {32, expr::Signedness::Signed},
+                                .dot = expr::Options::Dot::Identifier,
+                                .percent_identifiers = true,
+                                .functions = functions};
 
 // Re-use existing location counter for this line if possible.
 pepp::tc::expr::NameLocationCounter resolve_location_counter(pepp::core::symbol::LeafTable &symtab,
@@ -87,16 +89,15 @@ pepp::tc::IRProgram pepp::tc::parser::RISCVParser::parse(DiagnosticTable &diag) 
 void pepp::tc::parser::RISCVParser::debug_print_tokens(bool debug) { _lexer->print_tokens = debug; }
 
 std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::RISCVParser::argument() {
-  constexpr expr::Options options{.int_bits = 32, .default_sign = expr::Signedness::Signed};
   constexpr auto invalid = [](const expr::Error &error) {
     return RISCVParserError(RISCVParserError::UnaryError::Expression_Invalid, error.message, error.location);
   };
   const auto location_counter = resolve_location_counter(*_symtab, _location_counter);
 
-  if (const auto expr = parse_expression(*_buffer, *_lexer, _pool, features, location_counter); !expr)
+  if (const auto expr = parse_expression(*_buffer, *_lexer, _pool, options, location_counter); !expr)
     throw invalid(expr.error());
   else if (*expr) {
-    if (const auto value = lower(**expr, _symtab, options, 4); !value) throw invalid(value.error());
+    if (const auto value = lower(**expr, _symtab, options.default_type, 4); !value) throw invalid(value.error());
     else return *value;
   } else if (auto maybeStr = _buffer->match<lex::StringConstant>())
     return std::make_shared<pepp::ast::String>(std::string{maybeStr->view()});
@@ -218,7 +219,7 @@ std::vector<pepp::tc::parser::RISCVOperand> pepp::tc::parser::RISCVParser::mnemo
   // Try an expression before a comma, so that the lexer never lexes an operand's text. An operand may also follow the
   // previous one without a comma, as (x3) does in 0(x3).
   while (true) {
-    if (const auto expr = parse_expression(*_buffer, *_lexer, _pool, features, location_counter); !expr)
+    if (const auto expr = parse_expression(*_buffer, *_lexer, _pool, options, location_counter); !expr)
       throw invalid(expr.error());
     else if (*expr) ret.push_back({*expr, std::exchange(comma, false)});
     else if (!comma && _buffer->match_literal(",")) comma = true;
@@ -232,7 +233,6 @@ std::shared_ptr<pepp::tc::IntegerInstruction>
 pepp::tc::parser::RISCVParser::match_alternative(const riscv::Mnemonic &entry, std::span<const RISCVOperand> ops) {
   using RVPE = RISCVParserError;
   using OT = riscv::Operand::Type;
-  constexpr expr::Options options{.int_bits = 32, .default_sign = expr::Signedness::Signed};
   ParsedOperands values;
   std::size_t next = 0;
   for (const auto &operand : entry.mn.operands()) {
@@ -247,7 +247,7 @@ pepp::tc::parser::RISCVParser::match_alternative(const riscv::Mnemonic &entry, s
     }
     case OT::Fence: store_value(values, operand.destination, *fence_ordering_of(expression.tree)); break;
     case OT::Immediate:
-      if (auto value = lower(expression, _symtab, options, 4); !value)
+      if (auto value = lower(expression, _symtab, options.default_type, 4); !value)
         throw RVPE(RVPE::UnaryError::Expression_Invalid, value.error().message, value.error().location);
       else values.imm = *value;
       break;

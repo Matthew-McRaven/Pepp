@@ -40,18 +40,18 @@ using ExpressionResult = std::shared_ptr<const expr::Parsed>;
 
 // Enter the subexpression parser at buf's next token. Returns nullptr if no expression starts there. Otherwise the
 // operand becomes one ParsedExpression token in buf, standing in for its text. No symbols are referenced. It is an
-// error if any token is already buffered, since the expression parser reads the lexer's text from after it. features
+// error if any token is already buffered, since the expression parser reads the lexer's text from after it. options
 // and location_counter are as for expr::parse.
 std::expected<ExpressionResult, expr::Error>
 parse_expression(lex::Buffer &buf, lex::ALexer &lexer, std::shared_ptr<expr::IdentifierPool> pool,
-                 const expr::Features &features = {}, const expr::NameLocationCounter &location_counter = {});
+                 const expr::Options &options = {}, const expr::NameLocationCounter &location_counter = {});
 
 // Convert a parsed expression to an IRValue, prefering the most specfic IRValue possible. Only if no specific pattern
 // matches is an Expression IRValue created. Identifiers are referenced into the symbol table at this time. Symbol-free
 // expressions that fail to evaluate raise an error at this time.
 std::expected<std::shared_ptr<ast::IRValue>, expr::Error> lower(const expr::Parsed &operand,
                                                                 std::shared_ptr<core::symbol::LeafTable> symtab,
-                                                                const expr::Options &options, u8 size);
+                                                                expr::Type default_type, u8 size);
 
 // The value of an argument which must be known as it is parsed (e.g., .EQUATE, .IF), or nullopt if it names a symbol
 // which is not yet a constant, or the location counter. consteval could fail because a symbolic argument refers to a

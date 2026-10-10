@@ -23,27 +23,21 @@
 
 namespace pepp::tc::expr {
 
-// How a language reads its expressions.
-struct Options {
-  // Width of the target's int
-  u8 int_bits = 32;
-  // By default, should bits be intepreted as signed or unsigned quantities?
-  Signedness default_sign = Signedness::Signed;
-};
-
 // Unary functions such as RISC-V %hi(sym).
 struct Function {
   std::string_view name;
   // Constexpr functions depend only on their argument, and are eligible for constant folding.
   // Non-constexpr functions do not yet an evaluation path yet, but depend on the execution environment.
-  std::expected<Value, std::string> (*evaluate)(Value argument, const Options &options) = nullptr;
+  std::expected<Value, std::string> (*evaluate)(Value argument, Type default_type) = nullptr;
   // The type of the result, given the argument's.
-  Type (*result_type)(Type argument, const Options &options) = nullptr;
+  Type (*result_type)(Type argument, Type default_type) = nullptr;
   constexpr bool is_constexpr() const { return evaluate != nullptr; }
 };
 
-// Grammar which varies between the languages sharing this parser.
-struct Features {
+// How a language reads and evaluates its expressions.
+struct Options {
+  // The width of the target's int, and the signedness given to bits when neither operand has one.
+  Type default_type = {32, Signedness::Signed};
   // How to interpret the full-stop character?
   enum class Dot : u8 {
     Forbidden,  // Not part of the grammar.

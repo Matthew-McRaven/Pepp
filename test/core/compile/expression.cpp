@@ -37,7 +37,7 @@ Tree tree_of(const char *source) {
 
 TEST_CASE("pepp expressions", "[scope:core][scope:core.compile][kind:unit][arch:*]") {
   // Pep/10 has a 16-bit int and treats numbers as unsigned by default.
-  const Options pep{16, Signedness::Unsigned};
+  const Type pep{16, Signedness::Unsigned};
   auto symtab = std::make_shared<LeafTable>(2);
 
   SECTION("Serializing and sizing") {
