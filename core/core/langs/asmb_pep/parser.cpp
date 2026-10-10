@@ -49,7 +49,7 @@ std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::PepParser::argument() {
   constexpr expr::Options options{.default_type = {16, expr::Signedness::Unsigned},
                                   .dot = expr::Options::Dot::Identifier};
   constexpr auto invalid = [](const expr::Error &error) {
-    return PepParserError(PepParserError::UnaryError::Expression_Invalid, error.message, error.location);
+    return PepParserError(PepParserError::UnaryError::Expression_Invalid, error.message(), error.location);
   };
   // Re-use existing location counter for this line if possible.
   const auto location_counter = [this] {
@@ -87,7 +87,7 @@ bool condition_holds(pepp::ast::IRValue &arg, pepp::tc::support::LocationInterva
   using pepp::tc::PepParserError;
 
   if (const auto value = pepp::tc::parser::equate_value(arg, location); !value)
-    throw PepParserError(PepParserError::UnaryError::Expression_Invalid, value.error().message, value.error().location);
+    throw PepParserError(PepParserError::UnaryError::Expression_Invalid, value.error().message(), value.error().location);
   else if (!*value) throw PepParserError(PepParserError::NullaryError::Conditional_NotConstant, location);
   else return (**value & bits::mask(2)) != 0;
 }
@@ -289,7 +289,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
     // Equates are assigned values as they are parsed. Their symbolic arguments must already be defined.
     const auto value = equate_value(*arg, buf->matched_interval());
     if (!value)
-      throw PepParserError(PepParserError::UnaryError::Expression_Invalid, value.error().message, value.error().location);
+      throw PepParserError(PepParserError::UnaryError::Expression_Invalid, value.error().message(), value.error().location);
     else if (!*value)
       throw PepParserError(PepParserError::NullaryError::Argument_SymbolicEquate, buf->matched_interval());
     else if (arg->minimum_size() > 2)

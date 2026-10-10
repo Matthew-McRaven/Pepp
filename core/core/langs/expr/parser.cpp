@@ -29,12 +29,6 @@ namespace lex = pepp::tc::lex;
 using pepp::tc::support::Location;
 using pepp::tc::support::LocationInterval;
 
-// Thrown if the parser encounters a syntax error in the middle of an expression. e.g., `4 +` would throw this error.
-struct Failure {
-  LocationInterval location;
-  std::string message;
-};
-
 /*
  * Implemented as a Pratt parser rather than recursive descent because precedence climbing is so easy to implement.
  * The old debug watch expression parser had multiple associativity errors from being implemented via recursive descent.
@@ -52,7 +46,7 @@ public:
     if (!lhs) return std::nullopt;
     while (auto literal = _buf.peek<lex::Literal>()) {
       if (_options.dot == Options::Dot::Operator && literal->literal == ".")
-        throw Failure{literal->location(), "Member access is not implemented"};
+        throw Error{literal->location(), NullaryError::Syntax_MemberAccess};
       const auto op = binary_op(literal->literal);
       if (!op || precedence(*op) < min_precedence) break;
       consume(_buf.match<lex::Literal>());
@@ -96,7 +90,7 @@ private:
     } else if (auto character = _buf.match<lex::CharacterConstant>(); character) {
       consume(character);
       const auto value = bits::escapedToByte(character->value);
-      if (!value) throw Failure{character->location(), "Invalid character constant"};
+      if (!value) throw Error{character->location(), NullaryError::Syntax_InvalidCharacter};
       return add(Character{*value, character->value}, character->location());
     } else if (auto identifier = _buf.match<lex::Identifier>(); identifier) {
       consume(identifier);
@@ -104,7 +98,7 @@ private:
       const auto function = std::ranges::find(_options.functions, name, &Function::name);
       if (function != _options.functions.end()) return call(*function, identifier->location());
       // Only functions may be named with a %.
-      else if (name.starts_with('%')) throw Failure{identifier->location(), "Unknown function " + std::string(name)};
+      else if (name.starts_with('%')) throw Error{identifier->location(), UnaryError::Function_Unknown, name};
       return add(Identifier{std::string(name)}, identifier->location());
     } else if (_options.dot == Options::Dot::Identifier && _buf.peek_literal(".")) {
       const auto dot = _buf.match_literal(".");
@@ -115,7 +109,7 @@ private:
       consume(open);
       const auto inner = expression(0);
       if (!inner) expected_operand();
-      if (!_buf.peek_literal(")")) throw Failure{_buf.peek()->location(), "Expected ')'"};
+      if (!_buf.peek_literal(")")) throw Error{_buf.peek()->location(), NullaryError::Syntax_ExpectedCloseParen};
       const auto close = _buf.match_literal(")");
       consume(close);
       return add(Parens{*inner}, LocationInterval(open->location().lower(), close->location().upper()));
@@ -125,11 +119,11 @@ private:
 
   // <function> ( <expression> )
   NodeId call(const Function &function, LocationInterval name) {
-    if (!_buf.peek_literal("(")) throw Failure{_buf.peek()->location(), "Expected '('"};
+    if (!_buf.peek_literal("(")) throw Error{_buf.peek()->location(), NullaryError::Syntax_ExpectedOpenParen};
     consume(_buf.match_literal("("));
     const auto argument = expression(0);
     if (!argument) expected_operand();
-    if (!_buf.peek_literal(")")) throw Failure{_buf.peek()->location(), "Expected ')'"};
+    if (!_buf.peek_literal(")")) throw Error{_buf.peek()->location(), NullaryError::Syntax_ExpectedCloseParen};
     const auto close = _buf.match_literal(")");
     consume(close);
     return add(Call{&function, *argument}, LocationInterval(name.lower(), close->location().upper()));
@@ -138,12 +132,12 @@ private:
   // All . in the same expression refer to the same symbol.
   const std::string &location_counter(LocationInterval location) {
     if (_location_counter) return *_location_counter;
-    else if (!_name_location_counter) throw Failure{location, "The location counter is not available"};
+    else if (!_name_location_counter) throw Error{location, NullaryError::LocationCounter_Unavailable};
     return *(_location_counter = _name_location_counter());
   }
 
   // Called after an operator or '(' when no operand follows it.
-  [[noreturn]] void expected_operand() { throw Failure{_buf.peek()->location(), "Expected an operand"}; }
+  [[noreturn]] void expected_operand() { throw Error{_buf.peek()->location(), NullaryError::Syntax_ExpectedOperand}; }
 
   void consume(const std::shared_ptr<lex::Token> &token) { _end = token->location().upper(); }
 
@@ -172,8 +166,8 @@ pepp::tc::expr::ParseResult pepp::tc::expr::parse(support::SeekableData cursor, 
     // Parser does not consume newlines meaning it only advances the column.
     after.skip(parser.length());
     return Parsed{std::move(parser.tree), std::move(parser.locations), parser.length(), std::move(after)};
-  } catch (const Failure &failure) {
-    return Error{failure.location, failure.message};
+  } catch (const Error &error) {
+    return error;
   }
 }
 

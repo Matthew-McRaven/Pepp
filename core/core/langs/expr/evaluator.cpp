@@ -14,6 +14,7 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "core/langs/expr/evaluator.hpp"
+#include "core/langs/expr/options.hpp"
 #include <algorithm>
 #include <array>
 #include <utility>
@@ -116,20 +117,22 @@ bool short_circuits(BinaryOp op, Value lhs) {
 }
 
 Result evaluate(const Tree &tree, NodeId id, Type default_type, const ValueOf &value_of) {
-  const auto fail = [&](std::string message) { return std::unexpected(EvaluationError{id, std::move(message)}); };
+  const auto fail = [&]<typename... Args>(Args &&...args) {
+    return std::unexpected(EvaluationError{id, std::forward<Args>(args)...});
+  };
   const auto f = [&](const auto &n) -> Result {
     using T = std::decay_t<decltype(n)>;
     if constexpr (std::is_same_v<T, Integer> || std::is_same_v<T, Character>) return literal(n, default_type);
     else if constexpr (std::is_same_v<T, FoldedConstant>) return n.value;
     else if constexpr (std::is_same_v<T, Identifier>) {
       if (auto value = value_of ? value_of(n) : std::nullopt) return *value;
-      return fail("Symbol has no value: " + n.name);
+      return fail(UnaryError::Symbol_NoValue, n.name);
     } else if constexpr (std::is_same_v<T, LocationCounter>) { // Location counter is just another symbol.
       if (auto value = value_of ? value_of(Identifier{n.name}) : std::nullopt) return *value;
-      return fail("The location counter has no value");
+      return fail(NullaryError::LocationCounter_NoValue);
     } else if constexpr (std::is_same_v<T, Parens>) return evaluate(tree, n.inner, default_type, value_of);
     else if constexpr (std::is_same_v<T, Call>) {
-      if (!n.function->is_constexpr()) return fail(std::string(n.function->name) + " cannot be evaluated here");
+      if (!n.function->is_constexpr()) return fail(UnaryError::Function_NotConstExpr, n.function->name);
       else if (const auto argument = evaluate(tree, n.argument, default_type, value_of); !argument) return argument;
       else if (auto ret = n.function->evaluate(*argument, default_type); ret) return *ret;
       else return fail(ret.error());
@@ -167,8 +170,8 @@ pepp::tc::expr::Type pepp::tc::expr::result_type(BinaryOp op, Type lhs, Type rhs
   return operation_types(op, lhs, rhs, default_type).result;
 }
 
-std::expected<pepp::tc::expr::Value, std::string> pepp::tc::expr::apply(UnaryOp op, Value operand,
-                                                                        Type default_type) {
+std::expected<pepp::tc::expr::Value, pepp::tc::expr::NullaryError> pepp::tc::expr::apply(UnaryOp op, Value operand,
+                                                                                          Type default_type) {
   const auto types = operation_types(op, operand.type, default_type);
   const auto v = convert(operand, types.operand);
   switch (op) {
@@ -177,11 +180,11 @@ std::expected<pepp::tc::expr::Value, std::string> pepp::tc::expr::apply(UnaryOp 
   case UnaryOp::BitNot: return make(~v.bits, types.result);
   case UnaryOp::LogicalNot: return make(operand.bits == 0, types.result);
   }
-  return std::unexpected("Unknown unary operator");
+  return std::unexpected(NullaryError::Evaluation_UnknownOperator);
 }
 
-std::expected<pepp::tc::expr::Value, std::string> pepp::tc::expr::apply(BinaryOp op, Value lhs, Value rhs,
-                                                                        Type default_type) {
+std::expected<pepp::tc::expr::Value, pepp::tc::expr::NullaryError>
+pepp::tc::expr::apply(BinaryOp op, Value lhs, Value rhs, Type default_type) {
   using enum BinaryOp;
   const auto types = operation_types(op, lhs.type, rhs.type, default_type);
   const auto l = convert(lhs, types.operand), r = convert(rhs, types.operand);
@@ -190,10 +193,10 @@ std::expected<pepp::tc::expr::Value, std::string> pepp::tc::expr::apply(BinaryOp
   case Multiply: return make(l.bits * r.bits, types.result);
   case Divide: [[fallthrough]];
   case Modulo: {
-    if (r.bits == 0) return std::unexpected("Division by zero");
+    if (r.bits == 0) return std::unexpected(NullaryError::Evaluation_DivisionByZero);
     if (!is_signed) return make(op == Divide ? l.bits / r.bits : l.bits % r.bits, types.result);
     const i64 x = l.as_signed(), y = r.as_signed();
-    if (y == -1 && l.bits == (bits::mask(l.type.bits / 8) >> 1) + 1) return std::unexpected("Signed division overflow");
+    if (y == -1 && l.bits == (bits::mask(l.type.bits / 8) >> 1) + 1) return std::unexpected(NullaryError::Evaluation_SignedDivisionOverflow);
     return make(static_cast<u64>(op == Divide ? x / y : x % y), types.result);
   }
   case Add: return make(l.bits + r.bits, types.result);
@@ -201,7 +204,7 @@ std::expected<pepp::tc::expr::Value, std::string> pepp::tc::expr::apply(BinaryOp
   case ShiftLeft: [[fallthrough]];
   case ShiftRight: {
     // Actually need to treat shift amount as unsigned. negative shift amount is nonsense.
-    if (const u64 count = rhs.bits; count >= types.result.bits) return std::unexpected("Shift amount out of range");
+    if (const u64 count = rhs.bits; count >= types.result.bits) return std::unexpected(NullaryError::Evaluation_ShiftOutOfRange);
     else if (op == ShiftLeft) return make(l.bits << count, types.result);
     else return make(is_signed ? static_cast<u64>(l.as_signed() >> count) : l.bits >> count, types.result);
   }
@@ -217,12 +220,12 @@ std::expected<pepp::tc::expr::Value, std::string> pepp::tc::expr::apply(BinaryOp
   case LogicalAnd: return make(lhs.bits != 0 && rhs.bits != 0, types.result);
   case LogicalOr: return make(lhs.bits != 0 || rhs.bits != 0, types.result);
   }
-  return std::unexpected("Unknown binary operator");
+  return std::unexpected(NullaryError::Evaluation_UnknownOperator);
 }
 
 std::expected<pepp::tc::expr::Value, pepp::tc::expr::EvaluationError>
 pepp::tc::expr::evaluate_expression(const Tree &tree, Type default_type, const ValueOf &value_of) {
-  if (tree.empty()) return std::unexpected(EvaluationError{std::nullopt, "Empty expression"});
+  if (tree.empty()) return std::unexpected(EvaluationError{std::nullopt, NullaryError::Evaluation_Empty});
   return evaluate(tree, tree.root(), default_type, value_of);
 }
 
@@ -230,7 +233,7 @@ std::vector<std::optional<pepp::tc::expr::Value>>
 pepp::tc::expr::constant_values(const Tree &tree, Type default_type, const ValueOf &constant_of) {
   // Nodes are in postorder, so operands are always computed first.
   std::vector<std::optional<Value>> values(tree.nodes().size());
-  const auto known = [](const std::expected<Value, std::string> &v) {
+  const auto known = [](const std::expected<Value, NullaryError> &v) {
     return v ? std::optional<Value>(*v) : std::nullopt;
   };
   // Evaluate a node to a value if it is constant or a nullopt if it is a symbol (or an expression containing a symbol).

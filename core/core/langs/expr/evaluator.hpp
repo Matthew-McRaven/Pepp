@@ -42,8 +42,8 @@ Type result_type(BinaryOp op, Type lhs, Type rhs, Type default_type);
 // - division by zero
 // - signed division overflow (INT_MIN / -1)
 // - shift amounts >= default_type.bits or <= 0.
-std::expected<Value, std::string> apply(UnaryOp op, Value operand, Type default_type);
-std::expected<Value, std::string> apply(BinaryOp op, Value lhs, Value rhs, Type default_type);
+std::expected<Value, NullaryError> apply(UnaryOp op, Value operand, Type default_type);
+std::expected<Value, NullaryError> apply(BinaryOp op, Value lhs, Value rhs, Type default_type);
 
 // A symbol's value in the current context or nullopt if it has none.
 using ValueOf = std::function<std::optional<Value>(const Identifier &)>;

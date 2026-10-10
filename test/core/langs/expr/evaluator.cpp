@@ -25,7 +25,7 @@ using namespace pepp::tc::expr;
 using enum Signedness;
 
 // One constexpr and one  non-constexpr function which preserve argument's types.
-std::expected<Value, std::string> twice(Value x, Type) { return Value{x.bits * 2, x.type}; }
+std::expected<Value, NullaryError> twice(Value x, Type) { return Value{x.bits * 2, x.type}; }
 Type same(Type type, Type) { return type; }
 constexpr std::array<Function, 2> functions{{{"%twice", twice, same}, {"%where", nullptr, same}}};
 
@@ -98,23 +98,26 @@ TEST_CASE("Expression evaluation", "[scope:core][scope:core.langs][kind:unit][ar
   }
   SECTION("Errors") {
     struct Case {
-      const char *source, *message;
+      const char *source;
+      ErrorCode code;
+      const char *argument = "";
     };
+    using enum NullaryError;
     const std::vector<Case> cases = {
-        {"1 / 0", "Division by zero"},
-        {"1 % 0", "Division by zero"},
-        {"1 && 1 / 0", "Division by zero"},
-        {"(-32767 - 1) / -1", "Signed division overflow"},
-        {"(-32767 - 1) % -1", "Signed division overflow"},
-        {"1 << 16", "Shift amount out of range"},
-        {"1 << -1", "Shift amount out of range"},
-        {"sym + 1", "Symbol has no value: sym"},
+        {"1 / 0", Evaluation_DivisionByZero},
+        {"1 % 0", Evaluation_DivisionByZero},
+        {"1 && 1 / 0", Evaluation_DivisionByZero},
+        {"(-32767 - 1) / -1", Evaluation_SignedDivisionOverflow},
+        {"(-32767 - 1) % -1", Evaluation_SignedDivisionOverflow},
+        {"1 << 16", Evaluation_ShiftOutOfRange},
+        {"1 << -1", Evaluation_ShiftOutOfRange},
+        {"sym + 1", UnaryError::Symbol_NoValue, "sym"},
     };
     for (const auto &c : cases) {
       CAPTURE(c.source);
       const auto result = evaluate(c.source, pep);
       REQUIRE(!result.has_value());
-      CHECK(result.error().message == c.message);
+      CHECK(result.error().matches(c.code, c.argument));
     }
 
     // Check that errors are localized to the failing text of the expression.
@@ -131,7 +134,7 @@ TEST_CASE("Expression evaluation", "[scope:core][scope:core.langs][kind:unit][ar
     const auto empty = evaluate_expression(Tree{}, pep);
     REQUIRE(!empty.has_value());
     CHECK(!empty.error().node.has_value());
-    CHECK(empty.error().message == "Empty expression");
+    CHECK(empty.error().matches(NullaryError::Evaluation_Empty));
   }
   SECTION("Function calls") {
     const auto call = [](const char *source) {
@@ -145,7 +148,7 @@ TEST_CASE("Expression evaluation", "[scope:core][scope:core.langs][kind:unit][ar
     CHECK(to_postfix(fold_constants(call("%twice(3) + sym"), pep)) == "6 sym +");
     CHECK(is_constant_expression(call("%twice(3)")));
     // A  non-constexpr call depends on where it is used, so it is never evaluated.
-    CHECK(evaluate_expression(call("%where(3)"), pep).error().message == "%where cannot be evaluated here");
+    CHECK(evaluate_expression(call("%where(3)"), pep).error().matches(UnaryError::Function_NotConstExpr, "%where"));
     CHECK(to_postfix(fold_constants(call("%where(3)"), pep)) == "3 %where");
     CHECK(!is_constant_expression(call("%where(3)")));
   }
@@ -159,7 +162,7 @@ TEST_CASE("Expression evaluation", "[scope:core][scope:core.langs][kind:unit][ar
     const auto result = evaluate_expression(tree_of("sym + other"), pep, value_of);
     REQUIRE(!result.has_value());
     CHECK(result.error().node == NodeId{1});
-    CHECK(result.error().message == "Symbol has no value: other");
+    CHECK(result.error().matches(UnaryError::Symbol_NoValue, "other"));
 
     // The location counter is looked up via symbol table
     Tree here;
@@ -170,7 +173,7 @@ TEST_CASE("Expression evaluation", "[scope:core][scope:core.langs][kind:unit][ar
       return std::nullopt;
     };
     CHECK(evaluate_expression(here, pep, address).value() == Value{0x11, {16, Unsigned}});
-    CHECK(evaluate_expression(here, pep).error().message == "The location counter has no value");
+    CHECK(evaluate_expression(here, pep).error().matches(NullaryError::LocationCounter_NoValue));
     CHECK(!constant_values(here, pep, address)[counter].has_value());
   }
   SECTION("Constant folding") {

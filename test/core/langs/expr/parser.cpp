@@ -26,7 +26,7 @@ using pepp::tc::expr::Integer;
 using pepp::tc::support::Location;
 
 // One constexpr and one contextual function, which take the argument's type.
-std::expected<Value, std::string> twice(Value x, Type) { return Value{x.bits * 2, x.type}; }
+std::expected<Value, NullaryError> twice(Value x, Type) { return Value{x.bits * 2, x.type}; }
 Type same(Type type, Type) { return type; }
 constexpr std::array<Function, 2> functions{{{"%twice", twice, same}, {"%where", nullptr, same}}};
 
@@ -161,10 +161,10 @@ TEST_CASE("Expression parser", "[scope:core][scope:core.langs][kind:unit][arch:*
     CHECK(std::holds_alternative<NoExpression>(parse(".")));
     const auto unnamed = parse(".", Location(0, 0), nullptr, {.dot = Dot::Identifier});
     REQUIRE(std::holds_alternative<Error>(unnamed));
-    CHECK(std::get<Error>(unnamed).message == "The location counter is not available");
+    CHECK(std::get<Error>(unnamed).matches(NullaryError::LocationCounter_Unavailable));
     const auto member = parse("a.b", Location(0, 0), nullptr, {.dot = Dot::Operator});
     REQUIRE(std::holds_alternative<Error>(member));
-    CHECK(std::get<Error>(member).message == "Member access is not implemented");
+    CHECK(std::get<Error>(member).matches(NullaryError::Syntax_MemberAccess));
   }
   SECTION("Function calls") {
     const Options options{.percent_identifiers = true, .functions = functions};
@@ -177,9 +177,9 @@ TEST_CASE("Expression parser", "[scope:core][scope:core.langs][kind:unit][arch:*
     // Identifiers with % must be functions
     const auto unknown = call("%nope(1)"), uncalled = call("%twice 1");
     REQUIRE(std::holds_alternative<Error>(unknown));
-    CHECK(std::get<Error>(unknown).message == "Unknown function %nope");
+    CHECK(std::get<Error>(unknown).matches(UnaryError::Function_Unknown, "%nope"));
     REQUIRE(std::holds_alternative<Error>(uncalled));
-    CHECK(std::get<Error>(uncalled).message == "Expected '('");
+    CHECK(std::get<Error>(uncalled).matches(NullaryError::Syntax_ExpectedOpenParen));
   }
   SECTION("Consume no input if the text does not start with an expression") {
     for (const char *source :
@@ -192,13 +192,14 @@ TEST_CASE("Expression parser", "[scope:core][scope:core.langs][kind:unit][arch:*
     struct Case {
       const char *source;
       u16 lower, upper; // Columns of the offending token.
-      const char *message;
+      NullaryError code;
     };
+    using enum NullaryError;
     const std::vector<Case> cases = {
-        {"a + ,d", 4, 5, "Expected an operand"},  {"a +", 3, 3, "Expected an operand"},
-        {"a + * b", 4, 5, "Expected an operand"}, {"-", 1, 1, "Expected an operand"},
-        {"(a + 1", 6, 6, "Expected ')'"},         {"(1 + 2 ,", 7, 8, "Expected ')'"},
-        {"1 + 0x", 4, 6, "Expected an operand"},  {"1 + 99999999999999999999", 4, 24, "Expected an operand"},
+        {"a + ,d", 4, 5, Syntax_ExpectedOperand},  {"a +", 3, 3, Syntax_ExpectedOperand},
+        {"a + * b", 4, 5, Syntax_ExpectedOperand}, {"-", 1, 1, Syntax_ExpectedOperand},
+        {"(a + 1", 6, 6, Syntax_ExpectedCloseParen}, {"(1 + 2 ,", 7, 8, Syntax_ExpectedCloseParen},
+        {"1 + 0x", 4, 6, Syntax_ExpectedOperand},  {"1 + 99999999999999999999", 4, 24, Syntax_ExpectedOperand},
     };
     for (const auto &c : cases) {
       CAPTURE(c.source);
@@ -207,7 +208,7 @@ TEST_CASE("Expression parser", "[scope:core][scope:core.langs][kind:unit][arch:*
       const auto &error = std::get<Error>(result);
       CHECK(error.location.lower() == Location(0, c.lower));
       CHECK(error.location.upper() == Location(0, c.upper));
-      CHECK(error.message == c.message);
+      CHECK(error.matches(c.code));
     }
   }
   SECTION("Locations are relative to the origin") {

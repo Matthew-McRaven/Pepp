@@ -68,7 +68,7 @@ TEST_CASE("pepp expressions", "[scope:core][scope:core.compile][kind:unit][arch:
     const Expression expression(tree_of("missing - 2"), symtab, pep, 2);
     const auto result = expression.evaluate();
     REQUIRE(!result.has_value());
-    CHECK(result.error().message == "Symbol has no value: missing");
+    CHECK(result.error().matches(pepp::tc::expr::UnaryError::Symbol_NoValue, "missing"));
     CHECK(expression.value_as<u16>() == 0);
   }
   SECTION("contains_symbol works as expected") {

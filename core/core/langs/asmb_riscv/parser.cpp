@@ -29,13 +29,13 @@ namespace expr = pepp::tc::expr;
 // e.g., 0x12345FFF. Without addition, lo=0xFFF, hi=x012345000
 // lo is sign extend to 0xFFFF'FFFF, so a lui/addi pair would compute 12344FFF
 // So we need to round hi up when lo is negative (bit 11 / 0x800)is set.
-std::expected<expr::Value, std::string> hi20(expr::Value x, expr::Type) {
+std::expected<expr::Value, expr::NullaryError> hi20(expr::Value x, expr::Type) {
   return expr::Value{(((x.bits & 0xFFFF'FFFF) + 0x800) >> 12) & 0xF'FFFF, {32, expr::Signedness::Unsigned}};
 }
 expr::Type hi_type(expr::Type, expr::Type) { return {32, expr::Signedness::Unsigned}; }
 
 // Sign-extended lower 12 bits.
-std::expected<expr::Value, std::string> lo12(expr::Value x, expr::Type) {
+std::expected<expr::Value, expr::NullaryError> lo12(expr::Value x, expr::Type) {
   // branch-free sign extension of 12-bit quantity to 32-bits.
   const auto sign_extended = (((x.bits & 0xFFF) ^ 0x800) - 0x800);
   return expr::Value{sign_extended & 0xFFFF'FFFF, {32, expr::Signedness::Signed}};
@@ -90,7 +90,7 @@ void pepp::tc::parser::RISCVParser::debug_print_tokens(bool debug) { _lexer->pri
 
 std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::RISCVParser::argument() {
   constexpr auto invalid = [](const expr::Error &error) {
-    return RISCVParserError(RISCVParserError::UnaryError::Expression_Invalid, error.message, error.location);
+    return RISCVParserError(RISCVParserError::UnaryError::Expression_Invalid, error.message(), error.location);
   };
   const auto location_counter = resolve_location_counter(*_symtab, _location_counter);
 
@@ -211,7 +211,7 @@ std::optional<E> mismatch(const riscv::MnemonicDescriptor &desc, std::span<const
 
 std::vector<pepp::tc::parser::RISCVOperand> pepp::tc::parser::RISCVParser::mnemonic_operands() {
   constexpr auto invalid = [](const expr::Error &error) {
-    return RISCVParserError(RISCVParserError::UnaryError::Expression_Invalid, error.message, error.location);
+    return RISCVParserError(RISCVParserError::UnaryError::Expression_Invalid, error.message(), error.location);
   };
   const auto location_counter = resolve_location_counter(*_symtab, _location_counter);
   std::vector<RISCVOperand> ret;
@@ -248,7 +248,7 @@ pepp::tc::parser::RISCVParser::match_alternative(const riscv::Mnemonic &entry, s
     case OT::Fence: store_value(values, operand.destination, *fence_ordering_of(expression.tree)); break;
     case OT::Immediate:
       if (auto value = lower(expression, _symtab, options.default_type, 4); !value)
-        throw RVPE(RVPE::UnaryError::Expression_Invalid, value.error().message, value.error().location);
+        throw RVPE(RVPE::UnaryError::Expression_Invalid, value.error().message(), value.error().location);
       else values.imm = *value;
       break;
     default: break;
@@ -438,7 +438,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::pseudo(Option
     if (auto symbolic = std::dynamic_pointer_cast<pepp::ast::Symbolic>(arg)) {
       (*symbol)->value = std::make_shared<pepp::core::symbol::AliasValue>(4, symbolic->symbol());
     } else if (const auto value = equate_value(*arg, _buffer->matched_interval()); !value) {
-      throw RVPE(RVPE::UnaryError::Expression_Invalid, value.error().message, value.error().location);
+      throw RVPE(RVPE::UnaryError::Expression_Invalid, value.error().message(), value.error().location);
     } else if (!*value) {
       throw RVPE(RVPE::NullaryError::Argument_SymbolicEquate, _buffer->matched_interval());
     } else {

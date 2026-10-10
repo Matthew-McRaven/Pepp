@@ -41,7 +41,7 @@ pepp::tc::parser::parse_expression(lex::Buffer &buf, lex::ALexer &lexer, std::sh
   // The expression parser reads the lexer's text, which is past any buffered token. This is a bug in the assembler,
   // but is reported as an error in the source rather than ending the program.
   if (const auto buffered = buf.buffered_tokens(); !buffered.empty())
-    return std::unexpected(expr::Error{buffered.front()->location(), "Unexpected token before an expression"});
+    return std::unexpected(expr::Error{buffered.front()->location(), expr::NullaryError::Syntax_BufferedToken});
 
   auto result = expr::parse(lexer.cursor(), std::move(pool), options, location_counter);
   if (const auto *error = std::get_if<expr::Error>(&result)) return std::unexpected(*error);
@@ -89,7 +89,7 @@ pepp::tc::parser::lower(const expr::Parsed &operand, std::shared_ptr<core::symbo
     if (const auto evaluated = value->evaluate(); !evaluated) {
       const auto &error = evaluated.error();
       const auto root = operand.locations[tree.root()];
-      return std::unexpected(expr::Error{error.node ? operand.locations[*error.node] : root, error.message});
+      return std::unexpected(expr::Error{error.node ? operand.locations[*error.node] : root, error});
     }
   return value;
 }
@@ -108,7 +108,7 @@ pepp::tc::parser::equate_value(ast::IRValue &arg, support::LocationInterval loca
     // Failing at a symbol means the symbol is not a constant
     else if (result.error().node && any(tree.kinds()[*result.error().node] & expr::Kind::Symbolic))
       return std::nullopt;
-    return std::unexpected(expr::Error{location, result.error().message});
+    return std::unexpected(expr::Error{location, result.error()});
   }
   return arg.value_as<u64>();
 }
