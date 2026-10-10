@@ -66,4 +66,6 @@ private:
   u8 _size = 0;
 };
 
+// True if value is a Symbolic, or an Expression which names a symbol.
+bool contains_symbol(const IRValue &value) noexcept;
 } // namespace pepp::ast

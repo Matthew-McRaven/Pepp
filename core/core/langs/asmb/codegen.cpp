@@ -15,7 +15,6 @@
  */
 #include "core/langs/asmb/codegen.hpp"
 #include <array>
-#include "core/compile/ir_value/expr.hpp"
 #include "core/compile/ir_value/expression.hpp"
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/symbol/leaf_table.hpp"
@@ -53,9 +52,7 @@ SymbolOperand classify_expression(const pepp::ast::Expression &exp) {
 
 SymbolOperand pepp::tc::classify_symbol_operand(pepp::ast::IRValue &value) {
   using Kind = SymbolOperand::Kind;
-  using Op = pepp::ast::InfixExpression::Op;
   if (auto *symbolic = dynamic_cast<pepp::ast::Symbolic *>(&value)) return {Kind::Offset, symbolic->symbol(), 0};
   else if (auto *expression = dynamic_cast<pepp::ast::Expression *>(&value)) return classify_expression(*expression);
-  else if (!contains_symbol(value)) return {};
-  else return {Kind::Invalid};
+  return {};
 }

@@ -15,6 +15,7 @@
  */
 #include "core/compile/ir_value/expression.hpp"
 #include <algorithm>
+#include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/symbol/entry.hpp"
 #include "core/compile/symbol/leaf_table.hpp"
 #include "core/compile/symbol/value.hpp"
@@ -101,3 +102,9 @@ u32 pepp::ast::Expression::serialize(bits::span<u8> dest, bits::Order destEndian
 std::string pepp::ast::Expression::string() const { return tc::expr::to_infix(_tree); }
 
 std::string pepp::ast::Expression::raw_string() const { return string(); }
+
+bool pepp::ast::contains_symbol(const IRValue &value) noexcept {
+  if (dynamic_cast<const Symbolic *>(&value)) return true;
+  else if (auto *expression = dynamic_cast<const Expression *>(&value)) return expression->contains_symbols();
+  return false;
+}

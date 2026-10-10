@@ -8,7 +8,6 @@
 #include <vector>
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_symbol.hpp"
-#include "core/compile/ir_value/expr.hpp"
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/symbol/entry.hpp"
 #include "core/compile/symbol/value.hpp"
@@ -320,8 +319,6 @@ struct SymbolOperand {
   std::shared_ptr<pepp::core::symbol::Entry> symbol = nullptr;
   i64 addend = 0;
 };
-
-using pepp::ast::contains_symbol;
 
 // Determine the relocation type for a symbolic operand.
 SymbolOperand classify_symbol_operand(pepp::ast::IRValue &value);

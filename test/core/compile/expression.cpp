@@ -18,7 +18,6 @@
 #include <array>
 #include <catch.hpp>
 #include <memory>
-#include "core/compile/ir_value/expr.hpp"
 #include "core/compile/symbol/entry.hpp"
 #include "core/compile/symbol/leaf_table.hpp"
 #include "core/compile/symbol/value.hpp"
