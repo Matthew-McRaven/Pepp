@@ -17,6 +17,7 @@
 #include <catch.hpp>
 #include <map>
 #include <sstream>
+#include <vector>
 #include "core/arch/riscv/asmb/rvi_patterns.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
 #include "core/compile/ir_linear/line_symbol.hpp"
@@ -69,6 +70,21 @@ TEST_CASE("RISCV ASM code generator",
     CHECK((u8)data[1] == 0x00);
     CHECK((u8)data[2] == 0x31);
     CHECK((u8)data[3] == 0x00);
+  }
+  SECTION("Symbols for B-/J-type instructions encode as relative offsets") {
+    const auto jump = [](const char *source) {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data(source));
+      auto results = p.parse(diag);
+      auto result = pepp::tc::riscv_split_to_sections(diag, results);
+      REQUIRE(diag.count() == 0);
+      auto addresses = pepp::tc::riscv_assign_addresses(result.grouped_ir, 0x100);
+      const auto code = pepp::tc::riscv_to_object_code(addresses, result.grouped_ir);
+      const auto bytes = code.section_slices.at(0).get(4, 4);
+      return std::vector<u8>(bytes.begin(), bytes.end());
+    };
+    // The j at 0x104 targets 0x108, which is 4 bytes ahead.
+    CHECK(jump("nop\nj target\ntarget: nop") == jump("nop\nj 4\nnop"));
   }
 }
 

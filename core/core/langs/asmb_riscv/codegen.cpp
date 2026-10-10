@@ -106,7 +106,8 @@ struct RISCVObjectVistitor : public RISCVIRVisitor {
   RISCVObjectVistitor(const IRMemoryAddressTable<RISCVAddress> &, const u32 base_address, bits::span<u8>,
                       std::vector<Relocation> &, IR2ObjectCodeMap &);
   // Integer instructions can delegate to a shared implementation.
-  void emit_line(const IntegerInstruction *line);
+  // If pc_relative and the argument is relocatable, emit argument - address rather than argument.
+  void emit_line(const IntegerInstruction *line, bool pc_relative = false);
   void visit(const EmptyLine *) override;
   void visit(const CommentLine *) override;
   void visit(const SymbolLine *) override;
@@ -142,9 +143,21 @@ void pepp::tc::RISCVObjectVistitor::visit(const SymbolLine *) {
   // Does not generate object code
 }
 
-void pepp::tc::RISCVObjectVistitor::emit_line(const IntegerInstruction *line) {
+namespace {
+// A branch or jump to something which can move, such as a label (e.g., not an .EQUATE).
+bool relocatable_target(pepp::ast::IRValue &imm) {
+  const auto operand = pepp::tc::classify_symbol_operand(imm);
+  const auto &value = operand.symbol ? operand.symbol->value : nullptr;
+  return operand.kind == pepp::tc::SymbolOperand::Kind::Offset &&
+         !(value && value->type() == pepp::core::symbol::Type::Constant);
+}
+} // namespace
+
+void pepp::tc::RISCVObjectVistitor::emit_line(const IntegerInstruction *line, bool pc_relative) {
   // Delegate to Mnemonic, which will merge pre-filled fields with provided values.
-  const u32 imm = line->imm ? line->imm->value_as<u32>() : u32(0);
+  u32 imm = line->imm ? line->imm->value_as<u32>() : u32(0);
+  // If the target is reloctable and this instruction is pcrel, then comput imm - address.
+  if (pc_relative && line->imm && relocatable_target(*line->imm)) imm -= ir_to_address.at(line).address;
   riscv::Values vals{.rs1 = line->rs1, .rs2 = line->rs2, .rd = line->rd, .imm = imm};
   auto encoded = line->mnemonic.mn.encode(vals).bits();
   bits::span<const u8> span{(const u8 *)&encoded, 4};
@@ -156,9 +169,9 @@ void pepp::tc::RISCVObjectVistitor::emit_line(const IntegerInstruction *line) {
 void pepp::tc::RISCVObjectVistitor::visit(const RTypeIR *line) { emit_line(line); }
 void pepp::tc::RISCVObjectVistitor::visit(const ITypeIR *line) { emit_line(line); }
 void pepp::tc::RISCVObjectVistitor::visit(const STypeIR *line) { emit_line(line); }
-void pepp::tc::RISCVObjectVistitor::visit(const BTypeIR *line) { emit_line(line); }
+void pepp::tc::RISCVObjectVistitor::visit(const BTypeIR *line) { emit_line(line, true); }
 void pepp::tc::RISCVObjectVistitor::visit(const UTypeIR *line) { emit_line(line); }
-void pepp::tc::RISCVObjectVistitor::visit(const JTypeIR *line) { emit_line(line); }
+void pepp::tc::RISCVObjectVistitor::visit(const JTypeIR *line) { emit_line(line, true); }
 
 void pepp::tc::RISCVObjectVistitor::visit(const DotAlign *line) {
   auto addr_info = ir_to_address.at(line);
