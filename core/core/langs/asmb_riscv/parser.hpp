@@ -1,7 +1,9 @@
 #pragma once
 #include <memory>
 #include <optional>
+#include <span>
 #include <unordered_set>
+#include <vector>
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/lex/buffer.hpp"
 #include "core/compile/source/seekable.hpp"
@@ -36,9 +38,19 @@ namespace core::symbol {
 class LeafTable;
 }
 namespace tc {
+namespace expr {
+struct Parsed;
+}
 
 class DiagnosticTable;
 namespace parser {
+// Raw operand as parsed before being converted to IR.
+struct RISCVOperand {
+  std::shared_ptr<const pepp::tc::expr::Parsed> expression;
+  // If true: 0, (x3). If false 0(x3)
+  bool comma_before = false;
+};
+
 struct RISCVParser {
   RISCVParser(support::SeekableData &&data);
 
@@ -49,15 +61,15 @@ struct RISCVParser {
 
 private:
   using OptionalSymbol = std::optional<std::shared_ptr<pepp::core::symbol::Entry>>;
-  // A register as an identifier of falase, or contained inside a set of parens if true.
-  std::optional<u8> register_operand(bool parenthesized);
-  // A fence's predecessor or successor set, written as e.g. iorw, or as 0.
-  std::optional<u8> fence_ordering();
   std::shared_ptr<pepp::ast::IRValue> argument();
   std::shared_ptr<pepp::ast::IRValue> numeric_argument();
   std::shared_ptr<pepp::ast::IRValue> hex_argument();
   std::shared_ptr<pepp::ast::Symbolic> identifier_argument();
-  std::shared_ptr<pepp::tc::IntegerInstruction> instruction_alternative(const riscv::Mnemonic &entry);
+  // Every operand written after a mnemonic, each parsed as an expression.
+  std::vector<RISCVOperand> mnemonic_operands();
+  // Match the parsed operands to one of the valid instruction patterns for that mnemonic.
+  std::shared_ptr<pepp::tc::IntegerInstruction> match_alternative(const riscv::Mnemonic &entry,
+                                                                  std::span<const RISCVOperand> ops);
   std::shared_ptr<pepp::tc::IntegerInstruction> instruction();
   std::shared_ptr<pepp::tc::LinearIR> pseudo(OptionalSymbol symbol);
   std::shared_ptr<pepp::tc::LinearIR> line(OptionalSymbol symbol);

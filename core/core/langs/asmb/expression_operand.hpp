@@ -39,9 +39,9 @@ namespace pepp::tc::parser {
 using ExpressionResult = std::shared_ptr<const expr::Parsed>;
 
 // Enter the subexpression parser at buf's next token. Returns nullptr if no expression starts there. Otherwise the
-// operand becomes one ParsedExpression token in buf, so a rollback over it replays the operand rather than parsing
-// again. No symbols are referenced. It is an error if any other token is buffered, since the expression parser reads
-// the lexer's text from after it. features and location_counter are as for expr::parse.
+// operand becomes one ParsedExpression token in buf, standing in for its text. No symbols are referenced. It is an
+// error if any token is already buffered, since the expression parser reads the lexer's text from after it. features
+// and location_counter are as for expr::parse.
 std::expected<ExpressionResult, expr::Error>
 parse_expression(lex::Buffer &buf, lex::ALexer &lexer, std::shared_ptr<expr::IdentifierPool> pool,
                  const expr::Features &features = {}, const expr::NameLocationCounter &location_counter = {});

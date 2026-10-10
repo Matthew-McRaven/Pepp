@@ -1,4 +1,5 @@
 #include "core/langs/asmb_riscv/parser.hpp"
+#include <utility>
 #include "core/arch/riscv/isa/rv_instruction_list.hpp"
 #include "core/compile/ir_linear/attr_symbol.hpp"
 #include "core/compile/ir_linear/line_comment.hpp"
@@ -40,32 +41,6 @@ pepp::tc::IRProgram pepp::tc::parser::RISCVParser::parse(DiagnosticTable &diag) 
 }
 
 void pepp::tc::parser::RISCVParser::debug_print_tokens(bool debug) { _lexer->print_tokens = debug; }
-
-std::optional<u8> pepp::tc::parser::RISCVParser::register_operand(bool parenthesized) {
-  lex::Checkpoint cp(*_buffer);
-  // A malformed operand is not a register, and another alternative may still parse it.
-  const auto operand = parse_expression(*_buffer, *_lexer, _pool);
-  if (!operand || !*operand) return cp.rollback(), std::nullopt;
-  // Compare to the expression IDENTIFIER or ( IDENTIFIER )
-  const auto &tree = (**operand).tree;
-  const auto &kinds = tree.kinds();
-  const bool valid_structure = parenthesized ? kinds.size() == 2 && kinds[1] == expr::Kind::Parens : kinds.size() == 1;
-  if (const auto *identifier = std::get_if<expr::Identifier>(&tree[0]); valid_structure && identifier)
-    if (const auto reg = riscv::parse_register(identifier->name)) return *reg;
-  return cp.rollback(), std::nullopt;
-}
-
-std::optional<u8> pepp::tc::parser::RISCVParser::fence_ordering() {
-  lex::Checkpoint cp(*_buffer);
-  // Either an ordering such as iorw, or the integer 0.
-  const auto operand = parse_expression(*_buffer, *_lexer, _pool);
-  if (!operand || !*operand || (**operand).tree.kinds().size() != 1) return cp.rollback(), std::nullopt;
-  const auto &node = (**operand).tree[0];
-  if (const auto *identifier = std::get_if<expr::Identifier>(&node)) {
-    if (const auto ordering = riscv::parse_fence_ordering(bits::to_lower(identifier->name))) return *ordering;
-  } else if (const auto *integer = std::get_if<expr::Integer>(&node); integer && integer->value == 0) return 0;
-  return cp.rollback(), std::nullopt;
-}
 
 std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::RISCVParser::argument() {
   constexpr expr::Options options{.int_bits = 32, .default_sign = expr::Signedness::Signed};
@@ -135,78 +110,104 @@ void store_value(pepp::tc::ParsedOperands &values, D destination, u8 v) {
 
 } // namespace
 
-// Attempt to parse one alternative of an instruction, returning a node if successful. If it fails, the buffer will be
-// rolled back. An error should only be treated as fatal by instruction() if there are no further alternatives to try.
-std::shared_ptr<pepp::tc::IntegerInstruction>
-pepp::tc::parser::RISCVParser::instruction_alternative(const riscv::Mnemonic &entry) {
+namespace {
+// A register written as an identifier, or in parentheses for loads and stores. Do not reference identifier in symtab.
+std::optional<u8> register_of(const pepp::tc::expr::Tree &tree, bool parenthesized) {
+  namespace expr = pepp::tc::expr;
+  const auto &kinds = tree.kinds();
+  const bool shaped = parenthesized ? kinds.size() == 2 && kinds[1] == expr::Kind::Parens : kinds.size() == 1;
+  if (const auto *identifier = std::get_if<expr::Identifier>(&tree[0]); shaped && identifier)
+    return riscv::parse_register(identifier->name);
+  return std::nullopt;
+}
+
+// A fence's predecessor or successor set, written as e.g. iorw, or as 0.
+std::optional<u8> fence_ordering_of(const pepp::tc::expr::Tree &tree) {
+  namespace expr = pepp::tc::expr;
+  if (tree.kinds().size() != 1) return std::nullopt;
+  else if (const auto *identifier = std::get_if<expr::Identifier>(&tree[0]))
+    return riscv::parse_fence_ordering(bits::to_lower(identifier->name));
+  else if (const auto *integer = std::get_if<expr::Integer>(&tree[0]); integer && integer->value == 0) return 0;
+  return std::nullopt;
+}
+
+// False for operands which fill a field automatically (e.g., XLEN8 sets the immediate to 8).
+bool appears_in_source(riscv::Operand::Type type) {
   using OT = riscv::Operand::Type;
-  using RVPE = RISCVParserError;
-  const auto &desc = entry.mn;
+  return type != OT::XLEN8 && type != OT::XLEN16 && type != OT::Invalid;
+}
 
-  lex::Checkpoint cp(*_buffer);
-  // Symbols referenced only by an abandoned alternative are removed, so that `jal ra, off` tried as `jal off` does not
-  // leave `ra` behind as an undefined symbol.
-  const auto symbols = _symtab->mark();
-  ParsedOperands values;
-  try {
-    // Parsing is entirely driven by the descriptor, including the operand order and separator after a field.
-    const auto operands = desc.operands();
-    for (std::size_t i = 0; i < operands.size(); ++i) {
-      const auto &operand = operands[i];
-      switch (operand.type) {
-      case OT::Register: {
-        const auto reg = register_operand(false);
-        if (!reg) throw RVPE(expected_error(operand.destination), _buffer->matched_interval());
-        store_value(values, operand.destination, *reg);
-        break;
-      }
-
-      // Handle registers surrounded by parens, which are used for loads+stores
-      case OT::ParenthesizedRegister: {
-        if (const auto reg = register_operand(true); !reg)
-          throw RVPE(expected_error(operand.destination), _buffer->matched_interval());
-        else store_value(values, operand.destination, *reg);
-        break;
-      }
-      case OT::Immediate: {
-        if (auto arg = argument(); !arg)
-          throw RVPE(::expected_error(operand.destination), _buffer->matched_interval());
-        else values.imm = arg;
-        break;
-      }
-      // Constants not actually parsed; set automatically by MnemonicDecoder.
-      case OT::XLEN8: [[fallthrough]];
-      case OT::XLEN16: break;
-      // Parse pred,succ into specialized field of ParsedValue to avoid read-modify-write on IRValue.
-      case OT::Fence: {
-        if (const auto ordering = fence_ordering(); !ordering)
-          throw RVPE(E::Argument_ExpectedFenceOrdering, _buffer->matched_interval());
-        else store_value(values, operand.destination, *ordering);
-        break;
-      }
-      case OT::Invalid: break;
-      }
-
-      // Operands are comma-separated unless the descriptor says otherwise.
-      if (i + 1 < operands.size() && desc.comma_after(i) && !_buffer->match_literal(","))
-        throw RVPE(E::Token_MissingComma, _buffer->matched_interval());
-    }
-
-    // Ensure that this instruction will match one of our line end types, to prevent a matched prefix from failing on
-    // later steps.
-    static constexpr int line_end = lex::InlineComment::TYPE | lex::Empty::TYPE | lex::EoF::TYPE;
-    if (_buffer->input_remains() && !_buffer->peek(line_end))
-      throw RVPE(E::Token_MissingNewline, _buffer->matched_interval());
-
-    // Null for Pseudo and INVALID, which have no single node to build; nothing was really matched.
-    auto built = make_instruction(entry.name, desc, values);
-    if (!built) cp.rollback(), _symtab->undo_since(symbols);
-    return built;
-  } catch (...) {
-    cp.rollback();
-    _symtab->undo_since(symbols);
-    throw;
+// Why the written operands do not fit a pattern, or nullopt if they do. Nothing is lowered, so trying a pattern has no
+// effect on the symbol table.
+std::optional<E> mismatch(const riscv::MnemonicDescriptor &desc, std::span<const pepp::tc::parser::RISCVOperand> ops) {
+  using OT = riscv::Operand::Type;
+  const auto operands = desc.operands();
+  std::size_t next = 0, previous = 0;
+  for (std::size_t i = 0; i < operands.size(); ++i) {
+    const auto &operand = operands[i];
+    if (!appears_in_source(operand.type)) continue;
+    else if (next == ops.size()) return expected_error(operand.destination);
+    // Operands are comma-separated unless the descriptor says otherwise.
+    if (const bool comma = ops[next].comma_before; next > 0 && comma != desc.comma_after(previous))
+      return comma ? expected_error(operand.destination) : E::Token_MissingComma;
+    const auto &tree = ops[next].expression->tree;
+    if (operand.type == OT::Register && !register_of(tree, false)) return expected_error(operand.destination);
+    else if (operand.type == OT::ParenthesizedRegister && !register_of(tree, true))
+      return expected_error(operand.destination);
+    else if (operand.type == OT::Fence && !fence_ordering_of(tree)) return E::Argument_ExpectedFenceOrdering;
+    previous = i, next++;
   }
+  if (next != ops.size()) return E::Token_MissingNewline;
+  return std::nullopt;
+}
+} // namespace
+
+std::vector<pepp::tc::parser::RISCVOperand> pepp::tc::parser::RISCVParser::mnemonic_operands() {
+  constexpr auto invalid = [](const expr::Error &error) {
+    return RISCVParserError(RISCVParserError::UnaryError::Expression_Invalid, error.message, error.location);
+  };
+  std::vector<RISCVOperand> ret;
+  bool comma = false;
+  // Try an expression before a comma, so that the lexer never lexes an operand's text. An operand may also follow the
+  // previous one without a comma, as (x3) does in 0(x3).
+  while (true) {
+    if (const auto expr = parse_expression(*_buffer, *_lexer, _pool); !expr) throw invalid(expr.error());
+    else if (*expr) ret.push_back({*expr, std::exchange(comma, false)});
+    else if (!comma && _buffer->match_literal(",")) comma = true;
+    else break;
+  }
+  if (comma) throw RISCVParserError(E::Argument_ExpectedIdentNumeric, _buffer->matched_interval());
+  return ret;
+}
+
+std::shared_ptr<pepp::tc::IntegerInstruction>
+pepp::tc::parser::RISCVParser::match_alternative(const riscv::Mnemonic &entry, std::span<const RISCVOperand> ops) {
+  using RVPE = RISCVParserError;
+  using OT = riscv::Operand::Type;
+  constexpr expr::Options options{.int_bits = 32, .default_sign = expr::Signedness::Signed};
+  ParsedOperands values;
+  std::size_t next = 0;
+  for (const auto &operand : entry.mn.operands()) {
+    if (!appears_in_source(operand.type)) continue;
+    const auto &expression = *ops[next++].expression;
+    switch (operand.type) {
+    case OT::Register: [[fallthrough]];
+    case OT::ParenthesizedRegister: {
+      const bool parenthesized = operand.type == OT::ParenthesizedRegister;
+      store_value(values, operand.destination, *register_of(expression.tree, parenthesized));
+      break;
+    }
+    case OT::Fence: store_value(values, operand.destination, *fence_ordering_of(expression.tree)); break;
+    case OT::Immediate:
+      if (auto value = lower(expression, _symtab, options, 4); !value)
+        throw RVPE(RVPE::UnaryError::Expression_Invalid, value.error().message, value.error().location);
+      else values.imm = *value;
+      break;
+    default: break;
+    }
+  }
+  // Null for Pseudo and INVALID.
+  return make_instruction(entry.name, entry.mn, values);
 }
 
 std::shared_ptr<pepp::tc::IntegerInstruction> pepp::tc::parser::RISCVParser::instruction() {
@@ -218,17 +219,16 @@ std::shared_ptr<pepp::tc::IntegerInstruction> pepp::tc::parser::RISCVParser::ins
   const auto [first, last] = riscv::string_to_mnemonic.equal_range(instr_str);
   if (first == last) return cp.rollback(), nullptr;
 
-  // A mnemonic may have several possible alternatives, such as `jal rd, offset` and `jal offset`.
+  // Parse the operands once, then find the pattern that fits
+  const auto ops = mnemonic_operands();
+  std::optional<E> problem;
+  bool fit = false;
   for (auto candidate = first; candidate != last; ++candidate) {
-    const bool is_last = std::next(candidate) == last;
-    try {
-      if (auto built = instruction_alternative(*candidate); built) return built;
-    } catch (const RISCVParserError &) {
-      // Inner parser's error is only fatal if we have exhausted all possible variants.
-      if (is_last) throw;
-    }
+    if (const auto why = mismatch(candidate->mn, ops)) problem = why;
+    else if (fit = true; auto built = match_alternative(*candidate, ops)) return built;
   }
-  // Failed to parse any alternative.
+  // Report why the most recent pattern did not fit. If there was a fit but it returned nullptr, roll back.
+  if (!fit && problem) throw RISCVParserError(*problem, _buffer->matched_interval());
   return cp.rollback(), nullptr;
 }
 

@@ -57,11 +57,6 @@ public:
   // Returns a defined symbol in this table, or nullopt if not found in other.
   std::optional<entry_ptr_t> import(symbol::LeafTable &other, std::string_view name);
 
-  // A mechanism to undo speculative references (e.g., trying instruction alternatives in the RV parser). symbols
-  // accessed via define() are unaffected. Call mark prior to starting the speculative path, and call undo_sink(<mark>)
-  // to drop any newly created symbols since the mark was placed.  Does not shrink underlying string pool.
-  std::size_t mark() const noexcept { return _created.size(); }
-  void undo_since(std::size_t mark);
   // Either returns an existing symbol entry or creates a new, undefined one.
   entry_ptr_t reference(std::string_view name) noexcept;
   // If name not already defined, creates a new, singly-defined symbol entry.
@@ -90,8 +85,6 @@ private:
   std::shared_ptr<bts::StringPool> _pool;
 
   map_t _entries;
-  // Creation order for symbols.
-  std::vector<bts::PooledString> _created;
   u32 _location_counters = 0;
 };
 
