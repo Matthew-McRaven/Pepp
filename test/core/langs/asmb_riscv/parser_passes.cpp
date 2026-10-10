@@ -21,6 +21,8 @@
 #include "core/compile/ir_linear/line_empty.hpp"
 #include "core/compile/ir_linear/line_symbol.hpp"
 #include "core/compile/symbol/entry.hpp"
+#include "core/compile/symbol/leaf_table.hpp"
+#include "core/compile/symbol/value.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/langs/asmb_riscv/parser.hpp"
 
@@ -294,6 +296,8 @@ TEST_CASE("RISCV ASM parser dot commands",
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 1);
     CHECK(std::dynamic_pointer_cast<DotEquate>(results[0]));
+    auto masked = p.symbol_table()->get("s").value()->value->value();
+    CHECK(masked() == 10);
   }
 
   SECTION(".HALF") {

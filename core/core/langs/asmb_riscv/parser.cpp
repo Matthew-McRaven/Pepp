@@ -10,9 +10,11 @@
 #include "core/compile/ir_value/text.hpp"
 #include "core/compile/symbol/entry.hpp"
 #include "core/compile/symbol/leaf_table.hpp"
+#include "core/compile/symbol/value.hpp"
 #include "core/langs/asmb/asmb_tokens.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/langs/asmb_riscv/parser_error.hpp"
+#include "core/math/bitmanip/mask.hpp"
 #include "core/math/bitmanip/strings.hpp"
 
 pepp::tc::parser::RISCVParser::RISCVParser(support::SeekableData &&data)
@@ -381,6 +383,12 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::pseudo(Option
       throw RISCVParserError(RISCVParserError::NullaryError::Argument_Exceeded2Bytes, _buffer->matched_interval());
     else if (!symbol)
       throw RISCVParserError(RISCVParserError::NullaryError::SymbolDeclaration_Required, _buffer->matched_interval());
+    // Equates are assigned values as they are parsed
+    if (auto symbolic = std::dynamic_pointer_cast<pepp::ast::Symbolic>(arg))
+      (*symbol)->value = std::make_shared<pepp::core::symbol::AliasValue>(4, symbolic->symbol());
+    else
+      (*symbol)->value = std::make_shared<pepp::core::symbol::ConstantValue>(
+          bits::MaskedBits{.byteCount = 4, .bitPattern = arg->value_as<u32>(), .mask = bits::mask(4)});
     return std::make_shared<DotEquate>(SymbolDeclaration{*symbol}, Argument{arg});
   }
   case (int)DC::ORG: {
