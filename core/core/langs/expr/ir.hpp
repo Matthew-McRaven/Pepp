@@ -66,7 +66,8 @@ enum class Kind : u32 {
   Integer = 1u,
   Character = Integer << 1,
   Identifier = Character << 1,
-  FoldedConstant = Identifier << 1,
+  LocationCounter = Identifier << 1,
+  FoldedConstant = LocationCounter << 1,
   Parens = FoldedConstant << 1,
   // UnaryOp in declaration order.
   UnaryStart = Parens << 1,
@@ -99,6 +100,8 @@ enum class Kind : u32 {
   End = BinaryLast,
   // Convenient aliases for common types. A range [Start, Last] of single bits is (Last << 1) - Start.
   Constant = Integer | Character | FoldedConstant,
+  // Values which are not known until the program is laid out.
+  Symbolic = Identifier | LocationCounter,
   AnyUnary = (UnaryLast << 1) - UnaryStart,
   AnyBinary = (BinaryLast << 1) - BinaryStart,
   Any = (End << 1) - 1,
@@ -117,7 +120,8 @@ static_assert(kind(BinaryOp::Multiply) == Kind::Multiply && kind(BinaryOp::Logic
               "Kind must mirror BinaryOp");
 static_assert(bits::to_underlying(Kind::Any) ==
                   (bits::to_underlying(Kind::Integer) | bits::to_underlying(Kind::Character) |
-                   bits::to_underlying(Kind::Identifier) | bits::to_underlying(Kind::FoldedConstant) |
+                   bits::to_underlying(Kind::Identifier) | bits::to_underlying(Kind::LocationCounter) |
+                   bits::to_underlying(Kind::FoldedConstant) |
                    bits::to_underlying(Kind::Parens) | bits::to_underlying(Kind::AnyUnary) | bits::to_underlying(Kind::AnyBinary)),
               "Kind's masks must cover every kind exactly");
 
@@ -139,6 +143,13 @@ struct Character {
 // Does not store identifier via lexer's string pool so that the tree may outlive parser
 struct Identifier {
   static constexpr Kind KIND = Kind::Identifier;
+  std::string name;
+};
+
+// The address of the instruction / directive beting emitted. All . in the same expression refer to the same symbol. The
+// name of the symbol is unique for each address.
+struct LocationCounter {
+  static constexpr Kind KIND = Kind::LocationCounter;
   std::string name;
 };
 
@@ -167,7 +178,7 @@ struct Binary {
   NodeId lhs, rhs;
 };
 
-using Node = std::variant<Integer, Character, Identifier, FoldedConstant, Parens, Unary, Binary>;
+using Node = std::variant<Integer, Character, Identifier, LocationCounter, FoldedConstant, Parens, Unary, Binary>;
 Kind kind(const Node &node);
 
 // A syntax tree of nodes stored in a postordered, flat vector. Nodes refer to each other by index. By definition,

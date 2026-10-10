@@ -29,8 +29,9 @@ using pepp::tc::support::SeekableData;
 
 // Lex until EoF. Identifier tokens point into the pool, so it must outlive them.
 std::vector<std::shared_ptr<lex::Token>> lex_all(std::shared_ptr<std::unordered_set<std::string>> pool, std::string text,
-                                                 Location origin = Location(0, 0)) {
-  ExpressionLexer lexer(pool, SeekableData(std::move(text), origin));
+                                                 Location origin = Location(0, 0),
+                                                 pepp::tc::expr::Features features = {}) {
+  ExpressionLexer lexer(pool, SeekableData(std::move(text), origin), features);
   std::vector<std::shared_ptr<lex::Token>> ret;
   do {
     ret.push_back(lexer.next_token());
@@ -41,16 +42,26 @@ std::vector<std::shared_ptr<lex::Token>> lex_all(std::shared_ptr<std::unordered_
 }
 
 // The repr() of each token, so a whole token stream can be compared at once.
-std::vector<std::string> reprs(const std::string &text) {
+std::vector<std::string> reprs(const std::string &text, pepp::tc::expr::Features features = {}) {
   auto pool = std::make_shared<std::unordered_set<std::string>>();
   std::vector<std::string> ret;
-  for (const auto &token : lex_all(pool, text)) ret.push_back(token->repr());
+  for (const auto &token : lex_all(pool, text, Location(0, 0), features)) ret.push_back(token->repr());
   return ret;
 }
 } // namespace
 
 TEST_CASE("Expression lexer", "[scope:core][scope:core.langs][kind:unit][arch:*]") {
   using V = std::vector<std::string>;
+  SECTION("full-stop/. depends on the lexer's options") {
+    using Dot = pepp::tc::expr::Features::Dot;
+    // Disabled
+    CHECK(reprs("a.b .") == V{"Identifier(a)", "Invalid(.)", "Identifier(b)", "Invalid(.)", "EoF()"});
+    // As an identifier character
+    CHECK(reprs("a.b .", {Dot::Identifier}) ==
+          V{"Identifier(a)", "Literal(.)", "Identifier(b)", "Literal(.)", "EoF()"});
+    // As an operator
+    CHECK(reprs("a.b", {Dot::Operator}) == V{"Identifier(a)", "Literal(.)", "Identifier(b)", "EoF()"});
+  }
   SECTION("Various integers") {
     CHECK(reprs("0 42 0x1F 0XfF") == V{"Integer(0)", "Integer(42)", "Integer(0x1F)", "Integer(0xFF)", "EoF()"});
     CHECK(reprs("18446744073709551615 0xFFFFFFFFFFFFFFFF") ==

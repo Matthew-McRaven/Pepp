@@ -124,8 +124,10 @@ Result evaluate(const Tree &tree, NodeId id, const Options &options, const Value
     else if constexpr (std::is_same_v<T, Identifier>) {
       if (auto value = value_of ? value_of(n) : std::nullopt) return *value;
       return fail("Symbol has no value: " + n.name);
-    }
-    else if constexpr (std::is_same_v<T, Parens>) return evaluate(tree, n.inner, options, value_of);
+    } else if constexpr (std::is_same_v<T, LocationCounter>) { // Location counter is just another symbol.
+      if (auto value = value_of ? value_of(Identifier{n.name}) : std::nullopt) return *value;
+      return fail("The location counter has no value");
+    } else if constexpr (std::is_same_v<T, Parens>) return evaluate(tree, n.inner, options, value_of);
     else if constexpr (std::is_same_v<T, Unary>) {
       if (const auto operand = evaluate(tree, n.operand, options, value_of); !operand) return operand;
       else if (auto ret = apply(n.op, *operand, options); ret) return *ret;
@@ -232,6 +234,7 @@ pepp::tc::expr::constant_values(const Tree &tree, const Options &options, const 
     if constexpr (std::is_same_v<T, Integer> || std::is_same_v<T, Character>) return literal(n, options);
     else if constexpr (std::is_same_v<T, FoldedConstant>) return n.value;
     else if constexpr (std::is_same_v<T, Identifier>) return constant_of ? constant_of(n) : std::nullopt;
+    else if constexpr (std::is_same_v<T, LocationCounter>) return std::nullopt;
     else if constexpr (std::is_same_v<T, Parens>) return values[n.inner];
     else if constexpr (std::is_same_v<T, Unary>) {
       if (!values[n.operand]) return std::nullopt;
@@ -256,7 +259,8 @@ std::vector<pepp::tc::expr::Type> pepp::tc::expr::node_types(const Tree &tree, c
     else if constexpr (std::is_same_v<T, Identifier>) {
       if (const auto value = constant_of ? constant_of(n) : std::nullopt) return value->type;
       return type_of(n);
-    } else if constexpr (std::is_same_v<T, Parens>) return types[n.inner];
+    } else if constexpr (std::is_same_v<T, LocationCounter>) return type_of(Identifier{n.name});
+    else if constexpr (std::is_same_v<T, Parens>) return types[n.inner];
     else if constexpr (std::is_same_v<T, Unary>) return result_type(n.op, types[n.operand], options);
     else return result_type(n.op, types[n.lhs], types[n.rhs], options);
   };

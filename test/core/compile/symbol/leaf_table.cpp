@@ -58,7 +58,8 @@ TEST_CASE("Leaf symbol tables", "[scope:core][scope:core.compile][kind:unit][arc
     CHECK(!is_location_counter(*st->get("label").value()));
     const auto listing = table_listing(*st, 2);
     CHECK(listing.find("label") != std::string::npos);
-    CHECK(listing.find("<.") == std::string::npos);    std::vector<std::shared_ptr<Entry>> symbols, all;
+    CHECK(listing.find("<.") == std::string::npos);
+    std::vector<std::shared_ptr<Entry>> symbols, all;
     enumerate(*st, symbols);
     enumerate_all(*st, all);
     CHECK(symbols.size() == 1);

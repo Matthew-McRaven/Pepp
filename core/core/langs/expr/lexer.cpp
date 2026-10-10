@@ -20,8 +20,8 @@
 #include "core/langs/asmb/asmb_tokens.hpp"
 
 pepp::tc::expr::ExpressionLexer::ExpressionLexer(std::shared_ptr<std::unordered_set<std::string>> identifier_pool,
-                                                 support::SeekableData &&data)
-    : ALexer(std::move(identifier_pool), std::move(data)) {}
+                                                 support::SeekableData &&data, Features features)
+    : ALexer(std::move(identifier_pool), std::move(data)), _features(features) {}
 
 bool pepp::tc::expr::ExpressionLexer::input_remains() const { return _cursor.input_remains(); }
 
@@ -29,6 +29,7 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::expr::ExpressionLexer::next_toke
   using namespace pepp::tc::lex;
   using Integer = pepp::tc::lex::Integer;
   using LocationInterval = support::LocationInterval;
+  using Dot = Features::Dot;
   static const std::regex identifier("[a-zA-Z_][a-zA-Z0-9_]*");
   static const std::regex decimal("[0-9]+");
   static const std::regex hexadecimal("0[xX][0-9a-fA-F]+");
@@ -82,6 +83,10 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::expr::ExpressionLexer::next_toke
     _cursor.advance(maybeIdent.length(0));
     auto const *id = &*_pool->emplace(_cursor.select()).first;
     current_token = std::make_shared<Identifier>(here(), id);
+  } else if (_cursor.peek() == '.' && _features.dot != Dot::Forbidden) {
+    // The parser decides whether it is the location counter or an operator.
+    _cursor.advance(1);
+    current_token = std::make_shared<Literal>(here(), ".");
   } else if (auto maybeOp = _cursor.matchView(op); !maybeOp.empty()) {
     _cursor.advance(maybeOp.length(0));
     current_token = std::make_shared<Literal>(here(), std::string{_cursor.select()});

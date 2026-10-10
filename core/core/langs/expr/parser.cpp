@@ -42,13 +42,16 @@ struct Failure {
  */
 class Parser {
 public:
-  Parser(lex::Buffer &buffer, Location origin) : _buf(buffer), _origin(origin), _end(origin) {}
+  Parser(lex::Buffer &buffer, Location origin, const Features &features, const NameLocationCounter &location_counter)
+      : _buf(buffer), _features(features), _name_location_counter(location_counter), _origin(origin), _end(origin) {}
 
   // Returns nullopt if the next token cannot start an expression.
   std::optional<NodeId> expression(int min_precedence) {
     auto lhs = unary();
     if (!lhs) return std::nullopt;
     while (auto literal = _buf.peek<lex::Literal>()) {
+      if (_features.dot == Features::Dot::Operator && literal->literal == ".")
+        throw Failure{literal->location(), "Member access is not implemented"};
       const auto op = binary_op(literal->literal);
       if (!op || precedence(*op) < min_precedence) break;
       consume(_buf.match<lex::Literal>());
@@ -97,6 +100,10 @@ private:
     } else if (auto identifier = _buf.match<lex::Identifier>(); identifier) {
       consume(identifier);
       return add(Identifier{std::string(identifier->view())}, identifier->location());
+    } else if (_features.dot == Features::Dot::Identifier && _buf.peek_literal(".")) {
+      const auto dot = _buf.match_literal(".");
+      consume(dot);
+      return add(LocationCounter{location_counter(dot->location())}, dot->location());
     } else if (_buf.peek_literal("(")) {
       const auto open = _buf.match_literal("(");
       consume(open);
@@ -110,25 +117,37 @@ private:
     return std::nullopt;
   }
 
+  // All . in the same expression refer to the same symbol.
+  const std::string &location_counter(LocationInterval location) {
+    if (_location_counter) return *_location_counter;
+    else if (!_name_location_counter) throw Failure{location, "The location counter is not available"};
+    return *(_location_counter = _name_location_counter());
+  }
+
   // Called after an operator or '(' when no operand follows it.
   [[noreturn]] void expected_operand() { throw Failure{_buf.peek()->location(), "Expected an operand"}; }
 
   void consume(const std::shared_ptr<lex::Token> &token) { _end = token->location().upper(); }
 
   lex::Buffer &_buf;
+  const Features &_features;
+  const NameLocationCounter &_name_location_counter;
+  std::optional<std::string> _location_counter;
   Location _origin, _end;
 };
 } // namespace
 
-pepp::tc::expr::ParseResult pepp::tc::expr::parse(support::SeekableData cursor, std::shared_ptr<IdentifierPool> pool) {
+pepp::tc::expr::ParseResult pepp::tc::expr::parse(support::SeekableData cursor, std::shared_ptr<IdentifierPool> pool,
+                                                  const Features &features,
+                                                  const NameLocationCounter &location_counter) {
   const auto origin = cursor.location();
   // The lexer reads one token past the end of the expression, but we need to return a cursor pointing immediately after
   // the last token of the expression.
   auto after = cursor;
   if (!pool) pool = std::make_shared<IdentifierPool>();
-  ExpressionLexer lexer(std::move(pool), std::move(cursor));
+  ExpressionLexer lexer(std::move(pool), std::move(cursor), features);
   lex::Buffer buffer(&lexer);
-  Parser parser(buffer, origin);
+  Parser parser(buffer, origin, features, location_counter);
   try {
     const auto root = parser.expression(0);
     if (!root) return NoExpression{};
@@ -141,6 +160,7 @@ pepp::tc::expr::ParseResult pepp::tc::expr::parse(support::SeekableData cursor, 
 }
 
 pepp::tc::expr::ParseResult pepp::tc::expr::parse(std::string_view text, support::Location origin,
-                                                  std::shared_ptr<IdentifierPool> pool) {
-  return parse(support::SeekableData(std::string(text), origin), std::move(pool));
+                                                  std::shared_ptr<IdentifierPool> pool, const Features &features,
+                                                  const NameLocationCounter &location_counter) {
+  return parse(support::SeekableData(std::string(text), origin), std::move(pool), features, location_counter);
 }

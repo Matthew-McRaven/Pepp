@@ -14,20 +14,18 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #pragma once
-#include "core/compile/lex/lexer.hpp"
-#include "core/langs/expr/features.hpp"
+#include "core/integers.h"
 
 namespace pepp::tc::expr {
 
-class ExpressionLexer : public lex::ALexer {
-public:
-  ExpressionLexer(std::shared_ptr<std::unordered_set<std::string>> identifier_pool, support::SeekableData &&data,
-                  Features features = {});
-  bool input_remains() const override;
-  std::shared_ptr<lex::Token> next_token() override;
-
-private:
-  Features _features;
+// Grammar which varies between the languages sharing this parser.
+struct Features {
+  // How to interpret the full-stop character?
+  enum class Dot : u8 {
+    Forbidden,  // Not part of the grammar.
+    Identifier, // The location counter. TODO: also allowed in identifiers, e.g., .L1 (a GNU local symbol).
+    Operator,   // Member access (e.g., the debugger's a.b). Not implemented yet.
+  } dot = Dot::Forbidden;
 };
 
 } // namespace pepp::tc::expr

@@ -138,6 +138,18 @@ TEST_CASE("Expression evaluation", "[scope:core][scope:core.langs][kind:unit][ar
     REQUIRE(!result.has_value());
     CHECK(result.error().node == NodeId{1});
     CHECK(result.error().message == "Symbol has no value: other");
+
+    // The location counter is looked up via symbol table
+    Tree here;
+    const auto counter = here.add(LocationCounter{"<.0>"});
+    here.add(Binary{BinaryOp::Add, counter, here.add(pepp::tc::expr::Integer{1})});
+    const ValueOf address = [](const Identifier &id) -> std::optional<Value> {
+      if (id.name == "<.0>") return Value{0x10, {16, Unsigned}};
+      return std::nullopt;
+    };
+    CHECK(evaluate_expression(here, pep, address).value() == Value{0x11, {16, Unsigned}});
+    CHECK(evaluate_expression(here, pep).error().message == "The location counter has no value");
+    CHECK(!constant_values(here, pep, address)[counter].has_value());
   }
   SECTION("Constant folding") {
     // k stands in for the symbol declared on an .EQUATE and sym for non-constant program location.

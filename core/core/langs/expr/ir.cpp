@@ -137,6 +137,7 @@ using pepp::tc::expr::Character;
 using pepp::tc::expr::FoldedConstant;
 using pepp::tc::expr::Identifier;
 using pepp::tc::expr::Integer;
+using pepp::tc::expr::LocationCounter;
 
 void append(std::string &out, const Integer &n) {
   if (n.format == Integer::Format::Hexadecimal) fmt::format_to(std::back_inserter(out), "0x{:X}", n.value);
@@ -144,6 +145,7 @@ void append(std::string &out, const Integer &n) {
 }
 void append(std::string &out, const Character &n) { fmt::format_to(std::back_inserter(out), "'{}'", n.text); }
 void append(std::string &out, const Identifier &n) { out += n.name; }
+void append(std::string &out, const LocationCounter &) { out += '.'; }
 // Treat folded constants like a conditionally signed integer for serialization purposes.
 void append(std::string &out, const FoldedConstant &n) {
   if (n.value.type.sign == pepp::tc::expr::Signedness::Signed)
@@ -223,5 +225,6 @@ pepp::tc::expr::Tree pepp::tc::expr::strip_parens(const Tree &tree) {
 }
 
 bool pepp::tc::expr::is_constant_expression(const Tree &tree) {
-  return !std::ranges::contains(tree.kinds(), Kind::Identifier);
+  using namespace bits;
+  return std::ranges::none_of(tree.kinds(), [](Kind kind) { return any(kind & Kind::Symbolic); });
 }

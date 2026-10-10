@@ -137,6 +137,28 @@ TEST_CASE("Expression parser", "[scope:core][scope:core.langs][kind:unit][arch:*
       CHECK(result.after.location() == Location(0, static_cast<u16>(c.length)));
     }
   }
+  SECTION("location counter") {
+    using Dot = Features::Dot;
+    int named = 0;
+    const NameLocationCounter name = [&] { return "<." + std::to_string(named++) + ">"; };
+    const auto result = parse(". + 4 - .", Location(0, 0), nullptr, {Dot::Identifier}, name);
+    const auto &tree = parsed(result).tree;
+    CHECK(to_postfix(tree) == ". 4 + . -");
+    CHECK(to_infix(tree) == ". + 4 - .");
+    // All . in an expression refer to the same symbol
+    CHECK(named == 1);
+    CHECK(std::get<LocationCounter>(tree[0]).name == "<.0>");
+    CHECK(std::get<LocationCounter>(tree[3]).name == "<.0>");
+
+    // . is conditionally enabled in the grammar
+    CHECK(std::holds_alternative<NoExpression>(parse(".")));
+    const auto unnamed = parse(".", Location(0, 0), nullptr, {Dot::Identifier});
+    REQUIRE(std::holds_alternative<Error>(unnamed));
+    CHECK(std::get<Error>(unnamed).message == "The location counter is not available");
+    const auto member = parse("a.b", Location(0, 0), nullptr, {Dot::Operator});
+    REQUIRE(std::holds_alternative<Error>(member));
+    CHECK(std::get<Error>(member).message == "Member access is not implemented");
+  }
   SECTION("Consume no input if the text does not start with an expression") {
     for (const char *source :
          {"", "   ", ",d", "\"str\"", ")", "\n", "*x", "; comment", "'ab'", "''", "99999999999999999999", "0x"}) {
