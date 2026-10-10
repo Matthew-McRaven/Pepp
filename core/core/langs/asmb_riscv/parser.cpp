@@ -133,7 +133,9 @@ pepp::tc::parser::RISCVParser::instruction_alternative(const riscv::Mnemonic &en
   const auto &desc = entry.mn;
 
   lex::Checkpoint cp(*_buffer);
-  // May contain a pointer to a Symbol via imm. On failed parse, we should undefine that symbol.
+  // Symbols referenced only by an abandoned alternative are removed, so that `jal ra, off` tried as `jal off` does not
+  // leave `ra` behind as an undefined symbol.
+  const auto symbols = _symtab->mark();
   ParsedOperands values;
   try {
     // Parsing is entirely driven by the descriptor, including the operand order and separator after a field.
@@ -194,19 +196,11 @@ pepp::tc::parser::RISCVParser::instruction_alternative(const riscv::Mnemonic &en
 
     // Null for Pseudo and INVALID, which have no single node to build; nothing was really matched.
     auto built = make_instruction(entry.name, desc, values);
-    if (!built) cp.rollback();
+    if (!built) cp.rollback(), _symtab->undo_since(symbols);
     return built;
   } catch (...) {
     cp.rollback();
-    // If we created a symbolic reference AND this is the only usage of that symbol, drop it from the symbol table.
-    // This precludes ordering issues between the JAL variants `jal ra, off` and `jal off`. If the first is parsed as
-    // the second, `ra` would end up as a declared symbol with no definition.
-    if (auto symbolic = std::dynamic_pointer_cast<pepp::ast::Symbolic>(values.imm); symbolic) {
-      const auto name = symbolic->symbol()->name;
-      values.imm.reset();
-      symbolic.reset();
-      _symtab->drop(name);
-    }
+    _symtab->undo_since(symbols);
     throw;
   }
 }

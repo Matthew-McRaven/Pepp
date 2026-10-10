@@ -35,6 +35,18 @@ TEST_CASE("Leaf symbol tables", "[scope:core][scope:core.compile][kind:unit][arc
     auto y = st->get("hello");
     CHECK(x == y);
   }
+  SECTION("undo_since() removes symbols created after a mark, unless they were defined") {
+    auto st = std::make_shared<pepp::core::symbol::LeafTable>(2);
+    (void)st->reference("before");
+    const auto mark = st->mark();
+    (void)st->reference("before"); // Already existed, so it is kept.
+    (void)st->reference("after");
+    (void)st->define("defined");
+    st->undo_since(mark);
+    CHECK(st->exists("before"));
+    CHECK(!st->exists("after"));
+    CHECK(st->exists("defined"));
+  }
   SECTION("names are case sensitive") {
     auto st = std::make_shared<pepp::core::symbol::LeafTable>(2);
     auto x = st->reference("hello");

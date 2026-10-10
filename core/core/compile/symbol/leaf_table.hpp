@@ -18,6 +18,7 @@
 
 #include <memory>
 #include <unordered_map>
+#include <vector>
 #include "core/ds/string_pool.hpp"
 #include "core/integers.h"
 namespace pepp::bts {
@@ -36,7 +37,6 @@ class Entry;
 // For languages with scope, an alternative type will be provided.
 // Symbols that have been marked as deleted will have their entries remain in the table, but with a DeletedValue
 // assigned.
-
 class LeafTable : public std::enable_shared_from_this<LeafTable> {
 public:
   using entry_ptr_t = std::shared_ptr<symbol::Entry>;
@@ -57,12 +57,11 @@ public:
   // Returns a defined symbol in this table, or nullopt if not found in other.
   std::optional<entry_ptr_t> import(symbol::LeafTable &other, std::string_view name);
 
-  // Return the use count on the underlying shared pointer for the symbol entry, or 0 if not found.
-  std::size_t use_count(std::string_view name) const noexcept;
-  // If the symbol exists AND it does not have any uses, remove it and return true. Else the item remains in the table
-  // and return false. Useful when you reference()'ed a symbol speculatively and then later determine it is not needed.
-  // Does not shrink underlying string pool.
-  bool drop(std::string_view name);
+  // A mechanism to undo speculative references (e.g., trying instruction alternatives in the RV parser). symbols
+  // accessed via define() are unaffected. Call mark prior to starting the speculative path, and call undo_sink(<mark>)
+  // to drop any newly created symbols since the mark was placed.  Does not shrink underlying string pool.
+  std::size_t mark() const noexcept { return _created.size(); }
+  void undo_since(std::size_t mark);
   // Either returns an existing symbol entry or creates a new, undefined one.
   entry_ptr_t reference(std::string_view name) noexcept;
   // If name not already defined, creates a new, singly-defined symbol entry.
@@ -89,6 +88,8 @@ private:
   std::shared_ptr<bts::StringPool> _pool;
 
   map_t _entries;
+  // Creation order for symbols.
+  std::vector<bts::PooledString> _created;
 };
 
 // For each symbol in the table, whose "base" is >= threshold, increment its "offset".

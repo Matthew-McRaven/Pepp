@@ -30,17 +30,11 @@ pepp::core::symbol::LeafTable::LeafTable(u16 pointer_size, std::shared_ptr<bts::
     : _pointer_size(pointer_size), _pool(pool),
       _entries(0, bts::PooledString::Hash(_pool.get()), bts::PooledString::Equals(_pool.get())) {}
 
-std::size_t pepp::core::symbol::LeafTable::use_count(std::string_view name) const noexcept {
-  if (auto pooled = _pool->find(name); !pooled) return 0;
-  else if (auto it = _entries.find(*pooled); it != _entries.end()) return it->second.use_count();
-  else return 0;
-}
-
-bool pepp::core::symbol::LeafTable::drop(std::string_view name) {
-  if (auto pooled = _pool->find(name); !pooled) return false;
-  else if (auto it = _entries.find(*pooled); it == _entries.end()) return false;
-  else if (it->second.use_count() != 1 || !it->second->is_undefined()) return false;
-  else return _entries.erase(it), true;
+void pepp::core::symbol::LeafTable::undo_since(std::size_t mark) {
+  // Remove any entries created since mark was placed.
+  for (auto i = _created.size(); i > mark; i--)
+    if (auto it = _entries.find(_created[i - 1]); it != _entries.end() && it->second->is_undefined()) _entries.erase(it);
+  _created.resize(mark);
 }
 
 std::optional<pepp::core::symbol::LeafTable::entry_ptr_t> pepp::core::symbol::LeafTable::import(LeafTable &other,
@@ -60,6 +54,7 @@ pepp::core::symbol::LeafTable::entry_ptr_t pepp::core::symbol::LeafTable::refere
   auto pooled = _pool->insert(name);
   if (auto it = _entries.find(pooled); it == _entries.end()) {
     auto sv = _pool->find(pooled).value();
+    _created.emplace_back(pooled);
     return _entries[pooled] = std::make_shared<symbol::Entry>(sv);
   } else return it->second;
 }
