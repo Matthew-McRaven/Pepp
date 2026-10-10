@@ -26,8 +26,7 @@
 #include "core/langs/asmb_pep/lexer.hpp"
 #include "core/langs/asmb_pep/parser_error.hpp"
 #include "core/langs/asmb_pep/text_format.hpp"
-#include "core/langs/expr/parser.hpp"
-#include "core/langs/expr/traversal.hpp"
+#include "core/langs/asmb/expression_operand.hpp"
 #include "core/math/bitmanip/mask.hpp"
 #include "core/math/bitmanip/strings.hpp"
 
@@ -69,85 +68,12 @@ std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::PepParser::argument() {
   } else return nullptr;
 }
 
-namespace {
-bool is_constant(const pepp::core::symbol::Entry &entry) {
-  return entry.value && entry.value->type() == pepp::core::symbol::Type::Constant;
-}
-
-// An .EQUATE's value, or nullopt if the expression cannot be constant-evaluated.
-// consteval could fail because a symbolic argument refers to a program location, or because the symbol has not been
-// defined (e.g., a later equate).
-std::optional<u64> equate_value(pepp::ast::IRValue &arg, pepp::tc::support::LocationInterval location) {
-  using pepp::tc::PepParserError;
-  if (auto *symbolic = dynamic_cast<pepp::ast::Symbolic *>(&arg)) {
-    if (!is_constant(*symbolic->symbol())) return std::nullopt;
-    auto masked = symbolic->symbol()->value->value();
-    return masked();
-  } else if (auto *expression = dynamic_cast<pepp::ast::Expression *>(&arg)) {
-    const auto &tree = expression->tree();
-    const auto result =
-        pepp::tc::expr::evaluate_expression(tree, expression->options(), expression->resolve_constants_of());
-    if (result) return result->bits;
-    else if (result.error().node && std::holds_alternative<pepp::tc::expr::Identifier>(tree[*result.error().node]))
-      return std::nullopt;
-    throw PepParserError(PepParserError::UnaryError::Expression_Invalid, result.error().message, location);
-  }
-  return arg.value_as<u64>();
-}
-
-bool is_atom(const pepp::tc::expr::Parsed &parsed) {
-  using K = pepp::tc::expr::Kind;
-  const auto &kinds = parsed.tree.kinds();
-  if (kinds.size() == 1) return true;
-  else if (kinds.size() != 2 || (kinds[1] != K::Plus && kinds[1] != K::Minus)) return false;
-  // The lexer only folds a sign into a decimal which immediately follows it, so -0x10 and - 3 are expressions.
-  const auto *integer = std::get_if<pepp::tc::expr::Integer>(&parsed.tree[0]);
-  const bool attached = parsed.locations[1].lower().column + 1 == parsed.locations[0].lower().column;
-  return integer && integer->format == pepp::tc::expr::Integer::Format::Decimal && attached;
-}
-} // namespace
-
 std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::PepParser::expression() {
-  auto buf = active_buffer();
-  // Sub-parser can't consume our buffered tokens (since they may be of different types).
-  // If the buffer contains a ParsedExpression, then a previous call to expression() succeded in the past and return its
-  // value. Otherwise we raise an error which I expect to be unreachable.
-  if (const auto buffered = buf->buffered_tokens(); !buffered.empty()) {
-    if (buffered.front()->type() == lex::ParsedExpression::TYPE) return buf->match<lex::ParsedExpression>()->value;
-    throw std::logic_error("expression() called with unmatched tokens buffered");
-  }
-
-  // Temporarily delegate parsing expression sub-parser.
-  auto lexer = active_lexer();
-  const auto start = lexer->cursor().location();
-  const auto result = expr::parse(lexer->cursor(), _pool);
-  if (const auto *error = std::get_if<expr::Error>(&result))
-    throw PepParserError(PepParserError::UnaryError::Expression_Invalid, error->message, error->location);
-  const auto *parsed = std::get_if<expr::Parsed>(&result);
-
-  // Atoms (identifiers, unsigned decimals, hex, chars) are better represented with our specialized IR values rather
-  // than a generic expression.
-  if (!parsed || is_atom(*parsed)) return nullptr;
-
-  // Evaluate constant expression to report errors, such as 1/0, at parse time.
   const expr::Options options{.int_bits = 16, .default_sign = expr::Signedness::Unsigned};
-  auto value = std::make_shared<ast::Expression>(parsed->tree, _symtab, options, 2);
-  const support::LocationInterval span{start, parsed->after.location()};
-  if (!value->contains_symbols())
-    if (const auto evaluated = value->evaluate(); !evaluated) {
-      const auto &error = evaluated.error();
-      const auto location = error.node ? parsed->locations[*error.node] : span;
-      throw PepParserError(PepParserError::UnaryError::Expression_Invalid, error.message, location);
-    }
-
-  // Ensure that all identifiers are registered in the symbol table.
-  auto visit = [&](const expr::Identifier &id) { (void)_symtab->reference(id.name); };
-  expr::for_each_node<expr::Identifier>(parsed->tree, visit);
-
-  // Resume lexing after the expression, which the buffer sees as a single token.
-  lexer->resume_at(parsed->after);
-  buf->push_token(std::make_shared<lex::ParsedExpression>(span, value));
-  return buf->match<lex::ParsedExpression>()->value;
+  const auto result = expression_operand(*active_buffer(), *active_lexer(), _pool, _symtab, options, 2);
+  if (!result)
+    throw PepParserError(PepParserError::UnaryError::Expression_Invalid, result.error().message, result.error().location);
+  return *result;
 }
 
 std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::PepParser::expression_or_argument() {
@@ -371,11 +297,14 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
       throw PepParserError(PepParserError::NullaryError::SymbolDeclaration_Required, buf->matched_interval());
     // Equates are assigned values as they are parsed. Their symbolic arguments must already be defined.
     const auto value = equate_value(*arg, buf->matched_interval());
-    if (!value) throw PepParserError(PepParserError::NullaryError::Argument_SymbolicEquate, buf->matched_interval());
+    if (!value)
+      throw PepParserError(PepParserError::UnaryError::Expression_Invalid, value.error().message, value.error().location);
+    else if (!*value)
+      throw PepParserError(PepParserError::NullaryError::Argument_SymbolicEquate, buf->matched_interval());
     else if (arg->minimum_size() > 2)
       throw PepParserError(PepParserError::NullaryError::Argument_Exceeded2Bytes, buf->matched_interval());
     (*symbol)->value = std::make_shared<pepp::core::symbol::ConstantValue>(
-        bits::MaskedBits{.byteCount = 2, .bitPattern = *value & bits::mask(2), .mask = bits::mask(2)});
+        bits::MaskedBits{.byteCount = 2, .bitPattern = **value & bits::mask(2), .mask = bits::mask(2)});
     return std::make_shared<DotEquate>(SymbolDeclaration{*symbol}, Argument{arg});
   }
   case (int)PDC::EXPORT: {
@@ -595,20 +524,22 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::statement(Diagn
   const auto start_ival = lexer->current_location();
   // Consume tokens directly from lexer without buffering to avoid buffer-clearing bugs.
   while ((_active_macro_defs > 0 || in_false_conditional()) && lexer->input_remains()) {
+    auto start = lexer->cursor();
     auto token = lexer->next_token();
     if (_active_macro_defs > 0) {
       // Need to capture all body tokens! Else chaos ensues.
-      buf->push_token(token);
+      buf->push_token(token, start);
       // Need to count start / ends of macro definitions.
       if (token && token->type() == lex::DotCommand::TYPE) {
         auto dot_str = bits::to_upper(token->to_string());
         if (dot_str == "MACRO") _active_macro_defs++;
         else if (dot_str == "ENDM") {
           if (lexer->input_remains()) {
+            auto la2_start = lexer->cursor();
             auto la2 = lexer->next_token();
             if (!la2 || la2->type() != lex::Empty::TYPE)
               throw PepParserError(PepParserError::NullaryError::Token_MissingNewline, buf->matched_interval());
-            buf->push_token(la2);
+            buf->push_token(la2, la2_start);
           }
           _active_macro_defs--;
         }
@@ -653,14 +584,14 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::statement(Diagn
       else if ((dot_str == "ELSEIF" || dot_str == "ELSE") && start_depth == _conditionals.size() &&
                !_conditionals.back().matched_any) {
         // Need to parse this branch! It may make our condition true.
-        buf->push_token(token);
+        buf->push_token(token, start);
         break;
       } else if (dot_str == "ENDIF") {
         if (start_depth < _conditionals.size()) _conditionals.pop_back();
         // Do not consume ENDIF token closing the conditional that entered skip mode. Re-buffer that token so we can
         // take a normal parsing path for it and emit the proper IR for the closing directive.
         else {
-          buf->push_token(token);
+          buf->push_token(token, start);
           break;
         }
       }

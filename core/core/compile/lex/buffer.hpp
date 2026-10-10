@@ -19,6 +19,7 @@
 #include <vector>
 #include "core/math/bitmanip/span.hpp"
 #include "core/compile/lex/tokens.hpp"
+#include "core/compile/source/seekable.hpp"
 
 namespace pepp::tc::lex {
 
@@ -82,11 +83,17 @@ public:
   support::LocationInterval matched_interval() const;
   // In some instances, the parser bypasses the token buffer to consume tokens directly from the lexer.
   // Sometimes we read one too many tokens in this mode and those tokens need to be re-buffered.
-  void push_token(std::shared_ptr<Token> t);
+  // start is the lexer's cursor before the token, so that it can be unbuffered.
+  void push_token(std::shared_ptr<Token> t, support::SeekableData start);
+  // Return the unmatched tokens to the lexer, so that a nested parser reading the lexer's cursor sees them as text.
+  // No live Checkpoint may be past the head, since its tokens are discarded.
+  void unbuffer();
 
 private:
   ALexer *_lex;
   std::vector<std::shared_ptr<Token>> _tokens;
+  // The lexer's cursor before each token.
+  std::vector<support::SeekableData> _starts;
   size_t _head = 0, _checkpoints = 0;
   friend class Marker;
   friend class Checkpoint;

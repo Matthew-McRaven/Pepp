@@ -51,6 +51,9 @@ private:
   using OptionalSymbol = std::optional<std::shared_ptr<pepp::core::symbol::Entry>>;
   std::optional<u8> register_integer();
   std::shared_ptr<pepp::ast::IRValue> argument();
+  // An expression which is not an atom, or nullptr if there is none; atoms are left for argument().
+  std::shared_ptr<pepp::ast::IRValue> expression();
+  std::shared_ptr<pepp::ast::IRValue> expression_or_argument();
   std::shared_ptr<pepp::ast::IRValue> numeric_argument();
   std::shared_ptr<pepp::ast::IRValue> hex_argument();
   std::shared_ptr<pepp::ast::Symbolic> identifier_argument();

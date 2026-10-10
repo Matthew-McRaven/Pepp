@@ -21,6 +21,7 @@ const std::string pepp::tc::RISCVParserError::to_string(NullaryError err) {
   case NullaryError::Argument_Exceeded2Bytes: return "Argument exceeds 2 bytes";
   case NullaryError::Argument_Exceeded4Bytes: return "Argument exceeds 4 bytes";
   case NullaryError::Argument_ExpectedFenceOrdering: return "Expected fence ordering of 'iorw' or '0'";
+  case NullaryError::Argument_SymbolicEquate: return "An .EQUATE may only reference .EQUATEs defined before it";
   case NullaryError::Section_StringName: return "Expected section name string";
   case NullaryError::Section_TwoArgs: return "Section directive takes exactly two arguments";
   case NullaryError::Section_StringFlags: return "Expected section flags string";
@@ -36,6 +37,7 @@ const std::string pepp::tc::RISCVParserError::to_string(UnaryError err, std::str
   switch (err) {
   case UnaryError::Token_Invalid: return fmt::format("Unrecognized token: {}", arg);
   case UnaryError::Dot_Invalid: return fmt::format("Invalid pseudo-operation \"{}\".", arg);
+  case UnaryError::Expression_Invalid: return fmt::format("Invalid expression: {}", arg);
   }
   PEPP_UNREACHABLE();
 }

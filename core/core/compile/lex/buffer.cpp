@@ -39,7 +39,17 @@ bits::span<const std::shared_ptr<pepp::tc::lex::Token>> pepp::tc::lex::Buffer::b
   return bits::span<std::shared_ptr<pepp::tc::lex::Token> const>(_tokens.cbegin() + _head, _tokens.cend());
 }
 
-void pepp::tc::lex::Buffer::push_token(std::shared_ptr<Token> t) { _tokens.push_back(t); }
+void pepp::tc::lex::Buffer::push_token(std::shared_ptr<Token> t, support::SeekableData start) {
+  _tokens.push_back(t);
+  _starts.emplace_back(std::move(start));
+}
+
+void pepp::tc::lex::Buffer::unbuffer() {
+  if (_head == _tokens.size()) return;
+  _lex->resume_at(_starts[_head]);
+  _tokens.resize(_head);
+  _starts.resize(_head);
+}
 
 pepp::tc::support::LocationInterval pepp::tc::lex::Buffer::matched_interval() const {
   auto toks = matched_tokens();
@@ -60,6 +70,7 @@ bits::span<std::shared_ptr<pepp::tc::lex::Token> const> pepp::tc::lex::Buffer::m
 
 void pepp::tc::lex::Buffer::clear_tokens() {
   _tokens.clear();
+  _starts.clear();
   _head = 0;
   // TODO: notify listeners than tokens have been destroyed and they should clear them too.
   // This would also be a good place to notify the tokenizer to read in the next chunk of data if not already in main
@@ -81,8 +92,9 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::Buffer::match_literal(const
 std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::Buffer::peek(int mask) {
   if (_head == _tokens.size()) {
     // Do not append a nullptr, otherwise head will be < size even though we reached EoF;
+    auto start = _lex->cursor();
     if (auto next = _lex->next_token(); !next) return nullptr;
-    else _tokens.emplace_back(next);
+    else _tokens.emplace_back(next), _starts.emplace_back(std::move(start));
   }
 
   if (auto l = _tokens[_head]; l && l->mask(mask)) return l;

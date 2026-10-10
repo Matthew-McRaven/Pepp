@@ -21,6 +21,7 @@ public:
     Argument_Exceeded2Bytes,
     Argument_Exceeded4Bytes,
     Argument_ExpectedFenceOrdering,
+    Argument_SymbolicEquate,
     Section_StringName,
     Section_TwoArgs,
     Section_StringFlags,
@@ -31,7 +32,7 @@ public:
     Token_MissingLParen,
     Token_MissingRParen,
   };
-  enum class UnaryError { Token_Invalid, Dot_Invalid };
+  enum class UnaryError { Token_Invalid, Dot_Invalid, Expression_Invalid };
 
   static const std::string to_string(NullaryError);
   static const std::string to_string(UnaryError, std::string &arg);

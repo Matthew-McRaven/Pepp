@@ -20,6 +20,8 @@
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
 #include "core/compile/ir_linear/line_symbol.hpp"
+#include "core/compile/ir_value/expression.hpp"
+#include "core/compile/ir_value/numeric.hpp"
 #include "core/compile/symbol/entry.hpp"
 #include "core/compile/symbol/leaf_table.hpp"
 #include "core/compile/symbol/value.hpp"
@@ -137,6 +139,33 @@ TEST_CASE("RISCV ASM parser", "[scope:core][scope:core.langs][level:asmb3][level
     CHECK(as_u->rd == 31);
     CHECK(as_u->imm);
     CHECK(as_u->imm->value_as<u32>() == 0xcafe);
+  }
+  SECTION("Immediates may be expressions") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data("addi x1, x2, 4 * 3 + 1\nlw x1, 8 + 4(x3)\naddi x1, x2, -1\nl: jal ra, l + 4\njal l + 4"));
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 5);
+    const auto imm = [&](size_t index) { return std::dynamic_pointer_cast<IntegerInstruction>(results[index])->imm; };
+    CHECK(std::dynamic_pointer_cast<pepp::ast::Expression>(imm(0)));
+    CHECK(imm(0)->value_as<i32>() == 13);
+    CHECK(imm(0)->string() == "4 * 3 + 1");
+    // An expression ends at the parenthesized register.
+    CHECK(imm(1)->value_as<i32>() == 12);
+    CHECK(std::dynamic_pointer_cast<ITypeIR>(results[1])->rs1 == 3);
+    // A signed decimal is still parsed as before.
+    CHECK(std::dynamic_pointer_cast<pepp::ast::SignedDecimal>(imm(2)));
+    // Both forms of jal reach the expression, though one is tried and rolled back first.
+    CHECK(imm(3)->string() == "l + 4");
+    CHECK(imm(4)->string() == "l + 4");
+    // A register tried as an immediate does not linger as a symbol.
+    CHECK(!p.symbol_table()->exists("ra"));
+  }
+  SECTION("Constant expressions are checked as they are parsed") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data("addi x1, x2, 1 / 0"));
+    (void)p.parse(diag);
+    CHECK(diag.count() == 1);
   }
 }
 
@@ -410,6 +439,31 @@ TEST_CASE("RISCV ASM parser dot commands",
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 1);
     CHECK(std::dynamic_pointer_cast<DotLiteral>(results[0]));
+  }
+  SECTION("Data and .EQUATE  allow expressions") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".WORD 1 << 4\n.HALF 0xFF + 1\n.BYTE 'a' + 1\na: .EQUATE 2\nb: .EQUATE a * 3"));
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 5);
+    const auto literal = [&](size_t index) {
+      return std::dynamic_pointer_cast<DotLiteral>(results[index])->argument.value;
+    };
+    CHECK(literal(0)->value_as<u32>() == 16);
+    CHECK(literal(1)->value_as<u16>() == 0x100);
+    CHECK(literal(2)->value_as<u8>() == 'b');
+    auto masked = p.symbol_table()->get("b").value()->value->value();
+    CHECK(masked() == 6);
+  }
+  SECTION("Expression constraints for assembler directives") {
+    // Too large for a byte; an equate naming a label, whose address is not known yet.
+    for (const char *source : {".BYTE 255 + 1", "l: .WORD 0\nb: .EQUATE l + 1"}) {
+      CAPTURE(source);
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data(source));
+      (void)p.parse(diag);
+      CHECK(diag.count() == 1);
+    }
   }
 }
 
