@@ -10,8 +10,7 @@ pepp::tc::PepRecursionError::PepRecursionError(pepp::tc::support::LocationInterv
 const std::string pepp::tc::PepParserError::to_string(NullaryError err) {
   switch (err) {
   case NullaryError::Argument_InvalidIntegerFormat: return "Unrecognized integer format";
-  case NullaryError::Argument_SymbolicEquate: return "An .EQUATE value must be a constant; it cannot reference symbols";
-  case NullaryError::Argument_InvalidOperator: return "Only + and - may prefix an integer";
+  case NullaryError::Argument_SymbolicEquate: return "An .EQUATE must be constant or previously-EQUATE'd symbol";
   case NullaryError::Argument_Exceeded2Bytes: return "Argument must fit in two bytes";
   case NullaryError::Argument_Exceeded1Byte: return "Argument must fit in one byte";
   case NullaryError::Argument_Missing: return "Expected an argument";
@@ -20,7 +19,7 @@ const std::string pepp::tc::PepParserError::to_string(NullaryError err) {
   case NullaryError::Argument_ExpectedIdentifier: return "Argument must be an identifier";
   case NullaryError::Argument_ExpectedHex: return "Argument must be a hexadecimal integer";
   case NullaryError::Argument_ExpectedInteger: return "Argument must be an integer";
-  case NullaryError::AddressingMode_Required: return "Addressing mode required for this instruction.";
+  case NullaryError::AddressingMode_Required: return "Addressing mode required for this instruction";
   case NullaryError::AddressingMode_Invalid: return "Invalid addressing mode";
   case NullaryError::AddressingMode_Missing: return "Expected addressing mode";
   case NullaryError::SymbolDeclaration_Required: return "Requires a symbol declaration";
@@ -32,6 +31,7 @@ const std::string pepp::tc::PepParserError::to_string(NullaryError err) {
   case NullaryError::Token_MissingNewline: return "Expected \\n";
   case NullaryError::Conditional_UnmatchedEndif: return "Unmatched .ENDIF directive";
   case NullaryError::Conditional_Unterminated: return "Unterminated conditional directive";
+  case NullaryError::Conditional_NotConstant: return "A conditional must be constant or previously-EQUATE'd symbol";
   case NullaryError::Conditional_UnmatchedElseif: return "Unmatched .ELSEIF directive";
   case NullaryError::Conditional_UnmatchedElse: return "Unmatched .ELSE directive";
   case NullaryError::Conditional_MultipleElse: return "Multiple .ELSE directives in the same conditional";
@@ -50,6 +50,7 @@ const std::string pepp::tc::PepParserError::to_string(UnaryError err, const std:
   case UnaryError::Dot_Invalid: return fmt::format("Invalid pseudo-operation \"{}\".", arg);
   case UnaryError::Token_Invalid: return fmt::format("Unrecognized token: {}", arg);
   case UnaryError::Macro_Redefinition: return fmt::format("Redefinition of macro \"{}\".", arg);
+  case UnaryError::Expression_Invalid: return fmt::format("Invalid expression: {}", arg);
   }
   PEPP_UNREACHABLE();
 }

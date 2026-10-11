@@ -12,7 +12,6 @@ public:
     Argument_ExpectedRS2,
     Argument_ExpectedIdentNumeric,
     Argument_ExpectedImm,
-    Argument_InvalidIntegerFormat,
     Argument_ExpectedInteger,
     Argument_ExpectedIdentifier,
     Argument_ExpectedHex,
@@ -21,6 +20,8 @@ public:
     Argument_Exceeded2Bytes,
     Argument_Exceeded4Bytes,
     Argument_ExpectedFenceOrdering,
+    Argument_SymbolicEquate,
+    Argument_Missing,
     Section_StringName,
     Section_TwoArgs,
     Section_StringFlags,
@@ -28,10 +29,17 @@ public:
     SymbolDeclaration_Forbidden,
     Token_MissingNewline,
     Token_MissingComma,
-    Token_MissingLParen,
-    Token_MissingRParen,
+    Conditional_UnmatchedEndif,
+    Conditional_UnmatchedElseif,
+    Conditional_UnmatchedElse,
+    Conditional_MultipleElse,
+    Conditional_Unterminated,
+    Conditional_NotConstant,
+    Macro_Unterminated,
+    Macro_UnmatchedEndm,
+    Macro_ExcessiveRecursion,
   };
-  enum class UnaryError { Token_Invalid, Dot_Invalid };
+  enum class UnaryError { Token_Invalid, Dot_Invalid, Expression_Invalid, Macro_Redefinition };
 
   static const std::string to_string(NullaryError);
   static const std::string to_string(UnaryError, std::string &arg);

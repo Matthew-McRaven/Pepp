@@ -18,6 +18,7 @@
 
 #include <memory>
 #include <unordered_map>
+#include <vector>
 #include "core/ds/string_pool.hpp"
 #include "core/integers.h"
 namespace pepp::bts {
@@ -36,7 +37,6 @@ class Entry;
 // For languages with scope, an alternative type will be provided.
 // Symbols that have been marked as deleted will have their entries remain in the table, but with a DeletedValue
 // assigned.
-
 class LeafTable : public std::enable_shared_from_this<LeafTable> {
 public:
   using entry_ptr_t = std::shared_ptr<symbol::Entry>;
@@ -57,17 +57,13 @@ public:
   // Returns a defined symbol in this table, or nullopt if not found in other.
   std::optional<entry_ptr_t> import(symbol::LeafTable &other, std::string_view name);
 
-  // Return the use count on the underlying shared pointer for the symbol entry, or 0 if not found.
-  std::size_t use_count(std::string_view name) const noexcept;
-  // If the symbol exists AND it does not have any uses, remove it and return true. Else the item remains in the table
-  // and return false. Useful when you reference()'ed a symbol speculatively and then later determine it is not needed.
-  // Does not shrink underlying string pool.
-  bool drop(std::string_view name);
   // Either returns an existing symbol entry or creates a new, undefined one.
   entry_ptr_t reference(std::string_view name) noexcept;
   // If name not already defined, creates a new, singly-defined symbol entry.
   // Otherwise, modifies the existing symbol to be multiply-defined.
   entry_ptr_t define(std::string_view name) noexcept;
+  // Create a symbol for one line's location counter (`.`)
+  entry_ptr_t location_counter() noexcept;
   // Unlike reference, will return nullopt if symbol not found.
   std::optional<entry_ptr_t> get(std::string_view name) const noexcept;
   // Returns true if this table contains the matching symbol.
@@ -89,13 +85,20 @@ private:
   std::shared_ptr<bts::StringPool> _pool;
 
   map_t _entries;
+  u32 _location_counters = 0;
 };
+
+// True if the symbol is a line's location counter, which is internal to the assembler. Their names, <.N>, cannot be
+// written in source.
+bool is_location_counter(const Entry &entry) noexcept;
 
 // For each symbol in the table, whose "base" is >= threshold, increment its "offset".
 void increment_offset(LeafTable &table, u64 offset, u64 threshold = 0) noexcept;
 void set_offset(LeafTable &table, u64 offset, u64 threshold = 0) noexcept;
-// Create a vector of all symbols within this table.
+// Fill a vector with all symbols within this table excluding location counters.
 void enumerate(LeafTable const &table, std::vector<std::shared_ptr<Entry>> &out);
+// As above, including location counters (e.g., for debugging).
+void enumerate_all(LeafTable const &table, std::vector<std::shared_ptr<Entry>> &out);
 // Create a string representation of a symbol table
 std::string table_listing(LeafTable const &table, u8 max_bytes);
 

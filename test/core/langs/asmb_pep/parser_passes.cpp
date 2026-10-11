@@ -21,6 +21,7 @@
 #include "core/compile/ir_linear/line_empty.hpp"
 #include "core/compile/ir_linear/line_macro.hpp"
 #include "core/compile/ir_linear/line_symbol.hpp"
+#include "core/compile/ir_value/expression.hpp"
 #include "core/compile/ir_value/numeric.hpp"
 #include "core/compile/symbol/entry.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
@@ -105,6 +106,59 @@ TEST_CASE("Pepp ASM parser", "[scope:core][scope:core.langs][level:asmb3][level:
     CHECK(r0->addr_mode.addr_mode == isa::detail::pep10::AddressingMode::I);
     auto ptr_arg = std::dynamic_pointer_cast<pepp::ast::Numeric>(r0->argument.value);
     CHECK(ptr_arg != nullptr);
+  }
+  SECTION("Expression operands") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data("LDWA 5 - 3,i\nLDWA -3,i\nLDWA 0x10,i\nLDWA (7),i\nLDWA sym + 1,d\nLDWA -0x10,i\nLDWA - 3,i"),
+                    std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 7);
+    const auto arg = [&](size_t index) {
+      auto line = std::dynamic_pointer_cast<DyadicInstruction>(results[index]);
+      REQUIRE(line);
+      return line->argument.value;
+    };
+    const auto expression = [&](size_t index) {
+      auto ret = std::dynamic_pointer_cast<pepp::ast::Expression>(arg(index));
+      REQUIRE(ret);
+      return ret;
+    };
+    CHECK(expression(0)->value_as<i16>() == 2);
+    CHECK(expression(0)->string() == "5 - 3");
+    // Atoms are not expressions.
+    CHECK(std::dynamic_pointer_cast<pepp::ast::SignedDecimal>(arg(1)));
+    CHECK(std::dynamic_pointer_cast<pepp::ast::Hexadecimal>(arg(2)));
+    // Parens make what would otherwise be an atom into an expression.
+    CHECK(expression(3)->value_as<i16>() == 7);
+    CHECK(expression(3)->string() == "(7)");
+    // Symbols are referenced in the symbol table as they are parsed.
+    CHECK(expression(4)->contains_symbols());
+    CHECK(p.symbol_table()->exists("sym"));
+    // Only a sign over a decimal lowers to a SignedDecimal, whether or not it is spaced.
+    CHECK(expression(5)->value_as<u16>() == 0xFFF0);
+    CHECK(std::dynamic_pointer_cast<pepp::ast::SignedDecimal>(arg(6)));
+    CHECK(arg(6)->value_as<i16>() == -3);
+  }
+  SECTION("Expressions evaluate symbols but onlt fold constants") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data("k: .EQUATE 2\nx: LDWA 10,i\nBR x + k * 3"), std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 3);
+    auto code = pepp::tc::parser::flatten_macros(results);
+    auto split = pepp::tc::pepp_split_to_sections(diag, code);
+    (void)pepp::tc::pepp_assign_addresses(split.grouped_ir); // Gives x its address and k its value.
+    const auto line = std::dynamic_pointer_cast<DyadicInstruction>(results[2]);
+    REQUIRE(line);
+    const auto expression = std::dynamic_pointer_cast<pepp::ast::Expression>(line->argument.value);
+    REQUIRE(expression);
+    // x is at 0, so x + 2 * 3 is 6.
+    CHECK(expression->evaluate().value().bits == 6);
+    // x is relocatable and must not be constant folded.
+    const auto folded =
+        pepp::tc::expr::fold_constants(expression->tree(), expression->default_type(), expression->resolve_constants_of());
+    CHECK(pepp::tc::expr::to_postfix(folded) == "x 6 +");
   }
   SECTION("Dyadic instructions with large argument") {
     pepp::tc::DiagnosticTable diag;
@@ -217,6 +271,18 @@ TEST_CASE("Pepp ASM parser dot commands",
     REQUIRE(results.size() == 1);
     CHECK(std::dynamic_pointer_cast<DotEquate>(results[0]));
   }
+  SECTION(".EQUATE may be used in a later .EQUATE's expression") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data("a: .EQUATE 2\nb: .EQUATE a * 3 + 1\nc: .EQUATE b"), std::make_shared<MR>());
+    (void)p.parse(diag);
+    CHECK(diag.count() == 0);
+    const auto value = [&](const char *name) {
+      auto masked = p.symbol_table()->get(name).value()->value->value();
+      return masked();
+    };
+    CHECK(value("b") == 7);
+    CHECK(value("c") == 7);
+  }
 
   SECTION(".EXPORT") {
     pepp::tc::DiagnosticTable diag;
@@ -316,6 +382,22 @@ TEST_CASE("Pepp ASM parser dot commands",
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 3);
     CHECK(std::dynamic_pointer_cast<DotConditional>(results[0]));
+    CHECK(std::dynamic_pointer_cast<DotConditional>(results[2]));
+  }
+  SECTION(".IF using earlier .EQUATE") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data("k: .EQUATE 2\n.IF k * 3 == 6\n.BYTE 5\n.ENDIF"), std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 4);
+    CHECK(std::dynamic_pointer_cast<DotLiteral>(results[2]));
+  }
+  SECTION(".ELSEIF argument only evaluated if no previous branches taken") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".IF 1\n.BYTE 5\n.ELSEIF undefined\n.BYTE 6\n.ENDIF"), std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 4);
     CHECK(std::dynamic_pointer_cast<DotConditional>(results[2]));
   }
   SECTION("Trivial false .IF") {

@@ -24,6 +24,7 @@ struct FormattingConfig {
 // Per-architecture assembler configuration.
 struct RISCVDriverConfig {
   std::vector<std::pair<std::string, u32>> symdefs;
+  std::shared_ptr<pepp::tc::MacroRegistry> macros = nullptr;
 };
 struct Pep10DriverConfig {
   std::vector<std::pair<std::string, u32>> symdefs;

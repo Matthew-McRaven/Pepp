@@ -20,7 +20,13 @@ namespace bits {
 // Convert a byte count to a mask.
 // e.g., 1=>0xFF
 // 2=> 0xFFFF
-uint64_t mask(uint8_t byteCount);
+constexpr uint64_t mask(uint8_t byteCount) { return byteCount >= 8 ? ~0ull : (1ull << (byteCount * 8)) - 1; }
+// Sign-extend the low byteCount bytes of value to 64 bits.
+constexpr uint64_t sign_extend(uint64_t value, uint8_t byteCount) {
+  if (byteCount >= 8) return value;
+  const uint64_t sign = 1ull << (byteCount * 8 - 1);
+  return ((value & mask(byteCount)) ^ sign) - sign;
+}
 struct MaskedBits {
   u8 byteCount = 0;
   u64 bitPattern = 0, mask = 0;

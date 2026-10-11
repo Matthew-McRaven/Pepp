@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <list>
 #include <map>
 #include <numeric>
@@ -7,7 +8,6 @@
 #include <vector>
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_symbol.hpp"
-#include "core/compile/ir_value/expr.hpp"
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/symbol/entry.hpp"
 #include "core/compile/symbol/value.hpp"
@@ -154,23 +154,8 @@ IRMemoryAddressTable<Address> assign_addresses(std::vector<std::pair<SectionDesc
         base_address = std::static_pointer_cast<DotOrg>(line)->argument.value->template value_as<u16>();
         symbol_base = next_base = base_address;
         break;
-      case (int)Type::DotEquate: {
-        auto as_equate = std::static_pointer_cast<DotEquate>(line);
-        auto symbol = as_equate->symbol.entry;
-        auto argument = as_equate->argument.value;
-        // Re-use from previous assembler
-        if (auto symbolic = dynamic_cast<pepp::ast::Symbolic *>(&*argument); symbolic != nullptr) {
-          auto other = symbolic->symbol();
-          symbol->value = std::make_shared<pepp::core::symbol::AliasValue>(sizeof(addr_t), other);
-        } else {
-          auto masked_bits = bits::MaskedBits{.byteCount = sizeof(addr_t), .bitPattern = 0, .mask = MODULUS - 1};
-          (void)argument->serialize(
-              bits::span<u8>{reinterpret_cast<u8 *>(&masked_bits.bitPattern), masked_bits.byteCount},
-              bits::hostOrder());
-          symbol->value = std::make_shared<pepp::core::symbol::ConstantValue>(masked_bits);
-        }
-        continue; // Must resume loop early, or symbol will be clobbered below.
-      }
+      // The parser values an equate's symbol, which must not be clobbered with an address below.
+      case (int)Type::DotEquate: continue;
       default: break;
       }
 
@@ -195,6 +180,11 @@ IRMemoryAddressTable<Address> assign_addresses(std::vector<std::pair<SectionDesc
       }
       sec_desc.byte_count += size;
 
+      // A location counter which aliases the line's label imlicitly has the line's address
+      if (auto counter = line->template typed_attribute<LocationCounterDeclaration>();
+          counter && !dynamic_cast<const pepp::core::symbol::AliasValue *>(counter->entry->value.get()))
+        counter->entry->value = std::make_shared<pepp::core::symbol::LocationValue>(
+            size, sizeof(addr_t), symbol_base, 0, pepp::core::symbol::Type::LocationCounter);
       if (auto line_symbol = line->template typed_attribute<SymbolDeclaration>(); line_symbol) {
         // Do not update the value of a symbol which aliases another.
         if (dynamic_cast<const pepp::core::symbol::AliasValue *>(line_symbol->entry->value.get())) continue;
@@ -320,26 +310,8 @@ struct SymbolOperand {
   i64 addend = 0;
 };
 
-using pepp::ast::contains_symbol;
-
-inline SymbolOperand classify_symbol_operand(pepp::ast::IRValue &value) {
-  using Kind = SymbolOperand::Kind;
-  using Op = pepp::ast::InfixExpression::Op;
-  if (auto *symbolic = dynamic_cast<pepp::ast::Symbolic *>(&value)) return {Kind::Offset, symbolic->symbol(), 0};
-  if (!contains_symbol(value)) return {};
-  auto *infix = dynamic_cast<pepp::ast::InfixExpression *>(&value);
-  const bool add = infix && infix->op() == Op::Addition, sub = infix && infix->op() == Op::Subtraction;
-  if ((add || sub) && infix->lhs() && infix->rhs()) {
-    auto &lhs = *infix->lhs(), &rhs = *infix->rhs();
-    // If LHS is a symbol, rhs must be a constant. Handles symbol - value and symbol + value
-    if (auto *symbolic = dynamic_cast<pepp::ast::Symbolic *>(&lhs); symbolic && !contains_symbol(rhs))
-      return {Kind::Offset, symbolic->symbol(), sub ? -rhs.value_as<i64>() : rhs.value_as<i64>()};
-    // If RHS is a symbol, lhs must be a constant. Handles value + symbol. value - symbol is forbidden.
-    if (auto *symbolic = dynamic_cast<pepp::ast::Symbolic *>(&rhs); add && symbolic && !contains_symbol(lhs))
-      return {Kind::Offset, symbolic->symbol(), lhs.value_as<i64>()};
-  }
-  return {Kind::Invalid};
-}
+// Determine the relocation type for a symbolic operand.
+SymbolOperand classify_symbol_operand(pepp::ast::IRValue &value);
 
 struct ProgramObjectCodeResult {
   IR2ObjectCodeMap ir_to_object_code;

@@ -7,6 +7,7 @@
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
 #include "core/compile/ir_linear/line_macro.hpp"
+#include "core/compile/ir_value/expression.hpp"
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/symbol/entry.hpp"
 #include "core/compile/symbol/leaf_table.hpp"
@@ -112,6 +113,8 @@ pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(Diagnostic
       // Symbols need to know their defining section to enable relocations.
       symbol_attr->entry->section_index = active->first.section_index;
     }
+    if (auto counter = line->typed_attribute<LocationCounterDeclaration>(); counter)
+      counter->entry->section_index = active->first.section_index;
 
     active->second.emplace_back(line);
   }
@@ -154,6 +157,7 @@ struct PeppObjectVistitor : public PepIRVisitor {
   void visit(const DotSection *) override;
   void visit(const DotAnnotate *) override;
   void visit(const DotOrg *) override;
+  void visit(const DotConditional *) override;
   void visit(const InlineMacroDefinition *) override;
   void visit(const MacroInstantiation *) override;
 };
@@ -169,7 +173,8 @@ namespace {
 bool needs_relocation(const pepp::core::symbol::Entry &symbol) {
   using enum pepp::core::symbol::Type;
   const auto &value = symbol.value;
-  return symbol.is_undefined() || value == nullptr || value->type() == Object || value->type() == Code;
+  return symbol.is_undefined() || value == nullptr || value->type() == Object || value->type() == Code ||
+         value->type() == LocationCounter;
 }
 } // namespace
 
@@ -250,6 +255,10 @@ void pepp::tc::PeppObjectVistitor::visit(const DotAnnotate *) {
 }
 
 void pepp::tc::PeppObjectVistitor::visit(const DotOrg *) {
+  // Does not generate object code
+}
+
+void pepp::tc::PeppObjectVistitor::visit(const DotConditional *) {
   // Does not generate object code
 }
 

@@ -1,6 +1,8 @@
+#include <optional>
 #include <utility>
 #include "asmb_driver.hpp"
 #include "core/compile/source/seekable.hpp"
+#include "core/langs/asmb/macros.hpp"
 #include "core/langs/asmb_riscv/codegen.hpp"
 #include "core/langs/asmb_riscv/parser.hpp"
 #include "core/langs/asmb_riscv/text_format.hpp"
@@ -9,7 +11,7 @@ namespace pepp::tc {
 
 DriverResult assemble_riscv(const RISCVDriverConfig &cfg, const FormattingConfig &fmtcfg, std::string source) {
   DriverResult result;
-  auto rv_parser = parser::RISCVParser(support::SeekableData{std::move(source)});
+  auto rv_parser = parser::RISCVParser(support::SeekableData{std::move(source)}, cfg.macros);
   auto sy = rv_parser.symbol_table();
   inject_symdefs(cfg.symdefs, *sy, 4);
 
@@ -20,13 +22,16 @@ DriverResult assemble_riscv(const RISCVDriverConfig &cfg, const FormattingConfig
     fmtcfg.source_format(std::move(formatted));
   }
 
-  auto split = riscv_split_to_sections(result.diagnostics, program);
+  std::optional<parser::MacroComments> comments;
+  if (fmtcfg.listing_format) comments = parser::MacroComments{riscv_format_as_columns, '#'};
+  auto flattened = parser::flatten_macros(program, comments);
+  auto split = riscv_split_to_sections(result.diagnostics, flattened);
   if (result.diagnostics.count() > 0) return result;
 
   auto addresses = riscv_assign_addresses(split.grouped_ir);
   auto object_code = riscv_to_object_code(addresses, split.grouped_ir);
   if (fmtcfg.listing_format) {
-    auto listing = riscv_format_listing(program, addresses, object_code);
+    auto listing = riscv_format_listing(flattened, addresses, object_code);
     fmtcfg.listing_format(std::move(listing));
   }
   result.elf = riscv_to_elf(split.grouped_ir, addresses, object_code, *rv_parser.symbol_table());

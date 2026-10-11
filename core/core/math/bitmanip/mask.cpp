@@ -15,11 +15,6 @@
  */
 #include "core/math/bitmanip/mask.hpp"
 
-uint64_t bits::mask(uint8_t byteCount) {
-  if (byteCount >= 8) return -1;
-  return (1ULL << (byteCount * 8ULL)) - 1ULL;
-}
-
 u64 bits::MaskedBits::operator()() { return bitPattern & mask; }
 
 bool bits::MaskedBits::operator==(const MaskedBits &other) const {

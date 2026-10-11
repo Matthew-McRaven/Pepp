@@ -30,19 +30,6 @@ pepp::core::symbol::LeafTable::LeafTable(u16 pointer_size, std::shared_ptr<bts::
     : _pointer_size(pointer_size), _pool(pool),
       _entries(0, bts::PooledString::Hash(_pool.get()), bts::PooledString::Equals(_pool.get())) {}
 
-std::size_t pepp::core::symbol::LeafTable::use_count(std::string_view name) const noexcept {
-  if (auto pooled = _pool->find(name); !pooled) return 0;
-  else if (auto it = _entries.find(*pooled); it != _entries.end()) return it->second.use_count();
-  else return 0;
-}
-
-bool pepp::core::symbol::LeafTable::drop(std::string_view name) {
-  if (auto pooled = _pool->find(name); !pooled) return false;
-  else if (auto it = _entries.find(*pooled); it == _entries.end()) return false;
-  else if (it->second.use_count() != 1 || !it->second->is_undefined()) return false;
-  else return _entries.erase(it), true;
-}
-
 std::optional<pepp::core::symbol::LeafTable::entry_ptr_t> pepp::core::symbol::LeafTable::import(LeafTable &other,
                                                                                                 std::string_view name) {
   auto extSym = other.get(name);
@@ -72,6 +59,13 @@ pepp::core::symbol::LeafTable::entry_ptr_t pepp::core::symbol::LeafTable::define
     if (entry->binding == symbol::Binding::Weak) entry->state = DefinitionState::ExternalMultiple;
     else entry->state = DefinitionState::Multiple;
   }
+  return entry;
+}
+
+pepp::core::symbol::LeafTable::entry_ptr_t pepp::core::symbol::LeafTable::location_counter() noexcept {
+  auto entry = define(fmt::format("<.{}>", _location_counters++));
+  entry->value = std::make_shared<LocationValue>(0, _pointer_size, 0, 0, Type::LocationCounter);
+  entry->visibility = Visibility::Protected;
   return entry;
 }
 
@@ -110,6 +104,11 @@ void pepp::core::symbol::set_offset(LeafTable &table, u64 offset, u64 threshold)
 }
 
 void pepp::core::symbol::enumerate(const LeafTable &table, std::vector<std::shared_ptr<Entry>> &out) {
+  for (const auto &[_, entry] : table.entries())
+    if (!is_location_counter(*entry)) out.push_back(entry);
+}
+
+void pepp::core::symbol::enumerate_all(const LeafTable &table, std::vector<std::shared_ptr<Entry>> &out) {
   for (const auto &[_, entry] : table.entries()) out.push_back(entry);
 }
 
@@ -133,4 +132,9 @@ std::string pepp::core::symbol::table_listing(const LeafTable &table, u8 max_byt
   // The last entry was on the left, but we did not append a newline. Explicit insert newline to fix #399
   if (!lhs) ss << std::endl;
   return ss.str();
+}
+
+bool pepp::core::symbol::is_location_counter(const Entry &entry) noexcept {
+  // Not the value's type, since a location counter may alias a label.
+  return entry.name.starts_with("<.");
 }

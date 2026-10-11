@@ -1,11 +1,19 @@
 #pragma once
 #include <memory>
 #include <optional>
+#include <span>
+#include <stack>
 #include <unordered_set>
+#include <utility>
+#include <vector>
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/lex/buffer.hpp"
+#include "core/compile/macro/macro_registry.hpp"
+#include "core/compile/macro/macro_replacement.hpp"
 #include "core/compile/source/seekable.hpp"
+#include "core/langs/asmb/conditionals.hpp"
 #include "core/langs/asmb/ir_program.hpp"
+#include "core/langs/asmb/macros.hpp"
 #include "core/langs/asmb_riscv/ir_lines.hpp"
 #include "core/langs/asmb_riscv/lexer.hpp"
 
@@ -36,11 +44,21 @@ namespace core::symbol {
 class LeafTable;
 }
 namespace tc {
+namespace expr {
+struct Parsed;
+}
 
 class DiagnosticTable;
 namespace parser {
+// Raw operand as parsed before being converted to IR.
+struct RISCVOperand {
+  std::shared_ptr<const pepp::tc::expr::Parsed> expression;
+  // If true: 0, (x3). If false 0(x3)
+  bool comma_before = false;
+};
+
 struct RISCVParser {
-  RISCVParser(support::SeekableData &&data);
+  explicit RISCVParser(support::SeekableData &&data, std::shared_ptr<MacroRegistry> macros = nullptr);
 
   IRProgram parse(DiagnosticTable &);
   std::shared_ptr<pepp::core::symbol::LeafTable> symbol_table() const;
@@ -49,23 +67,40 @@ struct RISCVParser {
 
 private:
   using OptionalSymbol = std::optional<std::shared_ptr<pepp::core::symbol::Entry>>;
-  std::optional<u8> register_integer();
   std::shared_ptr<pepp::ast::IRValue> argument();
   std::shared_ptr<pepp::ast::IRValue> numeric_argument();
   std::shared_ptr<pepp::ast::IRValue> hex_argument();
   std::shared_ptr<pepp::ast::Symbolic> identifier_argument();
-  std::shared_ptr<pepp::tc::IntegerInstruction> instruction_alternative(const riscv::Mnemonic &entry);
+  // Every operand written after a mnemonic, each parsed as an expression.
+  std::vector<RISCVOperand> mnemonic_operands();
+  // Match the parsed operands to one of the valid instruction patterns for that mnemonic.
+  std::shared_ptr<pepp::tc::IntegerInstruction> match_alternative(const riscv::Mnemonic &entry,
+                                                                  std::span<const RISCVOperand> ops);
   std::shared_ptr<pepp::tc::IntegerInstruction> instruction();
   std::shared_ptr<pepp::tc::LinearIR> pseudo(OptionalSymbol symbol);
-  std::shared_ptr<pepp::tc::LinearIR> line(OptionalSymbol symbol);
-  std::shared_ptr<pepp::tc::LinearIR> statement();
+  std::shared_ptr<pepp::tc::LinearIR> macro(DiagnosticTable &);
+  std::shared_ptr<pepp::tc::LinearIR> line(DiagnosticTable &, OptionalSymbol symbol);
+  std::shared_ptr<pepp::tc::LinearIR> statement(DiagnosticTable &);
+  // Body which actually does the parsing until the top lexer in _lexer_stack is exhausted.
+  // If root_loc is nullopt, the location from the PepParserError and underlying IR will be left untouched.
+  // Otherwise, all "source" locations will be updated to point to root_loc.
+  IRProgram do_parse(DiagnosticTable &, std::optional<support::LocationInterval> root_loc);
 
   void synchronize();
 
   std::shared_ptr<std::unordered_set<std::string>> _pool;
-  std::shared_ptr<pepp::langs::RISCVLexer> _lexer;
-  std::shared_ptr<lex::Buffer> _buffer;
+  // The lexer for the text being parsed, either the source or a macro body expanded within it.
+  lex::Buffer *active_buffer() { return _lexer_stack.top().second.get(); }
+  pepp::langs::RISCVLexer *active_lexer() { return _lexer_stack.top().first.get(); }
+  std::stack<std::pair<std::shared_ptr<pepp::langs::RISCVLexer>, std::shared_ptr<lex::Buffer>>> _lexer_stack;
+  std::shared_ptr<pepp::langs::RISCVLexer> _root_lexer;
   std::shared_ptr<pepp::core::symbol::LeafTable> _symtab;
+  std::shared_ptr<MacroRegistry> _macros;
+  MacroCounters _counters;
+  MacroCapture _macro_capture;
+  // The location counter (`.`) of the line being parsed, created on first use.
+  std::shared_ptr<pepp::core::symbol::Entry> _location_counter;
+  Conditionals _conditionals;
 };
 } // namespace parser
 } // namespace tc

@@ -7,34 +7,11 @@
 #include "core/langs/asmb/asmb_tokens.hpp"
 #include "core/math/bitmanip/strings.hpp"
 
+// Operators and signs no longer part of our basic character set.
 static std::unordered_set<char> literals_for(pepp::tc::lex::AsmbOptions opts) {
-  static const std::unordered_set<char> parens{'(', ')'};
-  static const std::unordered_set<char> operators{'+', '-', '*', '/', '%', '|', '&', '^', '=', '~', '!', '<', '>'};
-  static const std::unordered_set<char> r_with_both = [&] {
-    auto r = parens;
-    r.insert(operators.begin(), operators.end());
-    r.insert(',');
-    return r;
-  }();
-
-  static const std::unordered_set<char> r_parens_only = [&] {
-    auto r = parens;
-    r.insert(',');
-    return r;
-  }();
-
-  static const std::unordered_set<char> r_ops_only = [&] {
-    auto r = operators;
-    r.insert(',');
-    return r;
-  }();
-
-  static const std::unordered_set<char> r_comma_only{','};
-
-  if (opts.allow_parens && opts.recognize_operators) return r_with_both;
-  else if (opts.allow_parens && !opts.recognize_operators) return r_parens_only;
-  else if (!opts.allow_parens && opts.recognize_operators) return r_ops_only;
-  else return r_comma_only;
+  static const std::unordered_set<char> with_parens{'(', ')', ','};
+  static const std::unordered_set<char> comma_only{','};
+  return opts.allow_parens ? with_parens : comma_only;
 }
 
 pepp::tc::lex::AsmbLexer::AsmbLexer(std::shared_ptr<std::unordered_set<std::string>> identifier_pool,
@@ -101,22 +78,6 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::AsmbLexer::next_token() {
     } else if (_literals.contains(next)) {
       _cursor.advance(1);
       current_token = std::make_shared<Literal>(LocationInterval{loc_start, _cursor.location()}, std::string{next});
-      break;
-    } else if (!_opts.recognize_operators && (next == '+' || next == '-')) {
-      auto sign = (next == '-') ? -1 : 1;
-      // "Eat" the sign so that we can parse the number after it.
-      _cursor.skip(1);
-      if (auto maybeDec = _cursor.matchView(decimal); !maybeDec.empty()) {
-        auto match = maybeDec.str(0);
-        using Format = Integer::Format;
-        _cursor.advance(match.size());
-        int val = 0;
-        (void)std::from_chars(match.data(), match.data() + match.size(), val, 10);
-        auto fmt = sign < 0 ? Format::SignedDec : Format::UnsignedDec;
-        current_token = std::make_shared<Integer>(LocationInterval{loc_start, _cursor.location()}, sign * val, fmt);
-      } else
-        current_token =
-            std::make_shared<Invalid>(LocationInterval{loc_start, _cursor.location()}, std::string{_cursor.select()});
       break;
     } else if (auto maybeMacroArg = _cursor.matchView(macroarg); !maybeMacroArg.empty()) {
       auto match = maybeMacroArg.str(0);
@@ -221,7 +182,6 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::AsmbLexer::next_token() {
   // End must have been all whitespace, treat as empty token.
   if (current_token == nullptr)
     current_token = std::make_shared<Empty>(LocationInterval{loc_start, _cursor.location()});
-  notify_listeners(current_token);
   if (print_tokens && current_token) SPDLOG_TRACE("Token: {}", current_token->repr());
   _cursor.skip(0);
   return current_token;

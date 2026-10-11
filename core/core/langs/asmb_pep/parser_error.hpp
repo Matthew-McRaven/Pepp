@@ -14,7 +14,6 @@ class PepParserError final : public std::logic_error {
 public:
   enum class NullaryError {
     Argument_InvalidIntegerFormat,
-    Argument_InvalidOperator,
     Argument_SymbolicEquate,
     Argument_Exceeded2Bytes,
     Argument_Exceeded1Byte,
@@ -39,6 +38,7 @@ public:
     Conditional_UnmatchedElse,
     Conditional_MultipleElse,
     Conditional_Unterminated,
+    Conditional_NotConstant,
     Macro_Unterminated,
     Macro_UnmatchedEndm,
     Macro_ExcessiveRecursion,
@@ -49,6 +49,7 @@ public:
     Dot_Invalid,
     Token_Invalid,
     Macro_Redefinition,
+    Expression_Invalid,
   };
 
   static const std::string to_string(NullaryError);

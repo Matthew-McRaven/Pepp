@@ -19,10 +19,17 @@
 #include "core/compile/ir_linear/line_comment.hpp"
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
+#include "core/compile/ir_linear/line_macro.hpp"
 #include "core/compile/ir_linear/line_symbol.hpp"
+#include "core/compile/ir_value/expression.hpp"
+#include "core/compile/ir_value/numeric.hpp"
 #include "core/compile/symbol/entry.hpp"
+#include "core/compile/symbol/leaf_table.hpp"
+#include "core/compile/symbol/value.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
+#include "core/langs/asmb/macros.hpp"
 #include "core/langs/asmb_riscv/parser.hpp"
+#include "core/langs/asmb_riscv/parser_error.hpp"
 
 namespace {
 static auto data = [](auto str) { return pepp::tc::support::SeekableData{str}; };
@@ -135,6 +142,50 @@ TEST_CASE("RISCV ASM parser", "[scope:core][scope:core.langs][level:asmb3][level
     CHECK(as_u->rd == 31);
     CHECK(as_u->imm);
     CHECK(as_u->imm->value_as<u32>() == 0xcafe);
+  }
+  SECTION("Immediates may be expressions") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data("addi x1, x2, 4 * 3 + 1\nlw x1, 8 + 4(x3)\naddi x1, x2, -1\nl: jal ra, l + 4\njal l + 4"));
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 5);
+    const auto imm = [&](size_t index) { return std::dynamic_pointer_cast<IntegerInstruction>(results[index])->imm; };
+    CHECK(std::dynamic_pointer_cast<pepp::ast::Expression>(imm(0)));
+    CHECK(imm(0)->value_as<i32>() == 13);
+    CHECK(imm(0)->string() == "4 * 3 + 1");
+    // An expression ends at the parenthesized register.
+    CHECK(imm(1)->value_as<i32>() == 12);
+    CHECK(std::dynamic_pointer_cast<ITypeIR>(results[1])->rs1 == 3);
+    // A signed decimal is still parsed as before.
+    CHECK(std::dynamic_pointer_cast<pepp::ast::SignedDecimal>(imm(2)));
+    // Both forms of jal reach the expression, though one is tried and rolled back first.
+    CHECK(imm(3)->string() == "l + 4");
+    CHECK(imm(4)->string() == "l + 4");
+    // A register tried as an immediate does not linger as a symbol.
+    CHECK(!p.symbol_table()->exists("ra"));
+    // Registers must not accidentally become symbols.
+    CHECK(!p.symbol_table()->exists("x3"));
+    CHECK(!p.symbol_table()->exists("x1"));
+  }
+  SECTION("Relocation modifiers") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data("lui x1, %hi(0x12345FFF)\naddi x1, x1, %lo(0x12345FFF)"));
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 2);
+    // %hi rounds up, since %lo's lower 12 bits are sign-extended: 0x12346000 - 1 == 0x12345FFF.
+    CHECK(std::dynamic_pointer_cast<IntegerInstruction>(results[0])->imm->value_as<u32>() == 0x12346);
+    CHECK(std::dynamic_pointer_cast<IntegerInstruction>(results[1])->imm->value_as<i32>() == -1);
+    // Only the known modifiers may be named with a %.
+    pepp::tc::DiagnosticTable unknown;
+    (void)Parser(data("addi x1, x1, %nope(1)")).parse(unknown);
+    CHECK(unknown.count() == 1);
+  }
+  SECTION("Constant expressions are checked as they are parsed") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data("addi x1, x2, 1 / 0"));
+    (void)p.parse(diag);
+    CHECK(diag.count() == 1);
   }
 }
 
@@ -289,11 +340,16 @@ TEST_CASE("RISCV ASM parser dot commands",
 
   SECTION(".EQUATE") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data("s: .EQUATE 10"));
+    // Equates are as wide as a word.
+    auto p = Parser(data("s: .EQUATE 10
+w: .EQUATE 0x12345678"));
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
-    REQUIRE(results.size() == 1);
+    REQUIRE(results.size() == 2);
     CHECK(std::dynamic_pointer_cast<DotEquate>(results[0]));
+    auto masked = p.symbol_table()->get("s").value()->value->value();
+    CHECK(masked() == 10);
+    CHECK(p.symbol_table()->get("w").value()->value->value()() == 0x12345678);
   }
 
   SECTION(".HALF") {
@@ -406,6 +462,104 @@ TEST_CASE("RISCV ASM parser dot commands",
     CHECK(diag.count() == 0);
     REQUIRE(results.size() == 1);
     CHECK(std::dynamic_pointer_cast<DotLiteral>(results[0]));
+  }
+  SECTION("Data and .EQUATE  allow expressions") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".WORD 1 << 4\n.HALF 0xFF + 1\n.BYTE 'a' + 1\na: .EQUATE 2\nb: .EQUATE a * 3"));
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 5);
+    const auto literal = [&](size_t index) {
+      return std::dynamic_pointer_cast<DotLiteral>(results[index])->argument.value;
+    };
+    CHECK(literal(0)->value_as<u32>() == 16);
+    CHECK(literal(1)->value_as<u16>() == 0x100);
+    CHECK(literal(2)->value_as<u8>() == 'b');
+    auto masked = p.symbol_table()->get("b").value()->value->value();
+    CHECK(masked() == 6);
+  }
+  SECTION("Expression constraints for assembler directives") {
+    // Too large for a byte; an equate naming a label, whose address is not known yet.
+    for (const char *source : {".BYTE 255 + 1", "l: .WORD 0\nb: .EQUATE l + 1"}) {
+      CAPTURE(source);
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data(source));
+      (void)p.parse(diag);
+      CHECK(diag.count() == 1);
+    }
+  }
+  // Conditionals are shared with Pep/10, whose tests cover them in more depth.
+  SECTION("Conditionals") {
+    const auto parse = [](const char *source, DiagnosticTable &diag) { return Parser(data(source)).parse(diag); };
+    {
+      // Skipped lines (including the .else) produce no IR, and an untaken .elseif has unevaluated arguments.
+      DiagnosticTable diag;
+      const auto results = parse(".if 0x10000\n.byte 1\n.elseif undefined\n.byte 2\n.else\n.byte 3\n.endif", diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 4);
+      CHECK(std::dynamic_pointer_cast<DotConditional>(results[0]));
+      CHECK(std::dynamic_pointer_cast<DotLiteral>(results[1])->argument.value->value_as<u8>() == 1);
+      CHECK(std::dynamic_pointer_cast<DotConditional>(results[2]));
+      CHECK(std::dynamic_pointer_cast<DotConditional>(results[3]));
+    }
+    {
+      // A conditional nested in an untaken branch is skipped.
+      DiagnosticTable diag;
+      const auto results = parse("k: .equ 0\n.if k\n.if 1\n.byte 1\n.endif\n.else\nadd x1, x2, x3\n.endif", diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 5);
+      CHECK(std::dynamic_pointer_cast<RTypeIR>(results[3]));
+    }
+    using RVPE = RISCVParserError;
+    for (const auto &[source, error] : std::vector<std::pair<const char *, RVPE::NullaryError>>{
+             {".if 0", RVPE::NullaryError::Conditional_Unterminated},
+             {".endif", RVPE::NullaryError::Conditional_UnmatchedEndif},
+             {".if 0\n.else\n.else\n.endif", RVPE::NullaryError::Conditional_MultipleElse},
+             {"x: .word 0\n.if x", RVPE::NullaryError::Conditional_NotConstant},
+         }) {
+      CAPTURE(source);
+      DiagnosticTable diag;
+      (void)parse(source, diag);
+      REQUIRE(diag.count() == 1);
+      CHECK(diag.cbegin()->second == RVPE::to_string(error));
+    }
+  }
+  // Macros are shared with Pep/10, whose tests cover them in depth.
+  SECTION("Macros") {
+    const auto parse = [](const char *source, DiagnosticTable &diag) { return Parser(data(source)).parse(diag); };
+    {
+      // Arguments are substituted and symbol declaration moves into body. The parser owns the symbol names.
+      DiagnosticTable diag;
+      auto p = Parser(data(".macro inc reg\naddi \\reg, \\reg, 1\n.endm\ntop: inc x5"));
+      const auto results = p.parse(diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 2);
+      CHECK(std::dynamic_pointer_cast<InlineMacroDefinition>(results[0]));
+      const auto instantiation = std::dynamic_pointer_cast<MacroInstantiation>(results[1]);
+      REQUIRE(instantiation);
+      CHECK(instantiation->arguments == std::vector<std::string>{"x5"});
+      const auto flattened = parser::flatten_macros(results);
+      REQUIRE(flattened.size() == 2);
+      const auto symbol = std::dynamic_pointer_cast<SymbolLine>(flattened[0]);
+      REQUIRE(symbol);
+      CHECK(symbol->symbol.entry->name == "top");
+      const auto addi = std::dynamic_pointer_cast<ITypeIR>(flattened[1]);
+      REQUIRE(addi);
+      CHECK(addi->rd == 5);
+      CHECK(addi->rs1 == 5);
+    }
+    using RVPE = RISCVParserError;
+    for (const auto &[source, error] : std::vector<std::pair<const char *, RVPE::NullaryError>>{
+             {".macro m\nm\n.endm\nm", RVPE::NullaryError::Macro_ExcessiveRecursion},
+             {".macro m\nadd x1, x2, x3", RVPE::NullaryError::Macro_Unterminated},
+             {".endm", RVPE::NullaryError::Macro_UnmatchedEndm},
+         }) {
+      CAPTURE(source);
+      DiagnosticTable diag;
+      (void)parse(source, diag);
+      REQUIRE(diag.count() == 1);
+      CHECK(diag.cbegin()->second == RVPE::to_string(error));
+    }
   }
 }
 

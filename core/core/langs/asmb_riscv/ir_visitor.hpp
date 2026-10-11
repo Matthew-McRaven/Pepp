@@ -17,6 +17,9 @@ struct DotBlock;
 struct DotEquate;
 struct DotSection;
 struct DotOrg;
+struct DotConditional;
+struct InlineMacroDefinition;
+struct MacroInstantiation;
 struct RISCVIRVisitor {
   virtual void visit(const EmptyLine *) = 0;
   virtual void visit(const SymbolLine *) = 0;
@@ -33,6 +36,9 @@ struct RISCVIRVisitor {
   virtual void visit(const DotEquate *) = 0;
   virtual void visit(const DotSection *) = 0;
   virtual void visit(const DotOrg *) = 0;
+  virtual void visit(const DotConditional *) = 0;
+  virtual void visit(const InlineMacroDefinition *) = 0;
+  virtual void visit(const MacroInstantiation *) = 0;
   void accept(const LinearIR *line);
 };
 void accept(RISCVIRVisitor &visitor, const LinearIR *line);

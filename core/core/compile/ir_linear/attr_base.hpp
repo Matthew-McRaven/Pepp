@@ -9,6 +9,7 @@ enum class Type {
   CommentIndent,
   Argument,
   SymbolDeclaration,
+  LocationCounterDeclaration,
   SectionFlags,
   FirstUser
 };

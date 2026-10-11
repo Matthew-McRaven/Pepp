@@ -157,17 +157,16 @@ TEST_CASE("Pepp ASM parser errors",
     CHECK(start != end);
     CHECK(start->second == PE::to_string(NullaryError::AddressingMode_Missing));
   }
-  SECTION("Operators and signs") {
+  SECTION("Operators, signs, and expressions") {
     struct Case {
       const char *source;
-      NullaryError error;
+      std::string message;
     };
     const std::vector<Case> cases = {
-        {"\nadda *3,i", NullaryError::Argument_InvalidOperator},   // only + and - may prefix an integer
-        {"\nadda -,i", NullaryError::Argument_ExpectedInteger},    // sign needs an integer
-        {"\nadda -x,i", NullaryError::Argument_ExpectedInteger},   // ... not a symbol
-        {"\nadda -0x10,i", NullaryError::Argument_InvalidIntegerFormat}, // ... and only a decimal
-        {"\nadda 1 + ,i", NullaryError::Argument_Missing},         // infix needs a right-hand side
+        {"\nadda *3,i", PE::to_string(NullaryError::Argument_Missing)}, // * cannot start an operand
+        {"\nadda -,i", PE::to_string(UnaryError::Expression_Invalid, "Expected an operand")},
+        {"\nadda 1 + ,i", PE::to_string(UnaryError::Expression_Invalid, "Expected an operand")},
+        {"\nadda 1 / 0,i", PE::to_string(UnaryError::Expression_Invalid, "Division by zero")}, // Constant expression
     };
     for (const auto &c : cases) {
       CAPTURE(c.source);
@@ -177,13 +176,13 @@ TEST_CASE("Pepp ASM parser errors",
       CHECK(diag.count() == 1);
       auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
       REQUIRE(start != end);
-      CHECK(start->second == PE::to_string(c.error));
+      CHECK(start->second == c.message);
     }
   }
-  SECTION(".EQUATE rejects symbols") {
-    // Rather than deal with the possibility of loops / forward declarations on symbol values, forbid symbols used as an
-    // argument.
-    for (const char *source : {"\nx: .EQUATE y", "\nx: .EQUATE y + 1", "\nx: .EQUATE 1 - y"}) {
+  SECTION(".EQUATE only references .EQUATEs defined before it") {
+    // Equates are assigned values during parsing, eliminating loops, forward references, and labels' unknown addresses.
+    for (const char *source : {"\nx: .EQUATE y", "\nx: .EQUATE y + 1", "\nx: .EQUATE 1 - y", "\nx: .EQUATE x + 1",
+                               "\nx: .EQUATE y\ny: .EQUATE 1", "l: .BLOCK 1\nx: .EQUATE l + 1"}) {
       CAPTURE(source);
       pepp::tc::DiagnosticTable diag;
       auto p = Parser(data(source), std::make_shared<MR>());
@@ -259,6 +258,19 @@ TEST_CASE("Pepp ASM parser errors",
       auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
       CHECK(start != end);
       CHECK(start->second == PE::to_string(NullaryError::Section_StringFlags));
+    }
+  }
+  SECTION("Conditionals require constant expressions") {
+    // A label, the location counter, and an equate defined later are not known yet.
+    for (const char *source :
+         {"x: .BLOCK 1\n.IF x", "\n.IF .", "\n.IF k + 1\nk: .EQUATE 1", ".IF 0\n.ELSEIF x\n.ENDIF"}) {
+      CAPTURE(source);
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data(source), std::make_shared<MR>());
+      auto results = p.parse(diag);
+      auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
+      REQUIRE(start != end);
+      CHECK(start->second == PE::to_string(NullaryError::Conditional_NotConstant));
     }
   }
   SECTION("Unterminated .IF") {
