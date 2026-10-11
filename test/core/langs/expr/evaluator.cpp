@@ -17,6 +17,7 @@
 #include <catch.hpp>
 #include <array>
 #include <limits>
+#include <span>
 #include <vector>
 #include "core/langs/expr/parser.hpp"
 
@@ -24,10 +25,10 @@ namespace {
 using namespace pepp::tc::expr;
 using enum Signedness;
 
-// One constexpr and one  non-constexpr function which preserve argument's types.
-std::expected<Value, NullaryError> twice(Value x, Type) { return Value{x.bits * 2, x.type}; }
-Type same(Type type, Type) { return type; }
-constexpr std::array<Function, 2> functions{{{"%twice", twice, same}, {"%where", nullptr, same}}};
+// One constexpr and one non-constexpr function which preserve their argument's type.
+std::expected<Value, NullaryError> twice(std::span<const Value> x, Type) { return Value{x[0].bits * 2, x[0].type}; }
+Type same(std::span<const Type> types, Type) { return types[0]; }
+const std::array<Function, 2> functions{{{"%twice", 1, twice, same}, {"%where", 1, nullptr, same}}};
 
 Tree tree_of(const char *source) {
   auto result = parse(source);

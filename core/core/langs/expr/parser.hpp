@@ -31,7 +31,8 @@
  * Precedence climbing over a subset of C's binary operators, all assuming left-associativity.
  *   <expression> -> <unary> (BINARY_OP <expression of higher precedence>)*
  *   <unary>      -> UNARY_OP <unary> | <primary>
- *   <primary>    -> INTEGER | CHARACTER | IDENTIFIER | FUNCTION ( <expression> ) | . | ( <expression> )
+ *   <primary>    -> INTEGER | CHARACTER | IDENTIFIER | FUNCTION ( [<expression> (, <expression>)*] ) | .
+ *                 | ( <expression> )
  */
 namespace pepp::tc::expr {
 

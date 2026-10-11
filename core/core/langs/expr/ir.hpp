@@ -71,10 +71,9 @@ enum class Kind : u32 {
   FoldedConstant = LocationCounter << 1,
   Parens = FoldedConstant << 1,
   // A call to a function.
-  ConstExprCall = Parens << 1,
-  NonConstExprCall = ConstExprCall << 1,
+  Call = Parens << 1,
   // UnaryOp in declaration order.
-  UnaryStart = NonConstExprCall << 1,
+  UnaryStart = Call << 1,
   Plus = UnaryStart,
   Minus = Plus << 1,
   BitNot = Minus << 1,
@@ -106,7 +105,6 @@ enum class Kind : u32 {
   Constant = Integer | Character | FoldedConstant,
   // Values which are not known until the program is laid out.
   Symbolic = Identifier | LocationCounter,
-  AnyCall = ConstExprCall | NonConstExprCall,
   AnyUnary = (UnaryLast << 1) - UnaryStart,
   AnyBinary = (BinaryLast << 1) - BinaryStart,
   Any = (End << 1) - 1,
@@ -127,7 +125,7 @@ static_assert(bits::to_underlying(Kind::Any) ==
                   (bits::to_underlying(Kind::Integer) | bits::to_underlying(Kind::Character) |
                    bits::to_underlying(Kind::Identifier) | bits::to_underlying(Kind::LocationCounter) |
                    bits::to_underlying(Kind::FoldedConstant) |
-                   bits::to_underlying(Kind::Parens) | bits::to_underlying(Kind::AnyCall) |
+                   bits::to_underlying(Kind::Parens) | bits::to_underlying(Kind::Call) |
                    bits::to_underlying(Kind::AnyUnary) | bits::to_underlying(Kind::AnyBinary)),
               "Kind's masks must cover every kind exactly");
 
@@ -174,9 +172,9 @@ struct Parens {
 
 // A call to a function defined in Options, e.g. %hi(sym).
 struct Call {
-  static constexpr Kind KIND = Kind::AnyCall;
+  static constexpr Kind KIND = Kind::Call;
   const Function *function;
-  NodeId argument;
+  std::vector<NodeId> arguments;
 };
 
 struct Unary {
@@ -235,7 +233,7 @@ std::string to_infix(const Tree &tree);
 // A copy of the tree without explicit Parens nodes.
 Tree strip_parens(const Tree &tree);
 
-// Tree whose leaf nodes are constants and interior nodes that are constexpr operators or functions.
+// True if the tree's value can be computed without symbol lookups.
 bool is_constant_expression(const Tree &tree);
 // True if the tree uses the location counter (`.`).
 bool uses_location_counter(const Tree &tree);

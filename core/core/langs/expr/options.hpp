@@ -15,6 +15,7 @@
  */
 #pragma once
 #include <expected>
+#include <functional>
 #include <span>
 #include <string_view>
 #include "core/integers.h"
@@ -23,15 +24,16 @@
 namespace pepp::tc::expr {
 enum class NullaryError : u8; // See error.hpp
 
-// Unary functions such as RISC-V %hi(sym).
+// Functions such as RISC-V's %hi(sym), taking arity arguments.
 struct Function {
   std::string_view name;
-  // Constexpr functions depend only on their argument, and are eligible for constant folding.
-  // Non-constexpr functions do not yet an evaluation path yet, but depend on the execution environment.
-  std::expected<Value, NullaryError> (*evaluate)(Value argument, Type default_type) = nullptr;
-  // The type of the result, given the argument's.
-  Type (*result_type)(Type argument, Type default_type) = nullptr;
-  constexpr bool is_constexpr() const { return evaluate != nullptr; }
+  u8 arity = 1;
+  // Constexpr functions depend only on their arguments, and are eligible for constant folding. Non-constexpr functions
+  // have no evaluate, since they depend on where they are used (e.g., a relocation).
+  std::function<std::expected<Value, NullaryError>(std::span<const Value> arguments, Type default_type)> evaluate;
+  // The type of the result, given the arguments'.
+  std::function<Type(std::span<const Type> arguments, Type default_type)> result_type;
+  bool is_constexpr() const { return static_cast<bool>(evaluate); }
 };
 
 // How a language reads and evaluates its expressions.

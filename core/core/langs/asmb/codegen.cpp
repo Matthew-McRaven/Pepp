@@ -87,10 +87,11 @@ bool pepp::tc::validate_argument(DiagnosticTable &diag, const LinearIR &line, pe
     if (narrowing_relocation || address_bits <= constraint.bits) return true;
     return report(E(E::UnaryError::Argument_AddressDoesNotFit, to_string(constraint), line.source_interval));
   }
-  // A contextual call (e.g., %pcrel_hi) is defined by its relocation, which narrows it to fit.
+  // A non-constexpr call (e.g., %pcrel_hi) is defined by its relocation, which narrows it to fit.
   else if (const auto *expression = dynamic_cast<pepp::ast::Expression *>(&value);
-           expression && std::ranges::any_of(expression->tree().kinds(), [](expr::Kind kind) {
-             return kind == expr::Kind::NonConstExprCall;
+           expression && std::ranges::any_of(expression->tree().nodes(), [](const expr::Node &node) {
+             const auto *call = std::get_if<expr::Call>(&node);
+             return call && !call->function->is_constexpr();
            }))
     return true;
   const auto typed = typed_value(value);

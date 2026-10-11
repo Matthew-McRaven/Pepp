@@ -30,7 +30,7 @@ pepp::tc::expr::NodeId pepp::tc::expr::Tree::add(Node node) {
     throw std::logic_error("Binary operand is not in the tree");
   else if (const auto *parens = std::get_if<Parens>(&node); parens && !present(parens->inner))
     throw std::logic_error("Parenthesized operand is not in the tree");
-  else if (const auto *call = std::get_if<Call>(&node); call && !present(call->argument))
+  else if (const auto *call = std::get_if<Call>(&node); call && !std::ranges::all_of(call->arguments, present))
     throw std::logic_error("Call argument is not in the tree");
   _kinds.emplace_back(kind(node));
   _nodes.emplace_back(std::move(node));
@@ -129,8 +129,6 @@ pepp::tc::expr::Kind pepp::tc::expr::kind(const Node &node) {
   auto f = [](const auto &n) -> Kind {
     using T = std::decay_t<decltype(n)>;
     if constexpr (std::is_same_v<T, Unary> || std::is_same_v<T, Binary>) return kind(n.op);
-    else if constexpr (std::is_same_v<T, Call>)
-      return n.function->is_constexpr() ? Kind::ConstExprCall : Kind::NonConstExprCall;
     else return T::KIND;
   };
   return std::visit(f, node);
@@ -190,7 +188,10 @@ void append_infix(std::string &out, const pepp::tc::expr::Tree &tree, pepp::tc::
         } else if constexpr (std::is_same_v<T, Call>) {
           out += n.function->name;
           out += '(';
-          append_infix(out, tree, n.argument);
+          for (std::size_t it = 0; it < n.arguments.size(); it++) {
+            if (it > 0) out += ", ";
+            append_infix(out, tree, n.arguments[it]);
+          }
           out += ')';
         } else append(out, n);
       },
@@ -235,9 +236,21 @@ pepp::tc::expr::Tree pepp::tc::expr::strip_parens(const Tree &tree) {
 }
 
 bool pepp::tc::expr::is_constant_expression(const Tree &tree) {
-  using namespace bits;
-  constexpr auto non_constexpr = Kind::Symbolic | Kind::NonConstExprCall;
-  return std::ranges::none_of(tree.kinds(), [&](Kind kind) { return any(kind & non_constexpr); });
+  const auto constant = [&](const auto &self, NodeId id) -> bool {
+    const auto f = [&](const auto &n) -> bool {
+      using T = std::decay_t<decltype(n)>;
+      if constexpr (std::is_same_v<T, Identifier> || std::is_same_v<T, LocationCounter>) return false;
+      else if constexpr (std::is_same_v<T, Parens>) return self(self, n.inner);
+      else if constexpr (std::is_same_v<T, Unary>) return self(self, n.operand);
+      else if constexpr (std::is_same_v<T, Binary>) return self(self, n.lhs) && self(self, n.rhs);
+      else if constexpr (std::is_same_v<T, Call>)
+        return n.function->is_constexpr() &&
+               std::ranges::all_of(n.arguments, [&](NodeId argument) { return self(self, argument); });
+      else return true; // A literal or folded constant.
+    };
+    return std::visit(f, tree[id]);
+  };
+  return tree.empty() || constant(constant, tree.root());
 }
 
 bool pepp::tc::expr::uses_location_counter(const Tree &tree) {

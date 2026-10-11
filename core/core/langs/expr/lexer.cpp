@@ -39,7 +39,8 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::expr::ExpressionLexer::next_toke
   static const std::regex badHex("0[xX]");
   static const std::regex charConstant(R"('([^'\\]|\\[bfvnrt\\0'"]|\\[xX][0-9a-fA-F]{2})')");
   // Two-character operators first, so that << is not lexed as < <.
-  static const std::regex op(R"(<<|>>|<=|>=|==|!=|&&|\|\||[-+*/%<>&^|~!()])");
+  // A comma inside a function definition is used as a separator and otherwise should end expressions.
+  static const std::regex op(R"(<<|>>|<=|>=|==|!=|&&|\|\||[-+*/%<>&^|~!(),])");
 
   while (input_remains()) { // Consume leading whitespace.
     const auto next = _cursor.peek();

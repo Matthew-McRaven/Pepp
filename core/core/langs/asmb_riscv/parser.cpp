@@ -27,36 +27,39 @@
 namespace {
 namespace expr = pepp::tc::expr;
 
+using Values = std::span<const expr::Value>;
+using Types = std::span<const expr::Type>;
+
 // The upper 20 bits shifted into the lower 20 bits. Must add +0x800.
 // e.g., 0x12345FFF. Without addition, lo=0xFFF, hi=x012345000
 // lo is sign extend to 0xFFFF'FFFF, so a lui/addi pair would compute 12344FFF
 // So we need to round hi up when lo is negative (bit 11 / 0x800)is set.
-std::expected<expr::Value, expr::NullaryError> hi20(expr::Value x, expr::Type) {
-  return expr::Value{(((x.bits & 0xFFFF'FFFF) + 0x800) >> 12) & 0xF'FFFF, {32, expr::Signedness::Unsigned}};
+std::expected<expr::Value, expr::NullaryError> hi20(Values x, expr::Type) {
+  return expr::Value{(((x[0].bits & 0xFFFF'FFFF) + 0x800) >> 12) & 0xF'FFFF, {32, expr::Signedness::Unsigned}};
 }
-expr::Type hi_type(expr::Type, expr::Type) { return {32, expr::Signedness::Unsigned}; }
+expr::Type hi_type(Types, expr::Type) { return {32, expr::Signedness::Unsigned}; }
 
 // Sign-extended lower 12 bits.
-std::expected<expr::Value, expr::NullaryError> lo12(expr::Value x, expr::Type) {
+std::expected<expr::Value, expr::NullaryError> lo12(Values x, expr::Type) {
   // branch-free sign extension of 12-bit quantity to 32-bits.
-  const auto sign_extended = (((x.bits & 0xFFF) ^ 0x800) - 0x800);
+  const auto sign_extended = (((x[0].bits & 0xFFF) ^ 0x800) - 0x800);
   return expr::Value{sign_extended & 0xFFFF'FFFF, {32, expr::Signedness::Signed}};
 }
-expr::Type lo_type(expr::Type, expr::Type) { return {32, expr::Signedness::Signed}; }
+expr::Type lo_type(Types, expr::Type) { return {32, expr::Signedness::Signed}; }
 
 // Currently implemented relocation modifiers
-constexpr std::array<expr::Function, 4> functions{{
-    {"%hi", hi20, hi_type},
-    {"%lo", lo12, lo_type},
-    {"%pcrel_hi", nullptr, hi_type},
-    {"%pcrel_lo", nullptr, lo_type},
+const std::array<expr::Function, 4> functions{{
+    {"%hi", 1, hi20, hi_type},
+    {"%lo", 1, lo12, lo_type},
+    {"%pcrel_hi", 1, nullptr, hi_type},
+    {"%pcrel_lo", 1, nullptr, lo_type},
 }};
 
 // `.` is the location counter, and %name a relocation modifier.
-constexpr expr::Options options{.default_type = {32, expr::Signedness::Signed},
-                                .dot = expr::Options::Dot::Identifier,
-                                .percent_identifiers = true,
-                                .functions = functions};
+const expr::Options options{.default_type = {32, expr::Signedness::Signed},
+                            .dot = expr::Options::Dot::Identifier,
+                            .percent_identifiers = true,
+                            .functions = functions};
 
 // Conditionals choose which lines are parsed, so like equates they are evaluated as they are parsed.
 bool condition_holds(pepp::ast::IRValue &arg, pepp::tc::support::LocationInterval location) {

@@ -133,8 +133,12 @@ Result evaluate(const Tree &tree, NodeId id, Type default_type, const ValueOf &v
     } else if constexpr (std::is_same_v<T, Parens>) return evaluate(tree, n.inner, default_type, value_of);
     else if constexpr (std::is_same_v<T, Call>) {
       if (!n.function->is_constexpr()) return fail(UnaryError::Function_NotConstExpr, n.function->name);
-      else if (const auto argument = evaluate(tree, n.argument, default_type, value_of); !argument) return argument;
-      else if (auto ret = n.function->evaluate(*argument, default_type); ret) return *ret;
+      std::vector<Value> arguments;
+      for (const auto argument : n.arguments) {
+        if (auto value = evaluate(tree, argument, default_type, value_of); !value) return value;
+        else arguments.push_back(*value);
+      }
+      if (auto ret = n.function->evaluate(arguments, default_type); ret) return *ret;
       else return fail(ret.error());
     } else if constexpr (std::is_same_v<T, Unary>) {
       if (const auto operand = evaluate(tree, n.operand, default_type, value_of); !operand) return operand;
@@ -244,10 +248,15 @@ pepp::tc::expr::constant_values(const Tree &tree, Type default_type, const Value
     else if constexpr (std::is_same_v<T, Identifier>) return constant_of ? constant_of(n) : std::nullopt;
     else if constexpr (std::is_same_v<T, LocationCounter>) return std::nullopt;
     else if constexpr (std::is_same_v<T, Parens>) return values[n.inner];
-    // A constexpr call is constant when its argument is.
+    // A constexpr call is constant when its arguments are.
     else if constexpr (std::is_same_v<T, Call>) {
-      if (!n.function->is_constexpr() || !values[n.argument]) return std::nullopt;
-      return known(n.function->evaluate(*values[n.argument], default_type));
+      if (!n.function->is_constexpr()) return std::nullopt;
+      std::vector<Value> arguments;
+      for (const auto argument : n.arguments) {
+        if (!values[argument]) return std::nullopt;
+        arguments.push_back(*values[argument]);
+      }
+      return known(n.function->evaluate(arguments, default_type));
     }
     else if constexpr (std::is_same_v<T, Unary>) {
       if (!values[n.operand]) return std::nullopt;
@@ -274,7 +283,11 @@ std::vector<pepp::tc::expr::Type> pepp::tc::expr::node_types(const Tree &tree, T
       return type_of(n);
     } else if constexpr (std::is_same_v<T, LocationCounter>) return type_of(Identifier{n.name});
     else if constexpr (std::is_same_v<T, Parens>) return types[n.inner];
-    else if constexpr (std::is_same_v<T, Call>) return n.function->result_type(types[n.argument], default_type);
+    else if constexpr (std::is_same_v<T, Call>) {
+      std::vector<Type> arguments;
+      for (const auto argument : n.arguments) arguments.push_back(types[argument]);
+      return n.function->result_type(arguments, default_type);
+    }
     else if constexpr (std::is_same_v<T, Unary>) return result_type(n.op, types[n.operand], default_type);
     else return result_type(n.op, types[n.lhs], types[n.rhs], default_type);
   };

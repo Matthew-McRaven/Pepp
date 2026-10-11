@@ -79,9 +79,9 @@ TEST_CASE("Expression lexer", "[scope:core][scope:core.langs][kind:unit][arch:*]
     CHECK(reprs("12ab") == V{"Integer(12)", "Identifier(ab)", "EoF()"});
   }
   SECTION("All operators") {
-    CHECK(reprs("<< >> <= >= == != && || + - * / % < > & ^ | ~ ! ( )") ==
+    CHECK(reprs("<< >> <= >= == != && || + - * / % < > & ^ | ~ ! ( ) ,") ==
           V{"Literal(<<)", "Literal(>>)", "Literal(<=)", "Literal(>=)", "Literal(==)", "Literal(!=)", "Literal(&&)", "Literal(||)", "Literal(+)", "Literal(-)", "Literal(*)", "Literal(/)",
-            "Literal(%)", "Literal(<)", "Literal(>)", "Literal(&)", "Literal(^)", "Literal(|)", "Literal(~)", "Literal(!)", "Literal(()", "Literal())", "EoF()"});
+            "Literal(%)", "Literal(<)", "Literal(>)", "Literal(&)", "Literal(^)", "Literal(|)", "Literal(~)", "Literal(!)", "Literal(()", "Literal())", "Literal(,)", "EoF()"});
     CHECK(reprs("a<<<b") == V{"Identifier(a)", "Literal(<<)", "Literal(<)", "Identifier(b)", "EoF()"});
     CHECK(reprs("a&&&b") == V{"Identifier(a)", "Literal(&&)", "Literal(&)", "Identifier(b)", "EoF()"});
   }
@@ -92,8 +92,8 @@ TEST_CASE("Expression lexer", "[scope:core][scope:core.langs][kind:unit][arch:*]
     CHECK(reprs(R"('\"' '\f')") == V{R"(CharacterConstant(\"))", R"(CharacterConstant(\f))", "EoF()"});
   }
   SECTION("An assortment of invalid tokens") {
-    CHECK(reprs(R"(, ; " = $ #)") ==
-          V{"Invalid(,)", "Invalid(;)", "Invalid(\")", "Invalid(=)", "Invalid($)", "Invalid(#)", "EoF()"});
+    CHECK(reprs(R"(; " = $ #)") ==
+          V{"Invalid(;)", "Invalid(\")", "Invalid(=)", "Invalid($)", "Invalid(#)", "EoF()"});
     CHECK(reprs("0x") == V{"Invalid(0x)", "EoF()"});
     CHECK(reprs("18446744073709551616") == V{"Invalid(18446744073709551616)", "EoF()"}); // Exceeds 64 bits.
     CHECK(reprs("'ab'") == V{"Invalid(')", "Identifier(ab)", "Invalid(')", "EoF()"});

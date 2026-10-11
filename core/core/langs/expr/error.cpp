@@ -40,6 +40,7 @@ std::string pepp::tc::expr::to_string(UnaryError err, std::string_view arg) {
   switch (err) {
   case UnaryError::Function_Unknown: return fmt::format("Unknown function {}", arg);
   case UnaryError::Function_NotConstExpr: return fmt::format("{} cannot be evaluated here", arg);
+  case UnaryError::Function_WrongArity: return fmt::format("Wrong number of arguments to {}", arg);
   case UnaryError::Symbol_NoValue: return fmt::format("Symbol has no value: {}", arg);
   }
   PEPP_UNREACHABLE();

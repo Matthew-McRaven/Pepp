@@ -117,16 +117,24 @@ private:
     return std::nullopt;
   }
 
-  // <function> ( <expression> )
+  // <function> ( [<expression> (, <expression>)*] )
   NodeId call(const Function &function, LocationInterval name) {
     if (!_buf.peek_literal("(")) throw Error{_buf.peek()->location(), NullaryError::Syntax_ExpectedOpenParen};
     consume(_buf.match_literal("("));
-    const auto argument = expression(0);
-    if (!argument) expected_operand();
+    std::vector<NodeId> arguments;
+    if (!_buf.peek_literal(")")) {
+      do {
+        const auto argument = expression(0);
+        if (!argument) expected_operand();
+        arguments.push_back(*argument);
+      } while (_buf.peek_literal(",") && (consume(_buf.match_literal(",")), true));
+    }
     if (!_buf.peek_literal(")")) throw Error{_buf.peek()->location(), NullaryError::Syntax_ExpectedCloseParen};
     const auto close = _buf.match_literal(")");
     consume(close);
-    return add(Call{&function, *argument}, LocationInterval(name.lower(), close->location().upper()));
+    const LocationInterval location(name.lower(), close->location().upper());
+    if (arguments.size() != function.arity) throw Error{location, UnaryError::Function_WrongArity, function.name};
+    return add(Call{&function, std::move(arguments)}, location);
   }
 
   // All . in the same expression refer to the same symbol.

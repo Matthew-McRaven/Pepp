@@ -18,6 +18,7 @@
 #include <array>
 #include <expected>
 #include <limits>
+#include <span>
 #include <string>
 
 namespace {
@@ -25,10 +26,14 @@ using namespace pepp::tc::expr;
 using pepp::tc::expr::Integer;
 using pepp::tc::support::Location;
 
-// One constexpr and one contextual function, which take the argument's type.
-std::expected<Value, NullaryError> twice(Value x, Type) { return Value{x.bits * 2, x.type}; }
-Type same(Type type, Type) { return type; }
-constexpr std::array<Function, 2> functions{{{"%twice", twice, same}, {"%where", nullptr, same}}};
+// Constexpr %twice and %add, and non-constexpr %where, which take their first argument's type.
+std::expected<Value, NullaryError> twice(std::span<const Value> x, Type) { return Value{x[0].bits * 2, x[0].type}; }
+std::expected<Value, NullaryError> add(std::span<const Value> x, Type) {
+  return Value{x[0].bits + x[1].bits, x[0].type};
+}
+Type first(std::span<const Type> types, Type) { return types[0]; }
+const std::array<Function, 3> functions{
+    {{"%twice", 1, twice, first}, {"%add", 2, add, first}, {"%where", 1, nullptr, first}}};
 
 Parsed parsed(const ParseResult &result) {
   REQUIRE(std::holds_alternative<Parsed>(result));
@@ -172,8 +177,14 @@ TEST_CASE("Expression parser", "[scope:core][scope:core.langs][kind:unit][arch:*
     const auto &tree = parsed(call("%twice(1 + 2) * 3")).tree;
     CHECK(to_postfix(tree) == "1 2 + %twice 3 *");
     CHECK(to_infix(tree) == "%twice(1 + 2) * 3");
-    CHECK(tree.kinds()[3] == Kind::ConstExprCall);
-    CHECK(parsed(call("%where(x)")).tree.kinds()[1] == Kind::NonConstExprCall);
+    CHECK(tree.kinds()[3] == Kind::Call);
+    CHECK(parsed(call("%where(x)")).tree.kinds()[1] == Kind::Call);
+    const auto &pair = parsed(call("%add(1, 2 * 3)")).tree;
+    CHECK(to_infix(pair) == "%add(1, 2 * 3)");
+    CHECK(to_postfix(pair) == "1 2 3 * %add");
+    const auto short_by_one_arg = call("%add(1)");
+    REQUIRE(std::holds_alternative<Error>(short_by_one_arg));
+    CHECK(std::get<Error>(short_by_one_arg).matches(UnaryError::Function_WrongArity, "%add"));
     // Identifiers with % must be functions
     const auto unknown = call("%nope(1)"), uncalled = call("%twice 1");
     REQUIRE(std::holds_alternative<Error>(unknown));
