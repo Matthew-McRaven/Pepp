@@ -340,13 +340,16 @@ TEST_CASE("RISCV ASM parser dot commands",
 
   SECTION(".EQUATE") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data("s: .EQUATE 10"));
+    // Equates are as wide as a word.
+    auto p = Parser(data("s: .EQUATE 10
+w: .EQUATE 0x12345678"));
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
-    REQUIRE(results.size() == 1);
+    REQUIRE(results.size() == 2);
     CHECK(std::dynamic_pointer_cast<DotEquate>(results[0]));
     auto masked = p.symbol_table()->get("s").value()->value->value();
     CHECK(masked() == 10);
+    CHECK(p.symbol_table()->get("w").value()->value->value()() == 0x12345678);
   }
 
   SECTION(".HALF") {
