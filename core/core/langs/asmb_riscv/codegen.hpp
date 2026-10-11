@@ -5,6 +5,7 @@
 #include "core/compile/ir_linear/attr_section.hpp"
 #include "core/integers.h"
 #include "core/langs/asmb/elf_symtab.hpp"
+#include "core/langs/asmb/ir_constraints.hpp"
 #include "core/langs/asmb/ir_program.hpp"
 #include "core/math/bitmanip/leb128.hpp"
 #include "fmt/format.h"
@@ -47,6 +48,9 @@ RISCVSectionAnalysisResults riscv_split_to_sections(DiagnosticTable &diag, IRPro
 // When a .BURN <num> is present, grouping occurs as-if an extra section was append to prog which contains a .ORG <num>.
 IRMemoryAddressTable<RISCVAddress> riscv_assign_addresses(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
                                                           u32 initial_base_address = 0);
+
+// The constraint for a line's argument.
+std::optional<ArgumentConstraint> riscv_argument_constraint(const LinearIR &line);
 
 ProgramObjectCodeResult riscv_to_object_code(DiagnosticTable &diag, const IRMemoryAddressTable<RISCVAddress> &,
                                              std::vector<std::pair<SectionDescriptor, IRProgram>> &prog);

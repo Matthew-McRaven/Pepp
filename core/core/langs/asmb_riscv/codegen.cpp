@@ -239,6 +239,31 @@ void pepp::tc::RISCVObjectVistitor::visit(const MacroInstantiation *) {
 }
 
 } // namespace pepp::tc
+std::optional<pepp::tc::ArgumentConstraint> pepp::tc::riscv_argument_constraint(const LinearIR &line) {
+  using Which = DotLiteral::Which;
+  using Destination = riscv::Operand::Destination;
+  using enum expr::Signedness;
+  if (const auto *literal = dynamic_cast<const DotLiteral *>(&line)) {
+    switch (literal->which) {
+    case Which::ASCII: return std::nullopt;
+    case Which::Byte1: return ArgumentConstraint{8, Bits};
+    case Which::Byte2: return ArgumentConstraint{16, Bits};
+    case Which::Byte4: return ArgumentConstraint{32, Bits};
+    }
+  } else if (const auto *instruction = dynamic_cast<const IntegerInstruction *>(&line)) {
+    const auto &desc = instruction->mnemonic.mn;
+    // Fence orderings are decoded by the parser rather than written as a value.
+    if (desc.width_imm() == 0 || desc.sources(Destination::PRED) || desc.sources(Destination::SUCC))
+      return std::nullopt;
+    else if (desc.sources(Destination::SHAMT)) return ArgumentConstraint{5, Unsigned};
+    // `lui rd, 0x65` writes the argument as given, while branch and jump targets drop their implicit low bit.
+    else if (desc.type() == riscv::MnemonicDescriptor::Type::U) return ArgumentConstraint{desc.width_imm(), Unsigned};
+    const u8 shift = desc.imm_shift();
+    return ArgumentConstraint{static_cast<u8>(desc.width_imm() + shift), Signed, static_cast<u8>(1 << shift)};
+  }
+  return std::nullopt;
+}
+
 pepp::tc::ProgramObjectCodeResult
 pepp::tc::riscv_to_object_code(DiagnosticTable &diag, const IRMemoryAddressTable<RISCVAddress> &addresses,
                                std::vector<std::pair<SectionDescriptor, IRProgram>> &prog) {

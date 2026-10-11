@@ -282,6 +282,20 @@ ELFIO::section *getLineMappingSection(ELFIO::elfio &elf) {
   return lineNumbers;
 }
 
+std::optional<ArgumentConstraint> pepp_argument_constraint(const LinearIR &line) {
+  using Which = DotLiteral::Which;
+  using enum expr::Signedness;
+  if (const auto *literal = dynamic_cast<const DotLiteral *>(&line)) {
+    switch (literal->which) {
+    case Which::ASCII: return std::nullopt;
+    case Which::Byte1: return ArgumentConstraint{8, Bits};
+    case Which::Byte2: return ArgumentConstraint{16, Bits};
+    case Which::Byte4: return ArgumentConstraint{32, Bits};
+    }
+  } else if (line.type() == DyadicInstruction::TYPE) return ArgumentConstraint{16, Bits};
+  return std::nullopt;
+}
+
 ProgramObjectCodeResult pepp_to_object_code(DiagnosticTable &diag, const IRMemoryAddressTable<PeppAddress> &addresses,
                                             std::vector<std::pair<SectionDescriptor, IRProgram>> &prog) {
   return to_object_code<PeppAddress, PeppObjectVistitor>(diag, addresses, prog);
