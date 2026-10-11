@@ -16,8 +16,6 @@ const std::string pepp::tc::RISCVParserError::to_string(NullaryError err) {
   case NullaryError::Argument_ExpectedIdentifier: return "Expected identifier argument";
   case NullaryError::Argument_ExpectedHex: return "Expected hexadecimal argument";
   case NullaryError::Argument_ExpectedString: return "Expected string argument";
-  case NullaryError::Argument_Exceeded1Byte: return "Argument exceeds 1 byte";
-  case NullaryError::Argument_Exceeded2Bytes: return "Argument exceeds 2 bytes";
   case NullaryError::Argument_Exceeded4Bytes: return "Argument exceeds 4 bytes";
   case NullaryError::Argument_ExpectedFenceOrdering: return "Expected fence ordering of 'iorw' or '0'";
   case NullaryError::Argument_SymbolicEquate: return "An .EQUATE may only reference .EQUATEs defined before it";

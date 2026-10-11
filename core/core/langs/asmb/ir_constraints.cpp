@@ -15,6 +15,7 @@
  */
 #include "core/langs/asmb/ir_constraints.hpp"
 #include "core/macros.hpp"
+#include "core/math/bitmanip/log2.hpp"
 #include "fmt/format.h"
 
 namespace {
@@ -22,24 +23,18 @@ using pepp::tc::expr::Signedness;
 } // namespace
 
 bool pepp::tc::satisfies(expr::Value value, ArgumentConstraint constraint) {
-  const u8 n = constraint.bits;
-  if (n == 0) return false;
-  else if (value.type.sign == Signedness::Signed && value.as_signed() < 0) {
-    const i64 x = value.as_signed();
-    if (constraint.sign == Signedness::Unsigned) return false;
-    else if (n < 64 && x < -(i64(1) << (n - 1))) return false;
-    return aligned(value, constraint);
-  }
+  if (value.type.sign == Signedness::Signed && value.as_signed() < 0)
+    return constraint.sign != Signedness::Unsigned && bits::signed_bitcount(value.as_signed()) <= constraint.bits &&
+           aligned(value, constraint);
   const u64 x = value.type.sign == Signedness::Signed ? static_cast<u64>(value.as_signed()) : value.bits;
-  // A Signed constraint holds one bit less of magnitude than the others.
-  const u8 magnitude = constraint.sign == Signedness::Signed ? n - 1 : n;
-  if (magnitude < 64 && x > (u64(1) << magnitude) - 1) return false;
-  return aligned(value, constraint);
+  // A Signed constraint spends one of its bits on the sign.
+  const u64 needed = bits::unsigned_bitcount(x) + (constraint.sign == Signedness::Signed ? 1 : 0);
+  return needed <= constraint.bits && aligned(value, constraint);
 }
 
 bool pepp::tc::aligned(expr::Value value, ArgumentConstraint constraint) {
   const u64 x = value.type.sign == Signedness::Signed ? static_cast<u64>(value.as_signed()) : value.bits;
-  return constraint.align <= 1 || x % constraint.align == 0;
+  return bits::is_aligned(x, constraint.align);
 }
 
 std::string pepp::tc::to_string(ArgumentConstraint constraint) {

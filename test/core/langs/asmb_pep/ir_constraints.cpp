@@ -15,9 +15,12 @@
  */
 #include <catch.hpp>
 #include <optional>
+#include <utility>
 #include <vector>
 #include "core/compile/macro/macro_registry.hpp"
+#include "core/langs/asmb/codegen_error.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
+#include "core/langs/asmb_driver.hpp"
 #include "core/langs/asmb_pep/codegen.hpp"
 #include "core/langs/asmb_pep/parser.hpp"
 
@@ -43,5 +46,29 @@ TEST_CASE("Argument constraints of Pep/10 lines", "[scope:core][scope:core.langs
   for (std::size_t it = 0; it < lines.size(); it++) {
     CAPTURE(it);
     CHECK(pepp::tc::pepp_argument_constraint(*lines[it]) == expected[it]);
+  }
+}
+
+TEST_CASE("Pep/10 arguments are validated at codegen", "[scope:core][scope:core.langs][kind:unit][arch:*]") {
+  using E = pepp::tc::CodegenError;
+  const auto assemble = [](const char *source) {
+    return pepp::tc::assemble_pep10(pepp::tc::Pep10DriverConfig{}, pepp::tc::FormattingConfig{}, source);
+  };
+  for (const char *source : {".BYTE 255", ".BYTE -128", ".WORD 0xFFFF", ".WORD -1", "LDWA 0xFFFF,i", "l: .BYTE l"}) {
+    CAPTURE(source);
+    CHECK(assemble(source).ok());
+  }
+
+  // Value of k is not known when .byte is parsed, which demonstrates why we check constraints during codegen.
+  for (const auto &[source, bits] :
+       std::vector<std::pair<const char *, const char *>>{{".BYTE 256", "8 bits"},
+                                                          {".BYTE -129", "8 bits"},
+                                                          {".BYTE k\nk: .EQUATE 300", "8 bits"},
+                                                          {".WORD 70000", "16 bits"},
+                                                          {"LDWA 0x10000,i", "16 bits"}}) {
+    CAPTURE(source);
+    const auto result = assemble(source);
+    REQUIRE(result.diagnostics.count() == 1);
+    CHECK(result.diagnostics.cbegin()->second == E::to_string(E::UnaryError::Argument_ValueDoesNotFit, bits));
   }
 }

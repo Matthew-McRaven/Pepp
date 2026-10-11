@@ -162,8 +162,18 @@ bool relocatable_target(pepp::ast::IRValue &imm) {
 void pepp::tc::RISCVObjectVistitor::emit_line(const IntegerInstruction *line, bool pc_relative) {
   // Delegate to Mnemonic, which will merge pre-filled fields with provided values.
   u32 imm = line->imm ? line->imm->value_as<u32>() : u32(0);
-  // If the target is reloctable and this instruction is pcrel, then comput imm - address.
-  if (pc_relative && line->imm && relocatable_target(*line->imm)) imm -= ir_to_address.at(line).address;
+  // An argument which cannot be encoded is reported, and encoded as 0.
+  if (const auto constraint = riscv_argument_constraint(*line); line->imm && constraint) {
+    auto &value = *line->imm;
+    // If the target is reloctable and this instruction is pcrel, then comput imm - address.
+    if (pc_relative && relocatable_target(value)) {
+      imm -= ir_to_address.at(line).address;
+      // An undefined target's offset is only known once linked.
+      const expr::Value offset{imm, {32, expr::Signedness::Signed}};
+      if (!classify_symbol_operand(value).symbol->is_undefined() && !validate_value(diag, *line, offset, *constraint))
+        imm = 0;
+    } else if (!validate_argument(diag, *line, value, *constraint, 32)) imm = 0;
+  }
   riscv::Values vals{.rs1 = line->rs1, .rs2 = line->rs2, .rd = line->rd, .imm = imm};
   auto encoded = line->mnemonic.mn.encode(vals).bits();
   bits::span<const u8> span{(const u8 *)&encoded, 4};
@@ -188,20 +198,21 @@ void pepp::tc::RISCVObjectVistitor::visit(const DotAlign *line) {
 
 void pepp::tc::RISCVObjectVistitor::visit(const DotLiteral *line) {
   auto addr_info = ir_to_address.at(line);
-  // Emit relocations for undefined symbolic arguments.
-  auto as_symbolic_arg = std::dynamic_pointer_cast<pepp::ast::Symbolic>(line->argument.value);
-  if (as_symbolic_arg != nullptr) {
-    auto symbol = as_symbolic_arg->symbol();
-    if (symbol->is_undefined()) {
-      // RISC-V don't have a sub-word relocation type for data.
-      if (addr_info.size != 4) throw std::logic_error("Undefined symbols must occupy a full word");
+  auto &value = *line->argument.value;
+  // RISC-V has no sub-word relocation for data, so only a word may hold an address.
+  if (const auto constraint = riscv_argument_constraint(*line);
+      constraint && !validate_argument(diag, *line, value, *constraint, 32)) {
+    std::ranges::fill(out_bytes.first(addr_info.size), 0);
+  } else {
+    // Emit relocations for undefined symbolic arguments.
+    if (auto symbolic = dynamic_cast<pepp::ast::Symbolic *>(&value); symbolic && symbolic->symbol()->is_undefined()) {
       u16 offset = addr_info.address - base_address;
       const auto type = bits::to_underlying(pepp::bts::RelocationsRISCV::R_RISCV_32);
-      relocations.push_back(Relocation{.symbol = symbol, .section_offset = offset, .type = type});
+      relocations.push_back(Relocation{.symbol = symbolic->symbol(), .section_offset = offset, .type = type});
     }
+    // RV32 is little-endian.
+    (void)value.serialize(out_bytes.first(addr_info.size), bits::Order::LittleEndian);
   }
-  // RV32 is little-endian.
-  (void)line->argument.value->serialize(out_bytes.first(addr_info.size), bits::Order::LittleEndian);
 
   ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(addr_info.size)});
   out_bytes = out_bytes.subspan(addr_info.size);

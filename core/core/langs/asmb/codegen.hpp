@@ -11,6 +11,7 @@
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/symbol/entry.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
+#include "core/langs/asmb/ir_constraints.hpp"
 #include "core/compile/symbol/value.hpp"
 #include "core/formats/elf/packed_storage.hpp"
 #include "core/langs/asmb/ir_program.hpp"
@@ -313,6 +314,13 @@ struct SymbolOperand {
 
 // Determine the relocation type for a symbolic operand.
 SymbolOperand classify_symbol_operand(pepp::ast::IRValue &value);
+
+// If value cannot be encoded under the given constraint, report a diagnostic and return false. If narrowing_relocation
+// then overly large values are allowed, but will need a relocation.
+bool validate_argument(DiagnosticTable &diag, const LinearIR &line, pepp::ast::IRValue &value,
+                       ArgumentConstraint constraint, u8 address_bits, bool narrowing_relocation = false);
+// As above, for a value computed at codegen, e.g. a branch's offset to its target.
+bool validate_value(DiagnosticTable &diag, const LinearIR &line, expr::Value value, ArgumentConstraint constraint);
 
 struct ProgramObjectCodeResult {
   IR2ObjectCodeMap ir_to_object_code;

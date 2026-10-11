@@ -203,8 +203,6 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::instruction() {
     ISA::AddressingMode am = ISA::AddressingMode::INVALID;
     auto arg = argument();
     if (!arg) throw PepParserError(PepParserError::NullaryError::Argument_Missing, buf->matched_interval());
-    else if (arg->minimum_size() > 2)
-      throw PepParserError(PepParserError::NullaryError::Argument_Exceeded2Bytes, buf->matched_interval());
     // TODO: reject string arguments
     else if (buf->match_literal(",")) {
       auto addr_mode = buf->match<lex::Identifier>();
@@ -278,12 +276,8 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
   case (int)DC::BYTE: {
     auto arg = argument();
     if (auto numeric = std::dynamic_pointer_cast<pepp::ast::Numeric>(arg); numeric) {
-      if (numeric->minimum_size() > 1)
-        throw PepParserError(PepParserError::NullaryError::Argument_Exceeded1Byte, buf->matched_interval());
       return std::make_shared<DotLiteral>(DotLiteral::Which::Byte1, Argument{numeric});
     } else if (auto ident = std::dynamic_pointer_cast<pepp::ast::Symbolic>(arg); ident) {
-      if (ident->minimum_size() > 1)
-        throw PepParserError(PepParserError::NullaryError::Argument_Exceeded1Byte, buf->matched_interval());
       return std::make_shared<DotLiteral>(DotLiteral::Which::Byte1, Argument{ident});
     } else throw PepParserError(PepParserError::NullaryError::Argument_ExpectedInteger, buf->matched_interval());
   }
@@ -367,8 +361,6 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
   case (int)DC::WORD: {
     auto arg = argument();
     if (auto numeric = std::dynamic_pointer_cast<pepp::ast::Numeric>(arg); numeric) {
-      if (numeric->minimum_size() > 2)
-        throw PepParserError(PepParserError::NullaryError::Argument_Exceeded2Bytes, buf->matched_interval());
       return std::make_shared<DotLiteral>(DotLiteral::Which::Byte2, Argument{numeric});
     } else if (auto ident = std::dynamic_pointer_cast<pepp::ast::Symbolic>(arg); ident) {
       return std::make_shared<DotLiteral>(DotLiteral::Which::Byte2, Argument{ident});

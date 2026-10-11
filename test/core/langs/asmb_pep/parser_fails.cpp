@@ -44,15 +44,6 @@ TEST_CASE("Pepp ASM parser errors",
     CHECK(start != end);
     CHECK(start->second == PE::to_string(NullaryError::Argument_Missing));
   }
-  SECTION("Dyadic argument too big") {
-    pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data("\nadda 0x10000,i"), std::make_shared<MR>());
-    auto results = p.parse(diag);
-    CHECK(diag.count() == 1);
-    auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
-    CHECK(start != end);
-    CHECK(start->second == PE::to_string(NullaryError::Argument_Exceeded2Bytes));
-  }
   SECTION("Invalid integer format") {
     // TODO: would like to recognize invalid integers in lexer but reject them in parser.
     {
@@ -72,26 +63,6 @@ TEST_CASE("Pepp ASM parser errors",
       auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
       CHECK(start != end);
       // CHECK(start->second == PE::to_string(NullaryError::Argument_InvalidIntegerFormat));
-    }
-  }
-  SECTION(".BYTE too big") {
-    {
-      pepp::tc::DiagnosticTable diag;
-      auto p = Parser(data("\n.BYTE 256"), std::make_shared<MR>());
-      auto results = p.parse(diag);
-      CHECK(diag.count() == 1);
-      auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
-      CHECK(start != end);
-      CHECK(start->second == PE::to_string(NullaryError::Argument_Exceeded1Byte));
-    }
-    {
-      pepp::tc::DiagnosticTable diag;
-      auto p = Parser(data("\n.BYTE -129"), std::make_shared<MR>());
-      auto results = p.parse(diag);
-      CHECK(diag.count() == 1);
-      auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
-      CHECK(start != end);
-      CHECK(start->second == PE::to_string(NullaryError::Argument_Exceeded1Byte));
     }
   }
   SECTION(".ALIGN expected power-of-two") {

@@ -212,8 +212,11 @@ void pepp::tc::PeppObjectVistitor::visit(const DyadicInstruction *line) {
   auto addr_info = ir_to_address.at(line);
   out_bytes[0] = isa::Pep10::opcode(line->mnemonic.instruction, line->addr_mode.addr_mode);
   const u16 offset = addr_info.address - base_address + 1; // Offset by 1 to reach operand specifier.
-  relocate(*line->argument.value, offset, bits::to_underlying(pepp::bts::RelocationsPep::R_PEP10_ABS16));
-  (void)line->argument.value->serialize(out_bytes.subspan(1).first(2), bits::Order::BigEndian);
+  auto &value = *line->argument.value;
+  if (validate_argument(diag, *line, value, *pepp_argument_constraint(*line), 16, true)) {
+    relocate(value, offset, bits::to_underlying(pepp::bts::RelocationsPep::R_PEP10_ABS16));
+    (void)value.serialize(out_bytes.subspan(1).first(2), bits::Order::BigEndian);
+  } else std::ranges::fill(out_bytes.subspan(1).first(2), 0);
   ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(3)});
   out_bytes = out_bytes.subspan(3);
 }
@@ -228,9 +231,16 @@ void pepp::tc::PeppObjectVistitor::visit(const DotAlign *line) {
 void pepp::tc::PeppObjectVistitor::visit(const DotLiteral *line) {
   auto addr_info = ir_to_address.at(line);
   using enum pepp::bts::RelocationsPep;
-  relocate(*line->argument.value, addr_info.address - base_address,
-           bits::to_underlying(addr_info.size == 1 ? R_PEP10_ABS8 : R_PEP10_ABS16));
-  (void)line->argument.value->serialize(out_bytes.first(addr_info.size), bits::Order::BigEndian);
+  auto &value = *line->argument.value;
+  // R_PEP10_ABS8 truncates an address to a byte, so every Pep argument may hold an address.
+  if (const auto constraint = pepp_argument_constraint(*line);
+      constraint && !validate_argument(diag, *line, value, *constraint, 16, true)) {
+    std::ranges::fill(out_bytes.first(addr_info.size), 0);
+  } else {
+    relocate(value, addr_info.address - base_address,
+             bits::to_underlying(addr_info.size == 1 ? R_PEP10_ABS8 : R_PEP10_ABS16));
+    (void)value.serialize(out_bytes.first(addr_info.size), bits::Order::BigEndian);
+  }
 
   ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(addr_info.size)});
   out_bytes = out_bytes.subspan(addr_info.size);

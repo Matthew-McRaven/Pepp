@@ -479,8 +479,8 @@ TEST_CASE("RISCV ASM parser dot commands",
     CHECK(masked() == 6);
   }
   SECTION("Expression constraints for assembler directives") {
-    // Too large for a byte; an equate naming a label, whose address is not known yet.
-    for (const char *source : {".BYTE 255 + 1", "l: .WORD 0\nb: .EQUATE l + 1"}) {
+    // Equates cannot reference labels.
+    for (const char *source : {"l: .WORD 0\nb: .EQUATE l + 1"}) {
       CAPTURE(source);
       pepp::tc::DiagnosticTable diag;
       auto p = Parser(data(source));

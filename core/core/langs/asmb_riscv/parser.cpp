@@ -450,16 +450,10 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::pseudo(Option
   case (int)DC::BYTE: {
     auto arg = argument();
     if (auto numeric = std::dynamic_pointer_cast<pepp::ast::Numeric>(arg); numeric) {
-      if (numeric->minimum_size() > 1)
-        throw RVPE(RVPE::NullaryError::Argument_Exceeded1Byte, buf->matched_interval());
       return std::make_shared<DotLiteral>(DotLiteral::Which::Byte1, Argument{numeric});
     } else if (auto ident = std::dynamic_pointer_cast<pepp::ast::Symbolic>(arg); ident) {
-      if (ident->minimum_size() > 1)
-        throw RVPE(RVPE::NullaryError::Argument_Exceeded1Byte, buf->matched_interval());
       return std::make_shared<DotLiteral>(DotLiteral::Which::Byte1, Argument{ident});
     } else if (auto expression = std::dynamic_pointer_cast<pepp::ast::Expression>(arg); expression) {
-      if (expression->minimum_size() > 1)
-        throw RVPE(RVPE::NullaryError::Argument_Exceeded1Byte, buf->matched_interval());
       return std::make_shared<DotLiteral>(DotLiteral::Which::Byte1, Argument{expression});
     } else
       throw RVPE(RVPE::NullaryError::Argument_ExpectedInteger, buf->matched_interval());
@@ -467,14 +461,10 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::pseudo(Option
   case (int)DC::HALF: {
     auto arg = argument();
     if (auto numeric = std::dynamic_pointer_cast<pepp::ast::Numeric>(arg); numeric) {
-      if (numeric->minimum_size() > 2)
-        throw RVPE(RVPE::NullaryError::Argument_Exceeded2Bytes, buf->matched_interval());
       return std::make_shared<DotLiteral>(DotLiteral::Which::Byte2, Argument{numeric});
     } else if (auto ident = std::dynamic_pointer_cast<pepp::ast::Symbolic>(arg); ident) {
       return std::make_shared<DotLiteral>(DotLiteral::Which::Byte2, Argument{ident});
     } else if (auto expression = std::dynamic_pointer_cast<pepp::ast::Expression>(arg); expression) {
-      if (expression->minimum_size() > 2)
-        throw RVPE(RVPE::NullaryError::Argument_Exceeded2Bytes, buf->matched_interval());
       return std::make_shared<DotLiteral>(DotLiteral::Which::Byte2, Argument{expression});
     } else
       throw RVPE(RVPE::NullaryError::Argument_ExpectedInteger, buf->matched_interval());
@@ -482,8 +472,6 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::pseudo(Option
   case (int)DC::WORD: {
     auto arg = argument();
     if (auto numeric = std::dynamic_pointer_cast<pepp::ast::Numeric>(arg); numeric) {
-      if (numeric->minimum_size() > 4)
-        throw RVPE(RVPE::NullaryError::Argument_Exceeded2Bytes, buf->matched_interval());
       return std::make_shared<DotLiteral>(DotLiteral::Which::Byte4, Argument{numeric});
     } else if (auto ident = std::dynamic_pointer_cast<pepp::ast::Symbolic>(arg); ident) {
       return std::make_shared<DotLiteral>(DotLiteral::Which::Byte4, Argument{ident});

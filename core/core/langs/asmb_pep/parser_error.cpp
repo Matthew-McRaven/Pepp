@@ -12,7 +12,6 @@ const std::string pepp::tc::PepParserError::to_string(NullaryError err) {
   case NullaryError::Argument_InvalidIntegerFormat: return "Unrecognized integer format";
   case NullaryError::Argument_SymbolicEquate: return "An .EQUATE must be constant or previously-EQUATE'd symbol";
   case NullaryError::Argument_Exceeded2Bytes: return "Argument must fit in two bytes";
-  case NullaryError::Argument_Exceeded1Byte: return "Argument must fit in one byte";
   case NullaryError::Argument_Missing: return "Expected an argument";
   case NullaryError::Argument_ExpectedPowerOfTwo: return "Argument must be (1|2|4|8)";
   case NullaryError::Argument_ExpectedString: return "Argument must be a string";

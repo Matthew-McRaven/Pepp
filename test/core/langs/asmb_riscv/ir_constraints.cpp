@@ -15,8 +15,12 @@
  */
 #include <catch.hpp>
 #include <optional>
+#include <tuple>
+#include <utility>
 #include <vector>
+#include "core/langs/asmb/codegen_error.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
+#include "core/langs/asmb_driver.hpp"
 #include "core/langs/asmb_riscv/codegen.hpp"
 #include "core/langs/asmb_riscv/parser.hpp"
 
@@ -48,4 +52,64 @@ TEST_CASE("Argument constraints of RISC-V lines", "[scope:core][scope:core.langs
     CAPTURE(it);
     CHECK(pepp::tc::riscv_argument_constraint(*lines[it]) == expected[it]);
   }
+}
+
+TEST_CASE("RISC-V data arguments are validated during codegen", "[scope:core][scope:core.langs][kind:unit][arch:*]") {
+  using E = pepp::tc::CodegenError;
+  const auto assemble = [](const char *source) {
+    return pepp::tc::assemble_riscv(pepp::tc::RISCVDriverConfig{}, pepp::tc::FormattingConfig{}, source);
+  };
+  for (const char *source : {".byte 255", ".byte -128", ".half 0xFFFF", ".word -1", "l: .word l", ".word undefined"}) {
+    CAPTURE(source);
+    CHECK(assemble(source).ok());
+  }
+
+  using UE = E::UnaryError;
+  for (const auto &[source, error, bits] : std::vector<std::tuple<const char *, UE, const char *>>{
+           {".byte 256", UE::Argument_ValueDoesNotFit, "8 bits"},
+           {".byte 255 + 1", UE::Argument_ValueDoesNotFit, "8 bits"},
+           {".byte k\nk: .equ 300", UE::Argument_ValueDoesNotFit, "8 bits"},
+           {".half 0x10000", UE::Argument_ValueDoesNotFit, "16 bits"},
+           {"l: .half l", UE::Argument_AddressDoesNotFit, "16 bits"},
+           {".byte undefined", UE::Argument_AddressDoesNotFit, "8 bits"},
+       }) {
+    CAPTURE(source);
+    const auto result = assemble(source);
+    REQUIRE(result.diagnostics.count() == 1);
+    CHECK(result.diagnostics.cbegin()->second == E::to_string(error, bits));
+  }
+}
+
+TEST_CASE("RISC-V instruction arguments are validated at codegen",
+          "[scope:core][scope:core.langs][kind:unit][arch:*]") {
+  using E = pepp::tc::CodegenError;
+  const auto assemble = [](const char *source) {
+    return pepp::tc::assemble_riscv(pepp::tc::RISCVDriverConfig{}, pepp::tc::FormattingConfig{}, source);
+  };
+  // An undefined target is only known once linked.
+  for (const char *source : {"addi x1, x1, 2047", "addi x1, x1, -2048", "slli x1, x1, 31", "lui x1, 0xFFFFF",
+                             "lui x1, %hi(0x12345678)", "l: beq x1, x2, l", "jal x1, undefined",
+                             "l: auipc x1, %pcrel_hi(l)"}) {
+    CAPTURE(source);
+    CHECK(assemble(source).ok());
+  }
+
+  using UE = E::UnaryError;
+  for (const auto &[source, error, bits] : std::vector<std::tuple<const char *, UE, const char *>>{
+           {"addi x1, x1, 2048", UE::Argument_ValueDoesNotFit, "signed 12 bits"},
+           {"slli x1, x1, 32", UE::Argument_ValueDoesNotFit, "unsigned 5 bits"},
+           {"lui x1, 0x100000", UE::Argument_ValueDoesNotFit, "unsigned 20 bits"},
+           {"beq x1, x2, 4096", UE::Argument_ValueDoesNotFit, "signed 13 bits"},
+           // l is treated as an offset (effectively l - .)
+           {"beq x1, x2, l\n.skip 4096\nl:", UE::Argument_ValueDoesNotFit, "signed 13 bits"},
+           {"l: addi x1, x1, l", UE::Argument_AddressDoesNotFit, "signed 12 bits"},
+       }) {
+    CAPTURE(source);
+    const auto result = assemble(source);
+    REQUIRE(result.diagnostics.count() == 1);
+    CHECK(result.diagnostics.cbegin()->second == E::to_string(error, bits));
+  }
+  const auto odd = assemble("beq x1, x2, 3");
+  REQUIRE(odd.diagnostics.count() == 1);
+  CHECK(odd.diagnostics.cbegin()->second == E::to_string(E::NullaryError::Argument_OddOffset));
 }

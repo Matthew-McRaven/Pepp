@@ -16,8 +16,11 @@
 #include "core/langs/asmb/codegen.hpp"
 #include <array>
 #include "core/compile/ir_value/expression.hpp"
+#include "core/compile/ir_value/numeric.hpp"
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/symbol/leaf_table.hpp"
+#include "core/compile/symbol/value.hpp"
+#include "core/langs/asmb/codegen_error.hpp"
 #include "core/langs/expr/evaluator.hpp"
 #include "core/langs/expr/ir.hpp"
 
@@ -50,7 +53,60 @@ SymbolOperand classify_expression(const pepp::ast::Expression &exp) {
   return {Kind::Invalid};
 }
 
+// Something which can move, such as a label or undefined symbol (e.g., not an .EQUATE).
+bool relocatable(const SymbolOperand &operand) {
+  const auto &value = operand.symbol ? operand.symbol->value : nullptr;
+  return operand.kind == SymbolOperand::Kind::Offset &&
+         !(value && value->type() == pepp::core::symbol::Type::Constant);
+}
+
+// The value an argument encodes, typed so that its sign can be checked against a constraint.
+std::expected<pepp::tc::expr::Value, std::string> typed_value(const pepp::ast::IRValue &value) {
+  using pepp::tc::expr::Value;
+  using enum pepp::tc::expr::Signedness;
+  if (const auto *expression = dynamic_cast<const pepp::ast::Expression *>(&value)) {
+    if (auto evaluated = expression->evaluate(); evaluated) return *evaluated;
+    else return std::unexpected(evaluated.error().message());
+  } else if (const auto *number = dynamic_cast<const pepp::ast::SignedDecimal *>(&value))
+    return Value{number->value(), {64, Signed}};
+  else if (const auto *number = dynamic_cast<const pepp::ast::Numeric *>(&value))
+    return Value{number->value(), {64, Bits}};
+  else if (const auto *symbolic = dynamic_cast<const pepp::ast::Symbolic *>(&value)) {
+    const auto &entry = *symbolic->symbol();
+    return Value{entry.value ? entry.value->value()() : 0, {64, Bits}};
+  }
+  return Value{value.value_as<u64>(), {64, Bits}};
+}
 } // namespace
+
+bool pepp::tc::validate_argument(DiagnosticTable &diag, const LinearIR &line, pepp::ast::IRValue &value,
+                                 ArgumentConstraint constraint, u8 address_bits, bool narrowing_relocation) {
+  using E = CodegenError;
+  const auto report = [&](const E &error) { return diag.add_message(error.loc, error.what()), false; };
+  if (relocatable(classify_symbol_operand(value))) {
+    if (narrowing_relocation || address_bits <= constraint.bits) return true;
+    return report(E(E::UnaryError::Argument_AddressDoesNotFit, to_string(constraint), line.source_interval));
+  }
+  // A contextual call (e.g., %pcrel_hi) is defined by its relocation, which narrows it to fit.
+  else if (const auto *expression = dynamic_cast<pepp::ast::Expression *>(&value);
+           expression && std::ranges::any_of(expression->tree().kinds(), [](expr::Kind kind) {
+             return kind == expr::Kind::NonConstExprCall;
+           }))
+    return true;
+  const auto typed = typed_value(value);
+  if (!typed) return report(E(E::UnaryError::Expression_Invalid, typed.error(), line.source_interval));
+  return validate_value(diag, line, *typed, constraint);
+}
+
+bool pepp::tc::validate_value(DiagnosticTable &diag, const LinearIR &line, expr::Value value,
+                              ArgumentConstraint constraint) {
+  using E = CodegenError;
+  const auto report = [&](const E &error) { return diag.add_message(error.loc, error.what()), false; };
+  if (!aligned(value, constraint)) return report(E(E::NullaryError::Argument_OddOffset, line.source_interval));
+  else if (!satisfies(value, constraint))
+    return report(E(E::UnaryError::Argument_ValueDoesNotFit, to_string(constraint), line.source_interval));
+  return true;
+}
 
 SymbolOperand pepp::tc::classify_symbol_operand(pepp::ast::IRValue &value) {
   using Kind = SymbolOperand::Kind;

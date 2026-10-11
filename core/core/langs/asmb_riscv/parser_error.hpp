@@ -16,8 +16,6 @@ public:
     Argument_ExpectedIdentifier,
     Argument_ExpectedHex,
     Argument_ExpectedString,
-    Argument_Exceeded1Byte,
-    Argument_Exceeded2Bytes,
     Argument_Exceeded4Bytes,
     Argument_ExpectedFenceOrdering,
     Argument_SymbolicEquate,

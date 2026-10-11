@@ -16,7 +16,6 @@ public:
     Argument_InvalidIntegerFormat,
     Argument_SymbolicEquate,
     Argument_Exceeded2Bytes,
-    Argument_Exceeded1Byte,
     Argument_Missing,
     Argument_ExpectedPowerOfTwo,
     Argument_ExpectedString,
