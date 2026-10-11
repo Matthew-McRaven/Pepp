@@ -33,6 +33,9 @@ const std::string pepp::tc::RISCVParserError::to_string(NullaryError err) {
   case NullaryError::Conditional_MultipleElse: return "Multiple .ELSE directives in the same conditional";
   case NullaryError::Conditional_Unterminated: return "Unterminated conditional directive";
   case NullaryError::Conditional_NotConstant: return "A conditional must be constant or previously-EQUATE'd symbol";
+  case NullaryError::Macro_Unterminated: return "Unterminated macro definition";
+  case NullaryError::Macro_UnmatchedEndm: return "Unmatched .ENDM directive";
+  case NullaryError::Macro_ExcessiveRecursion: return "Macro expansion exceeded maximum recursion depth";
   }
   PEPP_UNREACHABLE();
 }
@@ -42,6 +45,7 @@ const std::string pepp::tc::RISCVParserError::to_string(UnaryError err, std::str
   case UnaryError::Token_Invalid: return fmt::format("Unrecognized token: {}", arg);
   case UnaryError::Dot_Invalid: return fmt::format("Invalid pseudo-operation \"{}\".", arg);
   case UnaryError::Expression_Invalid: return fmt::format("Invalid expression: {}", arg);
+  case UnaryError::Macro_Redefinition: return fmt::format("Redefinition of macro \"{}\".", arg);
   }
   PEPP_UNREACHABLE();
 }

@@ -3,6 +3,7 @@
 #include "core/compile/ir_linear/line_comment.hpp"
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
+#include "core/compile/ir_linear/line_macro.hpp"
 #include "core/compile/ir_linear/line_symbol.hpp"
 #include "core/langs/asmb_riscv/ir_lines.hpp"
 
@@ -25,6 +26,8 @@ void pepp::tc::accept(RISCVIRVisitor &visitor, const LinearIR *line) {
   case DotSection::TYPE: visitor.visit(static_cast<const DotSection *>(line)); break;
   case DotOrg::TYPE: visitor.visit(static_cast<const DotOrg *>(line)); break;
   case DotConditional::TYPE: visitor.visit(static_cast<const DotConditional *>(line)); break;
+  case InlineMacroDefinition::TYPE: visitor.visit(static_cast<const InlineMacroDefinition *>(line)); break;
+  case MacroInstantiation::TYPE: visitor.visit(static_cast<const MacroInstantiation *>(line)); break;
   default: throw std::logic_error("Unknown IR line type");
   }
 }

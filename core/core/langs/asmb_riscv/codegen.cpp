@@ -126,6 +126,8 @@ struct RISCVObjectVistitor : public RISCVIRVisitor {
   void visit(const DotSection *) override;
   void visit(const DotOrg *) override;
   void visit(const DotConditional *) override;
+  void visit(const InlineMacroDefinition *) override;
+  void visit(const MacroInstantiation *) override;
 };
 
 pepp::tc::RISCVObjectVistitor::RISCVObjectVistitor(
@@ -225,6 +227,14 @@ void pepp::tc::RISCVObjectVistitor::visit(const DotOrg *) {
 
 void pepp::tc::RISCVObjectVistitor::visit(const DotConditional *) {
   // Does not generate object code
+}
+
+void pepp::tc::RISCVObjectVistitor::visit(const InlineMacroDefinition *) {
+  // Does not generate object code
+}
+
+void pepp::tc::RISCVObjectVistitor::visit(const MacroInstantiation *) {
+  // Flattened before generating object code
 }
 
 } // namespace pepp::tc

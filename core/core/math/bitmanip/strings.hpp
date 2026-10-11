@@ -151,26 +151,13 @@ inline bool contains(std::string_view haystack, std::string_view needle) {
   return haystack.find(needle) != std::string_view::npos;
 }
 
-inline std::string rtrimmed(const std::string &str) {
-  if (str.empty()) return {};
-  // Perform right-strip of string. `QString::trimmed() const` trims both ends.
-  std::size_t lastIndex = str.size() - 1;
-  while (std::isspace((u8)str[lastIndex]) && lastIndex > 0) lastIndex--;
-  // If line is all spaces, then the string should be empty.
-  if (lastIndex == 0) return {};
-  // Otherwise, we need to add 1 to last index to convert index (0-based) to size (1-based).
-  return str.substr(0, lastIndex + 1);
+// Right-strip whitespace
+inline std::string_view rtrimmed_view(const std::string &str) {
+  std::size_t size = str.size();
+  while (size > 0 && std::isspace((u8)str[size - 1])) size--;
+  return std::string_view(str).substr(0, size);
 }
 
-inline std::string_view rtrimmed_view(const std::string &str) {
-  if (str.empty()) return {};
-  // Perform right-strip of string. `QString::trimmed() const` trims both ends.
-  std::size_t lastIndex = str.size() - 1;
-  while (std::isspace((u8)str[lastIndex]) && lastIndex > 0) lastIndex--;
-  // If line is all spaces, then the string should be empty.
-  if (lastIndex == 0) return std::string_view();
-  // Otherwise, we need to add 1 to last index to convert index (0-based) to size (1-based).
-  return std::string_view(str).substr(0, lastIndex + 1);
-}
+inline std::string rtrimmed(const std::string &str) { return std::string{rtrimmed_view(str)}; }
 
 } // namespace bits

@@ -19,6 +19,7 @@
 #include "core/compile/ir_linear/line_comment.hpp"
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
+#include "core/compile/ir_linear/line_macro.hpp"
 #include "core/compile/ir_linear/line_symbol.hpp"
 #include "core/compile/ir_value/expression.hpp"
 #include "core/compile/ir_value/numeric.hpp"
@@ -26,6 +27,7 @@
 #include "core/compile/symbol/leaf_table.hpp"
 #include "core/compile/symbol/value.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
+#include "core/langs/asmb/macros.hpp"
 #include "core/langs/asmb_riscv/parser.hpp"
 #include "core/langs/asmb_riscv/parser_error.hpp"
 
@@ -511,6 +513,41 @@ TEST_CASE("RISCV ASM parser dot commands",
              {".endif", RVPE::NullaryError::Conditional_UnmatchedEndif},
              {".if 0\n.else\n.else\n.endif", RVPE::NullaryError::Conditional_MultipleElse},
              {"x: .word 0\n.if x", RVPE::NullaryError::Conditional_NotConstant},
+         }) {
+      CAPTURE(source);
+      DiagnosticTable diag;
+      (void)parse(source, diag);
+      REQUIRE(diag.count() == 1);
+      CHECK(diag.cbegin()->second == RVPE::to_string(error));
+    }
+  }
+  // Macros are shared with Pep/10, whose tests cover them in depth.
+  SECTION("Macros") {
+    const auto parse = [](const char *source, DiagnosticTable &diag) { return Parser(data(source)).parse(diag); };
+    {
+      // Arguments are substituted and symbol declaration moves into body. The parser owns the symbol names.
+      DiagnosticTable diag;
+      auto p = Parser(data(".macro inc reg\naddi \\reg, \\reg, 1\n.endm\ntop: inc x5"));
+      const auto results = p.parse(diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 2);
+      CHECK(std::dynamic_pointer_cast<InlineMacroDefinition>(results[0]));
+      const auto instantiation = std::dynamic_pointer_cast<MacroInstantiation>(results[1]);
+      REQUIRE(instantiation);
+      CHECK(instantiation->arguments == std::vector<std::string>{"x5"});
+      const auto flattened = parser::flatten_macros(results, riscv_allows_symbol);
+      REQUIRE(flattened.size() == 1);
+      const auto addi = std::dynamic_pointer_cast<ITypeIR>(flattened[0]);
+      REQUIRE(addi);
+      CHECK(addi->rd == 5);
+      CHECK(addi->rs1 == 5);
+      CHECK(addi->typed_attribute<SymbolDeclaration>()->entry->name == "top");
+    }
+    using RVPE = RISCVParserError;
+    for (const auto &[source, error] : std::vector<std::pair<const char *, RVPE::NullaryError>>{
+             {".macro m\nm\n.endm\nm", RVPE::NullaryError::Macro_ExcessiveRecursion},
+             {".macro m\nadd x1, x2, x3", RVPE::NullaryError::Macro_Unterminated},
+             {".endm", RVPE::NullaryError::Macro_UnmatchedEndm},
          }) {
       CAPTURE(source);
       DiagnosticTable diag;

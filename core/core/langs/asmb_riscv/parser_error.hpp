@@ -35,8 +35,11 @@ public:
     Conditional_MultipleElse,
     Conditional_Unterminated,
     Conditional_NotConstant,
+    Macro_Unterminated,
+    Macro_UnmatchedEndm,
+    Macro_ExcessiveRecursion,
   };
-  enum class UnaryError { Token_Invalid, Dot_Invalid, Expression_Invalid };
+  enum class UnaryError { Token_Invalid, Dot_Invalid, Expression_Invalid, Macro_Redefinition };
 
   static const std::string to_string(NullaryError);
   static const std::string to_string(UnaryError, std::string &arg);

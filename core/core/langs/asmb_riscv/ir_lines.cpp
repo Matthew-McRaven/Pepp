@@ -112,3 +112,21 @@ std::shared_ptr<pepp::tc::IntegerInstruction> pepp::tc::make_instruction(std::st
   }
   return nullptr;
 }
+
+bool pepp::tc::riscv_allows_symbol(const LinearIR &line) {
+  switch (line.type()) {
+  case (int)LinearIRType::DotAlign: return true;
+  case (int)LinearIRType::DotSymbol: return true;
+  case (int)LinearIRType::DotBlock: return true;
+  case (int)LinearIRType::DotEquate: return true;
+  case (int)LinearIRType::DotLiteral: return true;
+  case (int)LinearIRType::MacroInstantiation: return true;
+  case (int)RISCVIRType::R: return true;
+  case (int)RISCVIRType::I: return true;
+  case (int)RISCVIRType::S: return true;
+  case (int)RISCVIRType::B: return true;
+  case (int)RISCVIRType::U: return true;
+  case (int)RISCVIRType::J: return true;
+  default: return false;
+  }
+}

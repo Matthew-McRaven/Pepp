@@ -158,30 +158,29 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::macro(Diagnosti
   auto buf = active_buffer();
   auto lexer = active_lexer();
   lex::Checkpoint cp(*buf);
-  auto maybe_macro = buf->match<lex::Identifier>();
-  if (!maybe_macro) return cp.rollback(), nullptr;
-  auto macro = maybe_macro->to_string();
-  auto macro_def = _macros->find(macro);
-  if (macro_def == nullptr) return cp.rollback(), nullptr;
+  auto name = buf->match<lex::Identifier>();
+  if (!name) return cp.rollback(), nullptr;
+  auto definition = _macros->find(name->to_string());
+  if (!definition) return cp.rollback(), nullptr;
   else cp.commit();
 
-  while (auto matched = buf->match_not<tc::lex::Empty, tc::lex::EoF, tc::lex::InlineComment>()) {
-    // Consume all no-comments, non-empty tokens until the end of the current line.
-  }
+  // Consume all non-comments, non-empty tokens until the end of the current line.
+  while (buf->match_not<tc::lex::Empty, tc::lex::EoF, tc::lex::InlineComment>());
   // The arguments are the text of the tokens after the macro name.
   const auto args = split_arguments(buf->matched_tokens_after(cp.marker()), *lexer);
-  auto ret = std::make_shared<MacroInstantiation>(macro_def, args);
-  auto rep = _counters.counters_for(macro_def->name);
+  auto replacements = _counters.counters_for(definition->name);
+
   // TODO: Validate # of matched arguments vs number of args in definition, accounting for default values.
-  for (int it = 0; it < macro_def->arguments.size(); it++) {
-    const auto arg_name = macro_def->arguments.at(it).name;
-    const auto arg_value = args.size() > it ? args.at(it) : macro_def->arguments.at(it).default_value.value_or("");
-    rep["\\" + arg_name] = arg_value;
+  for (int it = 0; it < definition->arguments.size(); it++) {
+    const auto &argument = definition->arguments[it];
+    replacements["\\" + argument.name] = it < args.size() ? args[it] : argument.default_value.value_or("");
   }
-  auto new_body = bits::rtrimmed(replace_macro_arguments(macro_def->body, rep));
+
+  auto new_body = bits::rtrimmed(replace_macro_arguments(definition->body, replacements));
   auto new_lexer = std::make_shared<lex::PepLexer>(_pool, support::SeekableData{std::move(new_body)});
-  auto new_buffer = std::make_shared<lex::Buffer>(&*new_lexer);
-  _lexer_stack.emplace(new_lexer, new_buffer);
+  _lexer_stack.emplace(new_lexer, std::make_shared<lex::Buffer>(&*new_lexer));
+
+  auto ret = std::make_shared<MacroInstantiation>(definition, args);
   ret->lines = do_parse(diag, buf->matched_interval());
   // Attach symbol def if it exists.
   if (symbol) ret->insert(std::make_unique<SymbolDeclaration>(*symbol));

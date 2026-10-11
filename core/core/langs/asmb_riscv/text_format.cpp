@@ -1,5 +1,6 @@
 #include "core/langs/asmb_riscv/text_format.hpp"
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <optional>
 #include <string>
 #include <vector>
@@ -9,7 +10,9 @@
 #include "core/compile/ir_linear/line_comment.hpp"
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
+#include "core/compile/ir_linear/line_macro.hpp"
 #include "core/compile/ir_linear/line_symbol.hpp"
+#include "core/compile/macro/macro_registry.hpp"
 #include "core/langs/asmb_riscv/ir_lines.hpp"
 #include "core/langs/asmb_riscv/ir_visitor.hpp"
 #include "core/math/bitmanip/strings.hpp"
@@ -98,6 +101,8 @@ struct RISCVSourceVisitor : public RISCVIRVisitor {
   void visit(const DotSection *) override;
   void visit(const DotOrg *) override;
   void visit(const DotConditional *) override;
+  void visit(const InlineMacroDefinition *) override;
+  void visit(const MacroInstantiation *) override;
 };
 } // namespace pepp::tc
 
@@ -167,6 +172,17 @@ void pepp::tc::RISCVSourceVisitor::visit(const DotConditional *line) {
   }
   const auto arg = line->argument.value ? line->argument.value->string() : "";
   text = riscv_format_as_columns("", dot, arg, ::comment_of(line));
+}
+
+void pepp::tc::RISCVSourceVisitor::visit(const InlineMacroDefinition *line) {
+  const auto args = fmt::format("{}", fmt::join(line->arguments, ", "));
+  text = fmt::format("{}\n{}\n{}", riscv_format_as_columns("", ".macro " + line->name, args, ::comment_of(line)),
+                     bits::rtrimmed_view(line->body), riscv_format_as_columns("", ".endm", "", ""));
+}
+
+void pepp::tc::RISCVSourceVisitor::visit(const MacroInstantiation *line) {
+  const auto args = fmt::format("{}", fmt::join(line->arguments, ", "));
+  text = riscv_format_as_columns(::symbol_of(line), line->macro->name, args, ::comment_of(line));
 }
 
 std::string pepp::tc::riscv_format_source(const LinearIR *line) {

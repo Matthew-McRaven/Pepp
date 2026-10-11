@@ -7,6 +7,7 @@
 #include "core/compile/ir_linear/line_comment.hpp"
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
+#include "core/compile/ir_linear/line_macro.hpp"
 #include "core/compile/ir_linear/line_symbol.hpp"
 #include "core/compile/ir_value/expression.hpp"
 #include "core/compile/ir_value/numeric.hpp"
@@ -80,6 +81,26 @@ pepp::tc::RISCVParserError conditional_error(pepp::tc::parser::Conditionals::Err
   PEPP_UNREACHABLE();
 }
 
+pepp::tc::RISCVParserError macro_error(const pepp::tc::parser::MacroCapture::Error &error) {
+  using K = pepp::tc::parser::MacroCapture::Error::Kind;
+  using RVPE = pepp::tc::RISCVParserError;
+  switch (error.kind) {
+  case K::MissingNewline: return RVPE(RVPE::NullaryError::Token_MissingNewline, error.location);
+  case K::Unterminated: return RVPE(RVPE::NullaryError::Macro_Unterminated, error.location);
+  case K::Redefinition: return RVPE(RVPE::UnaryError::Macro_Redefinition, error.macro, error.location);
+  }
+  PEPP_UNREACHABLE();
+}
+
+// Expansions nested deeper than this are assumed to recurse forever.
+constexpr std::size_t max_expansion_depth = 4;
+
+// RAII helper to prevent a macro expansion from sharing its host line's location counter.
+struct Restore {
+  std::shared_ptr<pepp::core::symbol::Entry> &slot, saved;
+  ~Restore() { slot = std::move(saved); }
+};
+
 // Re-use existing location counter for this line if possible.
 pepp::tc::expr::NameLocationCounter resolve_location_counter(pepp::core::symbol::LeafTable &symtab,
                                                              std::shared_ptr<pepp::core::symbol::Entry> &counter) {
@@ -90,24 +111,28 @@ pepp::tc::expr::NameLocationCounter resolve_location_counter(pepp::core::symbol:
 }
 } // namespace
 
-pepp::tc::parser::RISCVParser::RISCVParser(support::SeekableData &&data)
+pepp::tc::parser::RISCVParser::RISCVParser(support::SeekableData &&data, std::shared_ptr<MacroRegistry> macros)
     : _pool(std::make_shared<std::unordered_set<std::string>>()),
       _root_lexer(std::make_shared<langs::RISCVLexer>(_pool, std::move(data))),
-      _symtab(std::make_shared<pepp::core::symbol::LeafTable>(2)) {
+      _symtab(std::make_shared<pepp::core::symbol::LeafTable>(2)),
+      _macros(macros ? std::move(macros) : std::make_shared<MacroRegistry>()) {
   _lexer_stack.emplace(_root_lexer, std::make_shared<lex::Buffer>(&*_root_lexer));
 }
 
 std::shared_ptr<pepp::core::symbol::LeafTable> pepp::tc::parser::RISCVParser::symbol_table() const { return _symtab; }
 
-pepp::tc::IRProgram pepp::tc::parser::RISCVParser::parse(DiagnosticTable &diag) {
+pepp::tc::IRProgram pepp::tc::parser::RISCVParser::parse(DiagnosticTable &diag) { return do_parse(diag, std::nullopt); }
+
+pepp::tc::IRProgram pepp::tc::parser::RISCVParser::do_parse(DiagnosticTable &diag,
+                                                           std::optional<support::LocationInterval> root_loc) {
   auto buf = active_buffer();
   IRProgram lines;
   while (buf->input_remains()) {
     try {
-      if (auto line = statement(); line) lines.emplace_back(line);
+      if (auto line = statement(diag); line) lines.emplace_back(line);
     } catch (RISCVParserError &e) {
       synchronize();
-      diag.add_message(e.loc, e.what());
+      diag.add_message(root_loc.value_or(e.loc), e.what());
     }
   }
   return lines;
@@ -324,12 +349,14 @@ static const auto dot_map = std::map<std::string, int>{
     {"ELSE", (int)DC::ELSE},
     {"ELSEIF", (int)DC::ELSEIF},
     {"ENDIF", (int)DC::ENDIF},
+    {"ENDM", (int)DC::END_MACRO},
     {"EQUATE", (int)DC::EQUATE},
     {"GLOBAL", (int)LDC::SYMBOL_GLOBAL},
     {"HALF", (int)DC::HALF},
     {"HIDDEN", (int)LDC::SYMBOL_HIDDEN},
     {"IF", (int)DC::IF},
     {"LOCAL", (int)LDC::SYMBOL_LOCAL},
+    {"MACRO", (int)DC::INLINE_MACRO},
     {"ORG", (int)DC::ORG},
     {"P2ALIGN", (int)LDC::ALIGN_P2},
     {"SECTION", (int)DC::SECTION},
@@ -354,6 +381,7 @@ static const auto dot_map = std::map<std::string, int>{
 
 std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::pseudo(OptionalSymbol symbol) {
   auto buf = active_buffer();
+  auto lexer = active_lexer();
   using RVPE = RISCVParserError;
   auto dot = buf->match<lex::DotCommand>();
   if (!dot) return nullptr;
@@ -512,6 +540,20 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::pseudo(Option
       throw conditional_error(ok.error(), buf->matched_interval());
     return std::make_shared<DotConditional>(DotConditional::Behavior::ENDIF);
   }
+  case (int)DC::INLINE_MACRO: {
+    auto name = buf->match<lex::Identifier>();
+    if (!name) throw RVPE(RVPE::NullaryError::Argument_ExpectedIdentifier, buf->matched_interval());
+    // Mark the start of the macro's arguments
+    lex::Marker marker(*buf);
+    // Consume tokens until the EoL is reached, then attempt to split into arguments.
+    buf->match_until<lex::Empty, lex::EoF>();
+    auto definition = std::make_shared<InlineMacroDefinition>(
+        name->to_string(), split_arguments(buf->matched_tokens_after(marker), *lexer));
+    // The body follows, and is read once this line is parsed.
+    _macro_capture.begin(definition);
+    return definition;
+  }
+  case (int)DC::END_MACRO: throw RVPE(RVPE::NullaryError::Macro_UnmatchedEndm, buf->matched_interval());
   case (int)DC::ORG: {
     auto arg = hex_argument();
     if (!arg) throw RVPE(RVPE::NullaryError::Argument_ExpectedHex, buf->matched_interval());
@@ -561,11 +603,50 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::pseudo(Option
   return nullptr;
 }
 
-std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::line(OptionalSymbol symbol) {
+std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::macro(DiagnosticTable &diag) {
+  using RVPE = RISCVParserError;
   auto buf = active_buffer();
-  _location_counter = nullptr;
+  auto lexer = active_lexer();
+  lex::Checkpoint cp(*buf);
+  const auto name = buf->match<lex::Identifier>();
+  if (!name) return cp.rollback(), nullptr;
+  const auto definition = _macros->find(name->to_string());
+  if (!definition) return cp.rollback(), nullptr;
+  cp.commit();
+
+  // Consume all non-comments, non-empty tokens until the end of the current line.
+  while (buf->match_not<lex::Empty, lex::EoF, lex::InlineComment>());
+  // The arguments are the text of the rest of the line, up to any comment.
+  auto args = split_arguments(buf->matched_tokens_after(cp.marker()), *lexer);
+  if (_lexer_stack.size() > max_expansion_depth)
+    throw RVPE(RVPE::NullaryError::Macro_ExcessiveRecursion, buf->matched_interval());
+
+  // TODO: Validate # of matched arguments vs number of args in definition, accounting for default values.
+  auto replacements = _counters.counters_for(definition->name);
+  for (std::size_t it = 0; it < definition->arguments.size(); it++) {
+    const auto &argument = definition->arguments[it];
+    replacements["\\" + argument.name] = it < args.size() ? args[it] : argument.default_value.value_or("");
+  }
+
+  auto new_body = bits::rtrimmed(replace_macro_arguments(definition->body, replacements));
+  auto new_lexer = std::make_shared<langs::RISCVLexer>(_pool, support::SeekableData{std::move(new_body)});
+  _lexer_stack.emplace(new_lexer, std::make_shared<lex::Buffer>(&*new_lexer));
+
+  auto ret = std::make_shared<MacroInstantiation>(definition, std::move(args));
+  ret->lines = do_parse(diag, buf->matched_interval());
+  _lexer_stack.pop();
+  return ret;
+}
+
+std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::line(DiagnosticTable &diag,
+                                                                         OptionalSymbol symbol) {
+  auto buf = active_buffer();
+  // This line gets its own location counter, and a macro expanded from it does not share the line's.
+  Restore restore{_location_counter, std::exchange(_location_counter, nullptr)};
   std::shared_ptr<pepp::tc::LinearIR> ret = nullptr;
-  if (auto instr = instruction(); instr) ret = instr;
+  // Macros are tried first, so that a macro may replace an instruction of the same name.
+  if (auto macro = this->macro(diag); macro) ret = macro;
+  else if (auto instr = instruction(); instr) ret = instr;
   else if (auto dot = pseudo(symbol); dot) ret = dot;
   else return nullptr;
 
@@ -581,7 +662,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::line(Optional
   return ret;
 }
 
-std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::statement() {
+std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::statement(DiagnosticTable &diag) {
   auto buf = active_buffer();
   auto lexer = active_lexer();
   std::shared_ptr<pepp::tc::LinearIR> ret = nullptr;
@@ -608,7 +689,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::statement() {
           symbol_decl && (buf->peek<tc::lex::Empty>() || maybe_comment)) {
         ret = std::make_shared<SymbolLine>(SymbolDeclaration{symbol_decl.value()});
         if (maybe_comment) ret->insert(std::make_unique<Comment>(*maybe_comment->value));
-      } else ret = line(symbol_decl);
+      } else ret = line(diag, symbol_decl);
 
       if (!ret) {
         auto next = buf->peek();
@@ -627,6 +708,9 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::statement() {
   // This way we can preserve an invariant that the first token consumed by statement is a part of the returned IR line.
   // This is particularly helpful for macros definitions where we need to associate the macro IR object with its inline
   // body.
+  if (_macro_capture.capturing()) {
+    if (const auto ok = _macro_capture.capture(*lexer, *_macros); !ok) throw macro_error(ok.error());
+  }
   const auto start_depth = _conditionals.depth();
   const auto start_ival = lexer->current_location();
   while (_conditionals.skipping() && lexer->input_remains()) {
