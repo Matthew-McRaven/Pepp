@@ -19,6 +19,7 @@
 #include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/langs/asmb/expression_operand.hpp"
 #include "core/langs/asmb_riscv/parser_error.hpp"
+#include "core/macros.hpp"
 #include "core/math/bitmanip/mask.hpp"
 #include "core/math/bitmanip/strings.hpp"
 
@@ -55,6 +56,29 @@ constexpr expr::Options options{.default_type = {32, expr::Signedness::Signed},
                                 .dot = expr::Options::Dot::Identifier,
                                 .percent_identifiers = true,
                                 .functions = functions};
+
+// Conditionals choose which lines are parsed, so like equates they are evaluated as they are parsed.
+bool condition_holds(pepp::ast::IRValue &arg, pepp::tc::support::LocationInterval location) {
+  using pepp::tc::RISCVParserError;
+  if (const auto value = pepp::tc::parser::equate_value(arg, location); !value)
+    throw RISCVParserError(RISCVParserError::UnaryError::Expression_Invalid, value.error().message(),
+                           value.error().location);
+  else if (!*value) throw RISCVParserError(RISCVParserError::NullaryError::Conditional_NotConstant, location);
+  else return (**value & bits::mask(4)) != 0;
+}
+
+pepp::tc::RISCVParserError conditional_error(pepp::tc::parser::Conditionals::Error error,
+                                             pepp::tc::support::LocationInterval location) {
+  using E = pepp::tc::parser::Conditionals::Error;
+  using NE = pepp::tc::RISCVParserError::NullaryError;
+  switch (error) {
+  case E::UnmatchedElseif: return pepp::tc::RISCVParserError(NE::Conditional_UnmatchedElseif, location);
+  case E::UnmatchedElse: return pepp::tc::RISCVParserError(NE::Conditional_UnmatchedElse, location);
+  case E::MultipleElse: return pepp::tc::RISCVParserError(NE::Conditional_MultipleElse, location);
+  case E::UnmatchedEndif: return pepp::tc::RISCVParserError(NE::Conditional_UnmatchedEndif, location);
+  }
+  PEPP_UNREACHABLE();
+}
 
 // Re-use existing location counter for this line if possible.
 pepp::tc::expr::NameLocationCounter resolve_location_counter(pepp::core::symbol::LeafTable &symtab,
@@ -289,10 +313,14 @@ static const auto dot_map = std::map<std::string, int>{
     {"BALIGN", (int)LDC::ALIGN_BYTE},
     {"BLOCK", (int)DC::BLOCK},
     {"BYTE", (int)DC::BYTE},
+    {"ELSE", (int)DC::ELSE},
+    {"ELSEIF", (int)DC::ELSEIF},
+    {"ENDIF", (int)DC::ENDIF},
     {"EQUATE", (int)DC::EQUATE},
     {"GLOBAL", (int)LDC::SYMBOL_GLOBAL},
     {"HALF", (int)DC::HALF},
     {"HIDDEN", (int)LDC::SYMBOL_HIDDEN},
+    {"IF", (int)DC::IF},
     {"LOCAL", (int)LDC::SYMBOL_LOCAL},
     {"ORG", (int)DC::ORG},
     {"P2ALIGN", (int)LDC::ALIGN_P2},
@@ -447,6 +475,34 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::pseudo(Option
     }
     return std::make_shared<DotEquate>(SymbolDeclaration{*symbol}, Argument{arg});
   }
+  case (int)DC::IF: {
+    auto arg = argument();
+    if (!arg) throw RVPE(RVPE::NullaryError::Argument_Missing, _buffer->matched_interval());
+    else if (symbol) throw RVPE(RVPE::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
+    _conditionals.on_if(condition_holds(*arg, _buffer->matched_interval()));
+    return std::make_shared<DotConditional>(DotConditional::Behavior::IF, Argument{arg});
+  }
+  case (int)DC::ELSEIF: {
+    auto arg = argument();
+    if (!arg) throw RVPE(RVPE::NullaryError::Argument_Missing, _buffer->matched_interval());
+    else if (symbol) throw RVPE(RVPE::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
+    const auto holds = [&] { return condition_holds(*arg, _buffer->matched_interval()); };
+    if (const auto ok = _conditionals.on_elseif(holds); !ok)
+      throw conditional_error(ok.error(), _buffer->matched_interval());
+    return std::make_shared<DotConditional>(DotConditional::Behavior::ELSEIF, Argument{arg});
+  }
+  case (int)DC::ELSE: {
+    if (symbol) throw RVPE(RVPE::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
+    else if (const auto ok = _conditionals.on_else(); !ok)
+      throw conditional_error(ok.error(), _buffer->matched_interval());
+    return std::make_shared<DotConditional>(DotConditional::Behavior::ELSE);
+  }
+  case (int)DC::ENDIF: {
+    if (symbol) throw RVPE(RVPE::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
+    else if (const auto ok = _conditionals.on_endif(); !ok)
+      throw conditional_error(ok.error(), _buffer->matched_interval());
+    return std::make_shared<DotConditional>(DotConditional::Behavior::ENDIF);
+  }
   case (int)DC::ORG: {
     auto arg = hex_argument();
     if (!arg) throw RVPE(RVPE::NullaryError::Argument_ExpectedHex, _buffer->matched_interval());
@@ -517,39 +573,60 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::line(Optional
 
 std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::statement() {
   std::shared_ptr<pepp::tc::LinearIR> ret = nullptr;
-  lex::Checkpoint cp(*_buffer);
+  {
+    // Limit the checkpoint's lifetime so that it does not discard a token re-buffered by the skip loop.
+    lex::Checkpoint cp(*_buffer);
 
-  if (auto empty = _buffer->match<tc::lex::Empty>(); empty) {
-    auto line = std::make_shared<EmptyLine>();
-    line->source_interval = empty->location();
-    return line;
+    if (auto empty = _buffer->match<tc::lex::Empty>(); empty) {
+      auto line = std::make_shared<EmptyLine>();
+      line->source_interval = empty->location();
+      return line;
+    }
+
+    if (auto comment = _buffer->match<tc::lex::InlineComment>(); comment) {
+      auto line = std::make_shared<CommentLine>(Comment(*comment->value));
+      line->source_interval = comment->location();
+      ret = line;
+    } else {
+      auto symbol = _buffer->match<lex::SymbolDeclaration>();
+      auto symbol_decl = symbol ? OptionalSymbol(_symtab->define(symbol->to_string())) : std::nullopt;
+      // Lookahead for a comment or newline, which would indicate that this is a symbol-only line.
+      // Symbol-only lines share a prefix with "normal" lines with symbols
+      if (auto maybe_comment = _buffer->match<tc::lex::InlineComment>();
+          symbol_decl && (_buffer->peek<tc::lex::Empty>() || maybe_comment)) {
+        ret = std::make_shared<SymbolLine>(SymbolDeclaration{symbol_decl.value()});
+        if (maybe_comment) ret->insert(std::make_unique<Comment>(*maybe_comment->value));
+      } else ret = line(symbol_decl);
+
+      if (!ret) {
+        auto next = _buffer->peek();
+        throw RISCVParserError(RISCVParserError::UnaryError::Token_Invalid, next->repr(),
+                               _buffer->matched_interval());
+      } else {
+        ret->source_interval = _buffer->matched_interval();
+      }
+    }
+
+    if (!_buffer->match<tc::lex::Empty>() && _buffer->input_remains())
+      throw RISCVParserError(RISCVParserError::NullaryError::Token_MissingNewline, _buffer->matched_interval());
   }
 
-  if (auto comment = _buffer->match<tc::lex::InlineComment>(); comment) {
-    auto line = std::make_shared<CommentLine>(Comment(*comment->value));
-    line->source_interval = comment->location();
-    ret = line;
-  } else {
-    auto symbol = _buffer->match<lex::SymbolDeclaration>();
-    auto symbol_decl = symbol ? OptionalSymbol(_symtab->define(symbol->to_string())) : std::nullopt;
-    // Lookahead for a comment or newline, which would indicate that this is a symbol-only line.
-    // Symbol-only lines share a prefix with "normal" lines with symbols
-    if (auto maybe_comment = _buffer->match<tc::lex::InlineComment>();
-        symbol_decl && (_buffer->peek<tc::lex::Empty>() || maybe_comment)) {
-      ret = std::make_shared<SymbolLine>(SymbolDeclaration{symbol_decl.value()});
-      if (maybe_comment) ret->insert(std::make_unique<Comment>(*maybe_comment->value));
-    } else ret = line(symbol_decl);
-
-    if (!ret) {
-      auto next = _buffer->peek();
-      throw RISCVParserError(RISCVParserError::UnaryError::Token_Invalid, next->repr(), _buffer->matched_interval());
-    } else {
-      ret->source_interval = _buffer->matched_interval();
+  // Start skip loop _after_ parsing the statement which entered the skip loop.
+  // This way we can preserve an invariant that the first token consumed by statement is a part of the returned IR line.
+  // This is particularly helpful for macros definitions where we need to associate the macro IR object with its inline
+  // body.
+  const auto start_depth = _conditionals.depth();
+  const auto start_ival = _lexer->current_location();
+  while (_conditionals.skipping() && _lexer->input_remains()) {
+    // Do not consume a directive which may end the skip, so that it is parsed and emits its IR line.
+    if (auto token = _lexer->next_token(); token && _conditionals.resumes_at(*token, start_depth)) {
+      _buffer->push_token(token);
+      break;
     }
   }
-
-  if (!_buffer->match<tc::lex::Empty>() && _buffer->input_remains())
-    throw RISCVParserError(RISCVParserError::NullaryError::Token_MissingNewline, _buffer->matched_interval());
+  if (!_buffer->input_remains() && _conditionals.depth() > 0)
+    throw RISCVParserError(RISCVParserError::NullaryError::Conditional_Unterminated,
+                           {start_ival, _lexer->current_location()});
   return ret;
 }
 

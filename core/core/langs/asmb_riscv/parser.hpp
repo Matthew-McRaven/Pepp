@@ -7,6 +7,7 @@
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/lex/buffer.hpp"
 #include "core/compile/source/seekable.hpp"
+#include "core/langs/asmb/conditionals.hpp"
 #include "core/langs/asmb/ir_program.hpp"
 #include "core/langs/asmb_riscv/ir_lines.hpp"
 #include "core/langs/asmb_riscv/lexer.hpp"
@@ -83,6 +84,7 @@ private:
   std::shared_ptr<pepp::core::symbol::LeafTable> _symtab;
   // The location counter (`.`) of the line being parsed, created on first use.
   std::shared_ptr<pepp::core::symbol::Entry> _location_counter;
+  Conditionals _conditionals;
 };
 } // namespace parser
 } // namespace tc

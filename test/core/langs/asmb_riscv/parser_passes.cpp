@@ -27,6 +27,7 @@
 #include "core/compile/symbol/value.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/langs/asmb_riscv/parser.hpp"
+#include "core/langs/asmb_riscv/parser_error.hpp"
 
 namespace {
 static auto data = [](auto str) { return pepp::tc::support::SeekableData{str}; };
@@ -480,6 +481,42 @@ TEST_CASE("RISCV ASM parser dot commands",
       auto p = Parser(data(source));
       (void)p.parse(diag);
       CHECK(diag.count() == 1);
+    }
+  }
+  // Conditionals are shared with Pep/10, whose tests cover them in more depth.
+  SECTION("Conditionals") {
+    const auto parse = [](const char *source, DiagnosticTable &diag) { return Parser(data(source)).parse(diag); };
+    {
+      // Skipped lines (including the .else) produce no IR, and an untaken .elseif has unevaluated arguments.
+      DiagnosticTable diag;
+      const auto results = parse(".if 0x10000\n.byte 1\n.elseif undefined\n.byte 2\n.else\n.byte 3\n.endif", diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 4);
+      CHECK(std::dynamic_pointer_cast<DotConditional>(results[0]));
+      CHECK(std::dynamic_pointer_cast<DotLiteral>(results[1])->argument.value->value_as<u8>() == 1);
+      CHECK(std::dynamic_pointer_cast<DotConditional>(results[2]));
+      CHECK(std::dynamic_pointer_cast<DotConditional>(results[3]));
+    }
+    {
+      // A conditional nested in an untaken branch is skipped.
+      DiagnosticTable diag;
+      const auto results = parse("k: .equ 0\n.if k\n.if 1\n.byte 1\n.endif\n.else\nadd x1, x2, x3\n.endif", diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 5);
+      CHECK(std::dynamic_pointer_cast<RTypeIR>(results[3]));
+    }
+    using RVPE = RISCVParserError;
+    for (const auto &[source, error] : std::vector<std::pair<const char *, RVPE::NullaryError>>{
+             {".if 0", RVPE::NullaryError::Conditional_Unterminated},
+             {".endif", RVPE::NullaryError::Conditional_UnmatchedEndif},
+             {".if 0\n.else\n.else\n.endif", RVPE::NullaryError::Conditional_MultipleElse},
+             {"x: .word 0\n.if x", RVPE::NullaryError::Conditional_NotConstant},
+         }) {
+      CAPTURE(source);
+      DiagnosticTable diag;
+      (void)parse(source, diag);
+      REQUIRE(diag.count() == 1);
+      CHECK(diag.cbegin()->second == RVPE::to_string(error));
     }
   }
 }

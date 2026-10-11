@@ -157,6 +157,7 @@ struct PeppObjectVistitor : public PepIRVisitor {
   void visit(const DotSection *) override;
   void visit(const DotAnnotate *) override;
   void visit(const DotOrg *) override;
+  void visit(const DotConditional *) override;
   void visit(const InlineMacroDefinition *) override;
   void visit(const MacroInstantiation *) override;
 };
@@ -254,6 +255,10 @@ void pepp::tc::PeppObjectVistitor::visit(const DotAnnotate *) {
 }
 
 void pepp::tc::PeppObjectVistitor::visit(const DotOrg *) {
+  // Does not generate object code
+}
+
+void pepp::tc::PeppObjectVistitor::visit(const DotConditional *) {
   // Does not generate object code
 }
 

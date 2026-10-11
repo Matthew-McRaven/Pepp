@@ -24,6 +24,7 @@ void pepp::tc::accept(RISCVIRVisitor &visitor, const LinearIR *line) {
   case DotEquate::TYPE: visitor.visit(static_cast<const DotEquate *>(line)); break;
   case DotSection::TYPE: visitor.visit(static_cast<const DotSection *>(line)); break;
   case DotOrg::TYPE: visitor.visit(static_cast<const DotOrg *>(line)); break;
+  case DotConditional::TYPE: visitor.visit(static_cast<const DotConditional *>(line)); break;
   default: throw std::logic_error("Unknown IR line type");
   }
 }

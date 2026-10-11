@@ -21,11 +21,18 @@ const std::string pepp::tc::RISCVParserError::to_string(NullaryError err) {
   case NullaryError::Argument_Exceeded4Bytes: return "Argument exceeds 4 bytes";
   case NullaryError::Argument_ExpectedFenceOrdering: return "Expected fence ordering of 'iorw' or '0'";
   case NullaryError::Argument_SymbolicEquate: return "An .EQUATE may only reference .EQUATEs defined before it";
+  case NullaryError::Argument_Missing: return "Expected an argument";
   case NullaryError::Section_StringName: return "Expected section name string";
   case NullaryError::Section_TwoArgs: return "Section directive takes exactly two arguments";
   case NullaryError::Section_StringFlags: return "Expected section flags string";
   case NullaryError::SymbolDeclaration_Required: return "Expected symbol declaration";
   case NullaryError::SymbolDeclaration_Forbidden: return "Unexpected symbol declaration";
+  case NullaryError::Conditional_UnmatchedEndif: return "Unmatched .ENDIF directive";
+  case NullaryError::Conditional_UnmatchedElseif: return "Unmatched .ELSEIF directive";
+  case NullaryError::Conditional_UnmatchedElse: return "Unmatched .ELSE directive";
+  case NullaryError::Conditional_MultipleElse: return "Multiple .ELSE directives in the same conditional";
+  case NullaryError::Conditional_Unterminated: return "Unterminated conditional directive";
+  case NullaryError::Conditional_NotConstant: return "A conditional must be constant or previously-EQUATE'd symbol";
   }
   PEPP_UNREACHABLE();
 }

@@ -125,6 +125,7 @@ struct RISCVObjectVistitor : public RISCVIRVisitor {
   void visit(const DotEquate *) override;
   void visit(const DotSection *) override;
   void visit(const DotOrg *) override;
+  void visit(const DotConditional *) override;
 };
 
 pepp::tc::RISCVObjectVistitor::RISCVObjectVistitor(
@@ -219,6 +220,10 @@ void pepp::tc::RISCVObjectVistitor::visit(const DotSection *) {
 }
 
 void pepp::tc::RISCVObjectVistitor::visit(const DotOrg *) {
+  // Does not generate object code
+}
+
+void pepp::tc::RISCVObjectVistitor::visit(const DotConditional *) {
   // Does not generate object code
 }
 

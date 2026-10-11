@@ -21,6 +21,7 @@ public:
     Argument_Exceeded4Bytes,
     Argument_ExpectedFenceOrdering,
     Argument_SymbolicEquate,
+    Argument_Missing,
     Section_StringName,
     Section_TwoArgs,
     Section_StringFlags,
@@ -28,6 +29,12 @@ public:
     SymbolDeclaration_Forbidden,
     Token_MissingNewline,
     Token_MissingComma,
+    Conditional_UnmatchedEndif,
+    Conditional_UnmatchedElseif,
+    Conditional_UnmatchedElse,
+    Conditional_MultipleElse,
+    Conditional_Unterminated,
+    Conditional_NotConstant,
   };
   enum class UnaryError { Token_Invalid, Dot_Invalid, Expression_Invalid };
 

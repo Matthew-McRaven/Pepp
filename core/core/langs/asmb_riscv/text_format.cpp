@@ -97,6 +97,7 @@ struct RISCVSourceVisitor : public RISCVIRVisitor {
   void visit(const DotEquate *) override;
   void visit(const DotSection *) override;
   void visit(const DotOrg *) override;
+  void visit(const DotConditional *) override;
 };
 } // namespace pepp::tc
 
@@ -153,6 +154,19 @@ void pepp::tc::RISCVSourceVisitor::visit(const DotSection *line) {
 void pepp::tc::RISCVSourceVisitor::visit(const DotOrg *line) {
   const auto dot = line->behavior == DotOrg::Behavior::BURN ? ".burn" : ".org";
   text = riscv_format_as_columns("", dot, line->argument.value->string(), ::comment_of(line));
+}
+
+void pepp::tc::RISCVSourceVisitor::visit(const DotConditional *line) {
+  std::string dot = "";
+  using Behavior = DotConditional::Behavior;
+  switch (line->behavior) {
+  case Behavior::IF: dot = ".if"; break;
+  case Behavior::ELSEIF: dot = ".elseif"; break;
+  case Behavior::ELSE: dot = ".else"; break;
+  case Behavior::ENDIF: dot = ".endif"; break;
+  }
+  const auto arg = line->argument.value ? line->argument.value->string() : "";
+  text = riscv_format_as_columns("", dot, arg, ::comment_of(line));
 }
 
 std::string pepp::tc::riscv_format_source(const LinearIR *line) {

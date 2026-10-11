@@ -9,6 +9,7 @@
 #include "core/compile/lex/buffer.hpp"
 #include "core/compile/macro/macro_registry.hpp"
 #include "core/compile/macro/macro_replacement.hpp"
+#include "core/langs/asmb/conditionals.hpp"
 #include "core/compile/source/seekable.hpp"
 #include "core/langs/asmb/ir_program.hpp"
 
@@ -73,20 +74,12 @@ private:
   std::shared_ptr<pepp::tc::MacroRegistry> _macros;
 
   MacroCounters _counters;
-  struct ConditionalStack {
-    bool matched_any = false; // True if any conditional guard has been meet at this level. Used to prevent selecting
-                              // further elseif/else blocks
-    bool matched_this_stmt = false; // Only true in the conditional block which first matches is guard
-    bool matched_else = false;      // Prevent matching an elseif after an else
-  };
-  std::vector<ConditionalStack> _conditionals;
+  Conditionals _conditionals;
   // The location counter (`.`) of the line being parsed, if used on the current line.
   std::shared_ptr<pepp::core::symbol::Entry> _location_counter;
   // if non-zero, takes precedence over _conditionals until 0.
   // incremented when macro returns non-nullptr, decremented by the skip loop in statement
   u16 _active_macro_defs = 0;
-  // Skip mode is true when any element in _conditionals sets matched_this_stmt=false.
-  bool in_false_conditional() const;
 };
 
 IRProgram flatten_macros(IRProgram const &program, bool macro_comments = false);

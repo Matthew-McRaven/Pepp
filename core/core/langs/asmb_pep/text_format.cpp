@@ -40,6 +40,7 @@ struct SourceVisitor : public PepIRVisitor {
   void visit(const DotSection *);
   void visit(const DotAnnotate *);
   void visit(const DotOrg *);
+  void visit(const DotConditional *);
   void visit(const InlineMacroDefinition *);
   void visit(const MacroInstantiation *);
 };
@@ -170,6 +171,19 @@ void pepp::tc::SourceVisitor::visit(const InlineMacroDefinition *line) {
       bits::rtrimmed_view(line->body),                              // The body text, which we cannot format nicely
       format_as_columns("", ".ENDM", "", "")                        // And the trailing .endm
   );
+}
+
+void pepp::tc::SourceVisitor::visit(const DotConditional *line) {
+  std::string dot = "", comment = "";
+  using Behavior = DotConditional::Behavior;
+  switch (line->behavior) {
+  case Behavior::IF: dot = ".IF"; break;
+  case Behavior::ELSEIF: dot = ".ELSEIF"; break;
+  case Behavior::ELSE: dot = ".ELSE"; break;
+  case Behavior::ENDIF: dot = ".ENDIF"; break;
+  }
+  if (auto maybe_comment = line->typed_attribute<Comment>(); maybe_comment) comment = ";" + maybe_comment->value;
+  text = format_as_columns("", dot, line->argument.value ? line->argument.value->string() : "", comment);
 }
 
 void pepp::tc::SourceVisitor::visit(const MacroInstantiation *line) {
