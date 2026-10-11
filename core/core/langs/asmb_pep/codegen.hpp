@@ -50,7 +50,7 @@ PeppSectionAnalysisResults pepp_split_to_sections(DiagnosticTable &diag, IRProgr
 IRMemoryAddressTable<PeppAddress> pepp_assign_addresses(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
                                                         u16 initial_base_address = 0);
 
-ProgramObjectCodeResult pepp_to_object_code(const IRMemoryAddressTable<PeppAddress> &,
+ProgramObjectCodeResult pepp_to_object_code(DiagnosticTable &diag, const IRMemoryAddressTable<PeppAddress> &,
                                             std::vector<std::pair<SectionDescriptor, IRProgram>> &prog);
 
 ElfResult pepp_to_elf(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,

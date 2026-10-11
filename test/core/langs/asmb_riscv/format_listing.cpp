@@ -40,7 +40,7 @@ std::vector<std::string> listing_of(const std::string &source, u32 base) {
   auto &sections = split.grouped_ir;
   REQUIRE(sections.size() == 1);
   const auto addresses = pepp::tc::riscv_assign_addresses(sections, base);
-  const auto object_code = pepp::tc::riscv_to_object_code(addresses, sections);
+  const auto object_code = pepp::tc::riscv_to_object_code(diag, addresses, sections);
   return pepp::tc::riscv_format_listing(sections[0].second, addresses, object_code);
 }
 

@@ -99,14 +99,15 @@ pepp::tc::riscv_assign_addresses(std::vector<std::pair<SectionDescriptor, IRProg
 
 namespace pepp::tc {
 struct RISCVObjectVistitor : public RISCVIRVisitor {
+  DiagnosticTable &diag;
   const IRMemoryAddressTable<RISCVAddress> &ir_to_address;
   const u32 base_address;
   // On each call, out_bytes will be shortened by the size of the visited line;
   bits::span<u8> out_bytes;
   std::vector<Relocation> &relocations;
   IR2ObjectCodeMap &ir_to_object_code;
-  RISCVObjectVistitor(const IRMemoryAddressTable<RISCVAddress> &, const u32 base_address, bits::span<u8>,
-                      std::vector<Relocation> &, IR2ObjectCodeMap &);
+  RISCVObjectVistitor(DiagnosticTable &, const IRMemoryAddressTable<RISCVAddress> &, const u32 base_address,
+                      bits::span<u8>, std::vector<Relocation> &, IR2ObjectCodeMap &);
   // Integer instructions can delegate to a shared implementation.
   // If pc_relative and the argument is relocatable, emit argument - address rather than argument.
   void emit_line(const IntegerInstruction *line, bool pc_relative = false);
@@ -131,9 +132,9 @@ struct RISCVObjectVistitor : public RISCVIRVisitor {
 };
 
 pepp::tc::RISCVObjectVistitor::RISCVObjectVistitor(
-    const IRMemoryAddressTable<RISCVAddress> &ir_to_address, const u32 base_address, bits::span<u8> out_bytes,
-    std::vector<Relocation> &relocs, IR2ObjectCodeMap &ir_to_object_code)
-    : ir_to_address(ir_to_address), base_address(base_address), out_bytes(out_bytes), relocations(relocs),
+    DiagnosticTable &diag, const IRMemoryAddressTable<RISCVAddress> &ir_to_address, const u32 base_address,
+    bits::span<u8> out_bytes, std::vector<Relocation> &relocs, IR2ObjectCodeMap &ir_to_object_code)
+    : diag(diag), ir_to_address(ir_to_address), base_address(base_address), out_bytes(out_bytes), relocations(relocs),
       ir_to_object_code(ir_to_object_code) {}
 
 void pepp::tc::RISCVObjectVistitor::visit(const EmptyLine *) {
@@ -239,9 +240,9 @@ void pepp::tc::RISCVObjectVistitor::visit(const MacroInstantiation *) {
 
 } // namespace pepp::tc
 pepp::tc::ProgramObjectCodeResult
-pepp::tc::riscv_to_object_code(const IRMemoryAddressTable<RISCVAddress> &addresses,
+pepp::tc::riscv_to_object_code(DiagnosticTable &diag, const IRMemoryAddressTable<RISCVAddress> &addresses,
                                std::vector<std::pair<SectionDescriptor, IRProgram>> &prog) {
-  return to_object_code<RISCVAddress, RISCVObjectVistitor>(addresses, prog);
+  return to_object_code<RISCVAddress, RISCVObjectVistitor>(diag, addresses, prog);
 }
 
 pepp::tc::ElfResult pepp::tc::riscv_to_elf(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,

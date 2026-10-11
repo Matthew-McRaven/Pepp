@@ -29,7 +29,8 @@ DriverResult assemble_riscv(const RISCVDriverConfig &cfg, const FormattingConfig
   if (result.diagnostics.count() > 0) return result;
 
   auto addresses = riscv_assign_addresses(split.grouped_ir);
-  auto object_code = riscv_to_object_code(addresses, split.grouped_ir);
+  auto object_code = riscv_to_object_code(result.diagnostics, addresses, split.grouped_ir);
+  if (result.diagnostics.count() > 0) return result;
   if (fmtcfg.listing_format) {
     auto listing = riscv_format_listing(flattened, addresses, object_code);
     fmtcfg.listing_format(std::move(listing));

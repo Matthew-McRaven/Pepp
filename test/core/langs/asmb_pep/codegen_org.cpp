@@ -170,7 +170,7 @@ CPBA '+',i
   auto result = pepp::tc::pepp_split_to_sections(diag, code);
   REQUIRE(diag.count() == 0);
   auto addresses = pepp::tc::pepp_assign_addresses(result.grouped_ir);
-  auto oc = pepp::tc::pepp_to_object_code(addresses, result.grouped_ir);
+  auto oc = pepp::tc::pepp_to_object_code(diag, addresses, result.grouped_ir);
   REQUIRE(oc.section_slices.size() == 1);
 
   const auto &slice = oc.section_slices[0];

@@ -122,7 +122,7 @@ TEST_CASE("Pepp ASM listing formatting",
     CHECK(diag.count() == 0);
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
-    auto object_code = pepp::tc::pepp_to_object_code(addresses, sections);
+    auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
     auto listing = format_listing(r[0].get(), addresses, object_code);
     CHECK(listing.size() == 1);
     CHECK(listing[0] == "            ;******* STRO");
@@ -141,7 +141,7 @@ ADDA 15,d ;hi)";
     CHECK(diag.count() == 0);
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
-    auto object_code = pepp::tc::pepp_to_object_code(addresses, sections);
+    auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
     auto listing = format_listing(r[0].get(), addresses, object_code);
     CHECK(listing.size() == 1);
     CHECK(listing[0] == "0000 1E     this:    NOTA                ;hi");
@@ -160,7 +160,7 @@ ADDA 15,d ;hi)";
     CHECK(diag.count() == 0);
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
-    auto object_code = pepp::tc::pepp_to_object_code(addresses, sections);
+    auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
     auto listing = format_listing(r[0].get(), addresses, object_code);
     CHECK(listing.size() == 3);
     CHECK(listing[0] == "0000 000000 execErr: .BLOCK  7");
@@ -191,7 +191,7 @@ TEST_CASE("Pepp ASM symbol-only line formatting",
   CHECK(diag.count() == 0);
   auto &sections = result.grouped_ir;
   auto addresses = pepp::tc::pepp_assign_addresses(sections);
-  auto object_code = pepp::tc::pepp_to_object_code(addresses, sections);
+  auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
   const auto bare = [](const std::string &text) { return fmt::format("{:12}{}", "", text); };
   const std::vector<std::string> expected_listing = {bare(expected_source[0]), bare(expected_source[1]),
                                                      "0000 C1000A " + expected_source[2], bare(expected_source[3])};
@@ -217,7 +217,7 @@ TEST_CASE("Pepp ASM symbol + value operands", "[scope:core][scope:core.langs][le
   CHECK(diag.count() == 0);
   auto &sections = result.grouped_ir;
   auto addresses = pepp::tc::pepp_assign_addresses(sections);
-  auto object_code = pepp::tc::pepp_to_object_code(addresses, sections);
+  auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
 
   // Expressions format with spaces around the operator, and each row shows the bytes that were generated.
   const auto row = [](u16 address, const char *bytes, const char *source) {

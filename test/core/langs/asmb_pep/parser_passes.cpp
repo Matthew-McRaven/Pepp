@@ -726,7 +726,7 @@ TEST_CASE("Pepp ASM symbol-only lines", "[scope:core][scope:core.langs][level:as
   CHECK(diag.count() == 0);
   auto &sections = split.grouped_ir;
   auto addresses = pepp_assign_addresses(sections);
-  (void)pepp_to_object_code(addresses, sections);
+  (void)pepp_to_object_code(diag, addresses, sections);
   const std::vector<Expect> expected = {{"a", 3, 3, Type::Code},   {"b", 3, 3, Type::Code},
                                         {"c", 6, 3, Type::Code},   {"d", 6, 3, Type::Code},
                                         {"f", 9, 3, Type::Code},   {"g", 9, 3, Type::Code},

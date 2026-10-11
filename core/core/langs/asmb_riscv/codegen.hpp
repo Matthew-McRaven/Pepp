@@ -48,7 +48,7 @@ RISCVSectionAnalysisResults riscv_split_to_sections(DiagnosticTable &diag, IRPro
 IRMemoryAddressTable<RISCVAddress> riscv_assign_addresses(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
                                                           u32 initial_base_address = 0);
 
-ProgramObjectCodeResult riscv_to_object_code(const IRMemoryAddressTable<RISCVAddress> &,
+ProgramObjectCodeResult riscv_to_object_code(DiagnosticTable &diag, const IRMemoryAddressTable<RISCVAddress> &,
                                              std::vector<std::pair<SectionDescriptor, IRProgram>> &prog);
 
 ElfResult riscv_to_elf(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,

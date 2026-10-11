@@ -179,7 +179,7 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     auto symbol_tab = p.symbol_table();
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
-    auto object_code = pepp::tc::pepp_to_object_code(addresses, sections);
+    auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
     auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
 
     REQUIRE(sections.size() == 3);
@@ -235,7 +235,7 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     auto symbol_tab = p.symbol_table();
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
-    auto object_code = pepp::tc::pepp_to_object_code(addresses, sections);
+    auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
     auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
 
     // The blank first line joins .data instead of forcing an empty .text into existence.
@@ -261,7 +261,7 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     auto symbol_tab = p.symbol_table();
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
-    auto object_code = pepp::tc::pepp_to_object_code(addresses, sections);
+    auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
     auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
 
     REQUIRE(sections.size() == 3);
@@ -300,7 +300,7 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     auto symbol_tab = p.symbol_table();
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
-    auto object_code = pepp::tc::pepp_to_object_code(addresses, sections);
+    auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
     auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
     auto elf = read_back(elf_result);
     const auto symbols = symbols_of(elf);
@@ -375,7 +375,7 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     auto symbol_tab = p.symbol_table();
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
-    auto object_code = pepp::tc::pepp_to_object_code(addresses, sections);
+    auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
     auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
     auto elf = read_back(elf_result);
     const auto symbols = symbols_of(elf);
@@ -420,7 +420,7 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     auto symbol_tab = p.symbol_table();
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
-    auto object_code = pepp::tc::pepp_to_object_code(addresses, sections);
+    auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
     auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
     auto elf = read_back(elf_result);
     const auto symbols = symbols_of(elf);
@@ -452,7 +452,7 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     auto symbol_tab = p.symbol_table();
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
-    auto object_code = pepp::tc::pepp_to_object_code(addresses, sections);
+    auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
     auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
     auto elf = read_back(elf_result);
     const auto symbols = symbols_of(elf);

@@ -10,6 +10,7 @@
 #include "core/compile/ir_linear/line_symbol.hpp"
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/symbol/entry.hpp"
+#include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/compile/symbol/value.hpp"
 #include "core/formats/elf/packed_storage.hpp"
 #include "core/langs/asmb/ir_program.hpp"
@@ -324,8 +325,9 @@ struct ProgramObjectCodeResult {
   std::vector<pepp::bts::BlockStorage::BlockStorageSlice> section_slices;
 };
 
+// Values which do not fit their field are reported to diag, and their bytes are left as zeros.
 template <typename Address, typename Visitor>
-ProgramObjectCodeResult to_object_code(const IRMemoryAddressTable<Address> &addresses,
+ProgramObjectCodeResult to_object_code(DiagnosticTable &diag, const IRMemoryAddressTable<Address> &addresses,
                                        std::vector<std::pair<SectionDescriptor, IRProgram>> &prog) {
   ProgramObjectCodeResult ret;
   std::vector<detail::SectionOffsets> offsets(prog.size(), detail::SectionOffsets{});
@@ -348,7 +350,7 @@ ProgramObjectCodeResult to_object_code(const IRMemoryAddressTable<Address> &addr
     const auto &[sec, ir] = prog[it];
     const auto &offset = offsets[it];
     auto &slice = ret.section_slices.emplace_back(ret.object_code, offset.object_code_offset, offset.object_code_size);
-    Visitor visitor(addresses, sec.low_address, slice.get(0, slice.size()), ret.relocations[it],
+    Visitor visitor(diag, addresses, sec.low_address, slice.get(0, slice.size()), ret.relocations[it],
                     ret.ir_to_object_code);
     for (const auto &line : ir) visitor.accept(line.get());
   }

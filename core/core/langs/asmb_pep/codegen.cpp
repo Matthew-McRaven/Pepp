@@ -135,14 +135,15 @@ pepp::tc::pepp_assign_addresses(std::vector<std::pair<SectionDescriptor, IRProgr
 
 namespace pepp::tc {
 struct PeppObjectVistitor : public PepIRVisitor {
+  DiagnosticTable &diag;
   const IRMemoryAddressTable<PeppAddress> &ir_to_address;
   const u16 base_address;
   // On each call, out_bytes will be shortened by the size of the visited line;
   bits::span<u8> out_bytes;
   std::vector<Relocation> &relocations;
   IR2ObjectCodeMap &ir_to_object_code;
-  PeppObjectVistitor(const IRMemoryAddressTable<PeppAddress> &, const u16 base_address, bits::span<u8>,
-                     std::vector<Relocation> &, IR2ObjectCodeMap &);
+  PeppObjectVistitor(DiagnosticTable &, const IRMemoryAddressTable<PeppAddress> &, const u16 base_address,
+                     bits::span<u8>, std::vector<Relocation> &, IR2ObjectCodeMap &);
   // Emit a relocation for the argument's symbol.
   void relocate(pepp::ast::IRValue &arg, u16 offset, u32 type);
   void visit(const EmptyLine *) override;
@@ -163,9 +164,9 @@ struct PeppObjectVistitor : public PepIRVisitor {
 };
 
 pepp::tc::PeppObjectVistitor::PeppObjectVistitor(
-    const IRMemoryAddressTable<PeppAddress> &ir_to_address, const u16 base_address, bits::span<u8> out_bytes,
-    std::vector<Relocation> &relocs, IR2ObjectCodeMap &ir_to_object_code)
-    : ir_to_address(ir_to_address), base_address(base_address), out_bytes(out_bytes), relocations(relocs),
+    DiagnosticTable &diag, const IRMemoryAddressTable<PeppAddress> &ir_to_address, const u16 base_address,
+    bits::span<u8> out_bytes, std::vector<Relocation> &relocs, IR2ObjectCodeMap &ir_to_object_code)
+    : diag(diag), ir_to_address(ir_to_address), base_address(base_address), out_bytes(out_bytes), relocations(relocs),
       ir_to_object_code(ir_to_object_code) {}
 
 namespace {
@@ -281,9 +282,9 @@ ELFIO::section *getLineMappingSection(ELFIO::elfio &elf) {
   return lineNumbers;
 }
 
-ProgramObjectCodeResult pepp_to_object_code(const IRMemoryAddressTable<PeppAddress> &addresses,
+ProgramObjectCodeResult pepp_to_object_code(DiagnosticTable &diag, const IRMemoryAddressTable<PeppAddress> &addresses,
                                             std::vector<std::pair<SectionDescriptor, IRProgram>> &prog) {
-  return to_object_code<PeppAddress, PeppObjectVistitor>(addresses, prog);
+  return to_object_code<PeppAddress, PeppObjectVistitor>(diag, addresses, prog);
 }
 
 } // namespace pepp::tc
