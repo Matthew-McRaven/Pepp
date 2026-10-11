@@ -495,8 +495,8 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::pseudo(Option
   case (int)DC::EQUATE: {
     auto arg = argument();
     if (!arg) throw RVPE(RVPE::NullaryError::Argument_ExpectedInteger, buf->matched_interval());
-    else if (arg->minimum_size() > 2)
-      throw RVPE(RVPE::NullaryError::Argument_Exceeded2Bytes, buf->matched_interval());
+    else if (arg->minimum_size() > 4)
+      throw RVPE(RVPE::NullaryError::Argument_Exceeded4Bytes, buf->matched_interval());
     else if (!symbol) throw RVPE(RVPE::NullaryError::SymbolDeclaration_Required, buf->matched_interval());
     // Equates are assigned values as they are parsed. s:.EQUATE y creates an alias which may be a forward reference.
     // s: .EQUATE x+y requires that x and y be previously defined constants.
