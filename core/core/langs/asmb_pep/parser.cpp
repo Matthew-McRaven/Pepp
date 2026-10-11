@@ -540,5 +540,5 @@ void pepp::tc::parser::PepParser::synchronize() {
 
 pepp::tc::IRProgram pepp::tc::parser::flatten_macros(const IRProgram &program, bool macro_comments) {
   const auto comments = macro_comments ? std::optional(MacroComments{format_as_columns, ';'}) : std::nullopt;
-  return flatten_macros(program, allows_symbol, comments);
+  return flatten_macros(program, comments);
 }

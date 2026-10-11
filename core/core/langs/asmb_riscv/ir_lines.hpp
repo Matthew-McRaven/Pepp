@@ -88,9 +88,6 @@ struct ParsedOperands {
 std::shared_ptr<IntegerInstruction> make_instruction(std::string_view name, const riscv::MnemonicDescriptor &desc,
                                                      const ParsedOperands &operands);
 
-// True if a symbol may be declared on the line, e.g. when moving a macro instantiation's symbol into its body.
-bool riscv_allows_symbol(const LinearIR &line);
-
 struct DotSymbol : public LinearIR {
   static constexpr int TYPE = static_cast<int>(LinearIRType::DotSymbol);
   enum class Which { Global, Local, Weak, Hidden } which;

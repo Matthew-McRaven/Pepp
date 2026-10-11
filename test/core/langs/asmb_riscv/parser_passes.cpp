@@ -535,13 +535,15 @@ TEST_CASE("RISCV ASM parser dot commands",
       const auto instantiation = std::dynamic_pointer_cast<MacroInstantiation>(results[1]);
       REQUIRE(instantiation);
       CHECK(instantiation->arguments == std::vector<std::string>{"x5"});
-      const auto flattened = parser::flatten_macros(results, riscv_allows_symbol);
-      REQUIRE(flattened.size() == 1);
-      const auto addi = std::dynamic_pointer_cast<ITypeIR>(flattened[0]);
+      const auto flattened = parser::flatten_macros(results);
+      REQUIRE(flattened.size() == 2);
+      const auto symbol = std::dynamic_pointer_cast<SymbolLine>(flattened[0]);
+      REQUIRE(symbol);
+      CHECK(symbol->symbol.entry->name == "top");
+      const auto addi = std::dynamic_pointer_cast<ITypeIR>(flattened[1]);
       REQUIRE(addi);
       CHECK(addi->rd == 5);
       CHECK(addi->rs1 == 5);
-      CHECK(addi->typed_attribute<SymbolDeclaration>()->entry->name == "top");
     }
     using RVPE = RISCVParserError;
     for (const auto &[source, error] : std::vector<std::pair<const char *, RVPE::NullaryError>>{

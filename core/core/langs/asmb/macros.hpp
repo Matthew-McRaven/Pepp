@@ -63,9 +63,8 @@ struct MacroComments {
   std::function<std::string(const std::string &, const std::string &, const std::string &, const std::string &)> columns;
   char comment_leader;
 };
-// Replace each macro instantiation with its lines, and drop macro definitions. A symbol on an instantiation moves to the
-// first line of its body which allows_symbol, or to a new `.BLOCK 0` if a line with object code comes first.
-IRProgram flatten_macros(const IRProgram &program, const std::function<bool(const LinearIR &)> &allows_symbol,
-                         std::optional<MacroComments> comments = std::nullopt);
+// Replace each macro instantiation with its lines, and drop macro definitions. An instantiation's symbol is declared on
+// a line of its own before them.
+IRProgram flatten_macros(const IRProgram &program, std::optional<MacroComments> comments = std::nullopt);
 
 } // namespace pepp::tc::parser

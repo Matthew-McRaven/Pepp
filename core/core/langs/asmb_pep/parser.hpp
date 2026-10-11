@@ -81,7 +81,7 @@ private:
   MacroCapture _macro_capture;
 };
 
-IRProgram flatten_macros(IRProgram const &program, bool macro_comments = false);
+IRProgram flatten_macros(IRProgram const &program, bool macro_comments);
 } // namespace parser
 } // namespace tc
 } // namespace pepp

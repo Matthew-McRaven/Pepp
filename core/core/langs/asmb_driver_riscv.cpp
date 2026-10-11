@@ -3,7 +3,6 @@
 #include "asmb_driver.hpp"
 #include "core/compile/source/seekable.hpp"
 #include "core/langs/asmb/macros.hpp"
-#include "core/langs/asmb_riscv/ir_lines.hpp"
 #include "core/langs/asmb_riscv/codegen.hpp"
 #include "core/langs/asmb_riscv/parser.hpp"
 #include "core/langs/asmb_riscv/text_format.hpp"
@@ -25,7 +24,7 @@ DriverResult assemble_riscv(const RISCVDriverConfig &cfg, const FormattingConfig
 
   std::optional<parser::MacroComments> comments;
   if (fmtcfg.listing_format) comments = parser::MacroComments{riscv_format_as_columns, '#'};
-  auto flattened = parser::flatten_macros(program, riscv_allows_symbol, comments);
+  auto flattened = parser::flatten_macros(program, comments);
   auto split = riscv_split_to_sections(result.diagnostics, flattened);
   if (result.diagnostics.count() > 0) return result;
 
