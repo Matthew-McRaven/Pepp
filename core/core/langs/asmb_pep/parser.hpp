@@ -10,6 +10,7 @@
 #include "core/compile/macro/macro_registry.hpp"
 #include "core/compile/macro/macro_replacement.hpp"
 #include "core/langs/asmb/conditionals.hpp"
+#include "core/langs/asmb/macros.hpp"
 #include "core/compile/source/seekable.hpp"
 #include "core/langs/asmb/ir_program.hpp"
 
@@ -77,9 +78,7 @@ private:
   Conditionals _conditionals;
   // The location counter (`.`) of the line being parsed, if used on the current line.
   std::shared_ptr<pepp::core::symbol::Entry> _location_counter;
-  // if non-zero, takes precedence over _conditionals until 0.
-  // incremented when macro returns non-nullptr, decremented by the skip loop in statement
-  u16 _active_macro_defs = 0;
+  MacroCapture _macro_capture;
 };
 
 IRProgram flatten_macros(IRProgram const &program, bool macro_comments = false);

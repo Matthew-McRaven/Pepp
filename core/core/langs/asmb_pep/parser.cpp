@@ -1,6 +1,4 @@
 #include "core/langs/asmb_pep/parser.hpp"
-#include <deque>
-#include <fmt/ranges.h>
 #include <optional>
 #include <stdexcept>
 #include <utility>
@@ -104,6 +102,17 @@ pepp::tc::PepParserError conditional_error(pepp::tc::parser::Conditionals::Error
   }
   PEPP_UNREACHABLE();
 }
+
+pepp::tc::PepParserError macro_error(const pepp::tc::parser::MacroCapture::Error &error) {
+  using K = pepp::tc::parser::MacroCapture::Error::Kind;
+  using PE = pepp::tc::PepParserError;
+  switch (error.kind) {
+  case K::MissingNewline: return PE(PE::NullaryError::Token_MissingNewline, error.location);
+  case K::Unterminated: return PE(PE::NullaryError::Macro_Unterminated, error.location);
+  case K::Redefinition: return PE(PE::UnaryError::Macro_Redefinition, error.macro, error.location);
+  }
+  PEPP_UNREACHABLE();
+}
 } // namespace
 
 static const u8 MAX_PARSE_DEPTH = 4;
@@ -145,16 +154,9 @@ pepp::tc::IRProgram pepp::tc::parser::PepParser::do_parse(DiagnosticTable &diag,
   return lines;
 }
 
-static const auto split_args = [](std::shared_ptr<pepp::tc::lex::Token> const &t) {
-  if (t->type() != pepp::tc::lex::Literal::TYPE) return false;
-  auto lit = std::static_pointer_cast<pepp::tc::lex::Literal>(t);
-  return lit->literal == ",";
-};
-
 std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::macro(DiagnosticTable &diag, OptionalSymbol symbol) {
   auto buf = active_buffer();
   auto lexer = active_lexer();
-  // helper predicate to split token span on comma literals.
   lex::Checkpoint cp(*buf);
   auto maybe_macro = buf->match<lex::Identifier>();
   if (!maybe_macro) return cp.rollback(), nullptr;
@@ -166,16 +168,8 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::macro(Diagnosti
   while (auto matched = buf->match_not<tc::lex::Empty, tc::lex::EoF, tc::lex::InlineComment>()) {
     // Consume all no-comments, non-empty tokens until the end of the current line.
   }
-  // Get tokens after the macro name, split on commas, re-assmble to strings.
-  auto tokens = buf->matched_tokens_after(cp.marker());
-  std::vector<std::string> args;
-  std::span<std::shared_ptr<pepp::tc::lex::Token> const> head, rest = tokens;
-  while (!rest.empty()) {
-    std::tie(head, rest) = pepp::tc::split_exclusive(rest, split_args);
-    const auto first_loc = head.front()->location().lower(), last_loc = head.back()->location().upper();
-    auto arg = lexer->view(support::LocationInterval(first_loc, last_loc));
-    args.emplace_back(arg);
-  }
+  // The arguments are the text of the tokens after the macro name.
+  const auto args = split_arguments(buf->matched_tokens_after(cp.marker()), *lexer);
   auto ret = std::make_shared<MacroInstantiation>(macro_def, args);
   auto rep = _counters.counters_for(macro_def->name);
   // TODO: Validate # of matched arguments vs number of args in definition, accounting for default values.
@@ -421,17 +415,11 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
     lex::Marker marker(*buf);
     // Consume tokens until the EoL is reached, then attempt to split into arguments.
     buf->match_until<lex::Empty, lex::EoF>();
-    auto tokens = buf->matched_tokens_after(marker);
-    std::vector<std::string> args;
-    std::span<std::shared_ptr<pepp::tc::lex::Token> const> head, rest = tokens;
-    while (!rest.empty()) {
-      std::tie(head, rest) = pepp::tc::split_exclusive(rest, split_args);
-      const auto first_loc = head.front()->location().lower(), last_loc = head.back()->location().upper();
-      auto arg = lexer->view(support::LocationInterval(first_loc, last_loc));
-      args.emplace_back(arg);
-    }
-    _active_macro_defs++;
-    return std::make_shared<InlineMacroDefinition>(name->to_string(), args);
+    auto definition = std::make_shared<InlineMacroDefinition>(
+        name->to_string(), split_arguments(buf->matched_tokens_after(marker), *lexer));
+    // The body follows, and is read once this line is parsed.
+    _macro_capture.begin(definition);
+    return definition;
   }
   case (int)DC::END_MACRO: {
     throw PepParserError(PepParserError::NullaryError::Macro_UnmatchedEndm, buf->matched_interval());
@@ -519,69 +507,23 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::statement(Diagn
   // This way we can preserve an invariant that the first token consumed by statement is a part of the returned IR line.
   // This is particularly helpful for macros definitions where we need to associate the macro IR object with its inline
   // body.
+  if (_macro_capture.capturing()) {
+    if (const auto ok = _macro_capture.capture(*lexer, *_macros); !ok) throw macro_error(ok.error());
+  }
+
   const auto start_depth = _conditionals.depth();
   const auto start_ival = lexer->current_location();
   // Consume tokens directly from lexer without buffering to avoid buffer-clearing bugs.
-  while ((_active_macro_defs > 0 || _conditionals.skipping()) && lexer->input_remains()) {
+  while (_conditionals.skipping() && lexer->input_remains()) {
     auto token = lexer->next_token();
-    if (_active_macro_defs > 0) {
-      // Need to capture all body tokens! Else chaos ensues.
-      buf->push_token(token);
-      // Need to count start / ends of macro definitions.
-      if (token && token->type() == lex::DotCommand::TYPE) {
-        auto dot_str = bits::to_upper(token->to_string());
-        if (dot_str == "MACRO") _active_macro_defs++;
-        else if (dot_str == "ENDM") {
-          if (lexer->input_remains()) {
-            auto la2 = lexer->next_token();
-            if (!la2 || la2->type() != lex::Empty::TYPE)
-              throw PepParserError(PepParserError::NullaryError::Token_MissingNewline, buf->matched_interval());
-            buf->push_token(la2);
-          }
-          _active_macro_defs--;
-        }
-      }
-
-      if (_active_macro_defs == 0) {
-        auto as_macro = std::dynamic_pointer_cast<InlineMacroDefinition>(ret);
-        if (!as_macro) throw std::logic_error("Expected an InlineMacroDefinition");
-        // Flush collected tokens so future statements parse normally.
-        lex::Checkpoint cp(*buf);
-        auto tokens = buf->buffered_tokens();
-
-        auto macro_def = std::make_shared<MacroDefinition>();
-        macro_def->name = as_macro->name;
-        for (const auto &arg : as_macro->arguments)
-          macro_def->arguments.emplace_back(MacroDefinition::Argument{.name = arg, .default_value = std::nullopt});
-
-        // Strip final .ENDM NEWLINE token from macro body while handling edgecase of an empty body.
-        if (tokens.size() > 2) {
-          // Drop trailing .endm token from macro body.
-          tokens = tokens.subspan(0, tokens.size() - 2);
-
-          const auto first_loc = tokens.front()->location().lower(), last_loc = tokens.back()->location().upper();
-          auto str = lexer->view(support::LocationInterval(first_loc, last_loc));
-          as_macro->body = macro_def->body = str;
-        } else macro_def->body = "";
-
-        auto success = _macros->insert(macro_def);
-        if (!success)
-          throw PepParserError(PepParserError::UnaryError::Macro_Redefinition, as_macro->name,
-                               {start_ival, tokens.back()->location().upper()});
-      }
-    }
     // Do not consume a directive which may end the skip, so that it is parsed and emits its IR line.
-    else if (token && _conditionals.resumes_at(*token, start_depth)) {
+    if (token && _conditionals.resumes_at(*token, start_depth)) {
       buf->push_token(token);
       break;
     }
   }
 
-  if (!buf->input_remains() && _active_macro_defs > 0) {
-    const auto end_ival = lexer->current_location();
-    support::LocationInterval ival{start_ival, end_ival};
-    throw PepParserError(PepParserError::NullaryError::Macro_Unterminated, ival);
-  } else if (!buf->input_remains() && _conditionals.depth() > 0) {
+  if (!buf->input_remains() && _conditionals.depth() > 0) {
     const auto end_ival = lexer->current_location();
     support::LocationInterval ival{start_ival, end_ival};
     throw PepParserError(PepParserError::NullaryError::Conditional_Unterminated, ival);
@@ -598,69 +540,6 @@ void pepp::tc::parser::PepParser::synchronize() {
 }
 
 pepp::tc::IRProgram pepp::tc::parser::flatten_macros(const IRProgram &program, bool macro_comments) {
-  IRProgram ret;
-  // While copying the input is annoying,we can prepend to the dequeue easily enough.
-  // To handle tree structures
-  std::deque<std::shared_ptr<tc::LinearIR>> work_queue;
-  // Insert all lines into a work queue, which allows us to flatten macros as we go.
-  work_queue.insert(work_queue.end(), program.begin(), program.end());
-  while (!work_queue.empty()) {
-    auto line = work_queue.front();
-    work_queue.pop_front();
-    switch (line->type()) {
-    case InlineMacroDefinition::TYPE: continue;
-    case MacroInstantiation::TYPE: {
-      // Extract all of the macro lines to the front of the work queue.
-      auto as_macro = std::static_pointer_cast<pepp::tc::MacroInstantiation>(line);
-      auto lines = as_macro->lines;
-      // Remove the final trailing \n for nicer listing output.
-      bool skip_last = lines.back()->type() == EmptyLine::TYPE;
-      if (macro_comments) {
-        auto end = format_as_columns(";", "End " + as_macro->macro->name, "", "").substr(1);
-        work_queue.push_front(std::make_shared<CommentLine>(Comment{std::move(end)}));
-      }
-      work_queue.insert(work_queue.begin(), lines.begin(), lines.end() - (skip_last ? 1 : 0));
-
-      // If the macro instantiation has a symbol definition, we need to move it into the body of the macro
-      if (as_macro->has_attribute<SymbolDeclaration>()) {
-        auto sym_decl = as_macro->typed_attribute<SymbolDeclaration>();
-        std::shared_ptr<LinearIR> first_code_line = nullptr;
-        // Find the first line of code which accepts a symbol in the macro body.
-        // If a line that generates object code is found before a line which accepts a symbol, we are forced to emit a
-        // .block 0.
-        for (const auto &l : lines) {
-          if (allows_symbol(*l)) {
-            first_code_line = l;
-            break;
-          } else if (l->object_size(0).has_value()) break;
-        }
-        // If that line does not have a symbol, "move" the macro's symbol declaration to that line.
-        // Otherwise, insert a .block 0
-        if (first_code_line && !first_code_line->has_attribute<SymbolDeclaration>()) {
-          first_code_line->insert(std::make_unique<SymbolDeclaration>(sym_decl->entry));
-        } else {
-          auto zero_arg = std::make_shared<pepp::ast::UnsignedDecimal>(0, 1);
-          auto dot_block = std::make_shared<DotBlock>(Argument{zero_arg});
-          dot_block->insert(std::make_unique<SymbolDeclaration>(sym_decl->entry));
-          work_queue.push_front(dot_block);
-        }
-      }
-      if (macro_comments) {
-        std::string symbol = "", comment = "";
-        if (auto maybe_symbol = as_macro->typed_attribute<SymbolDeclaration>(); maybe_symbol)
-          symbol = std::string{maybe_symbol->entry->name} + ":";
-        if (auto maybe_comment = as_macro->typed_attribute<Comment>(); maybe_comment)
-          comment = ";" + maybe_comment->value;
-        const auto args = fmt::format("{}", fmt::join(as_macro->arguments, ", "));
-        auto start = format_as_columns(";" + symbol, as_macro->macro->name, args, comment).substr(1);
-        work_queue.push_front(std::make_shared<CommentLine>(Comment{std::move(start)}));
-      }
-
-      // Do not insert macro IR into the flattned result. It is only used to group existing lines.
-      continue;
-    }
-    default: ret.emplace_back(line);
-    }
-  }
-  return ret;
+  const auto comments = macro_comments ? std::optional(MacroComments{format_as_columns, ';'}) : std::nullopt;
+  return flatten_macros(program, allows_symbol, comments);
 }

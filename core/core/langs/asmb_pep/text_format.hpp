@@ -20,13 +20,6 @@ struct FormatOptions {
 // Insert padding betweens columns when they bleed in to each other, and trims right spaces.
 std::string format_as_columns(const std::string &col0, const std::string &col1, const std::string &col2,
                               const std::string &col3);
-// Split s at the first item matching predicate. That item is dropped, while first holds the items before it and second
-// holds the items after it.
-template <typename T, typename F> std::pair<std::span<T>, std::span<T>> split_exclusive(std::span<T> s, F predicate) {
-  for (std::size_t i = 0; i < s.size(); ++i)
-    if (predicate(s[i])) return {s.first(i), s.subspan(i + 1)};
-  return {s, std::span<T>{}};
-}
 
 // Format a single IR line as Pep/N assembly source code.
 std::string format_source(const LinearIR *line);
