@@ -2,7 +2,9 @@
 #include <memory>
 #include <optional>
 #include <span>
+#include <stack>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/lex/buffer.hpp"
@@ -79,8 +81,11 @@ private:
   void synchronize();
 
   std::shared_ptr<std::unordered_set<std::string>> _pool;
-  std::shared_ptr<pepp::langs::RISCVLexer> _lexer;
-  std::shared_ptr<lex::Buffer> _buffer;
+  // The lexer for the text being parsed, either the source or a macro body expanded within it.
+  lex::Buffer *active_buffer() { return _lexer_stack.top().second.get(); }
+  pepp::langs::RISCVLexer *active_lexer() { return _lexer_stack.top().first.get(); }
+  std::stack<std::pair<std::shared_ptr<pepp::langs::RISCVLexer>, std::shared_ptr<lex::Buffer>>> _lexer_stack;
+  std::shared_ptr<pepp::langs::RISCVLexer> _root_lexer;
   std::shared_ptr<pepp::core::symbol::LeafTable> _symtab;
   // The location counter (`.`) of the line being parsed, created on first use.
   std::shared_ptr<pepp::core::symbol::Entry> _location_counter;

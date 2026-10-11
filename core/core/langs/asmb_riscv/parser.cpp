@@ -92,14 +92,17 @@ pepp::tc::expr::NameLocationCounter resolve_location_counter(pepp::core::symbol:
 
 pepp::tc::parser::RISCVParser::RISCVParser(support::SeekableData &&data)
     : _pool(std::make_shared<std::unordered_set<std::string>>()),
-      _lexer(std::make_shared<langs::RISCVLexer>(_pool, std::move(data))),
-      _buffer(std::make_shared<lex::Buffer>(&*_lexer)), _symtab(std::make_shared<pepp::core::symbol::LeafTable>(2)) {}
+      _root_lexer(std::make_shared<langs::RISCVLexer>(_pool, std::move(data))),
+      _symtab(std::make_shared<pepp::core::symbol::LeafTable>(2)) {
+  _lexer_stack.emplace(_root_lexer, std::make_shared<lex::Buffer>(&*_root_lexer));
+}
 
 std::shared_ptr<pepp::core::symbol::LeafTable> pepp::tc::parser::RISCVParser::symbol_table() const { return _symtab; }
 
 pepp::tc::IRProgram pepp::tc::parser::RISCVParser::parse(DiagnosticTable &diag) {
+  auto buf = active_buffer();
   IRProgram lines;
-  while (_buffer->input_remains()) {
+  while (buf->input_remains()) {
     try {
       if (auto line = statement(); line) lines.emplace_back(line);
     } catch (RISCVParserError &e) {
@@ -110,20 +113,22 @@ pepp::tc::IRProgram pepp::tc::parser::RISCVParser::parse(DiagnosticTable &diag) 
   return lines;
 }
 
-void pepp::tc::parser::RISCVParser::debug_print_tokens(bool debug) { _lexer->print_tokens = debug; }
+void pepp::tc::parser::RISCVParser::debug_print_tokens(bool debug) { _root_lexer->print_tokens = debug; }
 
 std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::RISCVParser::argument() {
+  auto buf = active_buffer();
+  auto lexer = active_lexer();
   constexpr auto invalid = [](const expr::Error &error) {
     return RISCVParserError(RISCVParserError::UnaryError::Expression_Invalid, error.message(), error.location);
   };
   const auto location_counter = resolve_location_counter(*_symtab, _location_counter);
 
-  if (const auto expr = parse_expression(*_buffer, *_lexer, _pool, options, location_counter); !expr)
+  if (const auto expr = parse_expression(*buf, *lexer, _pool, options, location_counter); !expr)
     throw invalid(expr.error());
   else if (*expr) {
     if (const auto value = lower(**expr, _symtab, options.default_type, 4); !value) throw invalid(value.error());
     else return *value;
-  } else if (auto maybeStr = _buffer->match<lex::StringConstant>())
+  } else if (auto maybeStr = buf->match<lex::StringConstant>())
     return std::make_shared<pepp::ast::String>(std::string{maybeStr->view()});
   else return nullptr;
 }
@@ -234,6 +239,8 @@ std::optional<E> mismatch(const riscv::MnemonicDescriptor &desc, std::span<const
 } // namespace
 
 std::vector<pepp::tc::parser::RISCVOperand> pepp::tc::parser::RISCVParser::mnemonic_operands() {
+  auto buf = active_buffer();
+  auto lexer = active_lexer();
   constexpr auto invalid = [](const expr::Error &error) {
     return RISCVParserError(RISCVParserError::UnaryError::Expression_Invalid, error.message(), error.location);
   };
@@ -243,13 +250,13 @@ std::vector<pepp::tc::parser::RISCVOperand> pepp::tc::parser::RISCVParser::mnemo
   // Try an expression before a comma, so that the lexer never lexes an operand's text. An operand may also follow the
   // previous one without a comma, as (x3) does in 0(x3).
   while (true) {
-    if (const auto expr = parse_expression(*_buffer, *_lexer, _pool, options, location_counter); !expr)
+    if (const auto expr = parse_expression(*buf, *lexer, _pool, options, location_counter); !expr)
       throw invalid(expr.error());
     else if (*expr) ret.push_back({*expr, std::exchange(comma, false)});
-    else if (!comma && _buffer->match_literal(",")) comma = true;
+    else if (!comma && buf->match_literal(",")) comma = true;
     else break;
   }
-  if (comma) throw RISCVParserError(E::Argument_ExpectedIdentNumeric, _buffer->matched_interval());
+  if (comma) throw RISCVParserError(E::Argument_ExpectedIdentNumeric, buf->matched_interval());
   return ret;
 }
 
@@ -283,8 +290,9 @@ pepp::tc::parser::RISCVParser::match_alternative(const riscv::Mnemonic &entry, s
 }
 
 std::shared_ptr<pepp::tc::IntegerInstruction> pepp::tc::parser::RISCVParser::instruction() {
-  lex::Checkpoint cp(*_buffer);
-  const auto maybe_instr = _buffer->match<lex::Identifier>();
+  auto buf = active_buffer();
+  lex::Checkpoint cp(*buf);
+  const auto maybe_instr = buf->match<lex::Identifier>();
   if (!maybe_instr) return cp.rollback(), nullptr;
   auto instr_str = maybe_instr->to_string();
   bits::to_lower_inplace(instr_str);
@@ -300,7 +308,7 @@ std::shared_ptr<pepp::tc::IntegerInstruction> pepp::tc::parser::RISCVParser::ins
     else if (fit = true; auto built = match_alternative(*candidate, ops)) return built;
   }
   // Report why the most recent pattern did not fit. If there was a fit but it returned nullptr, roll back.
-  if (!fit && problem) throw RISCVParserError(*problem, _buffer->matched_interval());
+  if (!fit && problem) throw RISCVParserError(*problem, buf->matched_interval());
   return cp.rollback(), nullptr;
 }
 
@@ -345,18 +353,19 @@ static const auto dot_map = std::map<std::string, int>{
 } // namespace
 
 std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::pseudo(OptionalSymbol symbol) {
+  auto buf = active_buffer();
   using RVPE = RISCVParserError;
-  auto dot = _buffer->match<lex::DotCommand>();
+  auto dot = buf->match<lex::DotCommand>();
   if (!dot) return nullptr;
   auto dot_str = bits::to_upper(dot->to_string());
   auto it = dot_map.find(dot_str);
-  if (it == dot_map.cend()) throw RVPE(RVPE::UnaryError::Dot_Invalid, dot_str, _buffer->matched_interval());
+  if (it == dot_map.cend()) throw RVPE(RVPE::UnaryError::Dot_Invalid, dot_str, buf->matched_interval());
 
   switch (it->second) {
   case (int)LDC::ALIGN_P2: [[fallthrough]];
   case (int)LDC::ALIGN_BYTE: {
     auto arg = numeric_argument();
-    if (!arg) throw RVPE(RVPE::NullaryError::Argument_ExpectedInteger, _buffer->matched_interval());
+    if (!arg) throw RVPE(RVPE::NullaryError::Argument_ExpectedInteger, buf->matched_interval());
     u16 value;
     bits::span<u8> buf{(u8 *)&value, 2};
     (void)arg->serialize(buf, bits::hostOrder());
@@ -368,7 +377,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::pseudo(Option
   case (int)LDC::SYMBOL_LOCAL: [[fallthrough]];
   case (int)LDC::SYMBOL_WEAK: {
     auto arg = identifier_argument();
-    if (!arg) throw RVPE(RVPE::NullaryError::Argument_ExpectedIdentifier, _buffer->matched_interval());
+    if (!arg) throw RVPE(RVPE::NullaryError::Argument_ExpectedIdentifier, buf->matched_interval());
     DotSymbol::Which w;
     if (it->second == (int)LDC::SYMBOL_GLOBAL) {
       w = DotSymbol::Which::Global;
@@ -388,8 +397,8 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::pseudo(Option
   }
 
   case (int)DC::ASCII: {
-    if (auto maybeStr = _buffer->match<lex::StringConstant>(); !maybeStr)
-      throw RVPE(RVPE::NullaryError::Argument_ExpectedString, _buffer->matched_interval());
+    if (auto maybeStr = buf->match<lex::StringConstant>(); !maybeStr)
+      throw RVPE(RVPE::NullaryError::Argument_ExpectedString, buf->matched_interval());
     else {
       const auto asStr = std::string{maybeStr->view()};
       Argument arg{std::make_shared<pepp::ast::String>(asStr)};
@@ -397,8 +406,8 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::pseudo(Option
     }
   }
   case (int)LDC::ASCIZ: {
-    if (auto maybeStr = _buffer->match<lex::StringConstant>(); !maybeStr)
-      throw RVPE(RVPE::NullaryError::Argument_ExpectedString, _buffer->matched_interval());
+    if (auto maybeStr = buf->match<lex::StringConstant>(); !maybeStr)
+      throw RVPE(RVPE::NullaryError::Argument_ExpectedString, buf->matched_interval());
     else {
       const auto asStr = std::string{maybeStr->view()} + '\0';
       Argument arg{std::make_shared<pepp::ast::String>(asStr)};
@@ -407,68 +416,68 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::pseudo(Option
   }
   case (int)DC::BLOCK: {
     auto arg = numeric_argument();
-    if (!arg) throw RVPE(RVPE::NullaryError::Argument_ExpectedInteger, _buffer->matched_interval());
+    if (!arg) throw RVPE(RVPE::NullaryError::Argument_ExpectedInteger, buf->matched_interval());
     return std::make_shared<DotBlock>(Argument{arg});
   }
   case (int)DC::BYTE: {
     auto arg = argument();
     if (auto numeric = std::dynamic_pointer_cast<pepp::ast::Numeric>(arg); numeric) {
       if (numeric->minimum_size() > 1)
-        throw RVPE(RVPE::NullaryError::Argument_Exceeded1Byte, _buffer->matched_interval());
+        throw RVPE(RVPE::NullaryError::Argument_Exceeded1Byte, buf->matched_interval());
       return std::make_shared<DotLiteral>(DotLiteral::Which::Byte1, Argument{numeric});
     } else if (auto ident = std::dynamic_pointer_cast<pepp::ast::Symbolic>(arg); ident) {
       if (ident->minimum_size() > 1)
-        throw RVPE(RVPE::NullaryError::Argument_Exceeded1Byte, _buffer->matched_interval());
+        throw RVPE(RVPE::NullaryError::Argument_Exceeded1Byte, buf->matched_interval());
       return std::make_shared<DotLiteral>(DotLiteral::Which::Byte1, Argument{ident});
     } else if (auto expression = std::dynamic_pointer_cast<pepp::ast::Expression>(arg); expression) {
       if (expression->minimum_size() > 1)
-        throw RVPE(RVPE::NullaryError::Argument_Exceeded1Byte, _buffer->matched_interval());
+        throw RVPE(RVPE::NullaryError::Argument_Exceeded1Byte, buf->matched_interval());
       return std::make_shared<DotLiteral>(DotLiteral::Which::Byte1, Argument{expression});
     } else
-      throw RVPE(RVPE::NullaryError::Argument_ExpectedInteger, _buffer->matched_interval());
+      throw RVPE(RVPE::NullaryError::Argument_ExpectedInteger, buf->matched_interval());
   }
   case (int)DC::HALF: {
     auto arg = argument();
     if (auto numeric = std::dynamic_pointer_cast<pepp::ast::Numeric>(arg); numeric) {
       if (numeric->minimum_size() > 2)
-        throw RVPE(RVPE::NullaryError::Argument_Exceeded2Bytes, _buffer->matched_interval());
+        throw RVPE(RVPE::NullaryError::Argument_Exceeded2Bytes, buf->matched_interval());
       return std::make_shared<DotLiteral>(DotLiteral::Which::Byte2, Argument{numeric});
     } else if (auto ident = std::dynamic_pointer_cast<pepp::ast::Symbolic>(arg); ident) {
       return std::make_shared<DotLiteral>(DotLiteral::Which::Byte2, Argument{ident});
     } else if (auto expression = std::dynamic_pointer_cast<pepp::ast::Expression>(arg); expression) {
       if (expression->minimum_size() > 2)
-        throw RVPE(RVPE::NullaryError::Argument_Exceeded2Bytes, _buffer->matched_interval());
+        throw RVPE(RVPE::NullaryError::Argument_Exceeded2Bytes, buf->matched_interval());
       return std::make_shared<DotLiteral>(DotLiteral::Which::Byte2, Argument{expression});
     } else
-      throw RVPE(RVPE::NullaryError::Argument_ExpectedInteger, _buffer->matched_interval());
+      throw RVPE(RVPE::NullaryError::Argument_ExpectedInteger, buf->matched_interval());
   }
   case (int)DC::WORD: {
     auto arg = argument();
     if (auto numeric = std::dynamic_pointer_cast<pepp::ast::Numeric>(arg); numeric) {
       if (numeric->minimum_size() > 4)
-        throw RVPE(RVPE::NullaryError::Argument_Exceeded2Bytes, _buffer->matched_interval());
+        throw RVPE(RVPE::NullaryError::Argument_Exceeded2Bytes, buf->matched_interval());
       return std::make_shared<DotLiteral>(DotLiteral::Which::Byte4, Argument{numeric});
     } else if (auto ident = std::dynamic_pointer_cast<pepp::ast::Symbolic>(arg); ident) {
       return std::make_shared<DotLiteral>(DotLiteral::Which::Byte4, Argument{ident});
     } else if (auto expression = std::dynamic_pointer_cast<pepp::ast::Expression>(arg); expression) {
       return std::make_shared<DotLiteral>(DotLiteral::Which::Byte4, Argument{expression});
     } else
-      throw RVPE(RVPE::NullaryError::Argument_ExpectedInteger, _buffer->matched_interval());
+      throw RVPE(RVPE::NullaryError::Argument_ExpectedInteger, buf->matched_interval());
   }
   case (int)DC::EQUATE: {
     auto arg = argument();
-    if (!arg) throw RVPE(RVPE::NullaryError::Argument_ExpectedInteger, _buffer->matched_interval());
+    if (!arg) throw RVPE(RVPE::NullaryError::Argument_ExpectedInteger, buf->matched_interval());
     else if (arg->minimum_size() > 2)
-      throw RVPE(RVPE::NullaryError::Argument_Exceeded2Bytes, _buffer->matched_interval());
-    else if (!symbol) throw RVPE(RVPE::NullaryError::SymbolDeclaration_Required, _buffer->matched_interval());
+      throw RVPE(RVPE::NullaryError::Argument_Exceeded2Bytes, buf->matched_interval());
+    else if (!symbol) throw RVPE(RVPE::NullaryError::SymbolDeclaration_Required, buf->matched_interval());
     // Equates are assigned values as they are parsed. s:.EQUATE y creates an alias which may be a forward reference.
     // s: .EQUATE x+y requires that x and y be previously defined constants.
     if (auto symbolic = std::dynamic_pointer_cast<pepp::ast::Symbolic>(arg)) {
       (*symbol)->value = std::make_shared<pepp::core::symbol::AliasValue>(4, symbolic->symbol());
-    } else if (const auto value = equate_value(*arg, _buffer->matched_interval()); !value) {
+    } else if (const auto value = equate_value(*arg, buf->matched_interval()); !value) {
       throw RVPE(RVPE::UnaryError::Expression_Invalid, value.error().message(), value.error().location);
     } else if (!*value) {
-      throw RVPE(RVPE::NullaryError::Argument_SymbolicEquate, _buffer->matched_interval());
+      throw RVPE(RVPE::NullaryError::Argument_SymbolicEquate, buf->matched_interval());
     } else {
       (*symbol)->value = std::make_shared<pepp::core::symbol::ConstantValue>(
           bits::MaskedBits{.byteCount = 4, .bitPattern = **value & bits::mask(4), .mask = bits::mask(4)});
@@ -477,45 +486,45 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::pseudo(Option
   }
   case (int)DC::IF: {
     auto arg = argument();
-    if (!arg) throw RVPE(RVPE::NullaryError::Argument_Missing, _buffer->matched_interval());
-    else if (symbol) throw RVPE(RVPE::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
-    _conditionals.on_if(condition_holds(*arg, _buffer->matched_interval()));
+    if (!arg) throw RVPE(RVPE::NullaryError::Argument_Missing, buf->matched_interval());
+    else if (symbol) throw RVPE(RVPE::NullaryError::SymbolDeclaration_Forbidden, buf->matched_interval());
+    _conditionals.on_if(condition_holds(*arg, buf->matched_interval()));
     return std::make_shared<DotConditional>(DotConditional::Behavior::IF, Argument{arg});
   }
   case (int)DC::ELSEIF: {
     auto arg = argument();
-    if (!arg) throw RVPE(RVPE::NullaryError::Argument_Missing, _buffer->matched_interval());
-    else if (symbol) throw RVPE(RVPE::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
-    const auto holds = [&] { return condition_holds(*arg, _buffer->matched_interval()); };
+    if (!arg) throw RVPE(RVPE::NullaryError::Argument_Missing, buf->matched_interval());
+    else if (symbol) throw RVPE(RVPE::NullaryError::SymbolDeclaration_Forbidden, buf->matched_interval());
+    const auto holds = [&] { return condition_holds(*arg, buf->matched_interval()); };
     if (const auto ok = _conditionals.on_elseif(holds); !ok)
-      throw conditional_error(ok.error(), _buffer->matched_interval());
+      throw conditional_error(ok.error(), buf->matched_interval());
     return std::make_shared<DotConditional>(DotConditional::Behavior::ELSEIF, Argument{arg});
   }
   case (int)DC::ELSE: {
-    if (symbol) throw RVPE(RVPE::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
+    if (symbol) throw RVPE(RVPE::NullaryError::SymbolDeclaration_Forbidden, buf->matched_interval());
     else if (const auto ok = _conditionals.on_else(); !ok)
-      throw conditional_error(ok.error(), _buffer->matched_interval());
+      throw conditional_error(ok.error(), buf->matched_interval());
     return std::make_shared<DotConditional>(DotConditional::Behavior::ELSE);
   }
   case (int)DC::ENDIF: {
-    if (symbol) throw RVPE(RVPE::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
+    if (symbol) throw RVPE(RVPE::NullaryError::SymbolDeclaration_Forbidden, buf->matched_interval());
     else if (const auto ok = _conditionals.on_endif(); !ok)
-      throw conditional_error(ok.error(), _buffer->matched_interval());
+      throw conditional_error(ok.error(), buf->matched_interval());
     return std::make_shared<DotConditional>(DotConditional::Behavior::ENDIF);
   }
   case (int)DC::ORG: {
     auto arg = hex_argument();
-    if (!arg) throw RVPE(RVPE::NullaryError::Argument_ExpectedHex, _buffer->matched_interval());
-    else if (symbol) throw RVPE(RVPE::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
+    if (!arg) throw RVPE(RVPE::NullaryError::Argument_ExpectedHex, buf->matched_interval());
+    else if (symbol) throw RVPE(RVPE::NullaryError::SymbolDeclaration_Forbidden, buf->matched_interval());
     return std::make_shared<DotOrg>(DotOrg::Behavior::ORG, Argument{arg});
   }
   case (int)DC::SECTION: {
-    if (auto maybeSecName = _buffer->match<lex::StringConstant>(); !maybeSecName)
-      throw RVPE(RVPE::NullaryError::Section_StringName, _buffer->matched_interval());
-    else if (!_buffer->match_literal(",")) throw RVPE(RVPE::NullaryError::Section_TwoArgs, _buffer->matched_interval());
-    else if (auto maybeFlags = _buffer->match<lex::StringConstant>(); !maybeFlags)
-      throw RVPE(RVPE::NullaryError::Section_StringFlags, _buffer->matched_interval());
-    else if (symbol) throw RVPE(RVPE::NullaryError::SymbolDeclaration_Forbidden, _buffer->matched_interval());
+    if (auto maybeSecName = buf->match<lex::StringConstant>(); !maybeSecName)
+      throw RVPE(RVPE::NullaryError::Section_StringName, buf->matched_interval());
+    else if (!buf->match_literal(",")) throw RVPE(RVPE::NullaryError::Section_TwoArgs, buf->matched_interval());
+    else if (auto maybeFlags = buf->match<lex::StringConstant>(); !maybeFlags)
+      throw RVPE(RVPE::NullaryError::Section_StringFlags, buf->matched_interval());
+    else if (symbol) throw RVPE(RVPE::NullaryError::SymbolDeclaration_Forbidden, buf->matched_interval());
     else {
       auto flags = bits::to_lower(maybeFlags->view());
       using bits::contains;
@@ -553,13 +562,14 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::pseudo(Option
 }
 
 std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::line(OptionalSymbol symbol) {
+  auto buf = active_buffer();
   _location_counter = nullptr;
   std::shared_ptr<pepp::tc::LinearIR> ret = nullptr;
   if (auto instr = instruction(); instr) ret = instr;
   else if (auto dot = pseudo(symbol); dot) ret = dot;
   else return nullptr;
 
-  if (auto comment = _buffer->match<lex::InlineComment>(); comment)
+  if (auto comment = buf->match<lex::InlineComment>(); comment)
     ret->insert(std::make_unique<Comment>(*comment->value));
 
   // Avoid re-attaching existing symbol declaration (e.g., .EQUATE in pseudo).
@@ -572,43 +582,45 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::line(Optional
 }
 
 std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::statement() {
+  auto buf = active_buffer();
+  auto lexer = active_lexer();
   std::shared_ptr<pepp::tc::LinearIR> ret = nullptr;
   {
     // Limit the checkpoint's lifetime so that it does not discard a token re-buffered by the skip loop.
-    lex::Checkpoint cp(*_buffer);
+    lex::Checkpoint cp(*buf);
 
-    if (auto empty = _buffer->match<tc::lex::Empty>(); empty) {
+    if (auto empty = buf->match<tc::lex::Empty>(); empty) {
       auto line = std::make_shared<EmptyLine>();
       line->source_interval = empty->location();
       return line;
     }
 
-    if (auto comment = _buffer->match<tc::lex::InlineComment>(); comment) {
+    if (auto comment = buf->match<tc::lex::InlineComment>(); comment) {
       auto line = std::make_shared<CommentLine>(Comment(*comment->value));
       line->source_interval = comment->location();
       ret = line;
     } else {
-      auto symbol = _buffer->match<lex::SymbolDeclaration>();
+      auto symbol = buf->match<lex::SymbolDeclaration>();
       auto symbol_decl = symbol ? OptionalSymbol(_symtab->define(symbol->to_string())) : std::nullopt;
       // Lookahead for a comment or newline, which would indicate that this is a symbol-only line.
       // Symbol-only lines share a prefix with "normal" lines with symbols
-      if (auto maybe_comment = _buffer->match<tc::lex::InlineComment>();
-          symbol_decl && (_buffer->peek<tc::lex::Empty>() || maybe_comment)) {
+      if (auto maybe_comment = buf->match<tc::lex::InlineComment>();
+          symbol_decl && (buf->peek<tc::lex::Empty>() || maybe_comment)) {
         ret = std::make_shared<SymbolLine>(SymbolDeclaration{symbol_decl.value()});
         if (maybe_comment) ret->insert(std::make_unique<Comment>(*maybe_comment->value));
       } else ret = line(symbol_decl);
 
       if (!ret) {
-        auto next = _buffer->peek();
+        auto next = buf->peek();
         throw RISCVParserError(RISCVParserError::UnaryError::Token_Invalid, next->repr(),
-                               _buffer->matched_interval());
+                               buf->matched_interval());
       } else {
-        ret->source_interval = _buffer->matched_interval();
+        ret->source_interval = buf->matched_interval();
       }
     }
 
-    if (!_buffer->match<tc::lex::Empty>() && _buffer->input_remains())
-      throw RISCVParserError(RISCVParserError::NullaryError::Token_MissingNewline, _buffer->matched_interval());
+    if (!buf->match<tc::lex::Empty>() && buf->input_remains())
+      throw RISCVParserError(RISCVParserError::NullaryError::Token_MissingNewline, buf->matched_interval());
   }
 
   // Start skip loop _after_ parsing the statement which entered the skip loop.
@@ -616,22 +628,23 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::statement() {
   // This is particularly helpful for macros definitions where we need to associate the macro IR object with its inline
   // body.
   const auto start_depth = _conditionals.depth();
-  const auto start_ival = _lexer->current_location();
-  while (_conditionals.skipping() && _lexer->input_remains()) {
+  const auto start_ival = lexer->current_location();
+  while (_conditionals.skipping() && lexer->input_remains()) {
     // Do not consume a directive which may end the skip, so that it is parsed and emits its IR line.
-    if (auto token = _lexer->next_token(); token && _conditionals.resumes_at(*token, start_depth)) {
-      _buffer->push_token(token);
+    if (auto token = lexer->next_token(); token && _conditionals.resumes_at(*token, start_depth)) {
+      buf->push_token(token);
       break;
     }
   }
-  if (!_buffer->input_remains() && _conditionals.depth() > 0)
+  if (!buf->input_remains() && _conditionals.depth() > 0)
     throw RISCVParserError(RISCVParserError::NullaryError::Conditional_Unterminated,
-                           {start_ival, _lexer->current_location()});
+                           {start_ival, lexer->current_location()});
   return ret;
 }
 
 void pepp::tc::parser::RISCVParser::synchronize() {
+  auto buf = active_buffer();
   // Scan until we reach a newline.
   static const auto mask = ~(lex::Empty::TYPE | lex::EoF::TYPE);
-  while (_buffer->input_remains() && _buffer->match(mask));
+  while (buf->input_remains() && buf->match(mask));
 }
