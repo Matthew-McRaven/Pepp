@@ -89,6 +89,7 @@ TEST_CASE("Expression lexer", "[scope:core][scope:core.langs][kind:unit][arch:*]
     CHECK(reprs("foo _bar x2") == V{"Identifier(foo)", "Identifier(_bar)", "Identifier(x2)", "EoF()"});
     // The token holds the text between the quotes; escapes are decoded by bits::escapedToByte().
     CHECK(reprs(R"('a' '\n' '\x41' '\'')") == V{"CharacterConstant(a)", R"(CharacterConstant(\n))", R"(CharacterConstant(\x41))", R"(CharacterConstant(\'))", "EoF()"});
+    CHECK(reprs(R"('\"' '\f')") == V{R"(CharacterConstant(\"))", R"(CharacterConstant(\f))", "EoF()"});
   }
   SECTION("An assortment of invalid tokens") {
     CHECK(reprs(R"(, ; " = $ #)") ==

@@ -37,7 +37,7 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::expr::ExpressionLexer::next_toke
   static const std::regex decimal("[0-9]+");
   static const std::regex hexadecimal("0[xX][0-9a-fA-F]+");
   static const std::regex badHex("0[xX]");
-  static const std::regex charConstant(R"('([^'\\]|\\[bvnrt\\0']|\\[xX][0-9a-fA-F]{2})')");
+  static const std::regex charConstant(R"('([^'\\]|\\[bfvnrt\\0'"]|\\[xX][0-9a-fA-F]{2})')");
   // Two-character operators first, so that << is not lexed as < <.
   static const std::regex op(R"(<<|>>|<=|>=|==|!=|&&|\|\||[-+*/%<>&^|~!()])");
 

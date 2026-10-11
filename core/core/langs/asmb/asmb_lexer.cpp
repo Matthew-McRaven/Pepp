@@ -51,7 +51,7 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::AsmbLexer::next_token() {
   static const std::regex decimal("[0-9]+");
   static const std::regex hexadecimal("0[xX][0-9a-fA-F]+");
   static const std::regex badHex("0[xX]");
-  static const std::regex charConstant(R"('([^'\\]|\\[bvnrt\\0']|\\[xX][0-9a-fA-F]{2})')");
+  static const std::regex charConstant(R"('([^'\\]|\\[bfvnrt\\0'"]|\\[xX][0-9a-fA-F]{2})')");
   static const std::regex strConstant(R"("([^"\\]|\\[bvnrt\\0"]|\\[xX][0-9a-fA-F]{2})*\")");
   std::shared_ptr<pepp::tc::lex::Token> current_token = nullptr;
   auto loc_start = _cursor.location();
