@@ -7,6 +7,7 @@
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
 #include "core/compile/ir_linear/line_macro.hpp"
+#include "core/compile/ir_value/expression.hpp"
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/symbol/entry.hpp"
 #include "core/compile/symbol/leaf_table.hpp"
@@ -112,6 +113,8 @@ pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(Diagnostic
       // Symbols need to know their defining section to enable relocations.
       symbol_attr->entry->section_index = active->first.section_index;
     }
+    if (auto counter = line->typed_attribute<LocationCounterDeclaration>(); counter)
+      counter->entry->section_index = active->first.section_index;
 
     active->second.emplace_back(line);
   }
@@ -132,14 +135,15 @@ pepp::tc::pepp_assign_addresses(std::vector<std::pair<SectionDescriptor, IRProgr
 
 namespace pepp::tc {
 struct PeppObjectVistitor : public PepIRVisitor {
+  DiagnosticTable &diag;
   const IRMemoryAddressTable<PeppAddress> &ir_to_address;
   const u16 base_address;
   // On each call, out_bytes will be shortened by the size of the visited line;
   bits::span<u8> out_bytes;
   std::vector<Relocation> &relocations;
   IR2ObjectCodeMap &ir_to_object_code;
-  PeppObjectVistitor(const IRMemoryAddressTable<PeppAddress> &, const u16 base_address, bits::span<u8>,
-                     std::vector<Relocation> &, IR2ObjectCodeMap &);
+  PeppObjectVistitor(DiagnosticTable &, const IRMemoryAddressTable<PeppAddress> &, const u16 base_address,
+                     bits::span<u8>, std::vector<Relocation> &, IR2ObjectCodeMap &);
   // Emit a relocation for the argument's symbol.
   void relocate(pepp::ast::IRValue &arg, u16 offset, u32 type);
   void visit(const EmptyLine *) override;
@@ -154,14 +158,15 @@ struct PeppObjectVistitor : public PepIRVisitor {
   void visit(const DotSection *) override;
   void visit(const DotAnnotate *) override;
   void visit(const DotOrg *) override;
+  void visit(const DotConditional *) override;
   void visit(const InlineMacroDefinition *) override;
   void visit(const MacroInstantiation *) override;
 };
 
 pepp::tc::PeppObjectVistitor::PeppObjectVistitor(
-    const IRMemoryAddressTable<PeppAddress> &ir_to_address, const u16 base_address, bits::span<u8> out_bytes,
-    std::vector<Relocation> &relocs, IR2ObjectCodeMap &ir_to_object_code)
-    : ir_to_address(ir_to_address), base_address(base_address), out_bytes(out_bytes), relocations(relocs),
+    DiagnosticTable &diag, const IRMemoryAddressTable<PeppAddress> &ir_to_address, const u16 base_address,
+    bits::span<u8> out_bytes, std::vector<Relocation> &relocs, IR2ObjectCodeMap &ir_to_object_code)
+    : diag(diag), ir_to_address(ir_to_address), base_address(base_address), out_bytes(out_bytes), relocations(relocs),
       ir_to_object_code(ir_to_object_code) {}
 
 namespace {
@@ -169,7 +174,8 @@ namespace {
 bool needs_relocation(const pepp::core::symbol::Entry &symbol) {
   using enum pepp::core::symbol::Type;
   const auto &value = symbol.value;
-  return symbol.is_undefined() || value == nullptr || value->type() == Object || value->type() == Code;
+  return symbol.is_undefined() || value == nullptr || value->type() == Object || value->type() == Code ||
+         value->type() == LocationCounter;
 }
 } // namespace
 
@@ -206,8 +212,11 @@ void pepp::tc::PeppObjectVistitor::visit(const DyadicInstruction *line) {
   auto addr_info = ir_to_address.at(line);
   out_bytes[0] = isa::Pep10::opcode(line->mnemonic.instruction, line->addr_mode.addr_mode);
   const u16 offset = addr_info.address - base_address + 1; // Offset by 1 to reach operand specifier.
-  relocate(*line->argument.value, offset, bits::to_underlying(pepp::bts::RelocationsPep::R_PEP10_ABS16));
-  (void)line->argument.value->serialize(out_bytes.subspan(1).first(2), bits::Order::BigEndian);
+  auto &value = *line->argument.value;
+  if (validate_argument(diag, *line, value, *pepp_argument_constraint(*line), 16, true)) {
+    relocate(value, offset, bits::to_underlying(pepp::bts::RelocationsPep::R_PEP10_ABS16));
+    (void)value.serialize(out_bytes.subspan(1).first(2), bits::Order::BigEndian);
+  } else std::ranges::fill(out_bytes.subspan(1).first(2), 0);
   ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(3)});
   out_bytes = out_bytes.subspan(3);
 }
@@ -222,9 +231,16 @@ void pepp::tc::PeppObjectVistitor::visit(const DotAlign *line) {
 void pepp::tc::PeppObjectVistitor::visit(const DotLiteral *line) {
   auto addr_info = ir_to_address.at(line);
   using enum pepp::bts::RelocationsPep;
-  relocate(*line->argument.value, addr_info.address - base_address,
-           bits::to_underlying(addr_info.size == 1 ? R_PEP10_ABS8 : R_PEP10_ABS16));
-  (void)line->argument.value->serialize(out_bytes.first(addr_info.size), bits::Order::BigEndian);
+  auto &value = *line->argument.value;
+  // R_PEP10_ABS8 truncates an address to a byte, so every Pep argument may hold an address.
+  if (const auto constraint = pepp_argument_constraint(*line);
+      constraint && !validate_argument(diag, *line, value, *constraint, 16, true)) {
+    std::ranges::fill(out_bytes.first(addr_info.size), 0);
+  } else {
+    relocate(value, addr_info.address - base_address,
+             bits::to_underlying(addr_info.size == 1 ? R_PEP10_ABS8 : R_PEP10_ABS16));
+    (void)value.serialize(out_bytes.first(addr_info.size), bits::Order::BigEndian);
+  }
 
   ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(addr_info.size)});
   out_bytes = out_bytes.subspan(addr_info.size);
@@ -253,6 +269,10 @@ void pepp::tc::PeppObjectVistitor::visit(const DotOrg *) {
   // Does not generate object code
 }
 
+void pepp::tc::PeppObjectVistitor::visit(const DotConditional *) {
+  // Does not generate object code
+}
+
 void pepp::tc::PeppObjectVistitor::visit(const InlineMacroDefinition *) {
   // Does not generate object code
 }
@@ -272,9 +292,23 @@ ELFIO::section *getLineMappingSection(ELFIO::elfio &elf) {
   return lineNumbers;
 }
 
-ProgramObjectCodeResult pepp_to_object_code(const IRMemoryAddressTable<PeppAddress> &addresses,
+std::optional<ArgumentConstraint> pepp_argument_constraint(const LinearIR &line) {
+  using Which = DotLiteral::Which;
+  using enum expr::Signedness;
+  if (const auto *literal = dynamic_cast<const DotLiteral *>(&line)) {
+    switch (literal->which) {
+    case Which::ASCII: return std::nullopt;
+    case Which::Byte1: return ArgumentConstraint{8, Bits};
+    case Which::Byte2: return ArgumentConstraint{16, Bits};
+    case Which::Byte4: return ArgumentConstraint{32, Bits};
+    }
+  } else if (line.type() == DyadicInstruction::TYPE) return ArgumentConstraint{16, Bits};
+  return std::nullopt;
+}
+
+ProgramObjectCodeResult pepp_to_object_code(DiagnosticTable &diag, const IRMemoryAddressTable<PeppAddress> &addresses,
                                             std::vector<std::pair<SectionDescriptor, IRProgram>> &prog) {
-  return to_object_code<PeppAddress, PeppObjectVistitor>(addresses, prog);
+  return to_object_code<PeppAddress, PeppObjectVistitor>(diag, addresses, prog);
 }
 
 } // namespace pepp::tc

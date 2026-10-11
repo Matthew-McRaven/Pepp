@@ -79,6 +79,8 @@ pepp::tc::RISCVSectionAnalysisResults pepp::tc::riscv_split_to_sections(Diagnost
       // Symbols need to know their defining section to enable relocations.
       symbol_attr->entry->section_index = active->first.section_index;
     }
+    if (auto counter = line->typed_attribute<LocationCounterDeclaration>(); counter)
+      counter->entry->section_index = active->first.section_index;
 
     active->second.emplace_back(line);
   }
@@ -97,16 +99,18 @@ pepp::tc::riscv_assign_addresses(std::vector<std::pair<SectionDescriptor, IRProg
 
 namespace pepp::tc {
 struct RISCVObjectVistitor : public RISCVIRVisitor {
+  DiagnosticTable &diag;
   const IRMemoryAddressTable<RISCVAddress> &ir_to_address;
   const u32 base_address;
   // On each call, out_bytes will be shortened by the size of the visited line;
   bits::span<u8> out_bytes;
   std::vector<Relocation> &relocations;
   IR2ObjectCodeMap &ir_to_object_code;
-  RISCVObjectVistitor(const IRMemoryAddressTable<RISCVAddress> &, const u32 base_address, bits::span<u8>,
-                      std::vector<Relocation> &, IR2ObjectCodeMap &);
+  RISCVObjectVistitor(DiagnosticTable &, const IRMemoryAddressTable<RISCVAddress> &, const u32 base_address,
+                      bits::span<u8>, std::vector<Relocation> &, IR2ObjectCodeMap &);
   // Integer instructions can delegate to a shared implementation.
-  void emit_line(const IntegerInstruction *line);
+  // If pc_relative and the argument is relocatable, emit argument - address rather than argument.
+  void emit_line(const IntegerInstruction *line, bool pc_relative = false);
   void visit(const EmptyLine *) override;
   void visit(const CommentLine *) override;
   void visit(const SymbolLine *) override;
@@ -122,12 +126,15 @@ struct RISCVObjectVistitor : public RISCVIRVisitor {
   void visit(const DotEquate *) override;
   void visit(const DotSection *) override;
   void visit(const DotOrg *) override;
+  void visit(const DotConditional *) override;
+  void visit(const InlineMacroDefinition *) override;
+  void visit(const MacroInstantiation *) override;
 };
 
 pepp::tc::RISCVObjectVistitor::RISCVObjectVistitor(
-    const IRMemoryAddressTable<RISCVAddress> &ir_to_address, const u32 base_address, bits::span<u8> out_bytes,
-    std::vector<Relocation> &relocs, IR2ObjectCodeMap &ir_to_object_code)
-    : ir_to_address(ir_to_address), base_address(base_address), out_bytes(out_bytes), relocations(relocs),
+    DiagnosticTable &diag, const IRMemoryAddressTable<RISCVAddress> &ir_to_address, const u32 base_address,
+    bits::span<u8> out_bytes, std::vector<Relocation> &relocs, IR2ObjectCodeMap &ir_to_object_code)
+    : diag(diag), ir_to_address(ir_to_address), base_address(base_address), out_bytes(out_bytes), relocations(relocs),
       ir_to_object_code(ir_to_object_code) {}
 
 void pepp::tc::RISCVObjectVistitor::visit(const EmptyLine *) {
@@ -142,9 +149,31 @@ void pepp::tc::RISCVObjectVistitor::visit(const SymbolLine *) {
   // Does not generate object code
 }
 
-void pepp::tc::RISCVObjectVistitor::emit_line(const IntegerInstruction *line) {
+namespace {
+// A branch or jump to something which can move, such as a label (e.g., not an .EQUATE).
+bool relocatable_target(pepp::ast::IRValue &imm) {
+  const auto operand = pepp::tc::classify_symbol_operand(imm);
+  const auto &value = operand.symbol ? operand.symbol->value : nullptr;
+  return operand.kind == pepp::tc::SymbolOperand::Kind::Offset &&
+         !(value && value->type() == pepp::core::symbol::Type::Constant);
+}
+} // namespace
+
+void pepp::tc::RISCVObjectVistitor::emit_line(const IntegerInstruction *line, bool pc_relative) {
   // Delegate to Mnemonic, which will merge pre-filled fields with provided values.
-  const u32 imm = line->imm ? line->imm->value_as<u32>() : u32(0);
+  u32 imm = line->imm ? line->imm->value_as<u32>() : u32(0);
+  // An argument which cannot be encoded is reported, and encoded as 0.
+  if (const auto constraint = riscv_argument_constraint(*line); line->imm && constraint) {
+    auto &value = *line->imm;
+    // If the target is reloctable and this instruction is pcrel, then comput imm - address.
+    if (pc_relative && relocatable_target(value)) {
+      imm -= ir_to_address.at(line).address;
+      // An undefined target's offset is only known once linked.
+      const expr::Value offset{imm, {32, expr::Signedness::Signed}};
+      if (!classify_symbol_operand(value).symbol->is_undefined() && !validate_value(diag, *line, offset, *constraint))
+        imm = 0;
+    } else if (!validate_argument(diag, *line, value, *constraint, 32)) imm = 0;
+  }
   riscv::Values vals{.rs1 = line->rs1, .rs2 = line->rs2, .rd = line->rd, .imm = imm};
   auto encoded = line->mnemonic.mn.encode(vals).bits();
   bits::span<const u8> span{(const u8 *)&encoded, 4};
@@ -156,9 +185,9 @@ void pepp::tc::RISCVObjectVistitor::emit_line(const IntegerInstruction *line) {
 void pepp::tc::RISCVObjectVistitor::visit(const RTypeIR *line) { emit_line(line); }
 void pepp::tc::RISCVObjectVistitor::visit(const ITypeIR *line) { emit_line(line); }
 void pepp::tc::RISCVObjectVistitor::visit(const STypeIR *line) { emit_line(line); }
-void pepp::tc::RISCVObjectVistitor::visit(const BTypeIR *line) { emit_line(line); }
+void pepp::tc::RISCVObjectVistitor::visit(const BTypeIR *line) { emit_line(line, true); }
 void pepp::tc::RISCVObjectVistitor::visit(const UTypeIR *line) { emit_line(line); }
-void pepp::tc::RISCVObjectVistitor::visit(const JTypeIR *line) { emit_line(line); }
+void pepp::tc::RISCVObjectVistitor::visit(const JTypeIR *line) { emit_line(line, true); }
 
 void pepp::tc::RISCVObjectVistitor::visit(const DotAlign *line) {
   auto addr_info = ir_to_address.at(line);
@@ -169,20 +198,21 @@ void pepp::tc::RISCVObjectVistitor::visit(const DotAlign *line) {
 
 void pepp::tc::RISCVObjectVistitor::visit(const DotLiteral *line) {
   auto addr_info = ir_to_address.at(line);
-  // Emit relocations for undefined symbolic arguments.
-  auto as_symbolic_arg = std::dynamic_pointer_cast<pepp::ast::Symbolic>(line->argument.value);
-  if (as_symbolic_arg != nullptr) {
-    auto symbol = as_symbolic_arg->symbol();
-    if (symbol->is_undefined()) {
-      // RISC-V don't have a sub-word relocation type for data.
-      if (addr_info.size != 4) throw std::logic_error("Undefined symbols must occupy a full word");
+  auto &value = *line->argument.value;
+  // RISC-V has no sub-word relocation for data, so only a word may hold an address.
+  if (const auto constraint = riscv_argument_constraint(*line);
+      constraint && !validate_argument(diag, *line, value, *constraint, 32)) {
+    std::ranges::fill(out_bytes.first(addr_info.size), 0);
+  } else {
+    // Emit relocations for undefined symbolic arguments.
+    if (auto symbolic = dynamic_cast<pepp::ast::Symbolic *>(&value); symbolic && symbolic->symbol()->is_undefined()) {
       u16 offset = addr_info.address - base_address;
       const auto type = bits::to_underlying(pepp::bts::RelocationsRISCV::R_RISCV_32);
-      relocations.push_back(Relocation{.symbol = symbol, .section_offset = offset, .type = type});
+      relocations.push_back(Relocation{.symbol = symbolic->symbol(), .section_offset = offset, .type = type});
     }
+    // RV32 is little-endian.
+    (void)value.serialize(out_bytes.first(addr_info.size), bits::Order::LittleEndian);
   }
-  // RV32 is little-endian.
-  (void)line->argument.value->serialize(out_bytes.first(addr_info.size), bits::Order::LittleEndian);
 
   ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(addr_info.size)});
   out_bytes = out_bytes.subspan(addr_info.size);
@@ -207,11 +237,48 @@ void pepp::tc::RISCVObjectVistitor::visit(const DotOrg *) {
   // Does not generate object code
 }
 
+void pepp::tc::RISCVObjectVistitor::visit(const DotConditional *) {
+  // Does not generate object code
+}
+
+void pepp::tc::RISCVObjectVistitor::visit(const InlineMacroDefinition *) {
+  // Does not generate object code
+}
+
+void pepp::tc::RISCVObjectVistitor::visit(const MacroInstantiation *) {
+  // Flattened before generating object code
+}
+
 } // namespace pepp::tc
+std::optional<pepp::tc::ArgumentConstraint> pepp::tc::riscv_argument_constraint(const LinearIR &line) {
+  using Which = DotLiteral::Which;
+  using Destination = riscv::Operand::Destination;
+  using enum expr::Signedness;
+  if (const auto *literal = dynamic_cast<const DotLiteral *>(&line)) {
+    switch (literal->which) {
+    case Which::ASCII: return std::nullopt;
+    case Which::Byte1: return ArgumentConstraint{8, Bits};
+    case Which::Byte2: return ArgumentConstraint{16, Bits};
+    case Which::Byte4: return ArgumentConstraint{32, Bits};
+    }
+  } else if (const auto *instruction = dynamic_cast<const IntegerInstruction *>(&line)) {
+    const auto &desc = instruction->mnemonic.mn;
+    // Fence orderings are decoded by the parser rather than written as a value.
+    if (desc.width_imm() == 0 || desc.sources(Destination::PRED) || desc.sources(Destination::SUCC))
+      return std::nullopt;
+    else if (desc.sources(Destination::SHAMT)) return ArgumentConstraint{5, Unsigned};
+    // `lui rd, 0x65` writes the argument as given, while branch and jump targets drop their implicit low bit.
+    else if (desc.type() == riscv::MnemonicDescriptor::Type::U) return ArgumentConstraint{desc.width_imm(), Unsigned};
+    const u8 shift = desc.imm_shift();
+    return ArgumentConstraint{static_cast<u8>(desc.width_imm() + shift), Signed, static_cast<u8>(1 << shift)};
+  }
+  return std::nullopt;
+}
+
 pepp::tc::ProgramObjectCodeResult
-pepp::tc::riscv_to_object_code(const IRMemoryAddressTable<RISCVAddress> &addresses,
+pepp::tc::riscv_to_object_code(DiagnosticTable &diag, const IRMemoryAddressTable<RISCVAddress> &addresses,
                                std::vector<std::pair<SectionDescriptor, IRProgram>> &prog) {
-  return to_object_code<RISCVAddress, RISCVObjectVistitor>(addresses, prog);
+  return to_object_code<RISCVAddress, RISCVObjectVistitor>(diag, addresses, prog);
 }
 
 pepp::tc::ElfResult pepp::tc::riscv_to_elf(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,

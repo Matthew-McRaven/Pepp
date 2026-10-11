@@ -51,6 +51,7 @@ static constexpr std::uintptr_t align_up(std::uintptr_t x, std::size_t a) {
   if (a <= 1) return x;
   else return (x + (a - 1)) & ~(std::uintptr_t(a) - 1);
 }
+static constexpr bool is_aligned(u64 x, std::size_t a) { return a <= 1 || (x & (u64(a) - 1)) == 0; }
 
 constexpr u64 unsigned_bitcount(u64 value) noexcept { return std::bit_width(value); }
 constexpr u64 unsigned_bytecount(u64 value) noexcept { return (unsigned_bitcount(value) + 7) / 8; }

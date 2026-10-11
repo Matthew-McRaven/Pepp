@@ -16,21 +16,35 @@
 
 #include "./seekable.hpp"
 
-pepp::tc::support::SeekableData::SeekableData(std::string &&d, support::Location loc) : data(std::move(d)), _loc(loc) {}
+namespace {
+// Default-constructed cursors share a single copy of the same string to avoid null derefs.
+std::shared_ptr<const std::string> default_data() {
+  static const auto ret = std::make_shared<const std::string>("\n");
+  return ret;
+}
+} // namespace
+
+pepp::tc::support::SeekableData::SeekableData() : _data(default_data()) {}
+
+pepp::tc::support::SeekableData::SeekableData(std::string &&d, support::Location loc)
+    : _data(std::make_shared<const std::string>(std::move(d))), _loc(loc) {}
+
+pepp::tc::support::SeekableData::SeekableData(std::shared_ptr<const std::string> d, support::Location loc)
+    : _data(d ? std::move(d) : default_data()), _loc(loc) {}
 
 char pepp::tc::support::SeekableData::peek() {
   if (!input_remains()) return '\0';
-  return data[_end];
+  return (*_data)[_end];
 }
 
 std::string_view pepp::tc::support::SeekableData::select() const {
   auto count = _end - _start;
-  return std::string_view{data}.substr(_start, count);
+  return text().substr(_start, count);
 }
 
-std::string_view pepp::tc::support::SeekableData::rest() const { return std::string_view{data}.substr(_end); }
+std::string_view pepp::tc::support::SeekableData::rest() const { return text().substr(_end); }
 
-bool pepp::tc::support::SeekableData::input_remains() const { return _end < data.size(); }
+bool pepp::tc::support::SeekableData::input_remains() const { return _end < _data->size(); }
 
 void pepp::tc::support::SeekableData::advance(size_t n) {
   _end += n;
@@ -49,11 +63,11 @@ size_t pepp::tc::support::SeekableData::start() const { return _start; }
 size_t pepp::tc::support::SeekableData::end() const { return _end; }
 
 std::string_view pepp::tc::support::SeekableData::view_between(size_t start, size_t end) const {
-  return std::string_view{data}.substr(start, end - start);
+  return text().substr(start, end - start);
 }
 
 pepp::tc::support::SeekableData::match pepp::tc::support::SeekableData::matchView(const std::regex &re) {
-  auto str = std::string_view{data}.substr(_start);
+  auto str = text().substr(_start);
 
   // match_continuous acts like old Anchored.
   std::match_results<std::string_view::const_iterator> m;

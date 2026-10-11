@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <iostream>
 #include <optional>
+#include <string_view>
 #include <vector>
 #include "../../integers.h"
 #include "core/math/bitmanip/span.hpp"
@@ -35,7 +36,11 @@ template <typename Iterator> bool charactersToByte(Iterator &start, Iterator end
     if (start == end) return false;
     head = *start++;
     if (head == '\\') { // Escaped backslash
-      head = '\\';
+      value = '\\';
+    } else if (head == '\'') { // Escaped single quote
+      value = '\'';
+    } else if (head == '"') { // Escaped double quote
+      value = '"';
     } else if (head == 'b') { // backspace
       value = 8;
     } else if (head == 'f') { // form feed
@@ -51,24 +56,31 @@ template <typename Iterator> bool charactersToByte(Iterator &start, Iterator end
     } else if (head == '0') { // null terminator
       value = 0;
     } else if (head == 'x' || head == 'X') { // hex strings!
-      // Need at least two more characters to consume.
+      // Exactly two hex digits
+      const auto hex = [](char c) -> int {
+        if (c >= '0' && c <= '9') return c - '0';
+        else if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+        else if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+        else return -1;
+      };
       if (end - start < 2) return false;
-      else {
-        char *end;
-        char copied[] = {*(start++), *(start++), '\0'};
-        value = strtol(copied, &end, 16);
-        if (*end != '\0') return false;
-      }
-    } else {
-      static const char *const e = "Unreachable";
-      std::cerr << e;
-      throw std::logic_error(e);
-      value = static_cast<uint8_t>('\\');
-    }
+      const int hi = hex(*start++), lo = hex(*start++);
+      if (hi < 0 || lo < 0) return false;
+      value = static_cast<u8>(hi * 16 + lo);
+    } else return false; // Unknown escape sequence.
   } else {
     value = head;
   }
   return true;
+}
+
+// The byte denoted by text, which must be exactly one character or escape sequence, e.g. the text between the quotes of
+// a character constant.
+inline std::optional<u8> escapedToByte(std::string_view text) {
+  auto start = text.begin(), end = text.end();
+  u8 value = 0;
+  if (!charactersToByte(start, end, value) || start != end) return std::nullopt;
+  return value;
 }
 
 template <typename OutputIt> OutputIt byteToEscaped(u8 value, OutputIt out) {
@@ -139,26 +151,13 @@ inline bool contains(std::string_view haystack, std::string_view needle) {
   return haystack.find(needle) != std::string_view::npos;
 }
 
-inline std::string rtrimmed(const std::string &str) {
-  if (str.empty()) return {};
-  // Perform right-strip of string. `QString::trimmed() const` trims both ends.
-  std::size_t lastIndex = str.size() - 1;
-  while (std::isspace((u8)str[lastIndex]) && lastIndex > 0) lastIndex--;
-  // If line is all spaces, then the string should be empty.
-  if (lastIndex == 0) return {};
-  // Otherwise, we need to add 1 to last index to convert index (0-based) to size (1-based).
-  return str.substr(0, lastIndex + 1);
+// Right-strip whitespace
+inline std::string_view rtrimmed_view(const std::string &str) {
+  std::size_t size = str.size();
+  while (size > 0 && std::isspace((u8)str[size - 1])) size--;
+  return std::string_view(str).substr(0, size);
 }
 
-inline std::string_view rtrimmed_view(const std::string &str) {
-  if (str.empty()) return {};
-  // Perform right-strip of string. `QString::trimmed() const` trims both ends.
-  std::size_t lastIndex = str.size() - 1;
-  while (std::isspace((u8)str[lastIndex]) && lastIndex > 0) lastIndex--;
-  // If line is all spaces, then the string should be empty.
-  if (lastIndex == 0) return std::string_view();
-  // Otherwise, we need to add 1 to last index to convert index (0-based) to size (1-based).
-  return std::string_view(str).substr(0, lastIndex + 1);
-}
+inline std::string rtrimmed(const std::string &str) { return std::string{rtrimmed_view(str)}; }
 
 } // namespace bits

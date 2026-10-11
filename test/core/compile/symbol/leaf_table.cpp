@@ -35,6 +35,24 @@ TEST_CASE("Leaf symbol tables", "[scope:core][scope:core.compile][kind:unit][arc
     auto y = st->get("hello");
     CHECK(x == y);
   }
+  SECTION("location counters are distinct across lines and not listed") {
+    auto st = std::make_shared<pepp::core::symbol::LeafTable>(2);
+    auto first = st->location_counter(), second = st->location_counter();
+    CHECK(first != second);
+    CHECK(first->name.starts_with("<."));
+    CHECK(is_location_counter(*first));
+    CHECK(!first->is_undefined());
+    (void)st->define("label");
+    CHECK(!is_location_counter(*st->get("label").value()));
+    const auto listing = table_listing(*st, 2);
+    CHECK(listing.find("label") != std::string::npos);
+    CHECK(listing.find("<.") == std::string::npos);
+    std::vector<std::shared_ptr<Entry>> symbols, all;
+    enumerate(*st, symbols);
+    enumerate_all(*st, all);
+    CHECK(symbols.size() == 1);
+    CHECK(all.size() == 3);
+  }
   SECTION("names are case sensitive") {
     auto st = std::make_shared<pepp::core::symbol::LeafTable>(2);
     auto x = st->reference("hello");

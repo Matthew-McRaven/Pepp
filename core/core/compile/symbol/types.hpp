@@ -57,6 +57,9 @@ enum class Type : u8 {
   Deleted,
   /*! This symbol is an alias for another symbol.*/
   Alias,
+  /*! The address of a line whose expressions use the location counter (`.`).
+   * Internal to the assembler, so it is never exported to ELF or listed.*/
+  LocationCounter,
 };
 
 /*!

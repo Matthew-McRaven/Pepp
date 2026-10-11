@@ -17,6 +17,7 @@
 #include <catch.hpp>
 #include <map>
 #include <sstream>
+#include <vector>
 #include "core/arch/riscv/asmb/rvi_patterns.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
 #include "core/compile/ir_linear/line_symbol.hpp"
@@ -53,7 +54,7 @@ TEST_CASE("RISCV ASM code generator",
     CHECK(addresses.count(&*instr) == 1);
     CHECK(addresses.at(&*instr).address == 0xfeed);
     CHECK(addresses.at(&*instr).size == 4);
-    auto object_code = pepp::tc::riscv_to_object_code(addresses, sections);
+    auto object_code = pepp::tc::riscv_to_object_code(diag, addresses, sections);
     auto elf_result = pepp::tc::riscv_to_elf(sections, addresses, object_code, *symbol_tab);
     // Read what would actually be written, rather than the in-memory model of it.
     const auto bytes = pepp::tc::elf_bytes(elf_result);
@@ -69,6 +70,24 @@ TEST_CASE("RISCV ASM code generator",
     CHECK((u8)data[1] == 0x00);
     CHECK((u8)data[2] == 0x31);
     CHECK((u8)data[3] == 0x00);
+  }
+  SECTION("Symbols for B-/J-type instructions encode as relative offsets") {
+    const auto jump = [](const char *source) {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data(source));
+      auto results = p.parse(diag);
+      auto result = pepp::tc::riscv_split_to_sections(diag, results);
+      REQUIRE(diag.count() == 0);
+      auto addresses = pepp::tc::riscv_assign_addresses(result.grouped_ir, 0x100);
+      const auto code = pepp::tc::riscv_to_object_code(diag, addresses, result.grouped_ir);
+      const auto bytes = code.section_slices.at(0).get(4, 4);
+      return std::vector<u8>(bytes.begin(), bytes.end());
+    };
+    // The j at 0x104 targets 0x108, which is 4 bytes ahead.
+    CHECK(jump("nop\nj target\ntarget: nop") == jump("nop\nj 4\nnop"));
+    // . jumps to self
+    CHECK(jump("nop\nj .") == jump("nop\nj 0"));
+    CHECK(jump("nop\nl: j . + 4\nnop") == jump("nop\nj 4\nnop"));
   }
 }
 
@@ -97,7 +116,7 @@ TEST_CASE("RISCV ASM code generator symbol-only lines",
     auto addresses = pepp::tc::riscv_assign_addresses(sections, 0x100);
     total_size = 0;
     for (const auto &pair : addresses.container) total_size += pair.second.size;
-    (void)pepp::tc::riscv_to_object_code(addresses, sections);
+    (void)pepp::tc::riscv_to_object_code(diag, addresses, sections);
     Symbols ret;
     for (const auto &line : results)
       if (auto sym = line->typed_attribute<SymbolDeclaration>(); sym) ret[std::string(sym->entry->name)] = sym->entry;

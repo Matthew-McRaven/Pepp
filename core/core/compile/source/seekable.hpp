@@ -15,15 +15,19 @@
  */
 
 #pragma once
+#include <memory>
 #include <regex>
 #include <string>
+#include <string_view>
 #include "./location.hpp"
 
 namespace pepp::tc::support {
-// A structure to support sequential reading of a 1d string and provide a row/column abstraction on top of it.
+// A structure to support sequential reading of a 1d string and provide a row/column abstraction on top of it. The text
+// is immutable and shared, so copying a SeekableData is cheap and provides independent cursors for nested parsers.
 struct SeekableData {
-  SeekableData() = default;
+  SeekableData();
   explicit SeekableData(std::string&& d, support::Location loc = {0, 0});
+  explicit SeekableData(std::shared_ptr<const std::string> d, support::Location loc = {0, 0});
   // View the next character without adjusting counters.
   char peek();
   // Get the text between _start and _end, inclusive;
@@ -50,7 +54,8 @@ struct SeekableData {
   std::string_view view_between(size_t start, size_t end) const;
 
 private:
-  std::string data = "\n";
+  std::string_view text() const { return *_data; }
+  std::shared_ptr<const std::string> _data;
   // Offsets into data
   size_t _start = 0, _end = 0;
   support::Location _loc;

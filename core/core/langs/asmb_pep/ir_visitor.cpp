@@ -21,6 +21,7 @@ void pepp::tc::accept(PepIRVisitor &visitor, const LinearIR *line) {
   case DotSection::TYPE: visitor.visit(static_cast<const DotSection *>(line)); break;
   case DotAnnotate::TYPE: visitor.visit(static_cast<const DotAnnotate *>(line)); break;
   case DotOrg::TYPE: visitor.visit(static_cast<const DotOrg *>(line)); break;
+  case DotConditional::TYPE: visitor.visit(static_cast<const DotConditional *>(line)); break;
   case InlineMacroDefinition::TYPE: visitor.visit(static_cast<const InlineMacroDefinition *>(line)); break;
   case MacroInstantiation::TYPE: visitor.visit(static_cast<const MacroInstantiation *>(line)); break;
   default: throw std::logic_error("Unknown IR line type");

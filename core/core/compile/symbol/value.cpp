@@ -101,7 +101,8 @@ pepp::core::symbol::LocationValue::LocationValue(u16 pointed_size, u16 pointer_s
     : _pointed_size(pointed_size), _pointer_size(pointer_size), _base(base), _offset(offset), _type(type) {
   switch (type) {
   case Type::Object: [[fallthrough]];
-  case Type::Code: break;
+  case Type::Code: [[fallthrough]];
+  case Type::LocationCounter: break;
   default:
     SPDLOG_CRITICAL("Invalid LocationValue type passed to pepp::core::symbol::LocationValue, {}", (int)type);
     std::terminate();

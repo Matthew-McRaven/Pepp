@@ -2,6 +2,7 @@
 #include <zpp_bits.h>
 #include "core/integers.h"
 #include "core/langs/asmb/elf_symtab.hpp"
+#include "core/langs/asmb/ir_constraints.hpp"
 #include "core/langs/asmb/ir_program.hpp"
 #include "core/math/bitmanip/leb128.hpp"
 #include "fmt/format.h"
@@ -50,7 +51,10 @@ PeppSectionAnalysisResults pepp_split_to_sections(DiagnosticTable &diag, IRProgr
 IRMemoryAddressTable<PeppAddress> pepp_assign_addresses(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
                                                         u16 initial_base_address = 0);
 
-ProgramObjectCodeResult pepp_to_object_code(const IRMemoryAddressTable<PeppAddress> &,
+// The constraint for a line's argument.
+std::optional<ArgumentConstraint> pepp_argument_constraint(const LinearIR &line);
+
+ProgramObjectCodeResult pepp_to_object_code(DiagnosticTable &diag, const IRMemoryAddressTable<PeppAddress> &,
                                             std::vector<std::pair<SectionDescriptor, IRProgram>> &prog);
 
 ElfResult pepp_to_elf(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,

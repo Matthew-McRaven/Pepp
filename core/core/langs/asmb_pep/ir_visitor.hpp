@@ -14,6 +14,7 @@ struct DotEquate;
 struct DotSection;
 struct DotAnnotate;
 struct DotOrg;
+struct DotConditional;
 struct InlineMacroDefinition;
 struct MacroInstantiation;
 struct PepIRVisitor {
@@ -29,6 +30,7 @@ struct PepIRVisitor {
   virtual void visit(const DotSection *) = 0;
   virtual void visit(const DotAnnotate *) = 0;
   virtual void visit(const DotOrg *) = 0;
+  virtual void visit(const DotConditional *) = 0;
   virtual void visit(const InlineMacroDefinition *) = 0;
   virtual void visit(const MacroInstantiation *) = 0;
   void accept(const LinearIR *line);

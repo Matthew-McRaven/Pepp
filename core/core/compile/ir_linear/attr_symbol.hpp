@@ -11,4 +11,13 @@ struct SymbolDeclaration : public AAttribute {
   explicit SymbolDeclaration(std::shared_ptr<pepp::core::symbol::Entry> entry);
   std::shared_ptr<pepp::core::symbol::Entry> entry;
 };
+
+// The location counter (`.`) of a line whose expressions use it. Address assignment gives it the line's address. It is
+// not written in the source, so it is never formatted.
+struct LocationCounterDeclaration : public AAttribute {
+  static constexpr int TYPE = static_cast<int>(Type::LocationCounterDeclaration);
+  int type() const override;
+  explicit LocationCounterDeclaration(std::shared_ptr<pepp::core::symbol::Entry> entry);
+  std::shared_ptr<pepp::core::symbol::Entry> entry;
+};
 } // namespace pepp::tc

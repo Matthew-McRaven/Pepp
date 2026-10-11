@@ -38,14 +38,4 @@ pepp::tc::support::LocationInterval pepp::tc::lex::ALexer::synchronize() {
   return {start, end};
 }
 
-void pepp::tc::lex::ALexer::register_listener(Listener *listener) {
-  // Do not allow registering null or duplicate listeners.
-  if (listener == nullptr || std::find(_listeners.cbegin(), _listeners.cend(), listener) != _listeners.cend()) return;
-  _listeners.push_back(listener);
-}
-
 pepp::tc::support::Location pepp::tc::lex::ALexer::current_location() const { return _cursor.location(); }
-
-void pepp::tc::lex::ALexer::notify_listeners(std::shared_ptr<Token> t) {
-  for (const auto &l : _listeners) l->consumed(t);
-}

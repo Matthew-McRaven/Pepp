@@ -120,7 +120,6 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::MicroLexer::next_token() {
       break;
     }
   }
-  notify_listeners(current_token);
   if (print_tokens && current_token) SPDLOG_TRACE("Token: {}", current_token->repr());
   _cursor.skip(0);
   return current_token;

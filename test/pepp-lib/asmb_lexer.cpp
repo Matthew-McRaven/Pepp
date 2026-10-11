@@ -53,9 +53,6 @@ auto check_next_int(pepp::tc::lex::AsmbLexer &l, int64_t val, pepp::tc::lex::Int
 auto check_next_udec(pepp::tc::lex::AsmbLexer &l, uint64_t val) {
   return check_next_int(l, val, pepp::tc::lex::Integer::Format::UnsignedDec);
 }
-auto check_next_sdec(pepp::tc::lex::AsmbLexer &l, uint64_t val) {
-  return check_next_int(l, val, pepp::tc::lex::Integer::Format::SignedDec);
-}
 auto check_next_hex(pepp::tc::lex::AsmbLexer &l, uint64_t val) {
   return check_next_int(l, val, pepp::tc::lex::Integer::Format::Hex);
 }
@@ -101,13 +98,10 @@ TEST_CASE("Assembly lexer", "[scope:core][scope:core.langs][level:asmb3][level:a
     CHECK(!l.input_remains());
   }
   SECTION("Arithmetic ops") {
-    // Operators are literals; the parser decides which are valid and whether +- are signs or infix operators.
     auto l = Lexer(idpool(), data("   *\n&  "), p10);
-    auto c = check_next(l, (int)CTT::Literal);
-    CHECK(c->to_string() == "*");
+    auto c = check_next(l, (int)CTT::Invalid);
     check_next(l, (int)CTT::Empty);
-    c = check_next(l, (int)CTT::Literal);
-    CHECK(c->to_string() == "&");
+    c = check_next(l, (int)CTT::Invalid);
     check_next(l, (int)CTT::Empty);
     CHECK(!l.input_remains());
   }
@@ -208,31 +202,12 @@ TEST_CASE("Assembly lexer", "[scope:core][scope:core.langs][level:asmb3][level:a
     check_next(l, (int)CTT::Empty);
     CHECK(!l.input_remains());
   }
-  SECTION("Positive decimal") {
-    // The sign is its own token; the digits that follow are an unsigned decimal.
-    auto l = Lexer(idpool(), data("+0 +00 +000 +10 +65537"), p10);
-    for (const auto value : {0, 0, 0, 10, 65537}) {
-      check_next_string(l, (int)CTT::Literal, u"+"_s);
-      check_next_udec(l, value);
-    }
-    check_next(l, (int)CTT::Empty);
-    CHECK(!l.input_remains());
-  }
-  SECTION("Negative decimal") {
-    // Likewise, the parser (not the lexer) negates the digits that follow a minus.
-    auto l = Lexer(idpool(), data("-0 -00 -000 -10 -65537"), p10);
-    for (const auto value : {0, 0, 0, 10, 65537}) {
-      check_next_string(l, (int)CTT::Literal, u"-"_s);
-      check_next_udec(l, value);
-    }
-    check_next(l, (int)CTT::Empty);
-    CHECK(!l.input_remains());
-  }
-
-  SECTION("Sign needs digit") {
-    // A bare sign lexes fine; rejecting it is the parser's job.
-    auto l = Lexer(idpool(), data("- "), p10);
-    check_next_string(l, (int)CTT::Literal, u"-"_s);
+  SECTION("Signs are not lexed") {
+    // Operands are parsed by the expression parser, so a sign is not part of an integer.
+    auto l = Lexer(idpool(), data("+1 -"), p10);
+    check_next(l, (int)CTT::Invalid);
+    check_next_udec(l, 1);
+    check_next(l, (int)CTT::Invalid);
     check_next(l, (int)CTT::Empty);
     CHECK(!l.input_remains());
   }

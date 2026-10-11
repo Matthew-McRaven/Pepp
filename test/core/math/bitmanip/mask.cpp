@@ -26,4 +26,12 @@ TEST_CASE("Masked bits", "[scope:core][scope:core.math][kind:unit][arch:*]") {
     CHECK(start != end);
     CHECK(start() == end());
   }
+  SECTION("Masks and sign extension") {
+    STATIC_REQUIRE(bits::mask(1) == 0xFF);
+    STATIC_REQUIRE(bits::mask(8) == ~0ull);
+    STATIC_REQUIRE(bits::sign_extend(0x7F, 1) == 0x7F);
+    STATIC_REQUIRE(bits::sign_extend(0x80, 1) == 0xFFFF'FFFF'FFFF'FF80ull);
+    STATIC_REQUIRE(bits::sign_extend(0x1234'FFFE, 2) == 0xFFFF'FFFF'FFFF'FFFEull); // Bits above the width are ignored.
+    STATIC_REQUIRE(bits::sign_extend(0x8000'0000'0000'0000ull, 8) == 0x8000'0000'0000'0000ull);
+  }
 }

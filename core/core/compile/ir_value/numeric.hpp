@@ -34,6 +34,8 @@ public:
                               u32 max_size = (u32)-1) const noexcept override;
 
   void set_value(u64 value) noexcept { _value = value; }
+  // The value as written, which may be wider than serialized_size().
+  u64 value() const noexcept { return _value; }
 
 protected:
   Numeric(const Numeric &other);
