@@ -102,8 +102,8 @@ TEST_CASE("Create/add svg elements", "[scope:core][scope:core.svgdom][kind:unit]
   svg1.setMetadata("Metadata1 for document"s);
   svg1.classList().add("className1");
 
-  // auto *redRect = svg1.createElement(SvgType::Type::SvgRectElement).derived();
-  auto *redRect = static_cast<SvgRectElement *>(svg1.createElement(SvgType::Type::SvgRectElement));
+  auto *redRect = svg1.createElementAs<SvgRectElement>(SvgType::Type::SvgRectElement);
+  // auto *redRect = static_cast<SvgRectElement *>(svg1.createElement(SvgType::Type::SvgRectElement));
   REQUIRE(redRect != nullptr);
   if (redRect) {
     redRect->setId("red"s);
