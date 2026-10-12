@@ -54,19 +54,21 @@ bool pepp::ast::Expression::contains_symbols() const noexcept {
 pepp::tc::expr::ValueOf pepp::ast::Expression::resolve_constants_of() const {
   auto symtab = _symtab;
   auto default_type = _default_type;
-  return [symtab, default_type](const tc::expr::Identifier &id) -> std::optional<Value> {
-    if (const auto entry = symtab ? symtab->get(id.name) : std::nullopt; entry && is_constant(**entry))
-      return symbol_value(**entry, default_type);
-    return std::nullopt;
+  return [symtab, default_type](const tc::expr::Identifier &id) -> tc::expr::EvaluatedSymbol {
+    const auto entry = symtab ? symtab->get(id.name) : std::nullopt;
+    if (!entry) return {};
+    else if (is_constant(**entry)) return {(*entry)->state, symbol_value(**entry, default_type)};
+    return {(*entry)->state, std::nullopt};
   };
 }
 
 pepp::tc::expr::ValueOf pepp::ast::Expression::resolve_values_of() const {
   auto symtab = _symtab;
   auto default_type = _default_type;
-  return [symtab, default_type](const tc::expr::Identifier &id) -> std::optional<Value> {
-    if (const auto entry = symtab ? symtab->get(id.name) : std::nullopt) return symbol_value(**entry, default_type);
-    return std::nullopt;
+  return [symtab, default_type](const tc::expr::Identifier &id) -> tc::expr::EvaluatedSymbol {
+    if (const auto entry = symtab ? symtab->get(id.name) : std::nullopt)
+      return {(*entry)->state, symbol_value(**entry, default_type)};
+    return {};
   };
 }
 

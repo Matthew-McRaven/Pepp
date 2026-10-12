@@ -116,6 +116,11 @@ bool short_circuits(BinaryOp op, Value lhs) {
   return (op == BinaryOp::LogicalAnd && lhs.bits == 0) || (op == BinaryOp::LogicalOr && lhs.bits != 0);
 }
 
+// A symbol's value via value_of or nullopt if none.
+std::optional<Value> value_in(const ValueOf &value_of, const Identifier &id) {
+  return value_of ? value_of(id).value : std::nullopt;
+}
+
 Result evaluate(const Tree &tree, NodeId id, Type default_type, const ValueOf &value_of) {
   const auto fail = [&]<typename... Args>(Args &&...args) {
     return std::unexpected(EvaluationError{id, std::forward<Args>(args)...});
@@ -125,10 +130,10 @@ Result evaluate(const Tree &tree, NodeId id, Type default_type, const ValueOf &v
     if constexpr (std::is_same_v<T, Integer> || std::is_same_v<T, Character>) return literal(n, default_type);
     else if constexpr (std::is_same_v<T, FoldedConstant>) return n.value;
     else if constexpr (std::is_same_v<T, Identifier>) {
-      if (auto value = value_of ? value_of(n) : std::nullopt) return *value;
+      if (auto value = value_in(value_of, n)) return *value;
       return fail(UnaryError::Symbol_NoValue, n.name);
     } else if constexpr (std::is_same_v<T, LocationCounter>) { // Location counter is just another symbol.
-      if (auto value = value_of ? value_of(Identifier{n.name}) : std::nullopt) return *value;
+      if (auto value = value_in(value_of, Identifier{n.name})) return *value;
       return fail(NullaryError::LocationCounter_NoValue);
     } else if constexpr (std::is_same_v<T, Parens>) return evaluate(tree, n.inner, default_type, value_of);
     else if constexpr (std::is_same_v<T, Call>) {
@@ -245,7 +250,7 @@ pepp::tc::expr::constant_values(const Tree &tree, Type default_type, const Value
     using T = std::decay_t<decltype(n)>;
     if constexpr (std::is_same_v<T, Integer> || std::is_same_v<T, Character>) return literal(n, default_type);
     else if constexpr (std::is_same_v<T, FoldedConstant>) return n.value;
-    else if constexpr (std::is_same_v<T, Identifier>) return constant_of ? constant_of(n) : std::nullopt;
+    else if constexpr (std::is_same_v<T, Identifier>) return value_in(constant_of, n);
     else if constexpr (std::is_same_v<T, LocationCounter>) return std::nullopt;
     else if constexpr (std::is_same_v<T, Parens>) return values[n.inner];
     // A constexpr call is constant when its arguments are.
@@ -279,7 +284,7 @@ std::vector<pepp::tc::expr::Type> pepp::tc::expr::node_types(const Tree &tree, T
     if constexpr (std::is_same_v<T, Integer> || std::is_same_v<T, Character>) return literal(n, default_type).type;
     else if constexpr (std::is_same_v<T, FoldedConstant>) return n.value.type;
     else if constexpr (std::is_same_v<T, Identifier>) {
-      if (const auto value = constant_of ? constant_of(n) : std::nullopt) return value->type;
+      if (const auto value = value_in(constant_of, n)) return value->type;
       return type_of(n);
     } else if constexpr (std::is_same_v<T, LocationCounter>) return type_of(Identifier{n.name});
     else if constexpr (std::is_same_v<T, Parens>) return types[n.inner];
