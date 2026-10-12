@@ -17,21 +17,18 @@ bool SvgFactory::registerType(SvgType::Type type, CreatorFunc creator)
 }
 
 // Initialize the static registry map
-std::unordered_map<SvgType::Type, SvgFactory::CreatorFunc> SvgFactory::_registry
-    = {{SvgType::Type::SvgCommentElement, []() { return std::make_unique<SvgCommentElement>(); }},
-       {SvgType::Type::SvgCDataElement, []() { return std::make_unique<SvgCDataElement>(); }},
-       {SvgType::Type::SvgRectElement, []() { return std::make_unique<SvgRectElement>(); }},
-       {SvgType::Type::SvgUseElement, []() { return std::make_unique<SvgUseElement>(); }},
-       {SvgType::Type::SvgDefsElement,
-        []() { return createBasicElement(SvgType::Type::SvgDefsElement, "defs"s); }},
-       {SvgType::Type::SvgGElement,
-        []() { return createBasicElement(SvgType::Type::SvgGElement, "g"s); }},
-       {SvgType::Type::SvgDescElement,
-        []() { return createBasicElement(SvgType::Type::SvgDescElement, "desc"s); }},
-       {SvgType::Type::SvgMetadataElement,
-        []() { return createBasicElement(SvgType::Type::SvgMetadataElement, "metadata"s); }},
-       {SvgType::Type::SvgTitleElement,
-        []() { return createBasicElement(SvgType::Type::SvgTitleElement, "title"s); }}};
+std::unordered_map<SvgType::Type, SvgFactory::CreatorFunc> SvgFactory::_registry = {
+    {SvgType::Type::SvgCommentElement, []() { return std::make_unique<SvgCommentElement>(); }},
+    {SvgType::Type::SvgCDataElement, []() { return std::make_unique<SvgCDataElement>(); }},
+    {SvgType::Type::SvgRectElement, []() { return std::make_unique<SvgRectElement>(); }},
+    {SvgType::Type::SvgSvgElement, []() { return std::make_unique<SvgSvgElement>(); }},
+    {SvgType::Type::SvgUseElement, []() { return std::make_unique<SvgUseElement>(); }},
+    {SvgType::Type::SvgDefsElement, []() { return createBasicElement(SvgType::Type::SvgDefsElement, "defs"s); }},
+    {SvgType::Type::SvgGElement, []() { return createBasicElement(SvgType::Type::SvgGElement, "g"s); }},
+    {SvgType::Type::SvgDescElement, []() { return createBasicElement(SvgType::Type::SvgDescElement, "desc"s); }},
+    {SvgType::Type::SvgMetadataElement,
+     []() { return createBasicElement(SvgType::Type::SvgMetadataElement, "metadata"s); }},
+    {SvgType::Type::SvgTitleElement, []() { return createBasicElement(SvgType::Type::SvgTitleElement, "title"s); }}};
 
 std::unique_ptr<SvgInterface> SvgFactory::createElement(const SvgType::Type type)
 {
