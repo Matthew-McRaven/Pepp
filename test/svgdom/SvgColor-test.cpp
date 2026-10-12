@@ -5,16 +5,16 @@ using namespace std::string_literals;
 
 #include "svgdom/SvgColor.hpp"
 
-TEST_CASE("SvgColor tests", "[scope:core][scope:core.svgdom][kind:unit]") {
+TEST_CASE("SvgColor tests", "[scope:core][scope:core.svgdom.svgcolor][kind:unit]") {
   //  Test that Color class perform correctly
 
-  std::cout << "From Svg" << std::endl;
-  //  Check all existing enums
+  // std::cout << "From SvgColor" << std::endl;
+  //   Check all existing enums
   for (const auto colorPair : SvgColor::colorMap) {
     CHECK(colorPair.first == SvgColor::fromName(colorPair.second));
     if (colorPair.first == SvgColor::Color::Aqua) {
       //  Aqua and Cyan have the same color value
-      //  Cyan is retunred for Aqua
+      //  Cyan is returned for Aqua
       CHECK("Aqua" == SvgColor::fromRgb(colorPair.first));
     } else if (colorPair.first == SvgColor::Color::Magenta) {
       //  Fuchsia and Magenta have the same color value
