@@ -14,7 +14,7 @@ a non-exposed DOM, then pasted where the <use> element is, much like cloned
 */
 
 //	Public interface
-SvgUseElement::SvgUseElement() : Cloneable<SvgUseElement, SvgElement>() { SvgElement::setElementType(TYPE); }
+SvgUseElement::SvgUseElement() : Cloneable<SvgUseElement, SvgElement>() {}
 
 SvgUseElement::SvgUseElement(const std::string &xmlName, const std::string &value)
     : SvgUseElement()
