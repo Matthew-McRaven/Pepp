@@ -19,7 +19,6 @@
 #include <optional>
 #include <string>
 #include <vector>
-#include "core/compile/symbol/types.hpp"
 #include "core/integers.h"
 #include "core/langs/expr/error.hpp"
 #include "core/langs/expr/ir.hpp"
@@ -45,13 +44,6 @@ Type result_type(BinaryOp op, Type lhs, Type rhs, Type default_type);
 // - shift amounts >= default_type.bits or <= 0.
 std::expected<Value, NullaryError> apply(UnaryOp op, Value operand, Type default_type);
 std::expected<Value, NullaryError> apply(BinaryOp op, Value lhs, Value rhs, Type default_type);
-
-// A symbol's value in the current context as well as its definition state for use in consteval contexts.
-struct EvaluatedSymbol {
-  pepp::core::symbol::DefinitionState state = pepp::core::symbol::DefinitionState::Undefined;
-  std::optional<Value> value = std::nullopt;
-};
-using ValueOf = std::function<EvaluatedSymbol(const Identifier &)>;
 
 // Evaluate a tree with short-circuiting for && and ||. An identifier which value_of does not give a value (any, if
 // there is no value_of) is an error.

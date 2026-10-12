@@ -44,6 +44,8 @@ enum class UnaryError : u8 {
   Function_Unknown,
   Function_NotConstExpr,
   Function_WrongArity,
+  Function_ExpectedSymbol,
+  Function_Unavailable,
   Symbol_NoValue,
 };
 using ErrorCode = std::variant<NullaryError, UnaryError>;

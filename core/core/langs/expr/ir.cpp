@@ -37,6 +37,12 @@ pepp::tc::expr::NodeId pepp::tc::expr::Tree::add(Node node) {
   return static_cast<NodeId>(_nodes.size() - 1);
 }
 
+void pepp::tc::expr::Tree::truncate(std::size_t size) {
+  if (size >= _nodes.size()) return;
+  _nodes.resize(size);
+  _kinds.resize(size);
+}
+
 std::string_view pepp::tc::expr::to_string(UnaryOp op) {
   switch (op) {
   case UnaryOp::Plus: return "+";
@@ -148,9 +154,10 @@ void append(std::string &out, const Integer &n) {
 void append(std::string &out, const Character &n) { fmt::format_to(std::back_inserter(out), "'{}'", n.text); }
 void append(std::string &out, const Identifier &n) { out += n.name; }
 void append(std::string &out, const LocationCounter &) { out += '.'; }
-// Treat folded constants like a conditionally signed integer for serialization purposes.
+// Treat folded constants like a conditionally signed integer for serialization purposes, unless they keep their text.
 void append(std::string &out, const FoldedConstant &n) {
-  if (n.value.type.sign == pepp::tc::expr::Signedness::Signed)
+  if (!n.text.empty()) out += n.text;
+  else if (n.value.type.sign == pepp::tc::expr::Signedness::Signed)
     fmt::format_to(std::back_inserter(out), "{}", n.value.as_signed());
   else fmt::format_to(std::back_inserter(out), "{}", n.value.bits);
 }
@@ -244,7 +251,7 @@ bool pepp::tc::expr::is_constant_expression(const Tree &tree) {
       else if constexpr (std::is_same_v<T, Unary>) return self(self, n.operand);
       else if constexpr (std::is_same_v<T, Binary>) return self(self, n.lhs) && self(self, n.rhs);
       else if constexpr (std::is_same_v<T, Call>)
-        return n.function->is_constexpr() &&
+        return n.function->category == Function::Category::ConstExpr &&
                std::ranges::all_of(n.arguments, [&](NodeId argument) { return self(self, argument); });
       else return true; // A literal or folded constant.
     };

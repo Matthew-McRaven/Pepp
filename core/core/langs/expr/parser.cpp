@@ -19,6 +19,7 @@
 #include "core/compile/lex/buffer.hpp"
 #include "core/compile/lex/tokens.hpp"
 #include "core/langs/asmb/asmb_tokens.hpp"
+#include "core/langs/expr/evaluator.hpp"
 #include "core/langs/expr/lexer.hpp"
 #include "core/math/bitmanip/strings.hpp"
 
@@ -37,8 +38,10 @@ using pepp::tc::support::LocationInterval;
  */
 class Parser {
 public:
-  Parser(lex::Buffer &buffer, Location origin, const Options &options, const NameLocationCounter &location_counter)
-      : _buf(buffer), _options(options), _name_location_counter(location_counter), _origin(origin), _end(origin) {}
+  Parser(lex::Buffer &buffer, Location origin, const Options &options, const NameLocationCounter &location_counter,
+         const ValueOf &constant_of)
+      : _buf(buffer), _options(options), _name_location_counter(location_counter), _constant_of(constant_of),
+        _origin(origin), _end(origin) {}
 
   // Returns nullopt if the next token cannot start an expression.
   std::optional<NodeId> expression(int min_precedence) {
@@ -121,6 +124,9 @@ private:
   NodeId call(const Function &function, LocationInterval name) {
     if (!_buf.peek_literal("(")) throw Error{_buf.peek()->location(), NullaryError::Syntax_ExpectedOpenParen};
     consume(_buf.match_literal("("));
+    // If the call turns out to be constant-evaluable, we will replace the entire call with a folded constant.
+    // To do that we need to know where the call started.
+    const auto first_argument = tree.nodes().size();
     std::vector<NodeId> arguments;
     if (!_buf.peek_literal(")")) {
       do {
@@ -133,8 +139,21 @@ private:
     const auto close = _buf.match_literal(")");
     consume(close);
     const LocationInterval location(name.lower(), close->location().upper());
-    if (arguments.size() != function.arity) throw Error{location, UnaryError::Function_WrongArity, function.name};
-    return add(Call{&function, std::move(arguments)}, location);
+    if (arguments.size() != function.parameters.size())
+      throw Error{location, UnaryError::Function_WrongArity, function.name};
+    else if (function.category != Function::Category::ConstEval)
+      return add(Call{&function, std::move(arguments)}, location);
+    else if (!_constant_of) throw Error{location, UnaryError::Function_Unavailable, function.name};
+
+    // Since this is a constant-evaluated function, we must evaluate it now.
+    // Add a temporary call node so we can use evaluate_expression to compute a FoldedConstant.
+    add(Call{&function, std::move(arguments)}, location);
+    const auto value = evaluate_expression(tree, _options.default_type, _constant_of);
+    if (!value) throw Error{value.error().node ? locations[*value.error().node] : location, value.error()};
+    auto text = to_infix(tree);
+    tree.truncate(first_argument);
+    locations.resize(first_argument);
+    return add(FoldedConstant{*value, std::move(text)}, location);
   }
 
   // All . in the same expression refer to the same symbol.
@@ -152,6 +171,8 @@ private:
   lex::Buffer &_buf;
   const Options &_options;
   const NameLocationCounter &_name_location_counter;
+  // What the host knows of symbols so far, for ConstEval calls.
+  const ValueOf &_constant_of;
   std::optional<std::string> _location_counter;
   Location _origin, _end;
 };
@@ -159,7 +180,8 @@ private:
 
 pepp::tc::expr::ParseResult pepp::tc::expr::parse(support::SeekableData cursor, std::shared_ptr<IdentifierPool> pool,
                                                   const Options &options,
-                                                  const NameLocationCounter &location_counter) {
+                                                  const NameLocationCounter &location_counter,
+                                                  const ValueOf &constant_of) {
   const auto origin = cursor.location();
   // The lexer reads one token past the end of the expression, but we need to return a cursor pointing immediately after
   // the last token of the expression.
@@ -167,7 +189,7 @@ pepp::tc::expr::ParseResult pepp::tc::expr::parse(support::SeekableData cursor, 
   if (!pool) pool = std::make_shared<IdentifierPool>();
   ExpressionLexer lexer(std::move(pool), std::move(cursor), options);
   lex::Buffer buffer(&lexer);
-  Parser parser(buffer, origin, options, location_counter);
+  Parser parser(buffer, origin, options, location_counter, constant_of);
   try {
     const auto root = parser.expression(0);
     if (!root) return NoExpression{};
@@ -181,6 +203,8 @@ pepp::tc::expr::ParseResult pepp::tc::expr::parse(support::SeekableData cursor, 
 
 pepp::tc::expr::ParseResult pepp::tc::expr::parse(std::string_view text, support::Location origin,
                                                   std::shared_ptr<IdentifierPool> pool, const Options &options,
-                                                  const NameLocationCounter &location_counter) {
-  return parse(support::SeekableData(std::string(text), origin), std::move(pool), options, location_counter);
+                                                  const NameLocationCounter &location_counter,
+                                                  const ValueOf &constant_of) {
+  return parse(support::SeekableData(std::string(text), origin), std::move(pool), options, location_counter,
+               constant_of);
 }

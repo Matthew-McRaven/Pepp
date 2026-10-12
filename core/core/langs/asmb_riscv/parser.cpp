@@ -27,32 +27,53 @@
 namespace {
 namespace expr = pepp::tc::expr;
 
-using Values = std::span<const expr::Value>;
+using Arguments = std::span<const expr::Argument>;
 using Types = std::span<const expr::Type>;
+using Category = expr::Function::Category;
+constexpr std::array value_parameter{expr::Function::Parameter::Value};
+constexpr std::array symbol_parameter{expr::Function::Parameter::Symbol};
 
 // The upper 20 bits shifted into the lower 20 bits. Must add +0x800.
 // e.g., 0x12345FFF. Without addition, lo=0xFFF, hi=x012345000
 // lo is sign extend to 0xFFFF'FFFF, so a lui/addi pair would compute 12344FFF
 // So we need to round hi up when lo is negative (bit 11 / 0x800)is set.
-std::expected<expr::Value, expr::NullaryError> hi20(Values x, expr::Type) {
-  return expr::Value{(((x[0].bits & 0xFFFF'FFFF) + 0x800) >> 12) & 0xF'FFFF, {32, expr::Signedness::Unsigned}};
+std::expected<expr::Value, expr::NullaryError> hi20(Arguments arguments, expr::Type) {
+  const auto x = std::get<expr::Value>(arguments[0]);
+  return expr::Value{(((x.bits & 0xFFFF'FFFF) + 0x800) >> 12) & 0xF'FFFF, {32, expr::Signedness::Unsigned}};
 }
 expr::Type hi_type(Types, expr::Type) { return {32, expr::Signedness::Unsigned}; }
 
 // Sign-extended lower 12 bits.
-std::expected<expr::Value, expr::NullaryError> lo12(Values x, expr::Type) {
+std::expected<expr::Value, expr::NullaryError> lo12(Arguments arguments, expr::Type) {
+  const auto x = std::get<expr::Value>(arguments[0]);
   // branch-free sign extension of 12-bit quantity to 32-bits.
-  const auto sign_extended = (((x[0].bits & 0xFFF) ^ 0x800) - 0x800);
+  const auto sign_extended = (((x.bits & 0xFFF) ^ 0x800) - 0x800);
   return expr::Value{sign_extended & 0xFFFF'FFFF, {32, expr::Signedness::Signed}};
 }
 expr::Type lo_type(Types, expr::Type) { return {32, expr::Signedness::Signed}; }
 
-// Currently implemented relocation modifiers
-const std::array<expr::Function, 4> functions{{
-    {"%hi", 1, hi20, hi_type},
-    {"%lo", 1, lo12, lo_type},
-    {"%pcrel_hi", 1, nullptr, hi_type},
-    {"%pcrel_lo", 1, nullptr, lo_type},
+// 1 if the symbol has been defined before this point, else 0.
+std::expected<expr::Value, expr::NullaryError> defined(Arguments arguments, expr::Type default_type) {
+  const auto &symbol = std::get<expr::EvaluatedSymbol>(arguments[0]);
+  const bool is_defined = symbol.state != pepp::core::symbol::DefinitionState::Undefined;
+  return expr::Value{is_defined, {default_type.bits, expr::Signedness::Signed}};
+}
+
+// 1 if the symbol is a constant defined before this point, else 0.
+std::expected<expr::Value, expr::NullaryError> constant(Arguments arguments, expr::Type default_type) {
+  const bool is_constant = std::get<expr::EvaluatedSymbol>(arguments[0]).value.has_value();
+  return expr::Value{is_constant, {default_type.bits, expr::Signedness::Signed}};
+}
+
+const std::array<expr::Function, 6> functions{{
+    // Relocation modifiers
+    {"%hi", Category::ConstExpr, value_parameter, hi20, hi_type},
+    {"%lo", Category::ConstExpr, value_parameter, lo12, lo_type},
+    {"%pcrel_hi", Category::NonConstExpr, value_parameter, nullptr, hi_type},
+    {"%pcrel_lo", Category::NonConstExpr, value_parameter, nullptr, lo_type},
+    // Constant-evaluated functions needed to implement pseudo-instructions as macros.
+    {"%defined", Category::ConstEval, symbol_parameter, defined, nullptr},
+    {"%constant", Category::ConstEval, symbol_parameter, constant, nullptr},
 }};
 
 // `.` is the location counter, and %name a relocation modifier.
@@ -150,8 +171,9 @@ std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::RISCVParser::argument() {
     return RISCVParserError(RISCVParserError::UnaryError::Expression_Invalid, error.message(), error.location);
   };
   const auto location_counter = resolve_location_counter(*_symtab, _location_counter);
+  const auto constant_of = pepp::ast::constants_of(_symtab, options.default_type);
 
-  if (const auto expr = parse_expression(*buf, *lexer, _pool, options, location_counter); !expr)
+  if (const auto expr = parse_expression(*buf, *lexer, _pool, options, location_counter, constant_of); !expr)
     throw invalid(expr.error());
   else if (*expr) {
     if (const auto value = lower(**expr, _symtab, options.default_type, 4); !value) throw invalid(value.error());
@@ -273,12 +295,13 @@ std::vector<pepp::tc::parser::RISCVOperand> pepp::tc::parser::RISCVParser::mnemo
     return RISCVParserError(RISCVParserError::UnaryError::Expression_Invalid, error.message(), error.location);
   };
   const auto location_counter = resolve_location_counter(*_symtab, _location_counter);
+  const auto constant_of = pepp::ast::constants_of(_symtab, options.default_type);
   std::vector<RISCVOperand> ret;
   bool comma = false;
   // Try an expression before a comma, so that the lexer never lexes an operand's text. An operand may also follow the
   // previous one without a comma, as (x3) does in 0(x3).
   while (true) {
-    if (const auto expr = parse_expression(*buf, *lexer, _pool, options, location_counter); !expr)
+    if (const auto expr = parse_expression(*buf, *lexer, _pool, options, location_counter, constant_of); !expr)
       throw invalid(expr.error());
     else if (*expr) ret.push_back({*expr, std::exchange(comma, false)});
     else if (!comma && buf->match_literal(",")) comma = true;

@@ -510,6 +510,18 @@ TEST_CASE("RISCV ASM parser dot commands",
       REQUIRE(results.size() == 5);
       CHECK(std::dynamic_pointer_cast<RTypeIR>(results[3]));
     }
+    {
+      // consteval functions do not return true for word references.
+      DiagnosticTable diag;
+      auto p = Parser(data("k: .equ 6\nl:\n.if %defined(k) && %constant(k) && %defined(l) && !%constant(l) && "
+                           "!%defined(m) && !%defined(never)\n.byte 1\n.endif\nm:"));
+      const auto results = p.parse(diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 6);
+      CHECK(std::dynamic_pointer_cast<DotLiteral>(results[3]));
+      // consteval function arguments do not modify symbol table.
+      CHECK(!p.symbol_table()->exists("never"));
+    }
     using RVPE = RISCVParserError;
     for (const auto &[source, error] : std::vector<std::pair<const char *, RVPE::NullaryError>>{
              {".if 0", RVPE::NullaryError::Conditional_Unterminated},

@@ -137,13 +137,23 @@ Result evaluate(const Tree &tree, NodeId id, Type default_type, const ValueOf &v
       return fail(NullaryError::LocationCounter_NoValue);
     } else if constexpr (std::is_same_v<T, Parens>) return evaluate(tree, n.inner, default_type, value_of);
     else if constexpr (std::is_same_v<T, Call>) {
-      if (!n.function->is_constexpr()) return fail(UnaryError::Function_NotConstExpr, n.function->name);
-      std::vector<Value> arguments;
-      for (const auto argument : n.arguments) {
-        if (auto value = evaluate(tree, argument, default_type, value_of); !value) return value;
-        else arguments.push_back(*value);
+      const auto &function = *n.function;
+      if (function.category == Function::Category::NonConstExpr || !function.evaluate)
+        return fail(UnaryError::Function_NotConstExpr, function.name);
+      std::vector<Argument> arguments;
+      for (std::size_t it = 0; it < n.arguments.size(); it++) {
+        const auto argument = n.arguments[it];
+        // Symbol parameters should not be evaluate()ed. We only need their definition state and value (as reported by
+        // symtab)
+        if (it < function.parameters.size() && function.parameters[it] == Function::Parameter::Symbol) {
+          const auto *identifier = std::get_if<Identifier>(&tree[argument]);
+          if (!identifier)
+            return std::unexpected(EvaluationError{argument, UnaryError::Function_ExpectedSymbol, function.name});
+          arguments.emplace_back(value_of ? value_of(*identifier) : EvaluatedSymbol{});
+        } else if (auto value = evaluate(tree, argument, default_type, value_of); !value) return value;
+        else arguments.emplace_back(*value);
       }
-      if (auto ret = n.function->evaluate(arguments, default_type); ret) return *ret;
+      if (auto ret = function.evaluate(arguments, default_type); ret) return *ret;
       else return fail(ret.error());
     } else if constexpr (std::is_same_v<T, Unary>) {
       if (const auto operand = evaluate(tree, n.operand, default_type, value_of); !operand) return operand;
@@ -253,13 +263,13 @@ pepp::tc::expr::constant_values(const Tree &tree, Type default_type, const Value
     else if constexpr (std::is_same_v<T, Identifier>) return value_in(constant_of, n);
     else if constexpr (std::is_same_v<T, LocationCounter>) return std::nullopt;
     else if constexpr (std::is_same_v<T, Parens>) return values[n.inner];
-    // A constexpr call is constant when its arguments are.
+    // A ConstExpr call is constant when its arguments are. All parameters should be Values.
     else if constexpr (std::is_same_v<T, Call>) {
-      if (!n.function->is_constexpr()) return std::nullopt;
-      std::vector<Value> arguments;
+      if (n.function->category != Function::Category::ConstExpr) return std::nullopt;
+      std::vector<Argument> arguments;
       for (const auto argument : n.arguments) {
         if (!values[argument]) return std::nullopt;
-        arguments.push_back(*values[argument]);
+        arguments.emplace_back(*values[argument]);
       }
       return known(n.function->evaluate(arguments, default_type));
     }
@@ -359,8 +369,10 @@ pepp::tc::expr::Tree pepp::tc::expr::fold_constants(const Tree &tree, Type defau
   const auto rebuild = [&](const auto &self, NodeId id) -> NodeId {
     const auto &node = tree[id];
     if (!values[id]) return ret.add(map_operands(node, [&](NodeId operand) { return self(self, operand); }));
-    // Do not rewrite a single literal as a folded constant.
-    if (std::holds_alternative<Integer>(node) || std::holds_alternative<Character>(node)) return ret.add(node);
+    // Do not rewrite a single literals, or already-evlauted constants.
+    if (std::holds_alternative<Integer>(node) || std::holds_alternative<Character>(node) ||
+        std::holds_alternative<FoldedConstant>(node))
+      return ret.add(node);
     return ret.add(FoldedConstant{*values[id]});
   };
   if (!tree.empty()) rebuild(rebuild, tree.root());

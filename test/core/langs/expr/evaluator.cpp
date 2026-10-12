@@ -26,10 +26,24 @@ using namespace pepp::tc::expr;
 using enum Signedness;
 using pepp::core::symbol::DefinitionState;
 
-// One constexpr and one non-constexpr function which preserve their argument's type.
-std::expected<Value, NullaryError> twice(std::span<const Value> x, Type) { return Value{x[0].bits * 2, x[0].type}; }
+// One constexpr and one non-constexpr function which preserve their argument's type, and a ConstEval function.
+std::expected<Value, NullaryError> twice(std::span<const Argument> x, Type) {
+  const auto value = std::get<Value>(x[0]);
+  return Value{value.bits * 2, value.type};
+}
+std::expected<Value, NullaryError> defined(std::span<const Argument> x, Type default_type) {
+  const bool is_defined = std::get<EvaluatedSymbol>(x[0]).state != DefinitionState::Undefined;
+  return Value{is_defined, {default_type.bits, Signed}};
+}
 Type same(std::span<const Type> types, Type) { return types[0]; }
-const std::array<Function, 2> functions{{{"%twice", 1, twice, same}, {"%where", 1, nullptr, same}}};
+using Category = Function::Category;
+constexpr std::array one_value{Function::Parameter::Value};
+constexpr std::array one_symbol{Function::Parameter::Symbol};
+const std::array<Function, 3> functions{{
+    {"%twice", Category::ConstExpr, one_value, twice, same},
+    {"%where", Category::NonConstExpr, one_value, nullptr, same},
+    {"%defined", Category::ConstEval, one_symbol, defined, nullptr},
+}};
 
 Tree tree_of(const char *source) {
   auto result = parse(source);
@@ -139,20 +153,35 @@ TEST_CASE("Expression evaluation", "[scope:core][scope:core.langs][kind:unit][ar
     CHECK(empty.error().matches(NullaryError::Evaluation_Empty));
   }
   SECTION("Function calls") {
-    const auto call = [](const char *source) {
+    // Only k is defined while parsing.
+    const ValueOf defined_so_far = [](const Identifier &id) -> EvaluatedSymbol {
+      if (id.name == "k") return {DefinitionState::Single, std::nullopt};
+      return {};
+    };
+    const auto call = [&](const char *source) {
       auto result = parse(source, pepp::tc::support::Location(0, 0), nullptr,
-                          Options{.percent_identifiers = true, .functions = functions});
+                          Options{.percent_identifiers = true, .functions = functions}, {}, defined_so_far);
       REQUIRE(std::holds_alternative<Parsed>(result));
       return std::get<Parsed>(std::move(result)).tree;
     };
-    // A constexpr call is evaluated, and folded, like an operator.
+    // A constexpr call participates in constant folding
     CHECK(evaluate_expression(call("%twice(3) + 1"), pep).value() == Value{7, {16, Bits}});
     CHECK(to_postfix(fold_constants(call("%twice(3) + sym"), pep)) == "6 sym +");
     CHECK(is_constant_expression(call("%twice(3)")));
-    // A  non-constexpr call depends on where it is used, so it is never evaluated.
+    // A  non-constexpr cannot be evaluated at this time.
     CHECK(evaluate_expression(call("%where(3)"), pep).error().matches(UnaryError::Function_NotConstExpr, "%where"));
     CHECK(to_postfix(fold_constants(call("%where(3)"), pep)) == "3 %where");
     CHECK(!is_constant_expression(call("%where(3)")));
+    // A ConstEval call is evaluated at parse time
+    const ValueOf all_defined = [](const Identifier &) -> EvaluatedSymbol {
+      return {DefinitionState::Single, Value{0, {16, Unsigned}}};
+    };
+    CHECK(evaluate_expression(call("%defined(k) + %defined(m)"), pep, all_defined).value() == Value{1, {32, Signed}});
+    CHECK(is_constant_expression(call("%defined(m)")));
+    // It is kept as written unless it folds into a larger constant.
+    CHECK(to_postfix(fold_constants(call("%defined(k) + sym"), pep)) == "%defined(k) sym +");
+    CHECK(to_infix(fold_constants(call("%defined(k) + sym"), pep)) == "%defined(k) + sym");
+    CHECK(to_postfix(fold_constants(call("%defined(k) + 1"), pep)) == "2");
   }
   SECTION("Symbols") {
     const ValueOf value_of = [](const Identifier &id) -> EvaluatedSymbol {

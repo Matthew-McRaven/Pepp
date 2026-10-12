@@ -15,6 +15,7 @@
  */
 #pragma once
 #include <algorithm>
+#include <functional>
 #include <optional>
 #include <span>
 #include <string>
@@ -150,6 +151,9 @@ struct Identifier {
   std::string name;
 };
 
+// What the host knows of a symbol in the current context.
+using ValueOf = std::function<EvaluatedSymbol(const Identifier &)>;
+
 // The address of the instruction / directive beting emitted. All . in the same expression refer to the same symbol. The
 // name of the symbol is unique for each address.
 struct LocationCounter {
@@ -157,11 +161,13 @@ struct LocationCounter {
   std::string name;
 };
 
-// A value computed during constant folding. Unlike other constants, it must record its type because it may have been
-// widened or narrowed during compuation.
+// A value computed during constant folding or parse-time constant evaluation. Unlike other constants, it must record
+// its type because it may have been widened or narrowed during compuation.
 struct FoldedConstant {
   static constexpr Kind KIND = Kind::FoldedConstant;
   Value value;
+  // If non-empty, prefer to print out the text when formatted.e.g. %defined(k).
+  std::string text;
 };
 
 // While the tree already encodes grouping, parentheses nodes are used to preserve the formatting of the input.
@@ -170,7 +176,8 @@ struct Parens {
   NodeId inner;
 };
 
-// A call to a function defined in Options, e.g. %hi(sym).
+// A call to a function defined in Options, e.g. %hi(sym). The parser replaces a ConstEval call (and its arguments) with
+// a FoldedConstant holding its result, so that nothing can treat its arguments as references or evaluate them again.
 struct Call {
   static constexpr Kind KIND = Kind::Call;
   const Function *function;
@@ -199,6 +206,8 @@ class Tree {
 public:
   // Append a node whose operands are already in the tree. This node becomes the new root.
   NodeId add(Node node);
+  // Keep only the first size nodes. In postorder, none of them refer to the nodes removed.
+  void truncate(std::size_t size);
 
   bool empty() const { return _nodes.empty(); }
   NodeId root() const { return static_cast<NodeId>(_nodes.size() - 1); }
