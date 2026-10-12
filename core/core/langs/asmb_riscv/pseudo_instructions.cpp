@@ -19,8 +19,43 @@
 #include "core/compile/macro/macro_registry.hpp"
 
 namespace {
-const std::vector<pepp::tc::MacroDefinition> &definitions() {
-  static const std::vector<pepp::tc::MacroDefinition> ret{};
+using pepp::tc::MacroDefinition;
+
+// Assuming XLEN==32.
+// Pseudo-instructions which always expand to the same instruction sequence.
+
+// Sign extend byte: sext.b rd, rs -> slli rd, rs, XLEN - 8; srai rd, rd, XLEN - 8
+MacroDefinition sext_b() {
+  return {"sext.b",
+          {{.name = "rd"}, {.name = "rs"}},
+          R"(slli \rd, \rs, 24
+srai \rd, \rd, 24
+)",
+          false};
+}
+
+// Sign extend halfword: sext.h rd, rs -> slli rd, rs, XLEN - 16; srai rd, rd, XLEN - 16
+MacroDefinition sext_h() {
+  return {"sext.h",
+          {{.name = "rd"}, {.name = "rs"}},
+          R"(slli \rd, \rs, 16
+srai \rd, \rd, 16
+)",
+          false};
+}
+
+// Zero extend halfword: zext.h rd, rs -> slli rd, rs, XLEN - 16; srli rd, rd, XLEN - 16
+MacroDefinition zext_h() {
+  return {"zext.h",
+          {{.name = "rd"}, {.name = "rs"}},
+          R"(slli \rd, \rs, 16
+srli \rd, \rd, 16
+)",
+          false};
+}
+
+const std::vector<MacroDefinition> &definitions() {
+  static const std::vector<MacroDefinition> ret{sext_b(), sext_h(), zext_h()};
   return ret;
 }
 } // namespace

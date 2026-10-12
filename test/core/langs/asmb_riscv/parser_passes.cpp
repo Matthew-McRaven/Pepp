@@ -610,3 +610,27 @@ TEST_CASE("RISCV ASM parser symbol-only lines",
   CHECK(!results[6]->typed_attribute<SymbolDeclaration>());
   symbol_line(7, "e");
 }
+
+TEST_CASE("RISCV ASM pseudo-instructions",
+          "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:riscv]") {
+  using Parser = pepp::tc::parser::RISCVParser;
+  using namespace pepp::tc;
+  SECTION("Multi-instruction pseudo-instructions expand as macros") {
+    DiagnosticTable diag;
+    auto p = Parser(data("sext.b x1, x2"));
+    const auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 1);
+    const auto macro = std::dynamic_pointer_cast<MacroInstantiation>(results[0]);
+    REQUIRE(macro);
+    REQUIRE(macro->lines.size() >= 2);
+    const auto slli = std::dynamic_pointer_cast<ITypeIR>(macro->lines[0]);
+    const auto srai = std::dynamic_pointer_cast<ITypeIR>(macro->lines[1]);
+    REQUIRE(slli);
+    REQUIRE(srai);
+    CHECK(slli->mnemonic.mn == riscv::SLLI);
+    CHECK((slli->rd == 1 && slli->rs1 == 2 && slli->imm->value_as<u32>() == 24));
+    CHECK(srai->mnemonic.mn == riscv::SRAI);
+    CHECK((srai->rd == 1 && srai->rs1 == 1 && srai->imm->value_as<u32>() == 24));
+  }
+}
