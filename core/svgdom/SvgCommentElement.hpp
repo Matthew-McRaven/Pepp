@@ -19,6 +19,7 @@ public:
   SvgCommentElement &operator=(SvgCommentElement &&) noexcept = default;
 
   //  Called by base class
+  SvgType::Type elementType() const override;
   void toXml(SvgRope &output) const override;
   bool setAttribute(const std::string &key, const std::string &value) override;
 };

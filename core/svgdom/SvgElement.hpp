@@ -34,7 +34,7 @@ public:
 
   //	User access functions
   //  Standard Xml
-  SvgType::Type elementType() const override;
+  virtual SvgType::Type elementType() const override;
   const std::string &xmlName() const override;
   void setXmlName(const std::string &xmlName) override;
   const std::string &value() const override;

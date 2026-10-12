@@ -23,6 +23,8 @@ public:
   SvgRectElement &operator=(SvgRectElement &&) noexcept = default;
 
   //	User access functions
+  SvgType::Type elementType() const override;
+
   //  Values can be changed, but not units of measure (yet)
   SvgUnitValue rx() const;
   void setRx(double x = 0);

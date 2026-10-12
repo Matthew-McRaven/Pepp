@@ -26,6 +26,7 @@ public:
   auto href() const;
   void setHref(const std::string &href);
 
+  SvgType::Type elementType() const override;
   void toXml(SvgRope &output) const override;
   bool setAttribute(const std::string &key, const std::string &value) override;
   bool attributeXml(SvgRope &output) const override;

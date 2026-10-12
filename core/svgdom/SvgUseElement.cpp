@@ -25,6 +25,8 @@ SvgUseElement::SvgUseElement(const std::string &xmlName, const std::string &valu
 
 //  Derived class accessors
 //  Dimension accessors
+SvgType::Type SvgUseElement::elementType() const { return TYPE; }
+
 auto SvgUseElement::href() const
 {
     return _href;

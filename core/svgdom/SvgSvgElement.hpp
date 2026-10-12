@@ -27,6 +27,7 @@ public:
   SvgRect &viewBox();
   const SvgRect &viewBox() const;
 
+  SvgType::Type elementType() const override;
   void toXml(SvgRope &output) const override;
   bool setAttribute(const std::string &key, const std::string &value) override;
   bool attributeXml(SvgRope &output) const override;

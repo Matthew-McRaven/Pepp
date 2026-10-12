@@ -103,7 +103,6 @@ TEST_CASE("Create/add svg elements", "[scope:core][scope:core.svgdom][kind:unit]
   svg1.classList().add("className1");
 
   auto *redRect = svg1.createElementAs<SvgRectElement>(SvgType::Type::SvgRectElement);
-  // auto *redRect = static_cast<SvgRectElement *>(svg1.createElement(SvgType::Type::SvgRectElement));
   REQUIRE(redRect != nullptr);
   if (redRect) {
     redRect->setId("red"s);
@@ -197,8 +196,13 @@ TEST_CASE("Create library file", "[scope:core][scope:core.svgdom][kind:unit]") {
   Timer t;
   t.start();
   Document doc1{};
+  auto &svg = doc1.documentElement();
+
   auto *library = doc1.documentElement().createElement(SvgType::Type::SvgDefsElement);
   auto *gElement = doc1.documentElement().createElement(SvgType::Type::SvgGElement);
+
+  REQUIRE(library != nullptr);
+  REQUIRE(gElement != nullptr);
 
   for (int i = 0; i < srcFiles.size(); ++i) {
     Document d(srcFiles.at(i));
@@ -211,7 +215,7 @@ TEST_CASE("Create library file", "[scope:core][scope:core.svgdom][kind:unit]") {
       std::cout << "Element ID not found: "s << srcNames.at(i) << std::endl;
     }
 
-    auto *use = static_cast<SvgUseElement *>(gElement->createElement(SvgType::Type::SvgUseElement));
+    auto *use = gElement->createElementAs<SvgUseElement>(SvgType::Type::SvgUseElement);
     REQUIRE(use != nullptr);
     if (use) {
       use->setHref(srcNames.at(i));

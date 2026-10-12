@@ -26,6 +26,9 @@ SvgCommentElement::SvgCommentElement(const std::string &comment)
     SvgElement::setValue(comment);
 }
 
+//  Derived class accessors
+SvgType::Type SvgCommentElement::elementType() const { return TYPE; }
+
 bool SvgCommentElement::setAttribute(const std::string &key, const std::string &value)
 {
     //  Comments cannot have children or attributes

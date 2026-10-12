@@ -23,10 +23,9 @@ SvgSvgElement::SvgSvgElement(const std::string &xmlName, const std::string &valu
 }
 
 //  Derived class accessors
-SvgRect &SvgSvgElement::viewBox()
-{
-    return _viewBox;
-}
+SvgType::Type SvgSvgElement::elementType() const { return TYPE; }
+
+SvgRect &SvgSvgElement::viewBox() { return _viewBox; }
 const SvgRect &SvgSvgElement::viewBox() const
 {
     return _viewBox;
