@@ -21,6 +21,7 @@
 #include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/langs/asmb/expression_operand.hpp"
 #include "core/langs/asmb_riscv/parser_error.hpp"
+#include "core/langs/asmb_riscv/pseudo_instructions.hpp"
 #include "core/macros.hpp"
 #include "core/math/bitmanip/mask.hpp"
 #include "core/math/bitmanip/strings.hpp"
@@ -141,6 +142,7 @@ pepp::tc::parser::RISCVParser::RISCVParser(support::SeekableData &&data, std::sh
       _root_lexer(std::make_shared<langs::RISCVLexer>(_pool, std::move(data))),
       _symtab(std::make_shared<pepp::core::symbol::LeafTable>(2)),
       _macros(macros ? std::move(macros) : std::make_shared<MacroRegistry>()) {
+  riscv_insert_pseudo_instructions(*_macros);
   _lexer_stack.emplace(_root_lexer, std::make_shared<lex::Buffer>(&*_root_lexer));
 }
 
