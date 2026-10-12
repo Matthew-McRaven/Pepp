@@ -7,16 +7,18 @@
 class SvgCDataElement final : public Cloneable<SvgCDataElement, SvgElement>
 {
 public:
-    SvgCDataElement();
-    explicit SvgCDataElement(const std::string &value);
-    ~SvgCDataElement() = default;
-    //Copy and move
-    SvgCDataElement(const SvgCDataElement &) = default;
-    SvgCDataElement &operator=(const SvgCDataElement &) = default;
-    SvgCDataElement(SvgCDataElement &&) noexcept = default;
-    SvgCDataElement &operator=(SvgCDataElement &&) noexcept = default;
+  SvgType::Type TYPE = SvgType::Type::SvgCDataElement;
 
-    //  Called by base class
-    void toXml(SvgRope &output) const override;
-    bool setAttribute(const std::string &key, const std::string &value) override;
+  SvgCDataElement();
+  explicit SvgCDataElement(const std::string &value);
+  ~SvgCDataElement() = default;
+  // Copy and move
+  SvgCDataElement(const SvgCDataElement &) = default;
+  SvgCDataElement &operator=(const SvgCDataElement &) = default;
+  SvgCDataElement(SvgCDataElement &&) noexcept = default;
+  SvgCDataElement &operator=(SvgCDataElement &&) noexcept = default;
+
+  //  Called by base class
+  void toXml(SvgRope &output) const override;
+  bool setAttribute(const std::string &key, const std::string &value) override;
 };

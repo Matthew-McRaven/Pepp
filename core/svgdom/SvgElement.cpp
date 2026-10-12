@@ -67,14 +67,8 @@ SvgElement::SvgElement(const SvgElement &original)
 }
 
 //  Generic Dom fields
-SvgType::Type SvgElement::elementType() const
-{
-    return _elementType;
-}
-void SvgElement::setElementType(const SvgType::Type elementType)
-{
-    _elementType = elementType;
-}
+SvgType::Type SvgElement::elementType() const { return _elementType; }
+void SvgElement::setElementType(const SvgType::Type elementType) { _elementType = elementType; }
 
 const std::string &SvgElement::xmlName() const
 {
@@ -234,8 +228,7 @@ SvgInterface *SvgElement::createElement(const SvgType::Type type)
 
     //  Some elements require additional processing
     auto child = static_cast<SvgElement *>(_children.back().get());
-    if (child->elementType() == SvgType::Type::SvgUnknownElement)
-        child->setElementType(type);
+    // if (child->elementType() == SvgType::Type::SvgUnknownElement) child->setElementType(type);
 
     //  We track certain types, add pointers now
     switch (type) {
@@ -245,10 +238,9 @@ SvgInterface *SvgElement::createElement(const SvgType::Type type)
     case SvgType::Type::SvgMetadataElement:
         _metadata = child;
         break;
-    case SvgType::Type::SvgTitleElement: {
-        _title = child;
-        break;
-    }
+    case SvgType::Type::SvgTitleElement: _title = child; break;
+    case SvgType::Type::SvgUnknownElement: child->setElementType(type); break;
+    default: break;
     }
 
     //  All children must refer to this document

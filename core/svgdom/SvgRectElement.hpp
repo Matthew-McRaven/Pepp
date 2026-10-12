@@ -11,25 +11,27 @@ class SvgRectElement final : public Cloneable<SvgRectElement, SvgElement>
     SvgUnitValue _ry;
 
 public:
-    SvgRectElement();
-    explicit SvgRectElement(const std::string &name, const std::string &value = "");
-    ~SvgRectElement() = default;
-    //Allo copy and move
-    SvgRectElement(const SvgRectElement &) = default;
-    SvgRectElement &operator=(const SvgRectElement &) = default;
-    SvgRectElement(SvgRectElement &&) noexcept = default;
-    SvgRectElement &operator=(SvgRectElement &&) noexcept = default;
+  SvgType::Type TYPE = SvgType::Type::SvgRectElement;
 
-    //	User access functions
-    //  Values can be changed, but not units of measure (yet)
-    SvgUnitValue rx() const;
-    void setRx(double x = 0);
-    void setRx(const std::string_view sv);
-    SvgUnitValue ry() const;
-    void setRy(double y = 0);
-    void setRy(const std::string_view sv);
+  SvgRectElement();
+  explicit SvgRectElement(const std::string &name, const std::string &value = "");
+  ~SvgRectElement() = default;
+  // Allo copy and move
+  SvgRectElement(const SvgRectElement &) = default;
+  SvgRectElement &operator=(const SvgRectElement &) = default;
+  SvgRectElement(SvgRectElement &&) noexcept = default;
+  SvgRectElement &operator=(SvgRectElement &&) noexcept = default;
 
-    void toXml(SvgRope &output) const override;
-    bool setAttribute(const std::string &key, const std::string &value) override;
-    bool attributeXml(SvgRope &output) const override;
+  //	User access functions
+  //  Values can be changed, but not units of measure (yet)
+  SvgUnitValue rx() const;
+  void setRx(double x = 0);
+  void setRx(const std::string_view sv);
+  SvgUnitValue ry() const;
+  void setRy(double y = 0);
+  void setRy(const std::string_view sv);
+
+  void toXml(SvgRope &output) const override;
+  bool setAttribute(const std::string &key, const std::string &value) override;
+  bool attributeXml(SvgRope &output) const override;
 };
