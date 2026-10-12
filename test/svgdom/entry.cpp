@@ -8,8 +8,6 @@
 #include <fmt/format.h>
 #include <iostream>
 #include <string>
-#include <typeindex>
-#include <typeinfo>
 using namespace std::string_literals;
 namespace fs = std::filesystem;
 

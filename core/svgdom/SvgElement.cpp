@@ -196,30 +196,11 @@ std::list<std::unique_ptr<SvgInterface>> &SvgElement::children()
 
 SvgInterface *SvgElement::createElement(const std::string &name)
 {
-    if (name == "comment"s)
-        createElement(SvgType::Type::SvgCommentElement);
-    else if (name == "cdata"s)
-        createElement(SvgType::Type::SvgCDataElement);
-    else if (name == "rect"s)
-        createElement(SvgType::Type::SvgRectElement);
-    else if (name == "defs"s)
-        createElement(SvgType::Type::SvgDefsElement);
-    else if (name == "g"s)
-        createElement(SvgType::Type::SvgGElement);
-    else if (name == "desc"s)
-        createElement(SvgType::Type::SvgDescElement);
-    else if (name == "metadata"s)
-        createElement(SvgType::Type::SvgMetadataElement);
-    else if (name == "title"s)
-        createElement(SvgType::Type::SvgTitleElement);
-    else {
-        createElement(SvgType::Type::SvgUnknownElement);
-    }
+  auto temp = createElement(SvgType::fromName(name));
+  SvgElement *element = static_cast<SvgElement *>(temp);
+  element->setXmlName(name);
 
-    SvgElement *element = static_cast<SvgElement *>(_children.back().get());
-    element->setXmlName(name);
-
-    return _children.back().get();
+  return element;
 }
 
 SvgInterface *SvgElement::createElement(const SvgType::Type type)
@@ -228,7 +209,6 @@ SvgInterface *SvgElement::createElement(const SvgType::Type type)
 
     //  Some elements require additional processing
     auto child = static_cast<SvgElement *>(_children.back().get());
-    // if (child->elementType() == SvgType::Type::SvgUnknownElement) child->setElementType(type);
 
     //  We track certain types, add pointers now
     switch (type) {
