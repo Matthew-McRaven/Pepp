@@ -30,8 +30,6 @@ static const auto _IMM = Operand{.type = Operand::Type::Immediate, .destination 
 static const auto _SHAMT = Operand{.type = Operand::Type::Immediate, .destination = Operand::Destination::SHAMT};
 static const auto _PRED = Operand{.type = Operand::Type::Fence, .destination = Operand::Destination::PRED};
 static const auto _SUCC = Operand{.type = Operand::Type::Fence, .destination = Operand::Destination::SUCC};
-static const auto _XLEN8 = Operand{.type = Operand::Type::XLEN8, .destination = Operand::Destination::IMM};
-static const auto _XLEN16 = Operand{.type = Operand::Type::XLEN16, .destination = Operand::Destination::IMM};
 
 // Integer-Register-Immediate instructions
 static const auto ADDI = MnemonicDescriptor::I(RV32I_OP_IMM, 0b000).with_operand(_RD, _RS1, _IMM);
@@ -112,20 +110,8 @@ static const auto MOVE = MnemonicDescriptor::I(RV32I_OP_IMM, 0b000).with_operand
 static const auto NOT = MnemonicDescriptor::I(RV32I_OP_IMM, 0b100).with_operand(_RD, _RS).with_imm(0xFFFF'FFFF);
 // negate: neg rd, rs -> sub rd, x0, rs
 static const auto NEGATE = MnemonicDescriptor::R(RV32I_OP, 0b000, 0b010'0000).with_operand(_RD, _RS2).with_rs1(0);
-// sign extend byte: sext.b rd, rs  -> slli rd, rs, XLEN - 8; srai rd, rd, XLEN - 8
-static const auto SEXT_B = MnemonicDescriptor::Pseudo().with_operand(_RD, _RS);
-static const auto SEXT_B_pattern = std::array<MnemonicDescriptor, 2>{SLLI.replaced_operands(_RD, _RS, _XLEN8),
-                                                                     SRAI.replaced_operands(_RD, _RD, _XLEN8)};
-// sign extend halfword: sext.h rd, rs -> slli rd, rs, XLEN - 16; srai rd, rd, XLEN - 16
-static const auto SEXT_H = MnemonicDescriptor::Pseudo().with_operand(_RD, _RS);
-static const auto SEXT_H_pattern = std::array<MnemonicDescriptor, 2>{SLLI.replaced_operands(_RD, _RS, _XLEN16),
-                                                                     SRAI.replaced_operands(_RD, _RD, _XLEN16)};
 // zero extend byte: zext.b rd, rs -> andi rd, rs, 255
-static const auto ZEXT_B = MnemonicDescriptor(ANDI).replaced_operands(_RD, _RS1).with_imm(0xff);
-// zero extend halfword: zext.h rd, rs -> slli rd, rs, XLEN - 16; srli rd, rd, XLEN - 16
-static const auto ZEXT_H = MnemonicDescriptor::Pseudo();
-static const auto ZEXT_H_pattern = std::array<MnemonicDescriptor, 2>{SLLI.replaced_operands(_RD, _RS, _XLEN16),
-                                                                     SRLI.replaced_operands(_RD, _RD, _XLEN16)};
+static const auto ZEXT_B = MnemonicDescriptor::I(RV32I_OP_IMM, 0b111).with_operand(_RD, _RS1).with_imm(0xff);
 // set if equal to 0: seqz rd, rs -> sltiu rd, rs, 1
 static const auto SEQZ = MnemonicDescriptor::I(RV32I_OP_IMM, 0b011).with_operand(_RD, _RS1).with_imm(1);
 // set if not equal to 0: snez rd, rs -> sltu rd, x0, rs

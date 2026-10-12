@@ -260,12 +260,6 @@ std::optional<u8> fence_ordering_of(const pepp::tc::expr::Tree &tree) {
   return std::nullopt;
 }
 
-// False for operands which fill a field automatically (e.g., XLEN8 sets the immediate to 8).
-bool appears_in_source(riscv::Operand::Type type) {
-  using OT = riscv::Operand::Type;
-  return type != OT::XLEN8 && type != OT::XLEN16 && type != OT::Invalid;
-}
-
 // Why the written operands do not fit a pattern, or nullopt if they do. Nothing is lowered, so trying a pattern has no
 // effect on the symbol table.
 std::optional<E> mismatch(const riscv::MnemonicDescriptor &desc, std::span<const pepp::tc::parser::RISCVOperand> ops) {
@@ -274,8 +268,7 @@ std::optional<E> mismatch(const riscv::MnemonicDescriptor &desc, std::span<const
   std::size_t next = 0, previous = 0;
   for (std::size_t i = 0; i < operands.size(); ++i) {
     const auto &operand = operands[i];
-    if (!appears_in_source(operand.type)) continue;
-    else if (next == ops.size()) return expected_error(operand.destination);
+    if (next == ops.size()) return expected_error(operand.destination);
     // Operands are comma-separated unless the descriptor says otherwise.
     if (const bool comma = ops[next].comma_before; next > 0 && comma != desc.comma_after(previous))
       return comma ? expected_error(operand.destination) : E::Token_MissingComma;
@@ -321,7 +314,6 @@ pepp::tc::parser::RISCVParser::match_alternative(const riscv::Mnemonic &entry, s
   ParsedOperands values;
   std::size_t next = 0;
   for (const auto &operand : entry.mn.operands()) {
-    if (!appears_in_source(operand.type)) continue;
     const auto &expression = *ops[next++].expression;
     switch (operand.type) {
     case OT::Register: [[fallthrough]];
@@ -339,7 +331,7 @@ pepp::tc::parser::RISCVParser::match_alternative(const riscv::Mnemonic &entry, s
     default: break;
     }
   }
-  // Null for Pseudo and INVALID.
+  // Null for INVALID.
   return make_instruction(entry.name, entry.mn, values);
 }
 

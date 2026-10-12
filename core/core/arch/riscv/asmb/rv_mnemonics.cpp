@@ -55,11 +55,6 @@ riscv::MnemonicDescriptor riscv::MnemonicDescriptor::U(u8 opcode7) { return Mnem
 
 riscv::MnemonicDescriptor riscv::MnemonicDescriptor::J(u8 opcode7) { return MnemonicDescriptor(Type::J, opcode7); }
 
-riscv::MnemonicDescriptor riscv::MnemonicDescriptor::Pseudo() {
-  MnemonicDescriptor ret(Type::Pseudo);
-  return ret;
-}
-
 std::span<const riscv::Operand> riscv::MnemonicDescriptor::operands() const noexcept {
   int it = 0;
   for (; it < _operands.size(); it++) {
@@ -70,9 +65,7 @@ std::span<const riscv::Operand> riscv::MnemonicDescriptor::operands() const noex
 
 riscv::MnemonicDescriptor::Type riscv::MnemonicDescriptor::type() const noexcept { return _type; }
 
-u8 riscv::MnemonicDescriptor::opcode() const {
-  return _type == Type::Pseudo ? throw std::runtime_error("Pseudo instructions do not have a single opcode") : _opcode7;
-}
+u8 riscv::MnemonicDescriptor::opcode() const { return _opcode7; }
 
 bool riscv::MnemonicDescriptor::comma_after(std::size_t index) const noexcept {
   if (index >= _trailing_comma.size()) return false;
@@ -103,11 +96,6 @@ bool riscv::MnemonicDescriptor::allows_rs1() const noexcept {
   case Type::B: return true;
   case Type::U: return false;
   case Type::J: return false;
-  case Type::Pseudo: {
-    for (const auto &operand : operands())
-      if (operand.destination == Operand::Destination::RS1) return true;
-    return false;
-  }
   }
   return false;
 }
@@ -137,11 +125,6 @@ bool riscv::MnemonicDescriptor::allows_rs2() const noexcept {
   case Type::B: return true;
   case Type::U: return false;
   case Type::J: return false;
-  case Type::Pseudo: {
-    for (const auto &operand : operands())
-      if (operand.destination == Operand::Destination::RS2) return true;
-    return false;
-  }
   }
   return false;
 }
@@ -171,11 +154,6 @@ bool riscv::MnemonicDescriptor::allows_rd() const noexcept {
   case Type::B: return false;
   case Type::U: return true;
   case Type::J: return true;
-  case Type::Pseudo: {
-    for (const auto &operand : operands())
-      if (operand.destination == Operand::Destination::RD) return true;
-    return false;
-  }
   }
   return false;
 }
@@ -203,7 +181,6 @@ bool riscv::MnemonicDescriptor::allows_funct3() const noexcept {
   case Type::B: return true;
   case Type::U: return false;
   case Type::J: return false;
-  case Type::Pseudo: return false;
   }
   return false;
 }
@@ -219,11 +196,6 @@ bool riscv::MnemonicDescriptor::allows_imm() const noexcept {
   case Type::B: return true;
   case Type::U: return true;
   case Type::J: return true;
-  case Type::Pseudo: {
-    for (const auto &operand : operands())
-      if (operand.destination == Operand::Destination::IMM) return true;
-    return false;
-  }
   }
   return false;
 }
@@ -239,7 +211,6 @@ void riscv::MnemonicDescriptor::set_imm(u32 imm) {
   case Type::J: break;
   case Type::R: [[fallthrough]];
   case Type::INVALID: [[fallthrough]];
-  case Type::Pseudo: [[fallthrough]];
   default: throw std::runtime_error("This mnemonic does not allow an immediate");
   }
   _imm_or_funct7 = imm;
@@ -263,7 +234,6 @@ u8 riscv::MnemonicDescriptor::width_imm() const noexcept {
   case Type::B: return 12;
   case Type::U: return 20;
   case Type::J: return 20;
-  case Type::Pseudo: return 0;
   }
   return 0;
 }
@@ -279,8 +249,7 @@ u8 riscv::MnemonicDescriptor::imm_shift() const noexcept {
   case Type::S: [[fallthrough]];
   case Type::U: return 0;
   case Type::R: [[fallthrough]];
-  case Type::INVALID: [[fallthrough]];
-  case Type::Pseudo: return 0;
+  case Type::INVALID: return 0;
   }
   return 0;
 }
@@ -351,7 +320,6 @@ riscv::rv_instruction2 riscv::MnemonicDescriptor::encode(Values v) const {
   case Type::B: return rv_instruction2(encode<InstructionB>(v));
   case Type::U: return rv_instruction2(encode<InstructionU>(v));
   case Type::J: return rv_instruction2(encode<InstructionJ>(v));
-  case Type::Pseudo: return riscv::rv_instruction2(0u);
   }
   return riscv::rv_instruction2(0u);
 }
@@ -359,11 +327,6 @@ riscv::rv_instruction2 riscv::MnemonicDescriptor::encode(Values v) const {
 riscv::MnemonicDescriptor &&riscv::MnemonicDescriptor::with_imm(u32 imm) && {
   set_imm(imm);
   return std::move(*this);
-}
-
-riscv::MnemonicDescriptor::MnemonicDescriptor(Type type) : _type(type) {
-  static const Operand invalid{.type = Operand::Type::Invalid, .destination = Operand::Destination::Invalid};
-  _operands.fill(invalid);
 }
 
 riscv::MnemonicDescriptor::MnemonicDescriptor(Type type, u8 opcode) : _type(type), _opcode7(opcode) {
@@ -498,10 +461,7 @@ static void add_rv32i_psueodo_instructions(riscv::MnemonicSet &mn_set) {
   add({"mv", MOVE});
   add({"not", NOT});
   add({"neg", NEGATE});
-  add({"sext.b", SEXT_B});
-  add({"sext.h", SEXT_H});
   add({"zext.b", ZEXT_B});
-  add({"zext.h", ZEXT_H});
   add({"seqz", SEQZ});
   add({"snez", SNEZ});
   add({"sltz", SLTZ});
