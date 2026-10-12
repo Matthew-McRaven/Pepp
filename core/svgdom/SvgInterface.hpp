@@ -36,8 +36,10 @@ class SvgInterface
 
 protected:
     virtual SvgInterface *cloneImpl() const = 0;
+    //  Type cannot be externally changed
+    virtual void setElementType(const SvgType::Type elementType) = 0;
 
-public:
+  public:
     virtual ~SvgInterface() = default;
 
     //  Overrides
@@ -45,7 +47,6 @@ public:
 
     //  Values in every class
     virtual SvgType::Type elementType() const = 0;
-    virtual void setElementType(const SvgType::Type elementType) = 0;
     virtual const std::string &xmlName() const = 0;
     virtual void setXmlName(const std::string &xmlName) = 0;
     virtual const std::string &value() const = 0;
