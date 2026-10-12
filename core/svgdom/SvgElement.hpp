@@ -15,10 +15,6 @@ class SvgFactory;
 
 class SvgElement : public Cloneable<SvgElement, SvgInterface>
 {
-protected:
-  //  Type cannot be externally changed
-  void setElementType(const SvgType::Type elementType) override;
-
 public:
   //  SvgFactory is a separate class to create Svg Elements
   friend class SvgFactory;
@@ -83,33 +79,36 @@ public:
   virtual bool attributeXml(SvgRope &output) const;
 
 private:
-    //  Standard Xml Data
-    SvgType::Type _elementType = SvgType::Type::SvgUnknownElement;
-    std::string _xmlName;
-    std::string _value;
+  //  Type cannot be externally changed except by factory class
+  void setElementType(const SvgType::Type elementType) override;
 
-    //  Svg specific data
-    std::string _id;
-    SvgList _classList;
+  //  Standard Xml Data
+  SvgType::Type _elementType = SvgType::Type::SvgUnknownElement;
+  std::string _xmlName;
+  std::string _value;
 
-    //  Stored as Elements in svg
-    SvgElement *_title{};
-    SvgElement *_metadata{};
-    SvgElement *_desc{};
+  //  Svg specific data
+  std::string _id;
+  SvgList _classList;
 
-    SvgUnitValue _x;
-    SvgUnitValue _y;
-    SvgUnitValue _width;
-    SvgUnitValue _height;
+  //  Stored as Elements in svg
+  SvgElement *_title{};
+  SvgElement *_metadata{};
+  SvgElement *_desc{};
 
-    Document *_doc{};
+  SvgUnitValue _x;
+  SvgUnitValue _y;
+  SvgUnitValue _width;
+  SvgUnitValue _height;
 
-    //SVGElement ownerSVGElement
+  Document *_doc{};
 
-    //  Used to store unprocessed xml elements
-    std::list<std::unique_ptr<SvgInterface>> _children;
-    XmlAttributes _attributes;
+  // SVGElement ownerSVGElement
 
-    //  Returned by string functions when empy string is needed
-    std::string _empty;
+  //  Used to store unprocessed xml elements
+  std::list<std::unique_ptr<SvgInterface>> _children;
+  XmlAttributes _attributes;
+
+  //  Returned by string functions when empy string is needed
+  std::string _empty;
 };
