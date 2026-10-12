@@ -219,6 +219,8 @@ void format_listing(const pepp::tc::LinearIR *line,
   auto address_it = addresses.find(line);
   std::optional<u16> address =
       address_it == addresses.cend() ? std::nullopt : std::optional<u16>(address_it->second.address);
+  if (const auto *symbol = dynamic_cast<const pepp::tc::SymbolLine *>(line); symbol && symbol->symbol.entry->value)
+    address = static_cast<u16>(symbol->symbol.entry->value->value().bitPattern);
 
   const std::string address_str = address.has_value() ? fmt::format("{:04X}", *address) : "    ";
   auto code_it = object_code.ir_to_object_code.find(line);

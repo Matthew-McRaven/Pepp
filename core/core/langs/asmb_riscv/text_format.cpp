@@ -202,8 +202,9 @@ void riscv_format_listing(const LinearIR *line, const IRMemoryAddressTable<RISCV
                           const ProgramObjectCodeResult &object_code, std::vector<std::string> &out) {
   const auto source_line = pepp::tc::riscv_format_source(line);
   const auto address_it = addresses.find(line);
-  const auto address =
-      address_it == addresses.cend() ? std::nullopt : std::optional<u32>(address_it->second.address);
+  auto address = address_it == addresses.cend() ? std::nullopt : std::optional<u32>(address_it->second.address);
+  if (const auto *symbol = dynamic_cast<const SymbolLine *>(line); symbol && symbol->symbol.entry->value)
+    address = static_cast<u32>(symbol->symbol.entry->value->value().bitPattern);
 
   const std::string address_str = address.has_value() ? fmt::format("{:08X}", *address) : std::string(8, ' ');
 
