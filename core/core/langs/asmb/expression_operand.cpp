@@ -29,10 +29,6 @@
 
 namespace {
 namespace expr = pepp::tc::expr;
-
-bool is_constant(const pepp::core::symbol::Entry &entry) {
-  return entry.value && entry.value->type() == pepp::core::symbol::Type::Constant;
-}
 } // namespace
 
 std::expected<pepp::tc::parser::ExpressionResult, pepp::tc::expr::Error>
@@ -98,7 +94,7 @@ std::expected<std::optional<u64>, pepp::tc::expr::Error>
 pepp::tc::parser::equate_value(ast::IRValue &arg, support::LocationInterval location) {
   using namespace bits;
   if (auto *symbolic = dynamic_cast<ast::Symbolic *>(&arg)) {
-    if (!is_constant(*symbolic->symbol())) return std::nullopt;
+    if (!symbolic->symbol()->is_constant()) return std::nullopt;
     auto masked = symbolic->symbol()->value->value();
     return masked();
   } else if (auto *expression = dynamic_cast<ast::Expression *>(&arg)) {

@@ -29,10 +29,6 @@ SymbolBinding binding_of(const pepp::core::symbol::Entry &entry) {
   }
 }
 
-bool is_constant(const pepp::core::symbol::Entry &entry) {
-  return entry.value && entry.value->type() == pepp::core::symbol::Type::Constant;
-}
-
 SymbolType type_of(const pepp::core::symbol::Entry &entry) {
   if (!entry.value) return SymbolType::STT_NOTYPE;
   switch (entry.value->type()) {
@@ -50,7 +46,7 @@ u64 size_of(const pepp::core::symbol::Entry &entry) { return entry.value ? entry
 // A constant belongs to no section, and an undefined symbol has none to point at.
 u16 shndx_of(const pepp::core::symbol::Entry &entry) {
   if (entry.is_undefined()) return bits::to_underlying(SectionIndices::SHN_UNDEF);
-  else if (is_constant(entry)) return bits::to_underlying(SectionIndices::SHN_ABS);
+  else if (entry.is_constant()) return bits::to_underlying(SectionIndices::SHN_ABS);
   return entry.section_index;
 }
 

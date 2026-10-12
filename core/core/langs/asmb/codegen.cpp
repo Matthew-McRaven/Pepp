@@ -55,9 +55,7 @@ SymbolOperand classify_expression(const pepp::ast::Expression &exp) {
 
 // Something which can move, such as a label or undefined symbol (e.g., not an .EQUATE).
 bool relocatable(const SymbolOperand &operand) {
-  const auto &value = operand.symbol ? operand.symbol->value : nullptr;
-  return operand.kind == SymbolOperand::Kind::Offset &&
-         !(value && value->type() == pepp::core::symbol::Type::Constant);
+  return operand.kind == SymbolOperand::Kind::Offset && !(operand.symbol && operand.symbol->is_constant());
 }
 
 // The value an argument encodes, typed so that its sign can be checked against a constraint.

@@ -27,6 +27,15 @@ class LeafTable;
 
 namespace pepp::ast {
 
+// How symbols in symtab (which may be null) appear to expressions. An .EQUATE is a constant of its own width, and any
+// other symbol is an address of default_type's width.
+// All symbols report their definition state but only constants return their value.
+tc::expr::ValueOf constants_of(std::shared_ptr<const core::symbol::LeafTable> symtab, tc::expr::Type default_type);
+// Same as above, except returns values for all defined symbols.
+tc::expr::ValueOf values_of(std::shared_ptr<const core::symbol::LeafTable> symtab, tc::expr::Type default_type);
+// Types of every symbol as reported by values_of.
+tc::expr::TypeOf types_of(std::shared_ptr<const core::symbol::LeafTable> symtab, tc::expr::Type default_type);
+
 // An expression parsed by tc::expr.
 class Expression : public IRValue {
 public:
@@ -40,11 +49,9 @@ public:
   const std::shared_ptr<const core::symbol::LeafTable> &symbol_table() const noexcept { return _symtab; }
   bool contains_symbols() const noexcept;
 
-  // Return a function which returns values of any defined symbol which is a constant and nullopt otherwise.
+  // constants_of, values_of, and types_of over this expression's symbol table and default type.
   tc::expr::ValueOf resolve_constants_of() const;
-  // Return a function which returns the values of any defined symbol and nullopt for undefined symbols.
   tc::expr::ValueOf resolve_values_of() const;
-  // Return a function which returns the type of any symbol, as resolve_values_of() would type its value.
   tc::expr::TypeOf resolve_types_of() const;
 
   // Evaluate with resolve_values_of().

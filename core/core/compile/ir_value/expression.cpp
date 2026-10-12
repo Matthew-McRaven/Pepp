@@ -27,15 +27,11 @@ namespace {
 using pepp::tc::expr::Value;
 using enum pepp::tc::expr::Signedness;
 
-bool is_constant(const pepp::core::symbol::Entry &entry) {
-  return entry.value && entry.value->type() == pepp::core::symbol::Type::Constant;
-}
-
 // An .EQUATE is a constant of its own width; any other symbol names an address.
 Value symbol_value(const pepp::core::symbol::Entry &entry, pepp::tc::expr::Type default_type) {
   if (!entry.value) return {0, {default_type.bits, Unsigned}};
   auto value = entry.value->value();
-  if (is_constant(entry)) {
+  if (entry.is_constant()) {
     const u8 width = static_cast<u8>(value.byteCount * 8);
     if (width == 8 || width == 16 || width == 32 || width == 64) return {value(), {width, Bits}};
   }
@@ -51,20 +47,18 @@ bool pepp::ast::Expression::contains_symbols() const noexcept {
   return !tc::expr::is_constant_expression(_tree);
 }
 
-pepp::tc::expr::ValueOf pepp::ast::Expression::resolve_constants_of() const {
-  auto symtab = _symtab;
-  auto default_type = _default_type;
+pepp::tc::expr::ValueOf pepp::ast::constants_of(std::shared_ptr<const core::symbol::LeafTable> symtab,
+                                                 tc::expr::Type default_type) {
   return [symtab, default_type](const tc::expr::Identifier &id) -> tc::expr::EvaluatedSymbol {
     const auto entry = symtab ? symtab->get(id.name) : std::nullopt;
     if (!entry) return {};
-    else if (is_constant(**entry)) return {(*entry)->state, symbol_value(**entry, default_type)};
+    else if ((*entry)->is_constant()) return {(*entry)->state, symbol_value(**entry, default_type)};
     return {(*entry)->state, std::nullopt};
   };
 }
 
-pepp::tc::expr::ValueOf pepp::ast::Expression::resolve_values_of() const {
-  auto symtab = _symtab;
-  auto default_type = _default_type;
+pepp::tc::expr::ValueOf pepp::ast::values_of(std::shared_ptr<const core::symbol::LeafTable> symtab,
+                                              tc::expr::Type default_type) {
   return [symtab, default_type](const tc::expr::Identifier &id) -> tc::expr::EvaluatedSymbol {
     if (const auto entry = symtab ? symtab->get(id.name) : std::nullopt)
       return {(*entry)->state, symbol_value(**entry, default_type)};
@@ -72,14 +66,21 @@ pepp::tc::expr::ValueOf pepp::ast::Expression::resolve_values_of() const {
   };
 }
 
-pepp::tc::expr::TypeOf pepp::ast::Expression::resolve_types_of() const {
-  auto symtab = _symtab;
-  auto default_type = _default_type;
+pepp::tc::expr::TypeOf pepp::ast::types_of(std::shared_ptr<const core::symbol::LeafTable> symtab,
+                                            tc::expr::Type default_type) {
   return [symtab, default_type](const tc::expr::Identifier &id) -> tc::expr::Type {
     if (const auto entry = symtab ? symtab->get(id.name) : std::nullopt) return symbol_value(**entry, default_type).type;
     return {default_type.bits, Unsigned};
   };
 }
+
+pepp::tc::expr::ValueOf pepp::ast::Expression::resolve_constants_of() const {
+  return constants_of(_symtab, _default_type);
+}
+
+pepp::tc::expr::ValueOf pepp::ast::Expression::resolve_values_of() const { return values_of(_symtab, _default_type); }
+
+pepp::tc::expr::TypeOf pepp::ast::Expression::resolve_types_of() const { return types_of(_symtab, _default_type); }
 
 std::expected<pepp::tc::expr::Value, pepp::tc::expr::EvaluationError> pepp::ast::Expression::evaluate() const {
   return tc::expr::evaluate_expression(_tree, _default_type, resolve_values_of());

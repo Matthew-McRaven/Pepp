@@ -66,5 +66,7 @@ public:
 
   bool is_singly_defined() const noexcept;
   bool is_undefined() const noexcept;
+  // Is the symbol's value a constant?
+  bool is_constant() const noexcept;
 };
 } // namespace pepp::core::symbol

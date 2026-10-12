@@ -153,9 +153,8 @@ namespace {
 // A branch or jump to something which can move, such as a label (e.g., not an .EQUATE).
 bool relocatable_target(pepp::ast::IRValue &imm) {
   const auto operand = pepp::tc::classify_symbol_operand(imm);
-  const auto &value = operand.symbol ? operand.symbol->value : nullptr;
   return operand.kind == pepp::tc::SymbolOperand::Kind::Offset &&
-         !(value && value->type() == pepp::core::symbol::Type::Constant);
+         !(operand.symbol && operand.symbol->is_constant());
 }
 } // namespace
 
