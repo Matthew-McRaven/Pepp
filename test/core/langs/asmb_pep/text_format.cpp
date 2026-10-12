@@ -192,9 +192,9 @@ TEST_CASE("Pepp ASM symbol-only line formatting",
   auto &sections = result.grouped_ir;
   auto addresses = pepp::tc::pepp_assign_addresses(sections);
   auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
-  const auto bare = [](const std::string &text) { return fmt::format("{:12}{}", "", text); };
-  const std::vector<std::string> expected_listing = {bare(expected_source[0]), bare(expected_source[1]),
-                                                     "0000 C1000A " + expected_source[2], bare(expected_source[3])};
+  const auto bare = [](u16 address, const std::string &text) { return fmt::format("{:04X}{:8}{}", address, "", text); };
+  const std::vector<std::string> expected_listing = {bare(0, expected_source[0]), bare(0, expected_source[1]),
+                                                     "0000 C1000A " + expected_source[2], bare(3, expected_source[3])};
   CHECK(pepp::tc::format_listing(sections[0].second, addresses, object_code) == expected_listing);
 }
 
