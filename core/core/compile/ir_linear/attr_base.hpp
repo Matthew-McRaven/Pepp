@@ -7,6 +7,7 @@ enum class Type {
   Identifier,
   Comment,
   CommentIndent,
+  ExpansionComments,
   Argument,
   SymbolDeclaration,
   LocationCounterDeclaration,

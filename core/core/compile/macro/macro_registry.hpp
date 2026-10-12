@@ -15,6 +15,8 @@ struct MacroDefinition {
   std::string name;
   std::vector<Argument> arguments;
   std::string body;
+  // If false, disable start/end comments on expansion even if the language would usually generate them.
+  bool expansion_comments = true;
 };
 
 // A collection of macro definitions searchable by name. A registry can have a parent which can be searched on misses in

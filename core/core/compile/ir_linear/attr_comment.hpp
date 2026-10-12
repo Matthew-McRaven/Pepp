@@ -15,4 +15,12 @@ struct CommentIndent : public AAttribute {
   int type() const override;
   enum class Level { Left, Right, Center } value = Level::Left;
 };
+
+// Disable start/end comments for a macro's expansion.
+struct ExpansionComments : public AAttribute {
+  static constexpr int TYPE = static_cast<int>(Type::ExpansionComments);
+  explicit ExpansionComments(bool value);
+  int type() const override;
+  bool value = true;
+};
 } // namespace pepp::tc

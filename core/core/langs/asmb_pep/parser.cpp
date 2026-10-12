@@ -181,6 +181,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::macro(Diagnosti
   _lexer_stack.emplace(new_lexer, std::make_shared<lex::Buffer>(&*new_lexer));
 
   auto ret = std::make_shared<MacroInstantiation>(definition, args);
+  ret->insert(std::make_unique<ExpansionComments>(definition->expansion_comments));
   ret->lines = do_parse(diag, buf->matched_interval());
   // Attach symbol def if it exists.
   if (symbol) ret->insert(std::make_unique<SymbolDeclaration>(*symbol));

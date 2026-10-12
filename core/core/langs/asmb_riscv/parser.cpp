@@ -3,6 +3,7 @@
 #include <expected>
 #include <utility>
 #include "core/arch/riscv/isa/rv_instruction_list.hpp"
+#include "core/compile/ir_linear/attr_comment.hpp"
 #include "core/compile/ir_linear/attr_symbol.hpp"
 #include "core/compile/ir_linear/line_comment.hpp"
 #include "core/compile/ir_linear/line_dot.hpp"
@@ -647,6 +648,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::macro(Diagnos
   _lexer_stack.emplace(new_lexer, std::make_shared<lex::Buffer>(&*new_lexer));
 
   auto ret = std::make_shared<MacroInstantiation>(definition, std::move(args));
+  ret->insert(std::make_unique<ExpansionComments>(definition->expansion_comments));
   ret->lines = do_parse(diag, buf->matched_interval());
   _lexer_stack.pop();
   return ret;
