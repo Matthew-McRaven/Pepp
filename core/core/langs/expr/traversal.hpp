@@ -35,6 +35,24 @@ template <typename F> Node map_operands(const Node &node, F &&f) {
   return node;
 }
 
+// Call f on each of the node's operands, left to right.
+template <typename F> void for_each_operand(const Node &node, F &&f) {
+  if (const auto *unary = std::get_if<Unary>(&node)) f(unary->operand);
+  else if (const auto *binary = std::get_if<Binary>(&node)) f(binary->lhs), f(binary->rhs);
+  else if (const auto *parens = std::get_if<Parens>(&node)) f(parens->inner);
+  else if (const auto *call = std::get_if<Call>(&node))
+    for (const auto argument : call->arguments) f(argument);
+}
+
+// Visit the nodes reachable from the root, each before its operands, left to right. f(id, node) returns whether to visit
+// the node's operands, so a node can hide operands which are not used as values.
+template <typename F> void walk(const Tree &tree, F &&f) {
+  const auto visit = [&](const auto &self, NodeId id) -> void {
+    if (f(id, tree[id])) for_each_operand(tree[id], [&](NodeId operand) { self(self, operand); });
+  };
+  if (!tree.empty()) visit(visit, tree.root());
+}
+
 // Call f on each node of type T, in postorder.
 template <typename T, typename F> void for_each_node(const Tree &tree, F &&f) {
   for (const auto &node : tree.nodes())

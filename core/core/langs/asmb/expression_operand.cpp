@@ -78,8 +78,11 @@ pepp::tc::parser::lower(const expr::Parsed &operand, std::shared_ptr<core::symbo
   else if (expr::matches(kinds, signed_integer) && decimal)
     return std::make_shared<ast::UnsignedDecimal>(integer->value, size);
 
-  const auto reference = [&](const expr::Identifier &id) { (void)symtab->reference(id.name); };
-  expr::for_each_node<expr::Identifier>(tree, reference);
+  // Walk from the root rather than over every node to allow control of symbol visibility.
+  expr::walk(tree, [&](expr::NodeId, const expr::Node &node) {
+    if (const auto *id = std::get_if<expr::Identifier>(&node)) (void)symtab->reference(id->name);
+    return true;
+  });
   auto value = std::make_shared<ast::Expression>(tree, symtab, default_type, size);
   if (!value->contains_symbols())
     if (const auto evaluated = value->evaluate(); !evaluated) {
