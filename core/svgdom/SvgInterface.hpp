@@ -60,6 +60,17 @@ public:
     virtual SvgInterface *createElement(const std::string &name) = 0;
     virtual SvgInterface *createElement(const SvgType::Type type) = 0;
 
+    template <class Derived> Derived *createElementAs(const std::string &name) {
+      return dynamic_cast<Derived *>(createElement(name));
+    }
+    template <class Derived> Derived *createElementAs(const SvgType::Type type) {
+      return dynamic_cast<Derived *>(createElement(type));
+    }
+
     //  Cloneable hides this with a version returning the derived type.
     std::unique_ptr<SvgInterface> clone() const { return std::unique_ptr<SvgInterface>(cloneImpl()); }
+
+    template <class Derived> std::unique_ptr<Derived> cloneAs() const {
+      return std::unique_ptr<Derived>(dynamic_cast<Derived *>(cloneImpl()));
+    }
 };

@@ -56,26 +56,23 @@ const SvgSvgElement &Document::documentElement() const
     return *_svgDocument.get();
 }
 
-//  File operations
-void Document::saveAs(const std::string &fileName)
-{
-    _fileName = fileName;
-    bool success = false;
+size_t Document::fileSize() const { return _fileSize; }
 
-    Timer t1;
-    t1.start();
-    success = save();
-    t1.finish();
-    std::cout << "ofstream::write (flattened): " << t1.elapsedTime()
-              << (success ? " Pass" : " Fail") << std::endl;
+//  File operations
+bool Document::saveAs(const std::string &fileName) {
+  _fileName = fileName;
+
+  return save();
 }
 
 bool Document::save() const
 {
     //	Try and open sourcefile
     std::ofstream svgFile(_fileName, std::ios::out | std::ios::binary);
-    if (!svgFile.is_open())
-        return false;
+    if (!svgFile) {
+      std::cerr << "Error saving " << _fileName << ". Error=" << svgFile.rdstate() << std::endl;
+      return false;
+    }
 
     //  Rebuild object tree into xml
     const auto contents = std::move(toXml());
@@ -89,6 +86,7 @@ bool Document::save() const
 bool Document::fromXml(const std::string &svgData)
 {
     _streamInput = svgData;
+    _fileSize = svgData.size();
     return parse();
 }
 
@@ -104,14 +102,14 @@ bool Document::open(const std::string &fileName, bool readOnly)
         return false;
     }
 
-    Timer t1;
-    t1.start();
+    // Timer t1;
+    // t1.start();
     if (!read()) {
         std::cout << "Cannot open file: " << _fileName;
         return false;
     }
-    t1.finish();
-    std::cout << "ifstream::read: " << t1.elapsedTime() << std::endl;
+    // t1.finish();
+    // std::cout << "ifstream::read: " << t1.elapsedTime() << std::endl;
 
     return parse();
 }
@@ -120,16 +118,16 @@ bool Document::parse()
 {
     //  Create on heap to avoid stack warnings from compiler
     std::unique_ptr<SvgParser<Document>> parser(new SvgParser<Document>(*this));
-    Timer t;
-    t.start();
+    // Timer t;
+    // t.start();
     try {
         parser->parse(_streamInput);
     } catch (...) {
         std::cout << "Error parsing file." << std::endl;
         return false;
     }
-    t.finish();
-    std::cout << "parsing file: " << t.elapsedTime() << std::endl;
+    // t.finish();
+    // std::cout << "parsing file: " << t.elapsedTime() << std::endl;
     return true;
 }
 
@@ -246,6 +244,9 @@ std::string Document::flattenRope(SvgRope &rope) const
     for (auto &fragment : rope.rope()) {
         xml.append(fragment);
     }
+
+    //  File size may change during reconstruction
+    _fileSize = xml.size();
 
     return std::move(xml);
 }

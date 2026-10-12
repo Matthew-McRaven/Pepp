@@ -22,10 +22,10 @@ public:
 
     //	User access functions
     //  Values can be changed, but not units of measure (yet)
-    auto rx() const;
+    SvgUnitValue rx() const;
     void setRx(double x = 0);
     void setRx(const std::string_view sv);
-    auto ry() const;
+    SvgUnitValue ry() const;
     void setRy(double y = 0);
     void setRy(const std::string_view sv);
 

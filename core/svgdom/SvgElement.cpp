@@ -36,7 +36,7 @@ SvgElement::SvgElement(const SvgElement &original)
     _value = original._value;
 
     setId(original._id);
-    _className = original._className;
+    _classList = original._classList;
 
     _x = original._x;
     _y = original._y;
@@ -110,18 +110,9 @@ void SvgElement::setId(const std::string &id)
         _doc->addElementId(id, this);
     _id = id;
 }
-const std::string &SvgElement::className() const
-{
-    return _className;
-}
-void SvgElement::setClassName(const std::string &className)
-{
-    _className = className;
-}
-const std::string &SvgElement::title() const
-{
-    return (_title == nullptr) ? _empty : _title->xmlName();
-}
+SvgList &SvgElement::classList() { return _classList; }
+const SvgList &SvgElement::classList() const { return _classList; }
+const std::string &SvgElement::title() const { return (_title == nullptr) ? _empty : _title->value(); }
 void SvgElement::setTitle(const std::string &title)
 {
     //  Create element if missing
@@ -130,10 +121,7 @@ void SvgElement::setTitle(const std::string &title)
     }
     _title->setValue(title);
 }
-const std::string &SvgElement::metadata() const
-{
-    return (_metadata == nullptr) ? _empty : _metadata->xmlName();
-}
+const std::string &SvgElement::metadata() const { return (_metadata == nullptr) ? _empty : _metadata->value(); }
 void SvgElement::setMetadata(const std::string &metadata)
 {
     //  Create element if missing
@@ -142,10 +130,7 @@ void SvgElement::setMetadata(const std::string &metadata)
     }
     _metadata->setValue(metadata);
 }
-const std::string &SvgElement::desc() const
-{
-    return (_desc == nullptr) ? _empty : _desc->xmlName();
-}
+const std::string &SvgElement::desc() const { return (_desc == nullptr) ? _empty : _desc->value(); }
 void SvgElement::setDesc(const std::string &desc)
 {
     //  Create element if missing
@@ -156,10 +141,7 @@ void SvgElement::setDesc(const std::string &desc)
 }
 
 //  Dimension accessors
-SvgUnitValue SvgElement::x() const
-{
-    return _x.value;
-}
+SvgUnitValue SvgElement::x() const { return _x; }
 void SvgElement::setX(double x)
 {
     _x.value = x;
@@ -168,10 +150,7 @@ void SvgElement::setX(const std::string_view sv)
 {
     _x.fromString(sv);
 }
-SvgUnitValue SvgElement::y() const
-{
-    return _y.value;
-}
+SvgUnitValue SvgElement::y() const { return _y; }
 void SvgElement::setY(double y)
 {
     _y.value = y;
@@ -180,10 +159,7 @@ void SvgElement::setY(const std::string_view sv)
 {
     _y.fromString(sv);
 }
-SvgUnitValue SvgElement::width() const
-{
-    return _width.value;
-}
+SvgUnitValue SvgElement::width() const { return _width; }
 void SvgElement::setWidth(double width)
 {
     _width.value = std::max(width, 0.0);
@@ -333,6 +309,9 @@ bool SvgElement::setAttribute(const std::string &key, const std::string &value)
     if (key == "height"s) {
         return _height.fromString(value);
     }
+    if (key == "class"s) {
+      return _classList.fromString(value);
+    }
 
     //  Cache attributes that are not manipulated above.
     _attributes.add(key, value);
@@ -349,9 +328,9 @@ bool SvgElement::attributeXml(SvgRope &output) const
         output.push_back(std::move(buffer));
     }
     if (!_x.empty()) {
-        hasAttributes = true;
-        buffer = fmt::format(" x=\"{}\"", _x.toString());
-        output.push_back(std::move(buffer));
+      hasAttributes = true;
+      buffer = fmt::format(" x=\"{}\"", _x.toString());
+      output.push_back(std::move(buffer));
     }
     if (!_y.empty()) {
         hasAttributes = true;
@@ -367,6 +346,11 @@ bool SvgElement::attributeXml(SvgRope &output) const
         hasAttributes = true;
         buffer = fmt::format(" height=\"{}\"", _height.toString());
         output.push_back(std::move(buffer));
+    }
+    if (!_classList.empty()) {
+      hasAttributes = true;
+      buffer = fmt::format(" class=\"{}\"", _classList.toString());
+      output.push_back(std::move(buffer));
     }
 
     //  Output remaining attributes

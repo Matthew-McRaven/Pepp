@@ -13,38 +13,29 @@ using namespace std::string_literals;
 
 struct SvgUnits
 {
-    enum class SvgUnit {
-        None = 0,
-        cm = 1, // Centimeters
-        mm,     // Millimeters
-        Q,      // Quarter-Millimeters
-        in,     // Inches
-        pc,     // Pica
-        pt,     // Points
-        pct,    // %
-        px,     // Pixels
-    };
-    static SvgUnit fromString(const std::string &value)
-    {
-        if (value == "cm"s)
-            return SvgUnit::cm;
-        if (value == "mm"s)
-            return SvgUnit::mm;
-        if (value == "Q"s)
-            return SvgUnit::Q;
-        if (value == "in"s)
-            return SvgUnit::in;
-        if (value == "pc"s)
-            return SvgUnit::pc;
-        if (value == "%"s)
-            return SvgUnit::pct;
-        if (value == "pt"s)
-            return SvgUnit::pt;
-        if (value == "px"s)
-            return SvgUnit::px;
+  enum class SvgUnit {
+    None = 0,
+    cm,  // Centimeters
+    mm,  // Millimeters
+    Q,   // Quarter-Millimeters
+    in,  // Inches
+    pc,  // Pica
+    pt,  // Points
+    pct, // %
+    px,  // Pixels
+  };
+  static SvgUnit fromString(const std::string &value) {
+    if (value == "cm"s) return SvgUnit::cm;
+    if (value == "mm"s) return SvgUnit::mm;
+    if (value == "Q"s) return SvgUnit::Q;
+    if (value == "in"s) return SvgUnit::in;
+    if (value == "pc"s) return SvgUnit::pc;
+    if (value == "%"s) return SvgUnit::pct;
+    if (value == "pt"s) return SvgUnit::pt;
+    if (value == "px"s) return SvgUnit::px;
 
-        return SvgUnit::None;
-    }
+    return SvgUnit::None;
+  }
 
     static const std::string toString(SvgUnit v)
     {
@@ -65,6 +56,7 @@ struct SvgUnits
             return "pt"s;
         case SvgUnit::px:
             return "px"s;
+        default: return ""s;
         }
         return "";
     }
@@ -76,15 +68,11 @@ struct SvgUnitValue
     SvgUnits::SvgUnit unit = SvgUnits::SvgUnit::None;
 
     SvgUnitValue() {}
-    SvgUnitValue(const double v, const SvgUnits::SvgUnit u = SvgUnits::SvgUnit::None)
-        : value(v)
-        , unit(u)
-    {}
+    explicit SvgUnitValue(const double v, const SvgUnits::SvgUnit u = SvgUnits::SvgUnit::None) : value(v), unit(u) {}
 
-    void set(const double v, const SvgUnits::SvgUnit u)
-    {
-        value = v;
-        unit = u;
+    void set(const double v, const SvgUnits::SvgUnit u = SvgUnits::SvgUnit::None) {
+      value = v;
+      unit = u;
     }
 
     bool empty() const { return value == std::numeric_limits<double>::denorm_min(); }
@@ -104,7 +92,14 @@ struct SvgUnitValue
       if (ec != std::errc()) return false;
 
       SvgUnits::SvgUnit u = SvgUnits::SvgUnit::None;
-      if (ptr < sv.data() + sv.size()) u = SvgUnits::fromString(ptr);
+      if (ptr < sv.data() + sv.size()) {
+        // ptr not a pointer to a terminated string. If std::string_view is
+        // middle of string (e.g., value 2 of 3), ptr will show remainder of
+        // string. Eg "30% 40in" should just be "%". Ptr shows "% 40in"
+        auto offset = sv.size() - (ptr - sv.data());
+        std::string remainder(sv.substr(sv.size() - offset));
+        u = SvgUnits::fromString(remainder);
+      }
 
       value = result;
       unit = u;
@@ -116,7 +111,7 @@ struct SvgUnitValue
     {
         std::string buffer;
 
-        //  If value wa never set, do not output value
+        //  If value was never set, do not output value
         if (value != std::numeric_limits<double>::denorm_min())
             buffer = fmt::format("{}{}", value, SvgUnits::toString(unit));
         return std::move(buffer);
@@ -147,13 +142,13 @@ public:
     bool empty() const { return _width.value <= 0 || _height.value <= 0; }
 
     //  Values can be changed, but not units of measure (yet)
-    SvgUnitValue x() const { return _x.value; }
+    SvgUnitValue x() const { return _x; }
     void setX(double x = 0) { _x.value = x; }
     void setX(const std::string_view sv) { _x.fromString(sv); }
-    SvgUnitValue y() const { return _y.value; }
+    SvgUnitValue y() const { return _y; }
     void setY(double y = 0) { _y.value = y; }
     void setY(const std::string_view sv) { _y.fromString(sv); }
-    SvgUnitValue width() const { return _width.value; }
+    SvgUnitValue width() const { return _width; }
     void setWidth(double width = 0) { _width.value = std::max(width, 0.0); }
     void setWidth(const std::string_view sv) { _width.fromString(sv); }
     SvgUnitValue height() const { return _height; }
@@ -166,21 +161,18 @@ public:
         auto view = value | std::views::split(delimit);
         auto it = view.begin();
 
+        if (it == view.end()) return false;
         std::string_view sv = std::string_view(*it++);
-        if (!_x.fromString(sv))
-            return false;
-        assert(it != view.end());
-        if (!_y.fromString(std::string_view{*it++}))
-            return false;
-        assert(it != view.end());
-        if (!_width.fromString(std::string_view{*it++}))
-            return false;
-        assert(it != view.end());
-        if (!_height.fromString(std::string_view{*it}))
-            return false;
-        assert(it != view.end());
-
-        return true;
+        if (it == view.end() || !_x.fromString(sv)) return false;
+        // assert(it != view.end());
+        if (it == view.end() || !_y.fromString(std::string_view{*it++})) return false;
+        // assert(it != view.end());
+        if (it == view.end() || !_width.fromString(std::string_view{*it++})) return false;
+        // assert(it != view.end());
+        if (it == view.end() || !_height.fromString(std::string_view{*it})) return false;
+        // assert(it != view.end());
+        ++it;
+        return (it == view.end());
     }
 
     const std::string toString() const
@@ -217,4 +209,60 @@ public:
         _rope.push_back(value);
         _size += value.size();
     }
+};
+
+class SvgList {
+  std::list<std::string> _classes;
+
+public:
+  size_t size() const noexcept { return _classes.size(); }
+  bool empty() const { return _classes.empty(); }
+
+  void add(const std::string &value) {
+    //  Duplicates not allowed
+    if (!contains(value)) _classes.push_back(value);
+  }
+
+  void remove(const std::string &value) {
+    std::erase_if(_classes, [value](std::string &v) { return v == value; });
+  }
+
+  bool contains(const std::string &value) {
+    auto it = std::find(_classes.begin(), _classes.end(), value);
+    return (it != _classes.end());
+  }
+
+  bool toggle(const std::string &value) {
+    auto it = std::find(_classes.begin(), _classes.end(), value);
+
+    if (contains(value)) {
+      remove(value);
+      return false;
+    } else add(value);
+
+    return true;
+  }
+  const std::string toString() const {
+    std::string buffer;
+
+    bool first = true;
+
+    for (const auto &name : _classes) {
+      if (first) first = false;
+      else buffer += " "s;
+
+      buffer += name;
+    }
+    return std::move(buffer);
+  }
+  bool fromString(const std::string &v) {
+
+    //_classes.assign(std::views::split(v, ' '));
+    auto view = std::views::split(v, ' ');
+
+    for (auto &&ref : view) {
+      _classes.emplace_back(ref.begin(), ref.end());
+    }
+    return !_classes.empty();
+  }
 };
