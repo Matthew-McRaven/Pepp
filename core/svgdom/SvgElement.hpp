@@ -36,6 +36,7 @@ public:
   const std::string &value() const override;
   void setValue(const std::string &value) override;
   void setDocument(Document *doc) override;
+  const Document *document() const;
 
   //  Svg specific functions
   const std::string &id() const;

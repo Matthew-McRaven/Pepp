@@ -64,4 +64,5 @@ public:
     bool saveAs(const std::string &fileName);
 
     size_t fileSize() const;
+    const std::string &fileName() const;
 };

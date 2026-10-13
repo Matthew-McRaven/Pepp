@@ -92,6 +92,8 @@ void SvgElement::setDocument(Document *doc)
     _doc = doc;
 }
 
+const Document *SvgElement::document() const { return _doc; }
+
 //  Svg specific fields
 const std::string &SvgElement::id() const
 {
@@ -230,12 +232,9 @@ SvgInterface *SvgElement::createElement(const SvgType::Type type)
 
 void SvgElement::appendChild(SvgInterface *child)
 {
-    // This is a move operation. Add move logic later.
-    //  Just return now.
-    if (child->currentDocument() == _doc)
-        return;
-
-    _children.emplace_back(child->clone());
+  // This is a copy operation. Add move logic later.
+  // Just return now.
+  if (child->currentDocument() != _doc) _children.emplace_back(child->clone());
 }
 
 void SvgElement::toXml(SvgRope &output) const
