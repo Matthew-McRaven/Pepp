@@ -150,6 +150,11 @@ Result evaluate(const Tree &tree, NodeId id, Type default_type, const ValueOf &v
           if (!identifier)
             return std::unexpected(EvaluationError{argument, UnaryError::Function_ExpectedSymbol, function.name});
           arguments.emplace_back(value_of ? value_of(*identifier) : EvaluatedSymbol{});
+        }
+        // If the argument cannot be constant-evaluated, pass nullopt rather than failing with an error.
+        else if (it < function.parameters.size() && function.parameters[it] == Function::Parameter::ValueIfConstant) {
+          const auto value = evaluate(tree, argument, default_type, value_of);
+          arguments.emplace_back(value ? std::optional<Value>(*value) : std::nullopt);
         } else if (auto value = evaluate(tree, argument, default_type, value_of); !value) return value;
         else arguments.emplace_back(*value);
       }

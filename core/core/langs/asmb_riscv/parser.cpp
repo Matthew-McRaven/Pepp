@@ -34,6 +34,7 @@ using Types = std::span<const expr::Type>;
 using Category = expr::Function::Category;
 constexpr std::array value_parameter{expr::Function::Parameter::Value};
 constexpr std::array symbol_parameter{expr::Function::Parameter::Symbol};
+constexpr std::array value_if_constant_parameter{expr::Function::Parameter::ValueIfConstant};
 
 // The upper 20 bits shifted into the lower 20 bits. Must add +0x800.
 // e.g., 0x12345FFF. Without addition, lo=0xFFF, hi=x012345000
@@ -61,9 +62,9 @@ std::expected<expr::Value, expr::NullaryError> defined(Arguments arguments, expr
   return expr::Value{is_defined, {default_type.bits, expr::Signedness::Signed}};
 }
 
-// 1 if the symbol is a constant defined before this point, else 0.
+// 1 if the expression is constant right now, else 0.
 std::expected<expr::Value, expr::NullaryError> constant(Arguments arguments, expr::Type default_type) {
-  const bool is_constant = std::get<expr::EvaluatedSymbol>(arguments[0]).value.has_value();
+  const bool is_constant = std::get<std::optional<expr::Value>>(arguments[0]).has_value();
   return expr::Value{is_constant, {default_type.bits, expr::Signedness::Signed}};
 }
 
@@ -75,7 +76,7 @@ const std::array<expr::Function, 6> functions{{
     {"%pcrel_lo", Category::NonConstExpr, value_parameter, nullptr, lo_type},
     // Constant-evaluated functions needed to implement pseudo-instructions as macros.
     {"%defined", Category::ConstEval, symbol_parameter, defined, nullptr},
-    {"%constant", Category::ConstEval, symbol_parameter, constant, nullptr},
+    {"%constant", Category::ConstEval, value_if_constant_parameter, constant, nullptr},
 }};
 
 // `.` is the location counter, .L<name> a local label, and %name a relocation modifier.

@@ -523,16 +523,26 @@ TEST_CASE("RISCV ASM parser dot commands",
       REQUIRE(results.size() == 5);
       CHECK(std::dynamic_pointer_cast<RTypeIR>(results[3]));
     }
-    {
-      // consteval functions do not return true for word references.
+    // %defined takes identifiers, %constant takes arbitrary expressions. k is a constant, l is a defined label without
+    // a value, and m is defined after its use.
+    for (const auto &[expression, expected] : std::vector<std::pair<std::string, u64>>{
+             {"%defined(k)", 1},
+             {"%constant(k)", 1},
+             {"%defined(l)", 1},
+             {"%constant(l)", 0},
+             {"%defined(m)", 0},
+             {"%defined(never)", 0},
+             {"%constant(k + 1)", 1},
+             {"%constant(5)", 1},
+             {"%constant(l + 1)", 0},
+         }) {
+      CAPTURE(expression);
       DiagnosticTable diag;
-      auto p = Parser(data("k: .equ 6\nl:\n.if %defined(k) && %constant(k) && %defined(l) && !%constant(l) && "
-                           "!%defined(m) && !%defined(never)\n.byte 1\n.endif\nm:"));
-      const auto results = p.parse(diag);
-      CHECK(diag.count() == 0);
-      REQUIRE(results.size() == 6);
-      CHECK(std::dynamic_pointer_cast<DotLiteral>(results[3]));
-      // consteval function arguments do not modify symbol table.
+      auto p = Parser(pepp::tc::support::SeekableData{"k: .equ 6\nl: .byte 0\nr: .equ " + expression + "\nm:"});
+      (void)p.parse(diag);
+      REQUIRE(diag.count() == 0);
+      CHECK(p.symbol_table()->get("r").value()->value->value()() == expected);
+      // Arguments are not added to the symbol table.
       CHECK(!p.symbol_table()->exists("never"));
     }
     using RVPE = RISCVParserError;

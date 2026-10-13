@@ -34,13 +34,14 @@ struct EvaluatedSymbol {
 };
 
 // An argument as the function sees it, matching its Parameter.
-using Argument = std::variant<Value, EvaluatedSymbol>;
+using Argument = std::variant<Value, EvaluatedSymbol, std::optional<Value>>;
 
 // Functions such as RISC-V's %hi(sym). The category decides when they are evaluated.
 struct Function {
   enum class Parameter : u8 {
     Value,  // A sub-tree which must be evaluate()'ed befor evaluating the function
     Symbol, // An identifier argument with special handling and must not be eagerly evaluated()'ed.
+    ValueIfConstant, // The sub-tree's value if it is constant, else nullopt rather than an error.
   };
   enum class Category : u8 {
     ConstEval,    // Must be evaluated as it is parsed (e.g., %defined(sym)).
