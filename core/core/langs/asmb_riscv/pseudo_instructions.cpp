@@ -54,8 +54,48 @@ srli \rd, \rd, 16
           false};
 }
 
+// Call far-away subroutine: call rd, symbol -> auipc rd, %pcrel_hi(symbol); jalr rd, %pcrel_lo(<the auipc>)(rd)
+MacroDefinition call_rd() {
+  return {"call",
+          {{.name = "rd"}, {.name = "symbol"}},
+          R"(.Lpcrel_hi\@: auipc \rd, %pcrel_hi(\symbol)
+jalr \rd, %pcrel_lo(.Lpcrel_hi\@)(\rd)
+)",
+          false};
+}
+
+// Call far-away subroutine: call symbol -> call ra, symbol
+MacroDefinition call() {
+  return {"call",
+          {{.name = "symbol"}},
+          R"(.Lpcrel_hi\@: auipc ra, %pcrel_hi(\symbol)
+jalr ra, %pcrel_lo(.Lpcrel_hi\@)(ra)
+)",
+          false};
+}
+
+// Tail call far-away subroutine: tail symbol -> auipc t1, %pcrel_hi(symbol); jalr zero, %pcrel_lo(<the auipc>)(t1)
+MacroDefinition tail() {
+  return {"tail",
+          {{.name = "symbol"}},
+          R"(.Lpcrel_hi\@: auipc t1, %pcrel_hi(\symbol)
+jalr zero, %pcrel_lo(.Lpcrel_hi\@)(t1)
+)",
+          false};
+}
+
+// Jump to far-away routine: jump symbol, rt -> auipc rt, %pcrel_hi(symbol); jalr zero, %pcrel_lo(<the auipc>)(rt)
+MacroDefinition jump() {
+  return {"jump",
+          {{.name = "symbol"}, {.name = "rt"}},
+          R"(.Lpcrel_hi\@: auipc \rt, %pcrel_hi(\symbol)
+jalr zero, %pcrel_lo(.Lpcrel_hi\@)(\rt)
+)",
+          false};
+}
+
 const std::vector<MacroDefinition> &definitions() {
-  static const std::vector<MacroDefinition> ret{sext_b(), sext_h(), zext_h()};
+  static const std::vector<MacroDefinition> ret{sext_b(), sext_h(), zext_h(), call(), call_rd(), tail(), jump()};
   return ret;
 }
 } // namespace

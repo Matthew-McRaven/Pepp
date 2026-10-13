@@ -666,4 +666,31 @@ TEST_CASE("RISCV ASM pseudo-instructions",
     CHECK(srai->mnemonic.mn == riscv::SRAI);
     CHECK((srai->rd == 1 && srai->rs1 == 1 && srai->imm->value_as<u32>() == 24));
   }
+  SECTION("Far control-flow transfers") {
+    DiagnosticTable diag;
+    auto p = Parser(data("call f\ncall x5, f\ntail f\njump f, x7"));
+    const auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 4);
+    // call is chosen by its number of arguments, and call f links through ra (x1). tail uses t1 (x6), and neither tail
+    // nor jump links (zero).
+    struct Expected {
+      int index;
+      u8 rt, rd;
+    };
+    for (const auto &[index, rt, rd] : {Expected{0, 1, 1}, Expected{1, 5, 5}, Expected{2, 6, 0}, Expected{3, 7, 0}}) {
+      CAPTURE(index);
+      const auto macro = std::dynamic_pointer_cast<MacroInstantiation>(results[index]);
+      REQUIRE(macro);
+      REQUIRE(macro->lines.size() == 2);
+      const auto auipc = std::dynamic_pointer_cast<UTypeIR>(macro->lines[0]);
+      const auto jalr = std::dynamic_pointer_cast<ITypeIR>(macro->lines[1]);
+      REQUIRE(auipc);
+      REQUIRE(jalr);
+      const auto label = ".Lpcrel_hi" + std::to_string(index);
+      CHECK(auipc->typed_attribute<SymbolDeclaration>()->entry->name == label);
+      CHECK((auipc->rd == rt && auipc->imm->string() == "%pcrel_hi(f)"));
+      CHECK((jalr->rd == rd && jalr->rs1 == rt && jalr->imm->string() == "%pcrel_lo(" + label + ")"));
+    }
+  }
 }
