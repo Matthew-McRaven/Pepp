@@ -18,6 +18,7 @@
 #include <array>
 #include <expected>
 #include <limits>
+#include <span>
 #include <string>
 
 namespace {
@@ -25,10 +26,32 @@ using namespace pepp::tc::expr;
 using pepp::tc::expr::Integer;
 using pepp::tc::support::Location;
 
-// One constexpr and one contextual function, which take the argument's type.
-std::expected<Value, NullaryError> twice(Value x, Type) { return Value{x.bits * 2, x.type}; }
-Type same(Type type, Type) { return type; }
-constexpr std::array<Function, 2> functions{{{"%twice", twice, same}, {"%where", nullptr, same}}};
+// Constexpr %twice and %add, and non-constexpr %where, which take their first argument's type. ConstEval %defined, and
+// %twice_now, a ConstEval %twice.
+std::expected<Value, NullaryError> twice(std::span<const Argument> x, Type) {
+  const auto value = std::get<Value>(x[0]);
+  return Value{value.bits * 2, value.type};
+}
+std::expected<Value, NullaryError> add(std::span<const Argument> x, Type) {
+  const auto lhs = std::get<Value>(x[0]), rhs = std::get<Value>(x[1]);
+  return Value{lhs.bits + rhs.bits, lhs.type};
+}
+std::expected<Value, NullaryError> defined(std::span<const Argument> x, Type default_type) {
+  const bool is_defined = std::get<EvaluatedSymbol>(x[0]).state != pepp::core::symbol::DefinitionState::Undefined;
+  return Value{is_defined, {default_type.bits, Signedness::Signed}};
+}
+Type first(std::span<const Type> types, Type) { return types[0]; }
+using Category = Function::Category;
+constexpr std::array one_value{Function::Parameter::Value};
+constexpr std::array two_values{Function::Parameter::Value, Function::Parameter::Value};
+constexpr std::array one_symbol{Function::Parameter::Symbol};
+const std::array<Function, 5> functions{{
+    {"%twice", Category::ConstExpr, one_value, twice, first},
+    {"%add", Category::ConstExpr, two_values, add, first},
+    {"%where", Category::NonConstExpr, one_value, nullptr, first},
+    {"%defined", Category::ConstEval, one_symbol, defined, nullptr},
+    {"%twice_now", Category::ConstEval, one_value, twice, nullptr},
+}};
 
 Parsed parsed(const ParseResult &result) {
   REQUIRE(std::holds_alternative<Parsed>(result));
@@ -172,14 +195,61 @@ TEST_CASE("Expression parser", "[scope:core][scope:core.langs][kind:unit][arch:*
     const auto &tree = parsed(call("%twice(1 + 2) * 3")).tree;
     CHECK(to_postfix(tree) == "1 2 + %twice 3 *");
     CHECK(to_infix(tree) == "%twice(1 + 2) * 3");
-    CHECK(tree.kinds()[3] == Kind::ConstExprCall);
-    CHECK(parsed(call("%where(x)")).tree.kinds()[1] == Kind::NonConstExprCall);
+    CHECK(tree.kinds()[3] == Kind::Call);
+    CHECK(parsed(call("%where(x)")).tree.kinds()[1] == Kind::Call);
+    const auto &pair = parsed(call("%add(1, 2 * 3)")).tree;
+    CHECK(to_infix(pair) == "%add(1, 2 * 3)");
+    CHECK(to_postfix(pair) == "1 2 3 * %add");
+    const auto short_by_one_arg = call("%add(1)");
+    REQUIRE(std::holds_alternative<Error>(short_by_one_arg));
+    CHECK(std::get<Error>(short_by_one_arg).matches(UnaryError::Function_WrongArity, "%add"));
     // Identifiers with % must be functions
     const auto unknown = call("%nope(1)"), uncalled = call("%twice 1");
     REQUIRE(std::holds_alternative<Error>(unknown));
     CHECK(std::get<Error>(unknown).matches(UnaryError::Function_Unknown, "%nope"));
     REQUIRE(std::holds_alternative<Error>(uncalled));
     CHECK(std::get<Error>(uncalled).matches(NullaryError::Syntax_ExpectedOpenParen));
+  }
+  SECTION("ConstEval calls") {
+    using pepp::core::symbol::DefinitionState;
+    const Options options{.percent_identifiers = true, .functions = functions};
+    // Only k is defined so far, as a constant.
+    const ValueOf constant_of = [](const Identifier &id) -> EvaluatedSymbol {
+      if (id.name == "k") return {DefinitionState::Single, Value{5, {32, Signedness::Bits}}};
+      return {};
+    };
+    const auto call = [&](const char *source) {
+      return parse(source, Location(0, 0), nullptr, options, {}, constant_of);
+    };
+    // ConstEval calls evaluated as they are parsed
+    const auto symbols = parsed(call("%defined(k) + %defined(m)"));
+    CHECK(symbols.tree.kinds() == std::vector<Kind>{Kind::FoldedConstant, Kind::FoldedConstant, Kind::Add});
+    CHECK(symbols.locations.size() == 3);
+    CHECK(std::get<FoldedConstant>(symbols.tree[0]).value == Value{1, {32, Signedness::Signed}});
+    CHECK(std::get<FoldedConstant>(symbols.tree[1]).value == Value{0, {32, Signedness::Signed}});
+    // A Value argument is evaluated from the constants so far.
+    const auto values = parsed(call("%twice_now(k+1)"));
+    CHECK(values.tree.kinds() == std::vector<Kind>{Kind::FoldedConstant});
+    CHECK(to_infix(values.tree) == "%twice_now(k + 1)");
+    CHECK(std::get<FoldedConstant>(values.tree[0]).value.bits == 12);
+
+    const auto error = [&](const char *source) {
+      auto result = call(source);
+      REQUIRE(std::holds_alternative<Error>(result));
+      return std::get<Error>(result);
+    };
+    // Symbol arguments must be literal identifiers, not expressions involving them
+    for (const char *source : {"%defined(1)", "%defined(k + 1)", "%defined((k))", "%defined(%twice(k))"}) {
+      CAPTURE(source);
+      const auto e = error(source);
+      CHECK(e.matches(UnaryError::Function_ExpectedSymbol, "%defined"));
+      CHECK(e.location.lower() == Location(0, 9));
+    }
+    CHECK(error("%twice_now(m)").matches(UnaryError::Symbol_NoValue, "m"));
+    // No constant_of means all symbols are treated as undefined.
+    const auto unavailable = parse("%defined(k)", Location(0, 0), nullptr, options);
+    REQUIRE(std::holds_alternative<Error>(unavailable));
+    CHECK(std::get<Error>(unavailable).matches(UnaryError::Function_Unavailable, "%defined"));
   }
   SECTION("Consume no input if the text does not start with an expression") {
     for (const char *source :

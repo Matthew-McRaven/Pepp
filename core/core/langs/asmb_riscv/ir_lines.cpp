@@ -107,7 +107,6 @@ std::shared_ptr<pepp::tc::IntegerInstruction> pepp::tc::make_instruction(std::st
   case Type::B: return std::make_shared<BTypeIR>(name, desc, operands.rs1, operands.rs2, operands.imm);
   case Type::U: return std::make_shared<UTypeIR>(name, desc, operands.rd, operands.imm);
   case Type::J: return std::make_shared<JTypeIR>(name, desc, operands.rd, operands.imm);
-  case Type::Pseudo: [[fallthrough]];
   case Type::INVALID: return nullptr;
   }
   return nullptr;

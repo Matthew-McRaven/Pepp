@@ -29,21 +29,18 @@
 
 namespace {
 namespace expr = pepp::tc::expr;
-
-bool is_constant(const pepp::core::symbol::Entry &entry) {
-  return entry.value && entry.value->type() == pepp::core::symbol::Type::Constant;
-}
 } // namespace
 
 std::expected<pepp::tc::parser::ExpressionResult, pepp::tc::expr::Error>
 pepp::tc::parser::parse_expression(lex::Buffer &buf, lex::ALexer &lexer, std::shared_ptr<expr::IdentifierPool> pool,
-                                   const expr::Options &options, const expr::NameLocationCounter &location_counter) {
+                                   const expr::Options &options, const expr::NameLocationCounter &location_counter,
+                                   const expr::ValueOf &constant_of) {
   // The expression parser reads the lexer's text, which is past any buffered token. This is a bug in the assembler,
   // but is reported as an error in the source rather than ending the program.
   if (const auto buffered = buf.buffered_tokens(); !buffered.empty())
     return std::unexpected(expr::Error{buffered.front()->location(), expr::NullaryError::Syntax_BufferedToken});
 
-  auto result = expr::parse(lexer.cursor(), std::move(pool), options, location_counter);
+  auto result = expr::parse(lexer.cursor(), std::move(pool), options, location_counter, constant_of);
   if (const auto *error = std::get_if<expr::Error>(&result)) return std::unexpected(*error);
   auto *parsed = std::get_if<expr::Parsed>(&result);
   if (!parsed) return nullptr;
@@ -82,8 +79,11 @@ pepp::tc::parser::lower(const expr::Parsed &operand, std::shared_ptr<core::symbo
   else if (expr::matches(kinds, signed_integer) && decimal)
     return std::make_shared<ast::UnsignedDecimal>(integer->value, size);
 
-  const auto reference = [&](const expr::Identifier &id) { (void)symtab->reference(id.name); };
-  expr::for_each_node<expr::Identifier>(tree, reference);
+  // Walk from the root rather than over every node to allow control of symbol visibility.
+  expr::walk(tree, [&](expr::NodeId, const expr::Node &node) {
+    if (const auto *id = std::get_if<expr::Identifier>(&node)) (void)symtab->reference(id->name);
+    return true;
+  });
   auto value = std::make_shared<ast::Expression>(tree, symtab, default_type, size);
   if (!value->contains_symbols())
     if (const auto evaluated = value->evaluate(); !evaluated) {
@@ -98,7 +98,7 @@ std::expected<std::optional<u64>, pepp::tc::expr::Error>
 pepp::tc::parser::equate_value(ast::IRValue &arg, support::LocationInterval location) {
   using namespace bits;
   if (auto *symbolic = dynamic_cast<ast::Symbolic *>(&arg)) {
-    if (!is_constant(*symbolic->symbol())) return std::nullopt;
+    if (!symbolic->symbol()->is_constant()) return std::nullopt;
     auto masked = symbolic->symbol()->value->value();
     return masked();
   } else if (auto *expression = dynamic_cast<ast::Expression *>(&arg)) {

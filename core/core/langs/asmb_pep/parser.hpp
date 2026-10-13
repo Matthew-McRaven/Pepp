@@ -76,6 +76,8 @@ private:
 
   MacroCounters _counters;
   Conditionals _conditionals;
+  // Depth of conditionals opened outside the current macro body.
+  std::size_t _conditional_floor = 0;
   // The location counter (`.`) of the line being parsed, if used on the current line.
   std::shared_ptr<pepp::core::symbol::Entry> _location_counter;
   MacroCapture _macro_capture;

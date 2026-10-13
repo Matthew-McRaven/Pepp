@@ -17,17 +17,33 @@
 #include <catch.hpp>
 #include <array>
 #include <limits>
+#include <span>
 #include <vector>
 #include "core/langs/expr/parser.hpp"
 
 namespace {
 using namespace pepp::tc::expr;
 using enum Signedness;
+using pepp::core::symbol::DefinitionState;
 
-// One constexpr and one  non-constexpr function which preserve argument's types.
-std::expected<Value, NullaryError> twice(Value x, Type) { return Value{x.bits * 2, x.type}; }
-Type same(Type type, Type) { return type; }
-constexpr std::array<Function, 2> functions{{{"%twice", twice, same}, {"%where", nullptr, same}}};
+// One constexpr and one non-constexpr function which preserve their argument's type, and a ConstEval function.
+std::expected<Value, NullaryError> twice(std::span<const Argument> x, Type) {
+  const auto value = std::get<Value>(x[0]);
+  return Value{value.bits * 2, value.type};
+}
+std::expected<Value, NullaryError> defined(std::span<const Argument> x, Type default_type) {
+  const bool is_defined = std::get<EvaluatedSymbol>(x[0]).state != DefinitionState::Undefined;
+  return Value{is_defined, {default_type.bits, Signed}};
+}
+Type same(std::span<const Type> types, Type) { return types[0]; }
+using Category = Function::Category;
+constexpr std::array one_value{Function::Parameter::Value};
+constexpr std::array one_symbol{Function::Parameter::Symbol};
+const std::array<Function, 3> functions{{
+    {"%twice", Category::ConstExpr, one_value, twice, same},
+    {"%where", Category::NonConstExpr, one_value, nullptr, same},
+    {"%defined", Category::ConstEval, one_symbol, defined, nullptr},
+}};
 
 Tree tree_of(const char *source) {
   auto result = parse(source);
@@ -137,25 +153,40 @@ TEST_CASE("Expression evaluation", "[scope:core][scope:core.langs][kind:unit][ar
     CHECK(empty.error().matches(NullaryError::Evaluation_Empty));
   }
   SECTION("Function calls") {
-    const auto call = [](const char *source) {
+    // Only k is defined while parsing.
+    const ValueOf defined_so_far = [](const Identifier &id) -> EvaluatedSymbol {
+      if (id.name == "k") return {DefinitionState::Single, std::nullopt};
+      return {};
+    };
+    const auto call = [&](const char *source) {
       auto result = parse(source, pepp::tc::support::Location(0, 0), nullptr,
-                          Options{.percent_identifiers = true, .functions = functions});
+                          Options{.percent_identifiers = true, .functions = functions}, {}, defined_so_far);
       REQUIRE(std::holds_alternative<Parsed>(result));
       return std::get<Parsed>(std::move(result)).tree;
     };
-    // A constexpr call is evaluated, and folded, like an operator.
+    // A constexpr call participates in constant folding
     CHECK(evaluate_expression(call("%twice(3) + 1"), pep).value() == Value{7, {16, Bits}});
     CHECK(to_postfix(fold_constants(call("%twice(3) + sym"), pep)) == "6 sym +");
     CHECK(is_constant_expression(call("%twice(3)")));
-    // A  non-constexpr call depends on where it is used, so it is never evaluated.
+    // A  non-constexpr cannot be evaluated at this time.
     CHECK(evaluate_expression(call("%where(3)"), pep).error().matches(UnaryError::Function_NotConstExpr, "%where"));
     CHECK(to_postfix(fold_constants(call("%where(3)"), pep)) == "3 %where");
     CHECK(!is_constant_expression(call("%where(3)")));
+    // A ConstEval call is evaluated at parse time
+    const ValueOf all_defined = [](const Identifier &) -> EvaluatedSymbol {
+      return {DefinitionState::Single, Value{0, {16, Unsigned}}};
+    };
+    CHECK(evaluate_expression(call("%defined(k) + %defined(m)"), pep, all_defined).value() == Value{1, {32, Signed}});
+    CHECK(is_constant_expression(call("%defined(m)")));
+    // It is kept as written unless it folds into a larger constant.
+    CHECK(to_postfix(fold_constants(call("%defined(k) + sym"), pep)) == "%defined(k) sym +");
+    CHECK(to_infix(fold_constants(call("%defined(k) + sym"), pep)) == "%defined(k) + sym");
+    CHECK(to_postfix(fold_constants(call("%defined(k) + 1"), pep)) == "2");
   }
   SECTION("Symbols") {
-    const ValueOf value_of = [](const Identifier &id) -> std::optional<Value> {
-      if (id.name == "sym") return Value{4, {16, Unsigned}};
-      return std::nullopt;
+    const ValueOf value_of = [](const Identifier &id) -> EvaluatedSymbol {
+      if (id.name == "sym") return {DefinitionState::Single, Value{4, {16, Unsigned}}};
+      return {};
     };
     CHECK(evaluate_expression(tree_of("sym + 1"), pep, value_of).value() == Value{5, {16, Unsigned}});
     // The failing node is the symbol which has no value.
@@ -168,9 +199,9 @@ TEST_CASE("Expression evaluation", "[scope:core][scope:core.langs][kind:unit][ar
     Tree here;
     const auto counter = here.add(LocationCounter{"<.0>"});
     here.add(Binary{BinaryOp::Add, counter, here.add(pepp::tc::expr::Integer{1})});
-    const ValueOf address = [](const Identifier &id) -> std::optional<Value> {
-      if (id.name == "<.0>") return Value{0x10, {16, Unsigned}};
-      return std::nullopt;
+    const ValueOf address = [](const Identifier &id) -> EvaluatedSymbol {
+      if (id.name == "<.0>") return {DefinitionState::Single, Value{0x10, {16, Unsigned}}};
+      return {};
     };
     CHECK(evaluate_expression(here, pep, address).value() == Value{0x11, {16, Unsigned}});
     CHECK(evaluate_expression(here, pep).error().matches(NullaryError::LocationCounter_NoValue));
@@ -178,9 +209,9 @@ TEST_CASE("Expression evaluation", "[scope:core][scope:core.langs][kind:unit][ar
   }
   SECTION("Constant folding") {
     // k stands in for the symbol declared on an .EQUATE and sym for non-constant program location.
-    const ValueOf constant_of = [&](const Identifier &id) -> std::optional<Value> {
-      if (id.name == "k") return Value{5, {16, Bits}};
-      return std::nullopt;
+    const ValueOf constant_of = [&](const Identifier &id) -> EvaluatedSymbol {
+      if (id.name == "k") return {DefinitionState::Single, Value{5, {16, Bits}}};
+      return {};
     };
     struct Case {
       const char *source, *folded;
@@ -213,9 +244,9 @@ TEST_CASE("Expression evaluation", "[scope:core][scope:core.langs][kind:unit][ar
     CHECK(evaluate_expression(folded, pep).value() == Value{0x7FFF, {16, Unsigned}});
   }
   SECTION("Node-level constant evaluation and typind") {
-    const ValueOf constant_of = [&](const Identifier &id) -> std::optional<Value> {
-      if (id.name == "k") return Value{5, {16, Bits}};
-      return std::nullopt;
+    const ValueOf constant_of = [&](const Identifier &id) -> EvaluatedSymbol {
+      if (id.name == "k") return {DefinitionState::Single, Value{5, {16, Bits}}};
+      return {};
     };
     const TypeOf type_of = [](const Identifier &) { return Type{16, Unsigned}; };
     using Values = std::vector<std::optional<Value>>;
@@ -231,9 +262,9 @@ TEST_CASE("Expression evaluation", "[scope:core][scope:core.langs][kind:unit][ar
   }
   SECTION("Reassociation") {
     // k stands in for the symbol declared on an .EQUATE, and every other symbol for a 16-bit program location.
-    const ValueOf constant_of = [&](const Identifier &id) -> std::optional<Value> {
-      if (id.name == "k") return Value{5, {16, Bits}};
-      return std::nullopt;
+    const ValueOf constant_of = [&](const Identifier &id) -> EvaluatedSymbol {
+      if (id.name == "k") return {DefinitionState::Single, Value{5, {16, Bits}}};
+      return {};
     };
     const TypeOf type_of = [](const Identifier &) { return Type{16, Unsigned}; };
     struct Case {

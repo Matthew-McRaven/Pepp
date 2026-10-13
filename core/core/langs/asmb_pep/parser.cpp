@@ -160,14 +160,18 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::macro(Diagnosti
   lex::Checkpoint cp(*buf);
   auto name = buf->match<lex::Identifier>();
   if (!name) return cp.rollback(), nullptr;
-  auto definition = _macros->find(name->to_string());
-  if (!definition) return cp.rollback(), nullptr;
+  if (!_macros->contains(name->to_string())) return cp.rollback(), nullptr;
   else cp.commit();
 
   // Consume all non-comments, non-empty tokens until the end of the current line.
   while (buf->match_not<tc::lex::Empty, tc::lex::EoF, tc::lex::InlineComment>());
   // The arguments are the text of the tokens after the macro name.
   const auto args = split_arguments(buf->matched_tokens_after(cp.marker()), *lexer);
+  // A name may have one definition per number of arguments.
+  const auto definition = _macros->find(name->to_string(), args.size());
+  if (!definition)
+    throw PepParserError(PepParserError::UnaryError::Macro_WrongArgumentCount, name->to_string(),
+                         buf->matched_interval());
   auto replacements = _counters.counters_for(definition->name);
 
   // TODO: Validate # of matched arguments vs number of args in definition, accounting for default values.
@@ -181,7 +185,10 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::macro(Diagnosti
   _lexer_stack.emplace(new_lexer, std::make_shared<lex::Buffer>(&*new_lexer));
 
   auto ret = std::make_shared<MacroInstantiation>(definition, args);
+  ret->insert(std::make_unique<ExpansionComments>(definition->expansion_comments));
+  const auto floor = std::exchange(_conditional_floor, _conditionals.depth());
   ret->lines = do_parse(diag, buf->matched_interval());
+  _conditional_floor = floor;
   // Attach symbol def if it exists.
   if (symbol) ret->insert(std::make_unique<SymbolDeclaration>(*symbol));
   return ret;
@@ -514,7 +521,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::statement(Diagn
     }
   }
 
-  if (!buf->input_remains() && _conditionals.depth() > 0) {
+  if (!buf->input_remains() && _conditionals.depth() > _conditional_floor) {
     const auto end_ival = lexer->current_location();
     support::LocationInterval ival{start_ival, end_ival};
     throw PepParserError(PepParserError::NullaryError::Conditional_Unterminated, ival);

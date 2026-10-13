@@ -582,6 +582,36 @@ TEST_CASE("Pepp ASM parser with macros instantiations",
     REQUIRE(as_mi_line0);
     CHECK(as_mi_line0->argument.value->value_as<u16>() == 15);
   }
+  SECTION("macros may opt out of expansion comments") {
+    pepp::tc::DiagnosticTable diag;
+    auto mr = std::make_shared<MR>();
+    mr->insert(std::make_shared<MacroDefinition>(MacroDefinition{"@ON", {}, ".byte 1\n"}));
+    mr->insert(std::make_shared<MacroDefinition>(MacroDefinition{"@OFF", {}, ".byte 2\n", false}));
+    auto p = Parser(data("@ON\n@OFF"), mr);
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    // c for a comment line, b for a .BYTE.
+    const auto lines = [](const IRProgram &program) {
+      std::string ret;
+      for (const auto &line : program)
+        if (std::dynamic_pointer_cast<CommentLine>(line)) ret += 'c';
+        else if (std::dynamic_pointer_cast<DotLiteral>(line)) ret += 'b';
+      return ret;
+    };
+
+    CHECK(lines(parser::flatten_macros(results, true)) == "cbcb");
+    CHECK(lines(parser::flatten_macros(results, false)) == "bb");
+  }
+  SECTION("a conditional in a macro body may be nested in the caller's conditional") {
+    pepp::tc::DiagnosticTable diag;
+    auto mr = std::make_shared<MR>();
+    mr->insert(std::make_shared<MacroDefinition>(MacroDefinition{"@TEST", {}, ".IF 1\n.BYTE 1\n.ENDIF\n"}));
+    auto p = Parser(data(".IF 1\n@TEST\n.ENDIF"), mr);
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 3);
+    CHECK(std::dynamic_pointer_cast<MacroInstantiation>(results[1]));
+  }
 }
 
 TEST_CASE("Pepp ASM parser with macros definitions",

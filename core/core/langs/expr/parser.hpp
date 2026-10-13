@@ -31,7 +31,8 @@
  * Precedence climbing over a subset of C's binary operators, all assuming left-associativity.
  *   <expression> -> <unary> (BINARY_OP <expression of higher precedence>)*
  *   <unary>      -> UNARY_OP <unary> | <primary>
- *   <primary>    -> INTEGER | CHARACTER | IDENTIFIER | FUNCTION ( <expression> ) | . | ( <expression> )
+ *   <primary>    -> INTEGER | CHARACTER | IDENTIFIER | FUNCTION ( [<expression> (, <expression>)*] ) | .
+ *                 | ( <expression> )
  */
 namespace pepp::tc::expr {
 
@@ -56,12 +57,13 @@ using NameLocationCounter = std::function<std::string()>;
 // Parse the longest expression starting at cursor. Parsing stops at the first token which cannot continue the
 // expression, such as a comma or a newline. If this is being called from inside another parser, the caller can advance
 // their own cursor by taking Parsed::after. The identifier pool should be shared with the caller to reduce temporary
-// allocations when being used as a sub-parser.
+// allocations when being used as a sub-parser. constant_of allows constant evaluation for some functions (e.g.,
+// %defined)
 ParseResult parse(support::SeekableData cursor, std::shared_ptr<IdentifierPool> pool, const Options &options = {},
-                  const NameLocationCounter &location_counter = {});
+                  const NameLocationCounter &location_counter = {}, const ValueOf &constant_of = {});
 // As above, for an expression held in a string (e.g., typed into the debugger).
 ParseResult parse(std::string_view text, support::Location origin = support::Location(0, 0),
                   std::shared_ptr<IdentifierPool> pool = nullptr, const Options &options = {},
-                  const NameLocationCounter &location_counter = {});
+                  const NameLocationCounter &location_counter = {}, const ValueOf &constant_of = {});
 
 } // namespace pepp::tc::expr

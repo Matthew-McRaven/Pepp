@@ -23,6 +23,7 @@
 #include "core/compile/ir_linear/line_symbol.hpp"
 #include "core/compile/ir_value/expression.hpp"
 #include "core/compile/ir_value/numeric.hpp"
+#include "core/compile/macro/macro_registry.hpp"
 #include "core/compile/symbol/entry.hpp"
 #include "core/compile/symbol/leaf_table.hpp"
 #include "core/compile/symbol/value.hpp"
@@ -116,6 +117,19 @@ TEST_CASE("RISCV ASM parser", "[scope:core][scope:core.langs][level:asmb3][level
     CHECK(as_b->rs2 == 7);
     CHECK(as_b->imm);
     CHECK(as_b->imm->value_as<u32>() == 15);
+  }
+  SECTION("Local labels") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".Lloop: addi x1, x1, -1\nbne x1, x0, .Lloop"));
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 2);
+    const auto declared = results[0]->typed_attribute<SymbolDeclaration>();
+    REQUIRE(declared);
+    CHECK(declared->entry->name == ".Lloop");
+    const auto branch = std::dynamic_pointer_cast<BTypeIR>(results[1]);
+    REQUIRE(branch);
+    CHECK(branch->imm->string() == ".Lloop");
   }
   SECTION("J Type: JaL x31, -72") {
     pepp::tc::DiagnosticTable diag;
@@ -510,6 +524,45 @@ TEST_CASE("RISCV ASM parser dot commands",
       REQUIRE(results.size() == 5);
       CHECK(std::dynamic_pointer_cast<RTypeIR>(results[3]));
     }
+    // %defined takes identifiers, %constant takes arbitrary expressions. k is a constant, l is a defined label without
+    // a value, and m is defined after its use.
+    for (const auto &[expression, expected] : std::vector<std::pair<std::string, u64>>{
+             {"%defined(k)", 1},
+             {"%constant(k)", 1},
+             {"%defined(l)", 1},
+             {"%constant(l)", 0},
+             {"%defined(m)", 0},
+             {"%defined(never)", 0},
+             {"%constant(k + 1)", 1},
+             {"%constant(5)", 1},
+             {"%constant(l + 1)", 0},
+         }) {
+      CAPTURE(expression);
+      DiagnosticTable diag;
+      auto p = Parser(pepp::tc::support::SeekableData{"k: .equ 6\nl: .byte 0\nr: .equ " + expression + "\nm:"});
+      (void)p.parse(diag);
+      REQUIRE(diag.count() == 0);
+      CHECK(p.symbol_table()->get("r").value()->value->value()() == expected);
+      // Arguments are not added to the symbol table.
+      CHECK(!p.symbol_table()->exists("never"));
+    }
+    // %bitwidth counts a sign bit only for negative values allowing a range of [-2^(n-1), 2^n) for n bits.
+    for (const auto &[expression, expected] : std::vector<std::pair<std::string, u64>>{
+             {"%bitwidth(0)", 0},
+             {"%bitwidth(5)", 3},
+             {"%bitwidth(-1)", 1},
+             {"%bitwidth(-2048)", 12},
+             {"%bitwidth(-0x80000000)", 32},
+             {"%bitwidth(0xFFFFFFFF)", 32},
+             {"%bitwidth(0x100000000)", 33},
+         }) {
+      CAPTURE(expression);
+      DiagnosticTable diag;
+      auto p = Parser(pepp::tc::support::SeekableData{"r: .equ " + expression});
+      (void)p.parse(diag);
+      REQUIRE(diag.count() == 0);
+      CHECK(p.symbol_table()->get("r").value()->value->value()() == expected);
+    }
     using RVPE = RISCVParserError;
     for (const auto &[source, error] : std::vector<std::pair<const char *, RVPE::NullaryError>>{
              {".if 0", RVPE::NullaryError::Conditional_Unterminated},
@@ -522,6 +575,13 @@ TEST_CASE("RISCV ASM parser dot commands",
       (void)parse(source, diag);
       REQUIRE(diag.count() == 1);
       CHECK(diag.cbegin()->second == RVPE::to_string(error));
+    }
+    {
+      // .error only triggers on taken branches
+      DiagnosticTable diag;
+      (void)parse(".if 0\n.error \"skipped\"\n.endif\n.error \"user text\"", diag);
+      REQUIRE(diag.count() == 1);
+      CHECK(diag.cbegin()->second == "user text");
     }
   }
   // Macros are shared with Pep/10, whose tests cover them in depth.
@@ -547,6 +607,52 @@ TEST_CASE("RISCV ASM parser dot commands",
       REQUIRE(addi);
       CHECK(addi->rd == 5);
       CHECK(addi->rs1 == 5);
+    }
+    {
+      // A conditional in a macro body may be nested in the caller's conditional.
+      DiagnosticTable diag;
+      const auto results = parse(".macro m\n.if 1\n.byte 1\n.endif\n.endm\n.if 1\nm\n.endif", diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 4);
+      CHECK(std::dynamic_pointer_cast<MacroInstantiation>(results[2]));
+    }
+    {
+      // A definition may hide its conditionals from listings, but not from source.
+      auto macros = std::make_shared<MacroRegistry>();
+      REQUIRE(macros->insert(
+          std::make_shared<MacroDefinition>(MacroDefinition{"m", {}, ".if 1\n.byte 1\n.endif", true, false})));
+      DiagnosticTable diag;
+      const auto results = Parser(data("m"), macros).parse(diag);
+      REQUIRE(diag.count() == 0);
+      const auto macro = std::dynamic_pointer_cast<MacroInstantiation>(results[0]);
+      REQUIRE(macro);
+      REQUIRE(macro->lines.size() == 3);
+      for (const auto &line : macro->lines) {
+        CAPTURE(line->type());
+        const auto *hidden = line->typed_attribute<Hidden>();
+        if (line->type() == DotConditional::TYPE) CHECK((hidden && hidden->listing && !hidden->source));
+        else CHECK(!hidden);
+      }
+    }
+    {
+      // A name may have one definition per number of arguments.
+      DiagnosticTable diag;
+      const auto results = parse(".macro m a\n.byte \\a\n.endm\n.macro m a, b\n.half \\b\n.endm\nm 1\nm 2, 3", diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 4);
+      const auto one = std::dynamic_pointer_cast<MacroInstantiation>(results[2]);
+      const auto two = std::dynamic_pointer_cast<MacroInstantiation>(results[3]);
+      REQUIRE(one);
+      REQUIRE(two);
+      CHECK(one->macro->arguments.size() == 1);
+      CHECK(two->macro->arguments.size() == 2);
+      // No definition has three arguments.
+      DiagnosticTable wrong;
+      (void)parse(".macro m a\n.byte \\a\n.endm\nm 1, 2, 3", wrong);
+      REQUIRE(wrong.count() == 1);
+      std::string name = "m";
+      CHECK(wrong.cbegin()->second ==
+            RISCVParserError::to_string(RISCVParserError::UnaryError::Macro_WrongArgumentCount, name));
     }
     using RVPE = RISCVParserError;
     for (const auto &[source, error] : std::vector<std::pair<const char *, RVPE::NullaryError>>{
@@ -597,4 +703,168 @@ TEST_CASE("RISCV ASM parser symbol-only lines",
   // A symbol-only line's symbol does not belong to the following line.
   CHECK(!results[6]->typed_attribute<SymbolDeclaration>());
   symbol_line(7, "e");
+}
+
+TEST_CASE("RISCV ASM pseudo-instructions",
+          "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:riscv]") {
+  using Parser = pepp::tc::parser::RISCVParser;
+  using namespace pepp::tc;
+  SECTION("Multi-instruction pseudo-instructions expand as macros") {
+    DiagnosticTable diag;
+    auto p = Parser(data("sext.b x1, x2"));
+    const auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 1);
+    const auto macro = std::dynamic_pointer_cast<MacroInstantiation>(results[0]);
+    REQUIRE(macro);
+    REQUIRE(macro->lines.size() >= 2);
+    const auto slli = std::dynamic_pointer_cast<ITypeIR>(macro->lines[0]);
+    const auto srai = std::dynamic_pointer_cast<ITypeIR>(macro->lines[1]);
+    REQUIRE(slli);
+    REQUIRE(srai);
+    CHECK(slli->mnemonic.mn == riscv::SLLI);
+    CHECK((slli->rd == 1 && slli->rs1 == 2 && slli->imm->value_as<u32>() == 24));
+    CHECK(srai->mnemonic.mn == riscv::SRAI);
+    CHECK((srai->rd == 1 && srai->rs1 == 1 && srai->imm->value_as<u32>() == 24));
+  }
+  SECTION("Global loads/stores") {
+    DiagnosticTable diag;
+    auto p = Parser(data("lw x5, msg\nsw x5, msg, x6\nlw x5, 0(x6)\nsw x5, 0(x6)"));
+    const auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 4);
+    const auto lines = [&](int index) {
+      const auto macro = std::dynamic_pointer_cast<MacroInstantiation>(results[index]);
+      REQUIRE(macro);
+      REQUIRE(macro->lines.size() == 2);
+      const auto auipc = std::dynamic_pointer_cast<UTypeIR>(macro->lines[0]);
+      REQUIRE(auipc);
+      CHECK(auipc->imm->string() == "%pcrel_hi(msg)");
+      return std::pair{auipc, macro->lines[1]};
+    };
+    // A load's auipc writes its rd, while a store's writes the scratch rt.
+    const auto [load_auipc, load_line] = lines(0);
+    const auto lw = std::dynamic_pointer_cast<ITypeIR>(load_line);
+    REQUIRE(lw);
+    CHECK((load_auipc->rd == 5 && lw->rd == 5 && lw->rs1 == 5 && lw->imm->string() == "%pcrel_lo(.Lpcrel_hi0)"));
+    const auto [store_auipc, store_line] = lines(1);
+    const auto sw = std::dynamic_pointer_cast<STypeIR>(store_line);
+    REQUIRE(sw);
+    CHECK((store_auipc->rd == 6 && sw->rs2 == 5 && sw->rs1 == 6 && sw->imm->string() == "%pcrel_lo(.Lpcrel_hi1)"));
+    // Prefers matching the instruction alternative when possible.
+    CHECK(std::dynamic_pointer_cast<ITypeIR>(results[2]));
+    CHECK(std::dynamic_pointer_cast<STypeIR>(results[3]));
+    // Only when we have a limited number of arguments do we choose the macro expansion.
+    using RVPE = RISCVParserError;
+    DiagnosticTable wrong;
+    (void)Parser(data("sw x5, 0(x6), x7")).parse(wrong);
+    REQUIRE(wrong.count() == 1);
+    CHECK(wrong.cbegin()->second == RVPE::to_string(RVPE::NullaryError::Token_MissingNewline));
+  }
+  SECTION("Pseudo-instructions are case-insensitive, like instructions") {
+    for (const char *source : {"LI x5, 1", "SEXT.B x1, x2", "Lw x5, msg"}) {
+      CAPTURE(source);
+      DiagnosticTable diag;
+      const auto results = Parser(data(source)).parse(diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 1);
+      CHECK(std::dynamic_pointer_cast<MacroInstantiation>(results[0]));
+    }
+  }
+  SECTION("Load immediate") {
+    // The (instruction) lines of the macro instantiation for li.
+    const auto expand = [](const char *source) {
+      DiagnosticTable diag;
+      const auto results = Parser(data(source)).parse(diag);
+      REQUIRE(diag.count() == 0);
+      const auto macro = std::dynamic_pointer_cast<MacroInstantiation>(results.back());
+      REQUIRE(macro);
+      std::vector<std::shared_ptr<IntegerInstruction>> ret;
+      for (const auto &line : macro->lines)
+        if (auto instruction = std::dynamic_pointer_cast<IntegerInstruction>(line)) ret.push_back(instruction);
+      return ret;
+    };
+
+    // imm fits in low-12 bits
+    for (const auto &[source, imm] :
+         {std::pair{"li x5, 5", 5}, std::pair{"li x5, -2048", -2048}, std::pair{"li x5, 0xFFFFFFFF", -1}}) {
+      CAPTURE(source);
+      const auto lines = expand(source);
+      REQUIRE(lines.size() == 1);
+      CHECK(lines[0]->mnemonic.mn == riscv::ADDI);
+      CHECK((lines[0]->rd == 5 && lines[0]->rs1 == 0 && lines[0]->imm->value_as<i32>() == imm));
+    }
+    // imm fits in only hi-20
+    const auto upper = expand("li x5, 0x10000");
+    REQUIRE(upper.size() == 1);
+    CHECK(upper[0]->mnemonic.mn == riscv::LUI);
+    CHECK((upper[0]->rd == 5 && upper[0]->imm->value_as<u32>() == 0x10));
+
+    // Otherwise a lui+addi pair
+    const auto pair = expand("k: .equ 0x7FF\nli x5, k + 1");
+    REQUIRE(pair.size() == 2);
+    CHECK(pair[0]->mnemonic.mn == riscv::LUI);
+    CHECK((pair[0]->rd == 5 && pair[0]->imm->value_as<u32>() == 1));
+    CHECK(pair[1]->mnemonic.mn == riscv::ADDI);
+    CHECK((pair[1]->rd == 5 && pair[1]->rs1 == 5 && pair[1]->imm->value_as<i32>() == -2048));
+
+    for (const auto &[source, message] :
+         {std::pair{"li x5, l\nl:", "li requires a constant defined before use"},
+          std::pair{"li x5, 0x100000000", "li requires a value which fits in 32 bits"}}) {
+      CAPTURE(source);
+      DiagnosticTable diag;
+      (void)Parser(data(source)).parse(diag);
+      REQUIRE(diag.count() == 1);
+      CHECK(diag.cbegin()->second == message);
+    }
+  }
+  SECTION("Load address") {
+    DiagnosticTable diag;
+    auto p = Parser(data("lla x5, msg\nla x6, msg"));
+    const auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 2);
+    // Without .option pic, la is equivalent to lla.
+    for (const auto &[index, rd] : {std::pair{0, 5}, std::pair{1, 6}}) {
+      CAPTURE(index);
+      const auto macro = std::dynamic_pointer_cast<MacroInstantiation>(results[index]);
+      REQUIRE(macro);
+      REQUIRE(macro->lines.size() == 2);
+      const auto auipc = std::dynamic_pointer_cast<UTypeIR>(macro->lines[0]);
+      const auto addi = std::dynamic_pointer_cast<ITypeIR>(macro->lines[1]);
+      REQUIRE(auipc);
+      REQUIRE(addi);
+      CHECK((auipc->rd == rd && auipc->imm->string() == "%pcrel_hi(msg)"));
+      CHECK(addi->mnemonic.mn == riscv::ADDI);
+      CHECK((addi->rd == rd && addi->rs1 == rd &&
+             addi->imm->string() == "%pcrel_lo(.Lpcrel_hi" + std::to_string(index) + ")"));
+    }
+  }
+  SECTION("Far control-flow transfers") {
+    DiagnosticTable diag;
+    auto p = Parser(data("call f\ncall x5, f\ntail f\njump f, x7"));
+    const auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 4);
+    // call is chosen by its number of arguments, and call f links through ra (x1). tail uses t1 (x6), and neither tail
+    // nor jump links (zero).
+    struct Expected {
+      int index;
+      u8 rt, rd;
+    };
+    for (const auto &[index, rt, rd] : {Expected{0, 1, 1}, Expected{1, 5, 5}, Expected{2, 6, 0}, Expected{3, 7, 0}}) {
+      CAPTURE(index);
+      const auto macro = std::dynamic_pointer_cast<MacroInstantiation>(results[index]);
+      REQUIRE(macro);
+      REQUIRE(macro->lines.size() == 2);
+      const auto auipc = std::dynamic_pointer_cast<UTypeIR>(macro->lines[0]);
+      const auto jalr = std::dynamic_pointer_cast<ITypeIR>(macro->lines[1]);
+      REQUIRE(auipc);
+      REQUIRE(jalr);
+      const auto label = ".Lpcrel_hi" + std::to_string(index);
+      CHECK(auipc->typed_attribute<SymbolDeclaration>()->entry->name == label);
+      CHECK((auipc->rd == rt && auipc->imm->string() == "%pcrel_hi(f)"));
+      CHECK((jalr->rd == rd && jalr->rs1 == rt && jalr->imm->string() == "%pcrel_lo(" + label + ")"));
+    }
+  }
 }

@@ -48,6 +48,8 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::AsmbLexer::next_token() {
   static const std::regex macroarg(R"(\\([@a-zA-Z_+][a-zA-Z0-9_.]*|\(\)))");
   static const std::regex directive("\\.[a-zA-Z][a-zA-Z0-9_]*");
   static const std::regex symbol("[a-zA-Z_][a-zA-Z0-9_]*:");
+  // Only declarations are lexed here, since operands are lexed by the expression parser.
+  static const std::regex local_symbol(R"(\.L[a-zA-Z0-9_]*:)");
   static const std::regex decimal("[0-9]+");
   static const std::regex hexadecimal("0[xX][0-9a-fA-F]+");
   static const std::regex badHex("0[xX]");
@@ -91,6 +93,14 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::lex::AsmbLexer::next_token() {
       break;
     } else if (auto maybeSymbol = _cursor.matchView(symbol); !maybeSymbol.empty()) {
       auto match = maybeSymbol.str(0);
+      _cursor.advance(match.size());
+      auto const *id = &*_pool->emplace(bits::chopped(match, 1)).first; // Drop trailing :
+      current_token = std::make_shared<SymbolDeclaration>(LocationInterval{loc_start, _cursor.location()}, id);
+      break;
+    } else if (auto maybeLocal =
+                   _opts.allow_local_labels ? _cursor.matchView(local_symbol) : support::SeekableData::match{};
+               !maybeLocal.empty()) {
+      auto match = maybeLocal.str(0);
       _cursor.advance(match.size());
       auto const *id = &*_pool->emplace(bits::chopped(match, 1)).first; // Drop trailing :
       current_token = std::make_shared<SymbolDeclaration>(LocationInterval{loc_start, _cursor.location()}, id);

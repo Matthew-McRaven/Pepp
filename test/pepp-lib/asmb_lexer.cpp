@@ -177,6 +177,19 @@ TEST_CASE("Assembly lexer", "[scope:core][scope:core.langs][level:asmb3][level:a
     CHECK(pool->contains("b9"));
     CHECK(!pool->contains("b9:"));
   }
+  SECTION("Local symbols") {
+    auto pool = idpool();
+    // Only ".L" followed by a colon is a local symbol. .local still parses as a dot command.
+    auto l = Lexer(pool, data(".Lloop: .L1: .local"), rv);
+    check_next_string(l, (int)CTT::SymbolDeclaration, ".Lloop");
+    check_next_string(l, (int)CTT::SymbolDeclaration, ".L1");
+    check_next(l, (int)ATT::DotCommand);
+    check_next(l, (int)CTT::Empty);
+    CHECK(!l.input_remains());
+    // Disabled for Pep/10.
+    auto p = Lexer(pool, data(".Lloop"), p10);
+    check_next(p, (int)ATT::DotCommand);
+  }
   SECTION("Macro invocations") {
     auto pool = idpool();
     auto l = Lexer(pool, data("@a @bCd @b0 @b9 @a_word"), p10);

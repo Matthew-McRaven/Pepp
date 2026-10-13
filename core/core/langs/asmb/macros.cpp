@@ -107,7 +107,10 @@ pepp::tc::IRProgram pepp::tc::parser::flatten_macros(const IRProgram &program, s
       std::vector<std::shared_ptr<LinearIR>> expansion;
       if (const auto symbol = macro->typed_attribute<SymbolDeclaration>(); symbol)
         expansion.emplace_back(std::make_shared<SymbolLine>(SymbolDeclaration{symbol->entry}));
-      if (comments) {
+      // Allow individual macros to opt out of start/end comments
+      const auto *individual_disable = macro->typed_attribute<ExpansionComments>();
+      const bool enable_comments = comments && (!individual_disable || individual_disable->value);
+      if (enable_comments) {
         const auto comment = macro->typed_attribute<Comment>();
         const auto args = fmt::format("{}", fmt::join(macro->arguments, ", "));
         auto start = comments->columns(leader, macro->macro->name, args, comment ? leader + comment->value : "");
@@ -117,7 +120,7 @@ pepp::tc::IRProgram pepp::tc::parser::flatten_macros(const IRProgram &program, s
       const auto &body = macro->lines;
       const bool trailing_newline = !body.empty() && body.back()->type() == EmptyLine::TYPE;
       expansion.insert(expansion.end(), body.begin(), body.end() - (trailing_newline ? 1 : 0));
-      if (comments) {
+      if (enable_comments) {
         auto end = comments->columns(leader, "End " + macro->macro->name, "", "");
         expansion.emplace_back(std::make_shared<CommentLine>(Comment{end.substr(1)}));
       }

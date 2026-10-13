@@ -48,6 +48,7 @@ public:
     Dot_Invalid,
     Token_Invalid,
     Macro_Redefinition,
+    Macro_WrongArgumentCount,
     Expression_Invalid,
   };
 

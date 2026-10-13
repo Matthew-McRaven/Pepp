@@ -56,13 +56,14 @@ struct Case {
   const char *expected;
 };
 
-static const std::array<Case, 27> CASES{{
+static const std::array<Case, 30> CASES{{
     {"add x1, x2, x3", "         add     x1, x2, x3"},                  // R: rd, rs1, rs2
     {"addi x1, x2, -12", "         addi    x1, x2, -12"},               // I_ALU, negative decimal
     {"slli x1, x2, 5", "         slli    x1, x2, 5"},                   // I_Shift: shamt
     {"lw x1, 8(x2)", "         lw      x1, 8(x2)"},                     // I_Offset: rd, off(rs1)
     {"sw x3, 16(x2)", "         sw      x3, 16(x2)"},                   // S: rs2, off(rs1)
     {"jalr x1, 0(x2)", "         jalr    x1, 0(x2)"},                   // parenthesised, non-load opcode
+    {"jalr x2", "         jalr    x2"},                                 // jalr rs: links through x1
     {"beq x1, x2, 8", "         beq     x1, x2, 8"},                    // B: rs1, rs2, off
     {"bgt x1, x2, 8", "         bgt     x1, x2, 8"},                    // reversed pseudo: declares rs2 first
     {"beqz x1, 8", "         beqz    x1, 8"},                           // rs1, off; rs2 pinned
@@ -76,6 +77,8 @@ static const std::array<Case, 27> CASES{{
     {"snez x1, x2", "         snez    x1, x2"},                         // rd, rs2
     {"fence rw, wr", "         fence   rw, rw"},                        // orderings unpacked from the immediate
     {"fence w, 0", "         fence   w, 0"},                            // empty ordering prints as 0
+    {"fence", "         fence"},                                        // fence iorw, iorw
+    {"pause", "         pause"},                                        // fence w, 0
     {"ecall", "         ecall"},                                        // no operands
     {"ret", "         ret"},                                            // no operands
     {"beq x1, x2, target", "         beq     x1, x2, target"},          // symbolic immediate

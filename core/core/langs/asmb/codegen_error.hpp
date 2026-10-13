@@ -23,6 +23,8 @@ class CodegenError final : public std::logic_error {
 public:
   enum class NullaryError {
     Argument_OddOffset,
+    Argument_NotRelocatable,
+    Argument_UnpairedPcrelLo, // %pcrel_lo must target an instruction using %pcrel_hi.
   };
   enum class UnaryError {
     Argument_ValueDoesNotFit,   // The argument is the constraint, e.g. "signed 12 bits".

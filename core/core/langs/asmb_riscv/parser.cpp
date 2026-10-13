@@ -3,6 +3,7 @@
 #include <expected>
 #include <utility>
 #include "core/arch/riscv/isa/rv_instruction_list.hpp"
+#include "core/compile/ir_linear/attr_comment.hpp"
 #include "core/compile/ir_linear/attr_symbol.hpp"
 #include "core/compile/ir_linear/line_comment.hpp"
 #include "core/compile/ir_linear/line_dot.hpp"
@@ -20,43 +21,81 @@
 #include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/langs/asmb/expression_operand.hpp"
 #include "core/langs/asmb_riscv/parser_error.hpp"
+#include "core/langs/asmb_riscv/pseudo_instructions.hpp"
 #include "core/macros.hpp"
+#include "core/math/bitmanip/log2.hpp"
 #include "core/math/bitmanip/mask.hpp"
 #include "core/math/bitmanip/strings.hpp"
 
 namespace {
 namespace expr = pepp::tc::expr;
 
+using Arguments = std::span<const expr::Argument>;
+using Types = std::span<const expr::Type>;
+using Category = expr::Function::Category;
+constexpr std::array value_parameter{expr::Function::Parameter::Value};
+constexpr std::array symbol_parameter{expr::Function::Parameter::Symbol};
+constexpr std::array value_if_constant_parameter{expr::Function::Parameter::ValueIfConstant};
+
 // The upper 20 bits shifted into the lower 20 bits. Must add +0x800.
 // e.g., 0x12345FFF. Without addition, lo=0xFFF, hi=x012345000
 // lo is sign extend to 0xFFFF'FFFF, so a lui/addi pair would compute 12344FFF
 // So we need to round hi up when lo is negative (bit 11 / 0x800)is set.
-std::expected<expr::Value, expr::NullaryError> hi20(expr::Value x, expr::Type) {
+std::expected<expr::Value, expr::NullaryError> hi20(Arguments arguments, expr::Type) {
+  const auto x = std::get<expr::Value>(arguments[0]);
   return expr::Value{(((x.bits & 0xFFFF'FFFF) + 0x800) >> 12) & 0xF'FFFF, {32, expr::Signedness::Unsigned}};
 }
-expr::Type hi_type(expr::Type, expr::Type) { return {32, expr::Signedness::Unsigned}; }
+expr::Type hi_type(Types, expr::Type) { return {32, expr::Signedness::Unsigned}; }
 
 // Sign-extended lower 12 bits.
-std::expected<expr::Value, expr::NullaryError> lo12(expr::Value x, expr::Type) {
+std::expected<expr::Value, expr::NullaryError> lo12(Arguments arguments, expr::Type) {
+  const auto x = std::get<expr::Value>(arguments[0]);
   // branch-free sign extension of 12-bit quantity to 32-bits.
   const auto sign_extended = (((x.bits & 0xFFF) ^ 0x800) - 0x800);
   return expr::Value{sign_extended & 0xFFFF'FFFF, {32, expr::Signedness::Signed}};
 }
-expr::Type lo_type(expr::Type, expr::Type) { return {32, expr::Signedness::Signed}; }
+expr::Type lo_type(Types, expr::Type) { return {32, expr::Signedness::Signed}; }
 
-// Currently implemented relocation modifiers
-constexpr std::array<expr::Function, 4> functions{{
-    {"%hi", hi20, hi_type},
-    {"%lo", lo12, lo_type},
-    {"%pcrel_hi", nullptr, hi_type},
-    {"%pcrel_lo", nullptr, lo_type},
+// 1 if the symbol has been defined before this point, else 0.
+std::expected<expr::Value, expr::NullaryError> defined(Arguments arguments, expr::Type default_type) {
+  const auto &symbol = std::get<expr::EvaluatedSymbol>(arguments[0]);
+  const bool is_defined = symbol.state != pepp::core::symbol::DefinitionState::Undefined;
+  return expr::Value{is_defined, {default_type.bits, expr::Signedness::Signed}};
+}
+
+// 1 if the expression is constant right now, else 0.
+std::expected<expr::Value, expr::NullaryError> constant(Arguments arguments, expr::Type default_type) {
+  const bool is_constant = std::get<std::optional<expr::Value>>(arguments[0]).has_value();
+  return expr::Value{is_constant, {default_type.bits, expr::Signedness::Signed}};
+}
+
+// Bits needed to hold the value, counting a sign bit only if it is negative. e.g., 0xFFFFFFFF and -0x80000000 need 32.
+std::expected<expr::Value, expr::NullaryError> bitwidth(Arguments arguments, expr::Type default_type) {
+  const auto x = std::get<expr::Value>(arguments[0]);
+  const bool negative = x.type.sign == expr::Signedness::Signed && x.as_signed() < 0;
+  const u64 width = negative ? bits::signed_bitcount(x.as_signed()) : bits::unsigned_bitcount(x.bits);
+  return expr::Value{width, {default_type.bits, expr::Signedness::Signed}};
+}
+expr::Type bitwidth_type(Types, expr::Type default_type) { return {default_type.bits, expr::Signedness::Signed}; }
+
+const std::array<expr::Function, 7> functions{{
+    // Relocation modifiers
+    {"%hi", Category::ConstExpr, value_parameter, hi20, hi_type},
+    {"%lo", Category::ConstExpr, value_parameter, lo12, lo_type},
+    {"%pcrel_hi", Category::NonConstExpr, value_parameter, nullptr, hi_type},
+    {"%pcrel_lo", Category::NonConstExpr, value_parameter, nullptr, lo_type},
+    // Constant-evaluated functions needed to implement pseudo-instructions as macros.
+    {"%defined", Category::ConstEval, symbol_parameter, defined, nullptr},
+    {"%constant", Category::ConstEval, value_if_constant_parameter, constant, nullptr},
+    {"%bitwidth", Category::ConstExpr, value_parameter, bitwidth, bitwidth_type},
 }};
 
-// `.` is the location counter, and %name a relocation modifier.
-constexpr expr::Options options{.default_type = {32, expr::Signedness::Signed},
-                                .dot = expr::Options::Dot::Identifier,
-                                .percent_identifiers = true,
-                                .functions = functions};
+// `.` is the location counter, .L<name> a local label, and %name a relocation modifier.
+const expr::Options options{.default_type = {32, expr::Signedness::Signed},
+                            .dot = expr::Options::Dot::Identifier,
+                            .percent_identifiers = true,
+                            .local_labels = true,
+                            .functions = functions};
 
 // Conditionals choose which lines are parsed, so like equates they are evaluated as they are parsed.
 bool condition_holds(pepp::ast::IRValue &arg, pepp::tc::support::LocationInterval location) {
@@ -116,6 +155,7 @@ pepp::tc::parser::RISCVParser::RISCVParser(support::SeekableData &&data, std::sh
       _root_lexer(std::make_shared<langs::RISCVLexer>(_pool, std::move(data))),
       _symtab(std::make_shared<pepp::core::symbol::LeafTable>(2)),
       _macros(macros ? std::move(macros) : std::make_shared<MacroRegistry>()) {
+  riscv_insert_pseudo_instructions(*_macros);
   _lexer_stack.emplace(_root_lexer, std::make_shared<lex::Buffer>(&*_root_lexer));
 }
 
@@ -147,8 +187,9 @@ std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::RISCVParser::argument() {
     return RISCVParserError(RISCVParserError::UnaryError::Expression_Invalid, error.message(), error.location);
   };
   const auto location_counter = resolve_location_counter(*_symtab, _location_counter);
+  const auto constant_of = pepp::ast::constants_of(_symtab, options.default_type);
 
-  if (const auto expr = parse_expression(*buf, *lexer, _pool, options, location_counter); !expr)
+  if (const auto expr = parse_expression(*buf, *lexer, _pool, options, location_counter, constant_of); !expr)
     throw invalid(expr.error());
   else if (*expr) {
     if (const auto value = lower(**expr, _symtab, options.default_type, 4); !value) throw invalid(value.error());
@@ -232,12 +273,6 @@ std::optional<u8> fence_ordering_of(const pepp::tc::expr::Tree &tree) {
   return std::nullopt;
 }
 
-// False for operands which fill a field automatically (e.g., XLEN8 sets the immediate to 8).
-bool appears_in_source(riscv::Operand::Type type) {
-  using OT = riscv::Operand::Type;
-  return type != OT::XLEN8 && type != OT::XLEN16 && type != OT::Invalid;
-}
-
 // Why the written operands do not fit a pattern, or nullopt if they do. Nothing is lowered, so trying a pattern has no
 // effect on the symbol table.
 std::optional<E> mismatch(const riscv::MnemonicDescriptor &desc, std::span<const pepp::tc::parser::RISCVOperand> ops) {
@@ -246,8 +281,7 @@ std::optional<E> mismatch(const riscv::MnemonicDescriptor &desc, std::span<const
   std::size_t next = 0, previous = 0;
   for (std::size_t i = 0; i < operands.size(); ++i) {
     const auto &operand = operands[i];
-    if (!appears_in_source(operand.type)) continue;
-    else if (next == ops.size()) return expected_error(operand.destination);
+    if (next == ops.size()) return expected_error(operand.destination);
     // Operands are comma-separated unless the descriptor says otherwise.
     if (const bool comma = ops[next].comma_before; next > 0 && comma != desc.comma_after(previous))
       return comma ? expected_error(operand.destination) : E::Token_MissingComma;
@@ -270,12 +304,13 @@ std::vector<pepp::tc::parser::RISCVOperand> pepp::tc::parser::RISCVParser::mnemo
     return RISCVParserError(RISCVParserError::UnaryError::Expression_Invalid, error.message(), error.location);
   };
   const auto location_counter = resolve_location_counter(*_symtab, _location_counter);
+  const auto constant_of = pepp::ast::constants_of(_symtab, options.default_type);
   std::vector<RISCVOperand> ret;
   bool comma = false;
   // Try an expression before a comma, so that the lexer never lexes an operand's text. An operand may also follow the
   // previous one without a comma, as (x3) does in 0(x3).
   while (true) {
-    if (const auto expr = parse_expression(*buf, *lexer, _pool, options, location_counter); !expr)
+    if (const auto expr = parse_expression(*buf, *lexer, _pool, options, location_counter, constant_of); !expr)
       throw invalid(expr.error());
     else if (*expr) ret.push_back({*expr, std::exchange(comma, false)});
     else if (!comma && buf->match_literal(",")) comma = true;
@@ -292,7 +327,6 @@ pepp::tc::parser::RISCVParser::match_alternative(const riscv::Mnemonic &entry, s
   ParsedOperands values;
   std::size_t next = 0;
   for (const auto &operand : entry.mn.operands()) {
-    if (!appears_in_source(operand.type)) continue;
     const auto &expression = *ops[next++].expression;
     switch (operand.type) {
     case OT::Register: [[fallthrough]];
@@ -310,31 +344,8 @@ pepp::tc::parser::RISCVParser::match_alternative(const riscv::Mnemonic &entry, s
     default: break;
     }
   }
-  // Null for Pseudo and INVALID.
+  // Null for INVALID.
   return make_instruction(entry.name, entry.mn, values);
-}
-
-std::shared_ptr<pepp::tc::IntegerInstruction> pepp::tc::parser::RISCVParser::instruction() {
-  auto buf = active_buffer();
-  lex::Checkpoint cp(*buf);
-  const auto maybe_instr = buf->match<lex::Identifier>();
-  if (!maybe_instr) return cp.rollback(), nullptr;
-  auto instr_str = maybe_instr->to_string();
-  bits::to_lower_inplace(instr_str);
-  const auto [first, last] = riscv::string_to_mnemonic.equal_range(instr_str);
-  if (first == last) return cp.rollback(), nullptr;
-
-  // Parse the operands once, then find the pattern that fits
-  const auto ops = mnemonic_operands();
-  std::optional<E> problem;
-  bool fit = false;
-  for (auto candidate = first; candidate != last; ++candidate) {
-    if (const auto why = mismatch(candidate->mn, ops)) problem = why;
-    else if (fit = true; auto built = match_alternative(*candidate, ops)) return built;
-  }
-  // Report why the most recent pattern did not fit. If there was a fit but it returned nullptr, roll back.
-  if (!fit && problem) throw RISCVParserError(*problem, buf->matched_interval());
-  return cp.rollback(), nullptr;
 }
 
 namespace {
@@ -350,6 +361,7 @@ static const auto dot_map = std::map<std::string, int>{
     {"ELSEIF", (int)DC::ELSEIF},
     {"ENDIF", (int)DC::ENDIF},
     {"ENDM", (int)DC::END_MACRO},
+    {"ERROR", (int)LDC::USER_ERROR},
     {"EQUATE", (int)DC::EQUATE},
     {"GLOBAL", (int)LDC::SYMBOL_GLOBAL},
     {"HALF", (int)DC::HALF},
@@ -528,6 +540,12 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::pseudo(Option
       throw conditional_error(ok.error(), buf->matched_interval());
     return std::make_shared<DotConditional>(DotConditional::Behavior::ENDIF);
   }
+  case (int)LDC::USER_ERROR: {
+    // The message is user-provided.
+    if (auto message = buf->match<lex::StringConstant>(); !message)
+      throw RVPE(RVPE::NullaryError::Argument_ExpectedString, buf->matched_interval());
+    else throw RVPE(RVPE::UnaryError::Dot_UserError, std::string{message->view()}, buf->matched_interval());
+  }
   case (int)DC::INLINE_MACRO: {
     auto name = buf->match<lex::Identifier>();
     if (!name) throw RVPE(RVPE::NullaryError::Argument_ExpectedIdentifier, buf->matched_interval());
@@ -591,25 +609,73 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::pseudo(Option
   return nullptr;
 }
 
-std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::macro(DiagnosticTable &diag) {
+std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::mnemonic(DiagnosticTable &diag) {
   using RVPE = RISCVParserError;
   auto buf = active_buffer();
   auto lexer = active_lexer();
   lex::Checkpoint cp(*buf);
   const auto name = buf->match<lex::Identifier>();
   if (!name) return cp.rollback(), nullptr;
-  const auto definition = _macros->find(name->to_string());
-  if (!definition) return cp.rollback(), nullptr;
-  cp.commit();
 
-  // Consume all non-comments, non-empty tokens until the end of the current line.
+  // Determine if this matches an instruction and/or a macro.
+  auto lowered = name->to_string();
+  bits::to_lower_inplace(lowered);
+  const auto [first, last] = riscv::string_to_mnemonic.equal_range(lowered);
+  // If there's an exact match for the macro name, prefer it over the lowercase of instructions.
+  const auto macro_name = _macros->contains(name->to_string()) ? name->to_string() : lowered;
+  const bool is_macro = _macros->contains(macro_name);
+  if (first == last && !is_macro) return cp.rollback(), nullptr;
+  // Argument parsing behaves slightly differently for instructions vs macros, so we may need to backtrack to this marker.
+  lex::Checkpoint after_name(*buf);
+
+  // Parse the operands once and try to match them against any possible candidate.
+  // mismatch_error is set when there is at least one candidate and the most recent alternative reports an error.
+  std::optional<RVPE> mismatch_error;
+  if (first != last) {
+    const auto ops = mnemonic_operands();
+    std::optional<E> problem;
+    bool fit = false;
+    for (auto candidate = first; candidate != last; ++candidate) {
+      if (const auto why = mismatch(candidate->mn, ops)) problem = why;
+      else if (fit = true; auto built = match_alternative(*candidate, ops)) return built;
+    }
+    // A pattern fit but could not be built, allow other grammar rules to try and parse the line.
+    if (fit) return cp.rollback(), nullptr;
+    mismatch_error.emplace(*problem, buf->matched_interval());
+    // If the mnemonic is not also a macro name, this is an unambiguous failure.
+    if (!is_macro) throw *mismatch_error;
+  }
+
+  // Re-parse the arguments as a comma-separated list.
+  after_name.rollback();
   while (buf->match_not<lex::Empty, lex::EoF, lex::InlineComment>());
-  // The arguments are the text of the rest of the line, up to any comment.
-  auto args = split_arguments(buf->matched_tokens_after(cp.marker()), *lexer);
+  // Determine best match based on the argument count.
+  auto args = split_arguments(buf->matched_tokens_after(after_name.marker()), *lexer);
+  const auto definition = _macros->find(macro_name, args.size());
+  // If the macro shares a name with an instruction, prefer to return the instruction's error.
+  if (!definition && mismatch_error) throw *mismatch_error;
+  // Definitely not an instruction so it must be a macro. Only reason find can fail is due to arity mismatch.
+  else if (!definition)
+    throw RVPE(RVPE::UnaryError::Macro_WrongArgumentCount, name->to_string(), buf->matched_interval());
+
+  // Parse the macro by pushing a new lexer onto the stack. If the nested parse fails, propagate the instruction's error
+  // instead of the macro's. Since we prefer instruction errors to macro errors, we need to avoid reporting a macro's
+  // error into the main table if the instruction's error might be taken.
+  DiagnosticTable expansion;
+  auto ret = expand(mismatch_error ? expansion : diag, definition, std::move(args));
+  // True when macro expansion failed AND instruction parsing failed, in which case we should prefer instruction error.
+  if (expansion.count() > 0) throw *mismatch_error;
+  return ret;
+}
+
+std::shared_ptr<pepp::tc::LinearIR>
+pepp::tc::parser::RISCVParser::expand(DiagnosticTable &diag, std::shared_ptr<const MacroDefinition> definition,
+                                      std::vector<std::string> args) {
+  using RVPE = RISCVParserError;
+  auto buf = active_buffer();
   if (_lexer_stack.size() > max_expansion_depth)
     throw RVPE(RVPE::NullaryError::Macro_ExcessiveRecursion, buf->matched_interval());
 
-  // TODO: Validate # of matched arguments vs number of args in definition, accounting for default values.
   auto replacements = _counters.counters_for(definition->name);
   for (std::size_t it = 0; it < definition->arguments.size(); it++) {
     const auto &argument = definition->arguments[it];
@@ -621,7 +687,13 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::macro(Diagnos
   _lexer_stack.emplace(new_lexer, std::make_shared<lex::Buffer>(&*new_lexer));
 
   auto ret = std::make_shared<MacroInstantiation>(definition, std::move(args));
+  ret->insert(std::make_unique<ExpansionComments>(definition->expansion_comments));
+  const auto floor = std::exchange(_conditional_floor, _conditionals.depth());
   ret->lines = do_parse(diag, buf->matched_interval());
+  _conditional_floor = floor;
+  if (!definition->list_conditionals)
+    for (const auto &line : ret->lines)
+      if (line->type() == DotConditional::TYPE) line->insert(std::make_unique<Hidden>(false, true));
   _lexer_stack.pop();
   return ret;
 }
@@ -632,9 +704,8 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::line(Diagnost
   // This line gets its own location counter, and a macro expanded from it does not share the line's.
   Restore restore{_location_counter, std::exchange(_location_counter, nullptr)};
   std::shared_ptr<pepp::tc::LinearIR> ret = nullptr;
-  // Macros are tried first, so that a macro may replace an instruction of the same name.
-  if (auto macro = this->macro(diag); macro) ret = macro;
-  else if (auto instr = instruction(); instr) ret = instr;
+  // Try both macros and instructions at the same time to avoid complex backtracking.
+  if (auto named = mnemonic(diag); named) ret = named;
   else if (auto dot = pseudo(symbol); dot) ret = dot;
   else return nullptr;
 
@@ -708,7 +779,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::statement(Dia
       break;
     }
   }
-  if (!buf->input_remains() && _conditionals.depth() > 0)
+  if (!buf->input_remains() && _conditionals.depth() > _conditional_floor)
     throw RISCVParserError(RISCVParserError::NullaryError::Conditional_Unterminated,
                            {start_ival, lexer->current_location()});
   return ret;

@@ -15,23 +15,47 @@
  */
 #pragma once
 #include <expected>
+#include <functional>
+#include <optional>
 #include <span>
 #include <string_view>
+#include <variant>
+#include "core/compile/symbol/types.hpp"
 #include "core/integers.h"
 #include "core/langs/expr/value.hpp"
 
 namespace pepp::tc::expr {
 enum class NullaryError : u8; // See error.hpp
 
-// Unary functions such as RISC-V %hi(sym).
+// A symbol's value in the current context as well as its definition state for use in consteval contexts.
+struct EvaluatedSymbol {
+  pepp::core::symbol::DefinitionState state = pepp::core::symbol::DefinitionState::Undefined;
+  std::optional<Value> value = std::nullopt;
+};
+
+// An argument as the function sees it, matching its Parameter.
+using Argument = std::variant<Value, EvaluatedSymbol, std::optional<Value>>;
+
+// Functions such as RISC-V's %hi(sym). The category decides when they are evaluated.
 struct Function {
+  enum class Parameter : u8 {
+    Value,  // A sub-tree which must be evaluate()'ed befor evaluating the function
+    Symbol, // An identifier argument with special handling and must not be eagerly evaluated()'ed.
+    ValueIfConstant, // The sub-tree's value if it is constant, else nullopt rather than an error.
+  };
+  enum class Category : u8 {
+    ConstEval,    // Must be evaluated as it is parsed (e.g., %defined(sym)).
+    ConstExpr,    // May be evaluated at parse time if its arguments are constant expressions(e.g., %hi).
+    NonConstExpr, // Never evaluated at parse time (e.g., %pcrel_hi).
+  };
   std::string_view name;
-  // Constexpr functions depend only on their argument, and are eligible for constant folding.
-  // Non-constexpr functions do not yet an evaluation path yet, but depend on the execution environment.
-  std::expected<Value, NullaryError> (*evaluate)(Value argument, Type default_type) = nullptr;
-  // The type of the result, given the argument's.
-  Type (*result_type)(Type argument, Type default_type) = nullptr;
-  constexpr bool is_constexpr() const { return evaluate != nullptr; }
+  Category category = Category::ConstExpr;
+  // One per argument.
+  std::span<const Parameter> parameters;
+  // ConstEval and ConstExpr only.
+  std::function<std::expected<Value, NullaryError>(std::span<const Argument> arguments, Type default_type)> evaluate;
+  // The type of the result, given the arguments'. ConstExpr and NonConstExpr only.
+  std::function<Type(std::span<const Type> arguments, Type default_type)> result_type;
 };
 
 // How a language reads and evaluates its expressions.
@@ -46,6 +70,8 @@ struct Options {
   } dot = Dot::Forbidden;
   // Lex %name as an identifier, which must then name a function (e.g., RISC-V's %hi). Otherwise, % is modulo.
   bool percent_identifiers = false;
+  // Lex .L<name> as an identifier, a GNU local label, rather than as the location counter followed by a name.
+  bool local_labels = false;
   // Functions that should be recognized by the language.
   std::span<const Function> functions;
 };

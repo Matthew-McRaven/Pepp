@@ -45,9 +45,6 @@ Type result_type(BinaryOp op, Type lhs, Type rhs, Type default_type);
 std::expected<Value, NullaryError> apply(UnaryOp op, Value operand, Type default_type);
 std::expected<Value, NullaryError> apply(BinaryOp op, Value lhs, Value rhs, Type default_type);
 
-// A symbol's value in the current context or nullopt if it has none.
-using ValueOf = std::function<std::optional<Value>(const Identifier &)>;
-
 // Evaluate a tree with short-circuiting for && and ||. An identifier which value_of does not give a value (any, if
 // there is no value_of) is an error.
 std::expected<Value, EvaluationError> evaluate_expression(const Tree &tree, Type default_type,

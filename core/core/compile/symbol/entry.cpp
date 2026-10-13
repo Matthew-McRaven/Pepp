@@ -26,3 +26,5 @@ pepp::core::symbol::Entry::Entry(std::string_view name) noexcept
 bool pepp::core::symbol::Entry::is_singly_defined() const noexcept { return state == DefinitionState::Single; }
 
 bool pepp::core::symbol::Entry::is_undefined() const noexcept { return state == DefinitionState::Undefined; }
+
+bool pepp::core::symbol::Entry::is_constant() const noexcept { return value && value->type() == Type::Constant; }

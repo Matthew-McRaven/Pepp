@@ -34,12 +34,14 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::expr::ExpressionLexer::next_toke
   // A function name such as %hi. The parser rejects any which is not a function.
   static const std::regex percent_identifier("%?[a-zA-Z_][a-zA-Z0-9_]*");
   const auto &identifier = _options.percent_identifiers ? percent_identifier : plain_identifier;
+  static const std::regex local_label(R"(\.L[a-zA-Z0-9_]*)");
   static const std::regex decimal("[0-9]+");
   static const std::regex hexadecimal("0[xX][0-9a-fA-F]+");
   static const std::regex badHex("0[xX]");
   static const std::regex charConstant(R"('([^'\\]|\\[bfvnrt\\0'"]|\\[xX][0-9a-fA-F]{2})')");
   // Two-character operators first, so that << is not lexed as < <.
-  static const std::regex op(R"(<<|>>|<=|>=|==|!=|&&|\|\||[-+*/%<>&^|~!()])");
+  // A comma inside a function definition is used as a separator and otherwise should end expressions.
+  static const std::regex op(R"(<<|>>|<=|>=|==|!=|&&|\|\||[-+*/%<>&^|~!(),])");
 
   while (input_remains()) { // Consume leading whitespace.
     const auto next = _cursor.peek();
@@ -84,6 +86,12 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::expr::ExpressionLexer::next_toke
     current_token = std::make_shared<CharacterConstant>(here(), std::string{text.substr(1, text.size() - 2)});
   } else if (auto maybeIdent = _cursor.matchView(identifier); !maybeIdent.empty()) {
     _cursor.advance(maybeIdent.length(0));
+    auto const *id = &*_pool->emplace(_cursor.select()).first;
+    current_token = std::make_shared<Identifier>(here(), id);
+  } else if (auto maybeLocal = _options.local_labels ? _cursor.matchView(local_label) : support::SeekableData::match{};
+             !maybeLocal.empty()) {
+    // Before the location counter, which would otherwise take the leading `.`.
+    _cursor.advance(maybeLocal.length(0));
     auto const *id = &*_pool->emplace(_cursor.select()).first;
     current_token = std::make_shared<Identifier>(here(), id);
   } else if (_cursor.peek() == '.' && _options.dot != Dot::Forbidden) {

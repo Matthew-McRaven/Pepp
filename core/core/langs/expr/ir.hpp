@@ -15,6 +15,7 @@
  */
 #pragma once
 #include <algorithm>
+#include <functional>
 #include <optional>
 #include <span>
 #include <string>
@@ -71,10 +72,9 @@ enum class Kind : u32 {
   FoldedConstant = LocationCounter << 1,
   Parens = FoldedConstant << 1,
   // A call to a function.
-  ConstExprCall = Parens << 1,
-  NonConstExprCall = ConstExprCall << 1,
+  Call = Parens << 1,
   // UnaryOp in declaration order.
-  UnaryStart = NonConstExprCall << 1,
+  UnaryStart = Call << 1,
   Plus = UnaryStart,
   Minus = Plus << 1,
   BitNot = Minus << 1,
@@ -106,7 +106,6 @@ enum class Kind : u32 {
   Constant = Integer | Character | FoldedConstant,
   // Values which are not known until the program is laid out.
   Symbolic = Identifier | LocationCounter,
-  AnyCall = ConstExprCall | NonConstExprCall,
   AnyUnary = (UnaryLast << 1) - UnaryStart,
   AnyBinary = (BinaryLast << 1) - BinaryStart,
   Any = (End << 1) - 1,
@@ -127,7 +126,7 @@ static_assert(bits::to_underlying(Kind::Any) ==
                   (bits::to_underlying(Kind::Integer) | bits::to_underlying(Kind::Character) |
                    bits::to_underlying(Kind::Identifier) | bits::to_underlying(Kind::LocationCounter) |
                    bits::to_underlying(Kind::FoldedConstant) |
-                   bits::to_underlying(Kind::Parens) | bits::to_underlying(Kind::AnyCall) |
+                   bits::to_underlying(Kind::Parens) | bits::to_underlying(Kind::Call) |
                    bits::to_underlying(Kind::AnyUnary) | bits::to_underlying(Kind::AnyBinary)),
               "Kind's masks must cover every kind exactly");
 
@@ -152,6 +151,9 @@ struct Identifier {
   std::string name;
 };
 
+// What the host knows of a symbol in the current context.
+using ValueOf = std::function<EvaluatedSymbol(const Identifier &)>;
+
 // The address of the instruction / directive beting emitted. All . in the same expression refer to the same symbol. The
 // name of the symbol is unique for each address.
 struct LocationCounter {
@@ -159,11 +161,13 @@ struct LocationCounter {
   std::string name;
 };
 
-// A value computed during constant folding. Unlike other constants, it must record its type because it may have been
-// widened or narrowed during compuation.
+// A value computed during constant folding or parse-time constant evaluation. Unlike other constants, it must record
+// its type because it may have been widened or narrowed during compuation.
 struct FoldedConstant {
   static constexpr Kind KIND = Kind::FoldedConstant;
   Value value;
+  // If non-empty, prefer to print out the text when formatted.e.g. %defined(k).
+  std::string text;
 };
 
 // While the tree already encodes grouping, parentheses nodes are used to preserve the formatting of the input.
@@ -172,11 +176,12 @@ struct Parens {
   NodeId inner;
 };
 
-// A call to a function defined in Options, e.g. %hi(sym).
+// A call to a function defined in Options, e.g. %hi(sym). The parser replaces a ConstEval call (and its arguments) with
+// a FoldedConstant holding its result, so that nothing can treat its arguments as references or evaluate them again.
 struct Call {
-  static constexpr Kind KIND = Kind::AnyCall;
+  static constexpr Kind KIND = Kind::Call;
   const Function *function;
-  NodeId argument;
+  std::vector<NodeId> arguments;
 };
 
 struct Unary {
@@ -201,6 +206,8 @@ class Tree {
 public:
   // Append a node whose operands are already in the tree. This node becomes the new root.
   NodeId add(Node node);
+  // Keep only the first size nodes. In postorder, none of them refer to the nodes removed.
+  void truncate(std::size_t size);
 
   bool empty() const { return _nodes.empty(); }
   NodeId root() const { return static_cast<NodeId>(_nodes.size() - 1); }
@@ -235,7 +242,7 @@ std::string to_infix(const Tree &tree);
 // A copy of the tree without explicit Parens nodes.
 Tree strip_parens(const Tree &tree);
 
-// Tree whose leaf nodes are constants and interior nodes that are constexpr operators or functions.
+// True if the tree's value can be computed without symbol lookups.
 bool is_constant_expression(const Tree &tree);
 // True if the tree uses the location counter (`.`).
 bool uses_location_counter(const Tree &tree);

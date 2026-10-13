@@ -7,6 +7,7 @@ struct AsmbOptions {
   bool allow_parens = false;          // Tokenize ( and ) as literals rather than invalid tokens.
   bool allow_macro_arguments = false; // Macros arguments start with a backslash like \arg1
   bool allow_at_in_ident = false;     // Allow @ in identifiers, which is used for macros instantiations in Pep/10.
+  bool allow_local_labels = false;    // Declare a GNU local label, .L<name>:, rather than lexing a dot command.
   std::string line_comment_leader = ";";
 };
 struct AsmbLexer : public ALexer {

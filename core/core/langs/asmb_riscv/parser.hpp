@@ -76,9 +76,15 @@ private:
   // Match the parsed operands to one of the valid instruction patterns for that mnemonic.
   std::shared_ptr<pepp::tc::IntegerInstruction> match_alternative(const riscv::Mnemonic &entry,
                                                                   std::span<const RISCVOperand> ops);
-  std::shared_ptr<pepp::tc::IntegerInstruction> instruction();
+  // The name at the start of a line may be an instruction, a macro, or both (e.g., `lw rd, offset(rs)` is an
+  // instruction, while `lw rd, symbol` is a macro). First try to match a valid operand pattern. Failing that, match a
+  // macro. If at least one instruction uses the mnemonic, report the instruction's errors. Returns nullptr if the name
+  // is neither.
+  std::shared_ptr<pepp::tc::LinearIR> mnemonic(DiagnosticTable &);
+  // Recursively parse the body of a macro after replacing arguments.
+  std::shared_ptr<pepp::tc::LinearIR> expand(DiagnosticTable &, std::shared_ptr<const MacroDefinition> definition,
+                                             std::vector<std::string> args);
   std::shared_ptr<pepp::tc::LinearIR> pseudo(OptionalSymbol symbol);
-  std::shared_ptr<pepp::tc::LinearIR> macro(DiagnosticTable &);
   std::shared_ptr<pepp::tc::LinearIR> line(DiagnosticTable &, OptionalSymbol symbol);
   std::shared_ptr<pepp::tc::LinearIR> statement(DiagnosticTable &);
   // Body which actually does the parsing until the top lexer in _lexer_stack is exhausted.
@@ -101,6 +107,8 @@ private:
   // The location counter (`.`) of the line being parsed, created on first use.
   std::shared_ptr<pepp::core::symbol::Entry> _location_counter;
   Conditionals _conditionals;
+  // Depth of conditionals opened outside the current macro body.
+  std::size_t _conditional_floor = 0;
 };
 } // namespace parser
 } // namespace tc

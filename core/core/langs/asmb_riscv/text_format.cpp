@@ -193,7 +193,8 @@ std::string pepp::tc::riscv_format_source(const LinearIR *line) {
 
 std::vector<std::string> pepp::tc::riscv_format_source(const IRProgram &program) {
   std::vector<std::string> ret;
-  for (const auto &line : program) ret.emplace_back(riscv_format_source(&*line));
+  for (const auto &line : program)
+    if (!hidden_from_source(*line)) ret.emplace_back(riscv_format_source(&*line));
   return ret;
 }
 
@@ -240,6 +241,7 @@ std::vector<std::string> pepp::tc::riscv_format_listing(const IRProgram &program
                                                   const IRMemoryAddressTable<RISCVAddress> &addresses,
                                                   const ProgramObjectCodeResult &object_code) {
   std::vector<std::string> ret;
-  for (const auto &line : program) ::riscv_format_listing(&*line, addresses, object_code, ret);
+  for (const auto &line : program)
+    if (!hidden_from_listing(*line)) ::riscv_format_listing(&*line, addresses, object_code, ret);
   return ret;
 }

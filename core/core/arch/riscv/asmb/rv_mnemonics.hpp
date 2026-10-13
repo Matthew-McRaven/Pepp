@@ -20,12 +20,12 @@ struct Values {
 
 
 struct Operand {
-  enum class Type : u8 { Invalid = 0, Register, ParenthesizedRegister, Immediate, Fence, XLEN8, XLEN16 } type;
+  enum class Type : u8 { Invalid = 0, Register, ParenthesizedRegister, Immediate, Fence } type;
   enum class Destination : u8 { Invalid = 0, RS, RS1, RS2, RD, IMM, SHAMT, PRED, SUCC } destination;
 };
 
 struct MnemonicDescriptor {
-  enum class Type : u8 { INVALID = 0, R, I, S, B, U, J, Pseudo };
+  enum class Type : u8 { INVALID = 0, R, I, S, B, U, J };
   static MnemonicDescriptor I(u8 opcode7, u8 funct3);
   static MnemonicDescriptor IShiftByConstant(u8 opcode7, u8 funct3, u8 shift_type);
   static MnemonicDescriptor IFence(u8 fmt);
@@ -35,10 +35,6 @@ struct MnemonicDescriptor {
   static MnemonicDescriptor B(u8 opcode7, u8 funct3);
   static MnemonicDescriptor U(u8 opcode7);
   static MnemonicDescriptor J(u8 opcode7);
-  // Pseudo instrutions do not have a single encoding since they may expand to multiple instructions.
-  // However, they still have operands that need parsing.
-  // Pseudo-instructions that can be encoded in terms of a real mnemonic should prefer a non-pseudo encoding.
-  static MnemonicDescriptor Pseudo();
 
   u8 opcode() const;
 
@@ -49,7 +45,6 @@ struct MnemonicDescriptor {
 
   void append_operand(Operand operand);
   MnemonicDescriptor &&with_operand(Operand first, std::same_as<Operand> auto... ops) &&;
-  MnemonicDescriptor replaced_operands(std::same_as<Operand> auto... ops) const noexcept;
   MnemonicDescriptor &&with_comma_after(std::size_t index, bool comma) &&;
 
   // Does this mnemonic have an rs1 position in its instruction format?
@@ -111,7 +106,6 @@ struct MnemonicDescriptor {
   bool operator==(const MnemonicDescriptor &other) const noexcept;
 
 protected:
-  explicit MnemonicDescriptor(Type type);
   MnemonicDescriptor(Type, uint8_t opcode7);
   struct Flags {
     u8 rs1 : 1 = 0;
@@ -161,12 +155,5 @@ MnemonicDescriptor &&MnemonicDescriptor::with_operand(Operand first, std::same_a
   append_operand(first);
   if constexpr (sizeof...(rest) > 0) return std::move(*this).with_operand(rest...);
   return std::move(*this);
-}
-
-MnemonicDescriptor MnemonicDescriptor::replaced_operands(std::same_as<Operand> auto... ops) const noexcept {
-  static const Operand invalid{.type = Operand::Type::Invalid, .destination = Operand::Destination::Invalid};
-  MnemonicDescriptor ret = *this;
-  ret._operands.fill(invalid);
-  return std::move(ret).with_operand(ops...);
 }
 } // namespace riscv

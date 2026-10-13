@@ -37,7 +37,14 @@ public:
     Macro_UnmatchedEndm,
     Macro_ExcessiveRecursion,
   };
-  enum class UnaryError { Token_Invalid, Dot_Invalid, Expression_Invalid, Macro_Redefinition };
+  enum class UnaryError {
+    Token_Invalid,
+    Dot_Invalid,
+    Expression_Invalid,
+    Macro_Redefinition,
+    Macro_WrongArgumentCount,
+    Dot_UserError,
+  };
 
   static const std::string to_string(NullaryError);
   static const std::string to_string(UnaryError, std::string &arg);
