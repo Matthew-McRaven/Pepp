@@ -23,6 +23,7 @@
 #include "core/compile/ir_linear/line_symbol.hpp"
 #include "core/compile/ir_value/expression.hpp"
 #include "core/compile/ir_value/numeric.hpp"
+#include "core/compile/macro/macro_registry.hpp"
 #include "core/compile/symbol/entry.hpp"
 #include "core/compile/symbol/leaf_table.hpp"
 #include "core/compile/symbol/value.hpp"
@@ -597,6 +598,24 @@ TEST_CASE("RISCV ASM parser dot commands",
       CHECK(diag.count() == 0);
       REQUIRE(results.size() == 4);
       CHECK(std::dynamic_pointer_cast<MacroInstantiation>(results[2]));
+    }
+    {
+      // A definition may hide its conditionals from listings, but not from source.
+      auto macros = std::make_shared<MacroRegistry>();
+      REQUIRE(macros->insert(
+          std::make_shared<MacroDefinition>(MacroDefinition{"m", {}, ".if 1\n.byte 1\n.endif", true, false})));
+      DiagnosticTable diag;
+      const auto results = Parser(data("m"), macros).parse(diag);
+      REQUIRE(diag.count() == 0);
+      const auto macro = std::dynamic_pointer_cast<MacroInstantiation>(results[0]);
+      REQUIRE(macro);
+      REQUIRE(macro->lines.size() == 3);
+      for (const auto &line : macro->lines) {
+        CAPTURE(line->type());
+        const auto *hidden = line->typed_attribute<Hidden>();
+        if (line->type() == DotConditional::TYPE) CHECK((hidden && hidden->listing && !hidden->source));
+        else CHECK(!hidden);
+      }
     }
     {
       // A name may have one definition per number of arguments.

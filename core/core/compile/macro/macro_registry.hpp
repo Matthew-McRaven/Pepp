@@ -18,6 +18,8 @@ struct MacroDefinition {
   std::string body;
   // If false, disable start/end comments on expansion even if the language would usually generate them.
   bool expansion_comments = true;
+  // If false, an expansion's .IF / .ELSEIF / .ELSE / .ENDIF lines are hidden from listings.
+  bool list_conditionals = true;
 
   // True if an instantiation with count arguments may use this definition. Trailing arguments with default values may be
   // omitted.

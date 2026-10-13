@@ -2,6 +2,7 @@
 #include <fmt/format.h>
 #include <stdexcept>
 #include <string>
+#include "core/compile/ir_linear/attr_comment.hpp"
 #include "core/compile/ir_linear/line_comment.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
 #include "core/compile/ir_linear/line_macro.hpp"
@@ -205,6 +206,7 @@ std::vector<std::string> pepp::tc::format_source(const IRProgram &program) {
   std::vector<std::string> ret;
   ret.reserve(program.size());
   for (const auto &line : program) {
+    if (hidden_from_source(*line)) continue;
     SourceVisitor r;
     accept(r, line.get());
     ret.emplace_back(r.text);
@@ -254,6 +256,7 @@ std::vector<std::string> pepp::tc::format_listing(const IRProgram &program,
                                                   const IRMemoryAddressTable<pepp::tc::PeppAddress> &addresses,
                                                   const ProgramObjectCodeResult &object_code) {
   std::vector<std::string> ret;
-  for (const auto &line : program) ::format_listing(&*line, addresses, object_code, ret);
+  for (const auto &line : program)
+    if (!hidden_from_listing(*line)) ::format_listing(&*line, addresses, object_code, ret);
   return ret;
 }

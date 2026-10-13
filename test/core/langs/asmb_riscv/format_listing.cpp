@@ -19,7 +19,9 @@
 #include <string>
 #include "core/arch/riscv/asmb/rv_mnemonics.hpp"
 #include "core/arch/riscv/asmb/rvi_patterns.hpp"
+#include "core/compile/macro/macro_registry.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
+#include "core/langs/asmb/macros.hpp"
 #include "core/langs/asmb_riscv/codegen.hpp"
 #include "core/langs/asmb_riscv/parser.hpp"
 #include "core/langs/asmb_riscv/text_format.hpp"
@@ -29,10 +31,11 @@ static auto data = [](auto str) { return pepp::tc::support::SeekableData{std::st
 
 // Assemble a program at a known base address and then format as a listing.
 // Failure to assemble terminates test.
-std::vector<std::string> listing_of(const std::string &source, u32 base) {
+std::vector<std::string> listing_of(const std::string &source, u32 base,
+                                    std::shared_ptr<pepp::tc::MacroRegistry> macros = nullptr) {
   pepp::tc::DiagnosticTable diag;
-  auto parser = pepp::tc::parser::RISCVParser(data(source));
-  auto lines = parser.parse(diag);
+  auto parser = pepp::tc::parser::RISCVParser(data(source), macros);
+  auto lines = pepp::tc::parser::flatten_macros(parser.parse(diag));
   CAPTURE(source);
   REQUIRE(diag.count() == 0);
   auto split = pepp::tc::riscv_split_to_sections(diag, lines);
@@ -101,5 +104,18 @@ TEST_CASE("RISCV ASM listing", "[scope:core][scope:core.langs][level:asmb3][leve
     CHECK(rows[1] == bare(0x1000, "b:"));
     CHECK(rows[2] == row(0x1000, word, "         add     x1, x2, x3"));
     CHECK(rows[3] == bare(0x1004, "end:"));
+  }
+
+  SECTION("a macro's conditionals may be hidden") {
+    const auto rows_with = [](bool conditionals) {
+      auto macros = std::make_shared<pepp::tc::MacroRegistry>();
+      REQUIRE(macros->insert(std::make_shared<pepp::tc::MacroDefinition>(
+          pepp::tc::MacroDefinition{"m", {}, ".if 1\n.byte 1\n.endif", false, conditionals})));
+      return listing_of("m", 0x1000, macros);
+    };
+    CHECK(rows_with(true).size() == 3);
+    const auto rows = rows_with(false);
+    REQUIRE(rows.size() == 1);
+    CHECK(rows[0].starts_with("00001000 01 "));
   }
 }

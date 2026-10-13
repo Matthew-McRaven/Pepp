@@ -678,6 +678,9 @@ pepp::tc::parser::RISCVParser::expand(DiagnosticTable &diag, std::shared_ptr<con
   const auto floor = std::exchange(_conditional_floor, _conditionals.depth());
   ret->lines = do_parse(diag, buf->matched_interval());
   _conditional_floor = floor;
+  if (!definition->list_conditionals)
+    for (const auto &line : ret->lines)
+      if (line->type() == DotConditional::TYPE) line->insert(std::make_unique<Hidden>(false, true));
   _lexer_stack.pop();
   return ret;
 }
