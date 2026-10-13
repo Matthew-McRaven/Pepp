@@ -23,6 +23,7 @@
 #include "core/langs/asmb_riscv/parser_error.hpp"
 #include "core/langs/asmb_riscv/pseudo_instructions.hpp"
 #include "core/macros.hpp"
+#include "core/math/bitmanip/log2.hpp"
 #include "core/math/bitmanip/mask.hpp"
 #include "core/math/bitmanip/strings.hpp"
 
@@ -68,7 +69,16 @@ std::expected<expr::Value, expr::NullaryError> constant(Arguments arguments, exp
   return expr::Value{is_constant, {default_type.bits, expr::Signedness::Signed}};
 }
 
-const std::array<expr::Function, 6> functions{{
+// Bits needed to hold the value, counting a sign bit only if it is negative. e.g., 0xFFFFFFFF and -0x80000000 need 32.
+std::expected<expr::Value, expr::NullaryError> bitwidth(Arguments arguments, expr::Type default_type) {
+  const auto x = std::get<expr::Value>(arguments[0]);
+  const bool negative = x.type.sign == expr::Signedness::Signed && x.as_signed() < 0;
+  const u64 width = negative ? bits::signed_bitcount(x.as_signed()) : bits::unsigned_bitcount(x.bits);
+  return expr::Value{width, {default_type.bits, expr::Signedness::Signed}};
+}
+expr::Type bitwidth_type(Types, expr::Type default_type) { return {default_type.bits, expr::Signedness::Signed}; }
+
+const std::array<expr::Function, 7> functions{{
     // Relocation modifiers
     {"%hi", Category::ConstExpr, value_parameter, hi20, hi_type},
     {"%lo", Category::ConstExpr, value_parameter, lo12, lo_type},
@@ -77,6 +87,7 @@ const std::array<expr::Function, 6> functions{{
     // Constant-evaluated functions needed to implement pseudo-instructions as macros.
     {"%defined", Category::ConstEval, symbol_parameter, defined, nullptr},
     {"%constant", Category::ConstEval, value_if_constant_parameter, constant, nullptr},
+    {"%bitwidth", Category::ConstExpr, value_parameter, bitwidth, bitwidth_type},
 }};
 
 // `.` is the location counter, .L<name> a local label, and %name a relocation modifier.

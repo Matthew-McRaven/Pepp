@@ -546,6 +546,23 @@ TEST_CASE("RISCV ASM parser dot commands",
       // Arguments are not added to the symbol table.
       CHECK(!p.symbol_table()->exists("never"));
     }
+    // %bitwidth counts a sign bit only for negative values allowing a range of [-2^(n-1), 2^n) for n bits.
+    for (const auto &[expression, expected] : std::vector<std::pair<std::string, u64>>{
+             {"%bitwidth(0)", 0},
+             {"%bitwidth(5)", 3},
+             {"%bitwidth(-1)", 1},
+             {"%bitwidth(-2048)", 12},
+             {"%bitwidth(-0x80000000)", 32},
+             {"%bitwidth(0xFFFFFFFF)", 32},
+             {"%bitwidth(0x100000000)", 33},
+         }) {
+      CAPTURE(expression);
+      DiagnosticTable diag;
+      auto p = Parser(pepp::tc::support::SeekableData{"r: .equ " + expression});
+      (void)p.parse(diag);
+      REQUIRE(diag.count() == 0);
+      CHECK(p.symbol_table()->get("r").value()->value->value()() == expected);
+    }
     using RVPE = RISCVParserError;
     for (const auto &[source, error] : std::vector<std::pair<const char *, RVPE::NullaryError>>{
              {".if 0", RVPE::NullaryError::Conditional_Unterminated},
