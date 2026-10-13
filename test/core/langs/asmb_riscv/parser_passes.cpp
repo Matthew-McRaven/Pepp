@@ -548,6 +548,13 @@ TEST_CASE("RISCV ASM parser dot commands",
       REQUIRE(diag.count() == 1);
       CHECK(diag.cbegin()->second == RVPE::to_string(error));
     }
+    {
+      // .error only triggers on taken branches
+      DiagnosticTable diag;
+      (void)parse(".if 0\n.error \"skipped\"\n.endif\n.error \"user text\"", diag);
+      REQUIRE(diag.count() == 1);
+      CHECK(diag.cbegin()->second == "user text");
+    }
   }
   // Macros are shared with Pep/10, whose tests cover them in depth.
   SECTION("Macros") {

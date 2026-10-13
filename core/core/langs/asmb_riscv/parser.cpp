@@ -349,6 +349,7 @@ static const auto dot_map = std::map<std::string, int>{
     {"ELSEIF", (int)DC::ELSEIF},
     {"ENDIF", (int)DC::ENDIF},
     {"ENDM", (int)DC::END_MACRO},
+    {"ERROR", (int)LDC::USER_ERROR},
     {"EQUATE", (int)DC::EQUATE},
     {"GLOBAL", (int)LDC::SYMBOL_GLOBAL},
     {"HALF", (int)DC::HALF},
@@ -526,6 +527,12 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::pseudo(Option
     else if (const auto ok = _conditionals.on_endif(); !ok)
       throw conditional_error(ok.error(), buf->matched_interval());
     return std::make_shared<DotConditional>(DotConditional::Behavior::ENDIF);
+  }
+  case (int)LDC::USER_ERROR: {
+    // The message is user-provided.
+    if (auto message = buf->match<lex::StringConstant>(); !message)
+      throw RVPE(RVPE::NullaryError::Argument_ExpectedString, buf->matched_interval());
+    else throw RVPE(RVPE::UnaryError::Dot_UserError, std::string{message->view()}, buf->matched_interval());
   }
   case (int)DC::INLINE_MACRO: {
     auto name = buf->match<lex::Identifier>();

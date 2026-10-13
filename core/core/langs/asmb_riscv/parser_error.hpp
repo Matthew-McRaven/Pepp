@@ -43,6 +43,7 @@ public:
     Expression_Invalid,
     Macro_Redefinition,
     Macro_WrongArgumentCount,
+    Dot_UserError,
   };
 
   static const std::string to_string(NullaryError);

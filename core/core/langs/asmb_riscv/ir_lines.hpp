@@ -22,6 +22,7 @@ enum class RISCVDotCommands : int {
   SECTION_BSS,
   SECTION_RODATA,
   SECTION_DATA,
+  USER_ERROR,
 };
 enum class RISCVIRType : int { R = static_cast<int>(LinearIRType::FirstUser), I, S, B, U, J };
 struct IntegerInstruction : public LinearIR {

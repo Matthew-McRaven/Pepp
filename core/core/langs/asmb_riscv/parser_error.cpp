@@ -45,6 +45,7 @@ const std::string pepp::tc::RISCVParserError::to_string(UnaryError err, std::str
   case UnaryError::Expression_Invalid: return fmt::format("Invalid expression: {}", arg);
   case UnaryError::Macro_Redefinition: return fmt::format("Redefinition of macro \"{}\".", arg);
   case UnaryError::Macro_WrongArgumentCount: return fmt::format("Wrong number of arguments to macro \"{}\".", arg);
+  case UnaryError::Dot_UserError: return arg;
   }
   PEPP_UNREACHABLE();
 }
