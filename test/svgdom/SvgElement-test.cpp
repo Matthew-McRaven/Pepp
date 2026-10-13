@@ -6,7 +6,7 @@ using namespace std::string_literals;
 #include "svgdom/SvgDocument.hpp"
 #include "svgdom/SvgElement.hpp"
 
-TEST_CASE("SvgElement tests", "[scope:core][scope:core.svgdom.svgelement][kind:unit]") {
+TEST_CASE("SvgElement tests-getter-setter", "[scope:core][scope:core.svgdom.svgelement][kind:unit]") {
   //  Test that SvgElement class perform correctly
 
   // std::cout << "From SvgElement" << std::endl;
@@ -63,9 +63,12 @@ TEST_CASE("SvgElement tests", "[scope:core][scope:core.svgdom.svgelement][kind:u
   element.setHeight("40px"s);
   CHECK(element.height().toString() == "40px"s);
 
+  element.attributes().add("n1"s, "v1"s);
+  CHECK(element.attributes().write() == " n1=\"v1\""s);
+
   element.appendChild(&element2);
   //  Title, Desc, and Metadata are also children
-  // CHECK(element.children().size() == 4);
+  CHECK(element.children().size() == 4);
 
   //  Copy test
   SvgElement copy(element);
@@ -80,4 +83,17 @@ TEST_CASE("SvgElement tests", "[scope:core][scope:core.svgdom.svgelement][kind:u
   CHECK(copy.y().toString() == "20mm"s);
   CHECK(copy.width().toString() == "30in"s);
   CHECK(copy.height().toString() == "40px"s);
+
+  SvgElement move(std::move(copy));
+  CHECK(move.xmlName() == "XmlName"s);
+  CHECK(move.value() == "Value"s);
+  CHECK(move.id() == "Id"s);
+  CHECK(move.title() == "Title"s);
+  CHECK(move.desc() == "Desc"s);
+  CHECK(move.metadata() == "Metadata"s);
+
+  CHECK(move.x().toString() == "10%"s);
+  CHECK(move.y().toString() == "20mm"s);
+  CHECK(move.width().toString() == "30in"s);
+  CHECK(move.height().toString() == "40px"s);
 }

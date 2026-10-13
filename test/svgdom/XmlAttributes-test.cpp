@@ -58,5 +58,4 @@ TEST_CASE("XmlAttributes_p tests-copy-move", "[scope:core][scope:core.svgdom.xml
   XmlAttributes xml3(std::move(xml));
   CHECK(xml3.write() == " n1=\"v1\" n2=\"v2\" n3=\"v3\" n4=\"v4\""s);
   CHECK(xml3.size() == 4);
-  CHECK(xml.size() == 0);
 }

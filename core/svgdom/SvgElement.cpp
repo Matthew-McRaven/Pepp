@@ -2,7 +2,9 @@
 
 //	Standard library
 #include <algorithm> //  std::transform
-#include <memory> //  std::make_unique
+#include <iostream>  //  std::cout
+#include <memory>    //  std::make_unique
+using namespace std::string_literals;
 
 #include "SvgCDataElement.hpp"
 #include "SvgCommentElement.hpp"
@@ -234,7 +236,9 @@ void SvgElement::appendChild(SvgInterface *child)
 {
   // This is a copy operation. Add move logic later.
   // Just return now.
-  if (child->currentDocument() != _doc) _children.emplace_back(child->clone());
+  if (child->currentDocument() != _doc) {
+    _children.emplace_back(child->clone());
+  }
 }
 
 void SvgElement::toXml(SvgRope &output) const
