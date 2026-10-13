@@ -450,8 +450,10 @@ static void add_rv32i_psueodo_instructions(riscv::MnemonicSet &mn_set) {
   auto add = [&](const riscv::Mnemonic &mn) { mn_set.insert(mn); };
   add({"j", J});
   add({"jr", JR});
+  add({"jalr", JALR_RS});
   add({"ret", RET});
   add({"pause", PAUSE});
+  add({"fence", FENCE_IORW});
   add({"nop", NOP});
   add({"mv", MOVE});
   add({"not", NOT});

@@ -102,7 +102,12 @@ static const auto EBREAK = MnemonicDescriptor::I(RV32I_SYSTEM, 0b000).with_rs1(0
 static const auto J = MnemonicDescriptor::J(RV32I_JAL).with_operand(_IMM).with_rd(0); // PI
 static const auto JR = MnemonicDescriptor::I(RV32I_JALR, 0b000).with_operand(_RS).with_rd(0).with_imm(0);
 static const auto RET = MnemonicDescriptor::I(RV32I_JALR, 0b000).with_rd(0).with_imm(0).with_rs1(1);
+// jump and link register: jalr rs -> jalr x1, 0(rs)
+static const auto JALR_RS = MnemonicDescriptor::I(RV32I_JALR, 0b000).with_operand(_RS).with_rd(1).with_imm(0);
+// pause: pause -> fence w, 0
 static const auto PAUSE = MnemonicDescriptor::IFence(0b0000, 0b0001, 0b0000).with_rs1(0).with_rd(0);
+// fence: fence -> fence iorw, iorw
+static const auto FENCE_IORW = MnemonicDescriptor::IFence(0b0000, 0b1111, 0b1111).with_rs1(0).with_rd(0);
 static const auto NOP = MnemonicDescriptor::I(RV32I_OP_IMM, 0b000).with_rd(0).with_rs1(0).with_imm(0);
 // move: mv rd, rs -> addi rd, rs, 0
 static const auto MOVE = MnemonicDescriptor::I(RV32I_OP_IMM, 0b000).with_operand(_RD, _RS).with_imm(0);
