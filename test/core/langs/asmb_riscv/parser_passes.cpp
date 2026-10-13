@@ -581,6 +581,14 @@ TEST_CASE("RISCV ASM parser dot commands",
       CHECK(addi->rs1 == 5);
     }
     {
+      // A conditional in a macro body may be nested in the caller's conditional.
+      DiagnosticTable diag;
+      const auto results = parse(".macro m\n.if 1\n.byte 1\n.endif\n.endm\n.if 1\nm\n.endif", diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 4);
+      CHECK(std::dynamic_pointer_cast<MacroInstantiation>(results[2]));
+    }
+    {
       // A name may have one definition per number of arguments.
       DiagnosticTable diag;
       const auto results = parse(".macro m a\n.byte \\a\n.endm\n.macro m a, b\n.half \\b\n.endm\nm 1\nm 2, 3", diag);

@@ -107,6 +107,8 @@ private:
   // The location counter (`.`) of the line being parsed, created on first use.
   std::shared_ptr<pepp::core::symbol::Entry> _location_counter;
   Conditionals _conditionals;
+  // Depth of conditionals opened outside the current macro body.
+  std::size_t _conditional_floor = 0;
 };
 } // namespace parser
 } // namespace tc

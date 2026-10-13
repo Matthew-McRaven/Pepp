@@ -674,7 +674,9 @@ pepp::tc::parser::RISCVParser::expand(DiagnosticTable &diag, std::shared_ptr<con
 
   auto ret = std::make_shared<MacroInstantiation>(definition, std::move(args));
   ret->insert(std::make_unique<ExpansionComments>(definition->expansion_comments));
+  const auto floor = std::exchange(_conditional_floor, _conditionals.depth());
   ret->lines = do_parse(diag, buf->matched_interval());
+  _conditional_floor = floor;
   _lexer_stack.pop();
   return ret;
 }
@@ -760,7 +762,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::statement(Dia
       break;
     }
   }
-  if (!buf->input_remains() && _conditionals.depth() > 0)
+  if (!buf->input_remains() && _conditionals.depth() > _conditional_floor)
     throw RISCVParserError(RISCVParserError::NullaryError::Conditional_Unterminated,
                            {start_ival, lexer->current_location()});
   return ret;
