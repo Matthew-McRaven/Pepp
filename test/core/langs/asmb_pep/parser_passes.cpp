@@ -602,6 +602,16 @@ TEST_CASE("Pepp ASM parser with macros instantiations",
     CHECK(lines(parser::flatten_macros(results, true)) == "cbcb");
     CHECK(lines(parser::flatten_macros(results, false)) == "bb");
   }
+  SECTION("a conditional in a macro body may be nested in the caller's conditional") {
+    pepp::tc::DiagnosticTable diag;
+    auto mr = std::make_shared<MR>();
+    mr->insert(std::make_shared<MacroDefinition>(MacroDefinition{"@TEST", {}, ".IF 1\n.BYTE 1\n.ENDIF\n"}));
+    auto p = Parser(data(".IF 1\n@TEST\n.ENDIF"), mr);
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 3);
+    CHECK(std::dynamic_pointer_cast<MacroInstantiation>(results[1]));
+  }
 }
 
 TEST_CASE("Pepp ASM parser with macros definitions",

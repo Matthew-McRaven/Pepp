@@ -186,7 +186,9 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::macro(Diagnosti
 
   auto ret = std::make_shared<MacroInstantiation>(definition, args);
   ret->insert(std::make_unique<ExpansionComments>(definition->expansion_comments));
+  const auto floor = std::exchange(_conditional_floor, _conditionals.depth());
   ret->lines = do_parse(diag, buf->matched_interval());
+  _conditional_floor = floor;
   // Attach symbol def if it exists.
   if (symbol) ret->insert(std::make_unique<SymbolDeclaration>(*symbol));
   return ret;
@@ -519,7 +521,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::statement(Diagn
     }
   }
 
-  if (!buf->input_remains() && _conditionals.depth() > 0) {
+  if (!buf->input_remains() && _conditionals.depth() > _conditional_floor) {
     const auto end_ival = lexer->current_location();
     support::LocationInterval ival{start_ival, end_ival};
     throw PepParserError(PepParserError::NullaryError::Conditional_Unterminated, ival);
