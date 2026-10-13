@@ -22,6 +22,8 @@
 #include "core/compile/ir_linear/line_empty.hpp"
 #include "core/compile/ir_linear/line_symbol.hpp"
 #include "core/compile/symbol/entry.hpp"
+#include "core/compile/symbol/leaf_table.hpp"
+#include "core/langs/asmb/codegen_error.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/langs/asmb_riscv/codegen.hpp"
 #include "core/langs/asmb_riscv/parser.hpp"
@@ -170,5 +172,84 @@ TEST_CASE("RISCV ASM code generator symbol-only lines",
     u32 size = 0;
     auto symbols = assemble("add x1, x2, x3\n.ORG 0x200\nsub x1, x2, x3\nfoo:\n.ORG 0x400\nadd x1, x2, x3", size);
     check(symbols, {{"foo", 0x204, 0, Type::Object}});
+  }
+}
+
+TEST_CASE("RISCV ASM code generator relocations",
+          "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:riscv]") {
+  using Parser = pepp::tc::parser::RISCVParser;
+  using namespace pepp::tc;
+  using enum pepp::bts::RelocationsRISCV;
+  struct Assembled {
+    DiagnosticTable diag;
+    ProgramObjectCodeResult code;
+    // Keep the symbol table alive after parsing
+    std::shared_ptr<pepp::core::symbol::LeafTable> symbols;
+  };
+  const auto assemble = [](const char *source) {
+    Assembled ret;
+    auto p = Parser(data(source));
+    ret.symbols = p.symbol_table();
+    auto results = p.parse(ret.diag);
+    REQUIRE(ret.diag.count() == 0);
+    auto split = riscv_split_to_sections(ret.diag, results);
+    auto addresses = riscv_assign_addresses(split.grouped_ir);
+    ret.code = riscv_to_object_code(ret.diag, addresses, split.grouped_ir);
+    return ret;
+  };
+  SECTION("instruction types+operand patterns that we can relocate") {
+    const auto result = assemble(R"(k: .equ 5
+beq x1, x2, ext
+jal x1, ext + 4
+lui x1, %hi(data)
+addi x1, x1, %lo(data + 8)
+sw x1, %lo(data)(x2)
+auipc x1, %pcrel_hi(ext)
+.word ext
+lui x1, %hi(k)
+data: .word 0)");
+    CHECK(result.diag.count() == 0);
+    struct Expected {
+      u32 offset;
+      pepp::bts::RelocationsRISCV type;
+      std::string symbol;
+      i64 addend;
+    };
+    // A constant (k) never moves, so it needs no relocation.
+    const std::vector<Expected> expected{
+        {0, R_RISCV_BRANCH, "ext", 0},     {4, R_RISCV_JAL, "ext", 4},        {8, R_RISCV_HI20, "data", 0},
+        {12, R_RISCV_LO12_I, "data", 8},   {16, R_RISCV_LO12_S, "data", 0},   {20, R_RISCV_PCREL_HI20, "ext", 0},
+        {24, R_RISCV_32, "ext", 0},
+    };
+    const auto &relocations = result.code.relocations.at(0);
+    REQUIRE(relocations.size() == expected.size());
+    for (std::size_t it = 0; it < expected.size(); it++) {
+      CAPTURE(it);
+      CHECK(relocations[it].section_offset == expected[it].offset);
+      CHECK(relocations[it].type == bits::to_underlying(expected[it].type));
+      CHECK(relocations[it].target.symbol->name == expected[it].symbol);
+      CHECK(relocations[it].target.addend == expected[it].addend);
+    }
+  }
+  SECTION("%pcrel exhibits correct sign-extension behavior") {
+    // data is at 0x1800. Its lower 12 bits (0x800) sign-extend negative, so the auipc's upper 20 bits round up to 2.
+    const auto result = assemble("auipc x1, %pcrel_hi(data)\n.skip 0x17FC\ndata: .word 0");
+    CHECK(result.diag.count() == 0);
+    const auto auipc = result.code.section_slices.at(0).get(0, 4);
+    CHECK((u32(auipc[0]) | u32(auipc[1]) << 8 | u32(auipc[2]) << 16 | u32(auipc[3]) << 24) >> 12 == 2);
+  }
+  SECTION("A symbol which can move needs a fixup rule for its format and shape") {
+    using E = CodegenError;
+    // The accepted forms of each are covered by the relocations above.
+    for (const char *rejected : {
+             "addi x1, x1, %hi(l)\nl:", // Bad assembler modifier
+             ".word l * 2\nl:",         // Invalid operands/argument
+         }) {
+      CAPTURE(rejected);
+      const auto result = assemble(rejected);
+      REQUIRE(result.diag.count() == 1);
+      CHECK(result.diag.cbegin()->second == E::to_string(E::NullaryError::Argument_NotRelocatable));
+      CHECK(result.code.relocations.at(0).empty());
+    }
   }
 }

@@ -23,6 +23,7 @@ class CodegenError final : public std::logic_error {
 public:
   enum class NullaryError {
     Argument_OddOffset,
+    Argument_NotRelocatable,
   };
   enum class UnaryError {
     Argument_ValueDoesNotFit,   // The argument is the constraint, e.g. "signed 12 bits".

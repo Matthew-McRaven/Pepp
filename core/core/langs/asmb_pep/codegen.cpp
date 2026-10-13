@@ -22,6 +22,48 @@
 #include "spdlog/spdlog.h"
 #include "zpp_bits.h"
 
+namespace {
+using PepRelocation = pepp::bts::RelocationsPep;
+using pepp::tc::symbol_offset_patterns;
+
+enum class IRFormat : u8 { OperandSpecifier, Byte, Word };
+
+struct FixupRule {
+  IRFormat format;
+  pepp::tc::OperandPattern operand;
+  PepRelocation type;
+};
+
+// Every (IR format, operand pattern) which needs to be relocated in Pep/10
+constexpr std::array<FixupRule, 6> fixup_rules{{
+    {IRFormat::OperandSpecifier, symbol_offset_patterns[0], PepRelocation::R_PEP10_ABS16},
+    {IRFormat::OperandSpecifier, symbol_offset_patterns[1], PepRelocation::R_PEP10_ABS16},
+    // R_PEP10_ABS8 truncates an address to a byte.
+    {IRFormat::Byte, symbol_offset_patterns[0], PepRelocation::R_PEP10_ABS8},
+    {IRFormat::Byte, symbol_offset_patterns[1], PepRelocation::R_PEP10_ABS8},
+    {IRFormat::Word, symbol_offset_patterns[0], PepRelocation::R_PEP10_ABS16},
+    {IRFormat::Word, symbol_offset_patterns[1], PepRelocation::R_PEP10_ABS16},
+}};
+static_assert(std::ranges::is_sorted(fixup_rules, {}, &FixupRule::format), "Rules must be pre-sorted");
+
+std::optional<IRFormat> format_of(const pepp::tc::LinearIR &line) {
+  using Which = pepp::tc::DotLiteral::Which;
+  if (line.type() == pepp::tc::DyadicInstruction::TYPE) return IRFormat::OperandSpecifier;
+  else if (const auto *literal = dynamic_cast<const pepp::tc::DotLiteral *>(&line)) {
+    if (literal->which == Which::Byte1) return IRFormat::Byte;
+    else if (literal->which == Which::Byte2) return IRFormat::Word;
+  }
+  return std::nullopt;
+}
+
+// The fixup rule for a line's operand
+std::optional<pepp::tc::MatchedFixupRule<FixupRule>> find_fixup(const pepp::tc::LinearIR &line,
+                                                                pepp::ast::IRValue &value) {
+  const auto format = format_of(line);
+  return format ? pepp::tc::find_fixup_rule<FixupRule>(fixup_rules, *format, value) : std::nullopt;
+}
+} // namespace
+
 pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(DiagnosticTable &diag, IRProgram &prog,
                                                                       SectionDescriptor initial_section) {
   PeppSectionAnalysisResults ret;
@@ -34,9 +76,9 @@ pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(Diagnostic
     return line->type() == static_cast<int>(LinearIRType::Empty) ||
            line->type() == static_cast<int>(LinearIRType::Comment);
   };
-  // Relocations can only express `symbol [+ constant]`. Other forms are errors.
+  // A symbol which can move must be used in a form which a fixup rule can relocate.
   const auto check_operand = [&diag](const LinearIR &line, pepp::ast::IRValue &arg) {
-    if (classify_symbol_operand(arg).kind == SymbolOperand::Kind::Invalid)
+    if (value_needs_relocation(arg) && !find_fixup(line, arg))
       diag.add_message(line.source_interval, "Operands referencing symbols must be of the form symbol [+ constant]");
   };
   // Opening a section takes pending lines as its prefix.
@@ -144,8 +186,8 @@ struct PeppObjectVistitor : public PepIRVisitor {
   IR2ObjectCodeMap &ir_to_object_code;
   PeppObjectVistitor(DiagnosticTable &, const IRMemoryAddressTable<PeppAddress> &, const u16 base_address,
                      bits::span<u8>, std::vector<Relocation> &, IR2ObjectCodeMap &);
-  // Emit a relocation for the argument's symbol.
-  void relocate(pepp::ast::IRValue &arg, u16 offset, u32 type);
+  // Emit a relocation for the line's argument, which is at offset into the section.
+  void relocate(const LinearIR &line, pepp::ast::IRValue &arg, u16 offset);
   void visit(const EmptyLine *) override;
   void visit(const CommentLine *) override;
   void visit(const SymbolLine *) override;
@@ -179,15 +221,14 @@ bool needs_relocation(const pepp::core::symbol::Entry &symbol) {
 }
 } // namespace
 
-void pepp::tc::PeppObjectVistitor::relocate(pepp::ast::IRValue &arg, u16 offset, u32 type) {
-  const auto operand = classify_symbol_operand(arg);
-  using Kind = SymbolOperand::Kind;
+void pepp::tc::PeppObjectVistitor::relocate(const LinearIR &line, pepp::ast::IRValue &arg, u16 offset) {
+  const auto fixup = find_fixup(line, arg);
   // pepp_split_to_sections reports this to the user, so reaching it here is a bug.
-  if (operand.kind == Kind::Invalid)
+  if (!fixup && value_needs_relocation(arg))
     throw std::logic_error("Operands referencing symbols must be of the form symbol [+ constant]");
-  else if (operand.kind == Kind::None || !needs_relocation(*operand.symbol)) return;
+  else if (!fixup || !needs_relocation(*fixup->target.symbol)) return;
   relocations.push_back(
-      Relocation{.symbol = operand.symbol, .section_offset = offset, .type = type, .addend = operand.addend});
+      Relocation{.target = fixup->target, .section_offset = offset, .type = bits::to_underlying(fixup->rule.type)});
 }
 
 void pepp::tc::PeppObjectVistitor::visit(const EmptyLine *) {
@@ -214,7 +255,7 @@ void pepp::tc::PeppObjectVistitor::visit(const DyadicInstruction *line) {
   const u16 offset = addr_info.address - base_address + 1; // Offset by 1 to reach operand specifier.
   auto &value = *line->argument.value;
   if (validate_argument(diag, *line, value, *pepp_argument_constraint(*line), 16, true)) {
-    relocate(value, offset, bits::to_underlying(pepp::bts::RelocationsPep::R_PEP10_ABS16));
+    relocate(*line, value, offset);
     (void)value.serialize(out_bytes.subspan(1).first(2), bits::Order::BigEndian);
   } else std::ranges::fill(out_bytes.subspan(1).first(2), 0);
   ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(3)});
@@ -230,15 +271,13 @@ void pepp::tc::PeppObjectVistitor::visit(const DotAlign *line) {
 
 void pepp::tc::PeppObjectVistitor::visit(const DotLiteral *line) {
   auto addr_info = ir_to_address.at(line);
-  using enum pepp::bts::RelocationsPep;
   auto &value = *line->argument.value;
   // R_PEP10_ABS8 truncates an address to a byte, so every Pep argument may hold an address.
   if (const auto constraint = pepp_argument_constraint(*line);
       constraint && !validate_argument(diag, *line, value, *constraint, 16, true)) {
     std::ranges::fill(out_bytes.first(addr_info.size), 0);
   } else {
-    relocate(value, addr_info.address - base_address,
-             bits::to_underlying(addr_info.size == 1 ? R_PEP10_ABS8 : R_PEP10_ABS16));
+    relocate(*line, value, addr_info.address - base_address);
     (void)value.serialize(out_bytes.first(addr_info.size), bits::Order::BigEndian);
   }
 

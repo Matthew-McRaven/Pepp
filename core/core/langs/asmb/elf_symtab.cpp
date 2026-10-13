@@ -129,7 +129,7 @@ void write_relocations(PackedGrowableElfFile<B, E> &elf,
     elf.section_headers[rela].sh_addralign = sizeof(word<B>);
     PackedRelocationWriter<B, E> writer(elf, rela);
     for (const auto &rel : relocs) {
-      const auto &entry = *rel.symbol;
+      const auto &entry = *rel.target.symbol;
       // Local symbols (other than section symbols) might be dropped. Give them an addend which is equal to the distance
       // between the section symbol and the local symbol. In the local case, replace the requested symbol with the
       // section symbol.
@@ -141,7 +141,7 @@ void write_relocations(PackedGrowableElfFile<B, E> &elf,
         const word<B> base = elf.section_headers[entry.section_index].sh_addr;
         addend = static_cast<sword<B>>(value_of(entry) - base);
       }
-      addend += static_cast<sword<B>>(rel.addend); // From `symbol + constant`.
+      addend += static_cast<sword<B>>(rel.target.addend); // From `symbol + constant`.
       writer.add_rela(rel.section_offset, rel.type, symbol, addend);
     }
   }

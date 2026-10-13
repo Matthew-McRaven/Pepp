@@ -25,37 +25,30 @@
 #include "core/langs/expr/ir.hpp"
 
 namespace {
-using pepp::tc::SymbolOperand;
+using pepp::tc::SymbolOffset;
+
+namespace expr = pepp::tc::expr;
 
 // Simplify first, so that e.g. sym - 1 + 3 becomes the constant + symbol which is eash to match against a relocation.
-SymbolOperand classify_expression(const pepp::ast::Expression &exp) {
-  using Kind = SymbolOperand::Kind;
-  using K = pepp::tc::expr::Kind;
-  namespace expr = pepp::tc::expr;
-  const auto tree = expr::simplify(exp.tree(), exp.default_type(), exp.resolve_types_of(), exp.resolve_constants_of());
-  // Every symbol was a constant, so the value never moves.
-  if (expr::is_constant_expression(tree)) return {};
-  // Lowering referenced every identifier, including location counters, into the symbol table.
-  const auto symbol = [&](expr::NodeId id) {
-    const auto *identifier = std::get_if<expr::Identifier>(&tree[id]);
-    const auto &name = identifier ? identifier->name : std::get<expr::LocationCounter>(tree[id]).name;
-    return exp.symbol_table()->get(name).value();
-  };
-
-  static constexpr std::array symbol_only{K::Symbolic};
-  static constexpr std::array constant_plus_symbol{K::Constant, K::Symbolic, K::Add};
-  if (expr::matches(tree.kinds(), symbol_only)) return {Kind::Offset, symbol(0), 0};
-  else if (expr::matches(tree.kinds(), constant_plus_symbol)) {
-    // Sign extend addend so that ABS16 effectively wraps mod 2^16, which is important for expressions like `sym-2`.
-    const i64 addend = expr::constant_values(tree, exp.default_type())[0]->as_signed();
-    return {Kind::Offset, symbol(1), addend};
-  }
-  return {Kind::Invalid};
+expr::Tree simplified(const pepp::ast::Expression &exp) {
+  return expr::simplify(exp.tree(), exp.default_type(), exp.resolve_types_of(), exp.resolve_constants_of());
 }
 
-// Something which can move, such as a label or undefined symbol (e.g., not an .EQUATE).
-bool relocatable(const SymbolOperand &operand) {
-  return operand.kind == SymbolOperand::Kind::Offset && !(operand.symbol && operand.symbol->is_constant());
+// Match a simplified expression tree against a relocation pattern. If the tree matches, return the symbol and addend.
+std::optional<SymbolOffset> match(const expr::Tree &tree, const pepp::ast::Expression &exp,
+                                   const pepp::tc::OperandPattern &pattern) {
+  if (!expr::matches(tree.kinds(), pattern.kinds)) return std::nullopt;
+  if (!pattern.function.empty()) {
+    const auto *call = std::get_if<expr::Call>(&tree[tree.root()]);
+    if (!call || call->function->name != pattern.function) return std::nullopt;
+  }
+  // Lowering referenced every identifier, including location counters, into the symbol table.
+  const auto *identifier = std::get_if<expr::Identifier>(&tree[pattern.symbol]);
+  const auto &name = identifier ? identifier->name : std::get<expr::LocationCounter>(tree[pattern.symbol]).name;
+  // Sign extend addend so that ABS16 effectively wraps mod 2^16, which is important for expressions like `sym-2`.
+  const i64 addend =
+      pattern.addend ? expr::constant_values(tree, exp.default_type())[*pattern.addend]->as_signed() : 0;
+  return SymbolOffset{exp.symbol_table()->get(name).value(), addend};
 }
 
 // The value an argument encodes, typed so that its sign can be checked against a constraint.
@@ -81,17 +74,11 @@ bool pepp::tc::validate_argument(DiagnosticTable &diag, const LinearIR &line, pe
                                  ArgumentConstraint constraint, u8 address_bits, bool narrowing_relocation) {
   using E = CodegenError;
   const auto report = [&](const E &error) { return diag.add_message(error.loc, error.what()), false; };
-  if (relocatable(classify_symbol_operand(value))) {
+  // A symbol which can move is address-sized, whatever its current value.
+  if (const auto offset = symbol_offset(value); offset && !offset->symbol->is_constant()) {
     if (narrowing_relocation || address_bits <= constraint.bits) return true;
     return report(E(E::UnaryError::Argument_AddressDoesNotFit, to_string(constraint), line.source_interval));
   }
-  // A non-constexpr call (e.g., %pcrel_hi) is defined by its relocation, which narrows it to fit.
-  else if (const auto *expression = dynamic_cast<pepp::ast::Expression *>(&value);
-           expression && std::ranges::any_of(expression->tree().nodes(), [](const expr::Node &node) {
-             const auto *call = std::get_if<expr::Call>(&node);
-             return call && call->function->category == expr::Function::Category::NonConstExpr;
-           }))
-    return true;
   const auto typed = typed_value(value);
   if (!typed) return report(E(E::UnaryError::Expression_Invalid, typed.error(), line.source_interval));
   return validate_value(diag, line, *typed, constraint);
@@ -107,9 +94,27 @@ bool pepp::tc::validate_value(DiagnosticTable &diag, const LinearIR &line, expr:
   return true;
 }
 
-SymbolOperand pepp::tc::classify_symbol_operand(pepp::ast::IRValue &value) {
-  using Kind = SymbolOperand::Kind;
-  if (auto *symbolic = dynamic_cast<pepp::ast::Symbolic *>(&value)) return {Kind::Offset, symbolic->symbol(), 0};
-  else if (auto *expression = dynamic_cast<pepp::ast::Expression *>(&value)) return classify_expression(*expression);
-  return {};
+bool pepp::tc::value_needs_relocation(pepp::ast::IRValue &value) {
+  if (const auto *symbolic = dynamic_cast<pepp::ast::Symbolic *>(&value)) return !symbolic->symbol()->is_constant();
+  // Simplification replaces constant symbols with their values, so all remaining symbols need relocation.
+  else if (const auto *expression = dynamic_cast<pepp::ast::Expression *>(&value))
+    return !expr::is_constant_expression(simplified(*expression));
+  return false;
+}
+
+std::optional<SymbolOffset> pepp::tc::symbol_offset(pepp::ast::IRValue &value) {
+  for (const auto &pattern : symbol_offset_patterns)
+    if (auto offset = match_symbol_operand(value, pattern)) return offset;
+  return std::nullopt;
+}
+
+std::optional<SymbolOffset> pepp::tc::match_symbol_operand(pepp::ast::IRValue &value, const OperandPattern &pattern) {
+  using K = expr::Kind;
+  static constexpr std::array lone_symbol{K::Identifier};
+  if (auto *symbolic = dynamic_cast<pepp::ast::Symbolic *>(&value)) {
+    if (!pattern.function.empty() || !expr::matches(lone_symbol, pattern.kinds)) return std::nullopt;
+    return SymbolOffset{symbolic->symbol(), 0};
+  } else if (const auto *expression = dynamic_cast<pepp::ast::Expression *>(&value))
+    return match(simplified(*expression), *expression, pattern);
+  return std::nullopt;
 }
