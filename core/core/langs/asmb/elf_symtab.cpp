@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <map>
 #include <optional>
+#include <set>
 #include <stdexcept>
 #include "core/compile/symbol/entry.hpp"
 #include "core/compile/symbol/value.hpp"
@@ -65,14 +66,29 @@ struct WrittenSymbols {
   std::vector<u32> section; // Section symbol index in symtab for each section header index or 0 if non-existent.
 };
 
+// Symbols that must not be replaced with section-relative relocation entries.
+std::set<const pepp::core::symbol::Entry *> preserved_symbols(const pepp::tc::ProgramObjectCodeResult &object_code) {
+  std::set<const pepp::core::symbol::Entry *> ret;
+  for (const auto &relocations : object_code.relocations)
+    for (const auto &relocation : relocations)
+      if (relocation.preserve_symbol) ret.insert(relocation.target.symbol.get());
+  return ret;
+}
+
 // Must be written after all sections which define symbols to avoid having to update st_shndx values later.
 template <ElfBits B, ElfEndian E>
-WrittenSymbols write_symbols(PackedGrowableElfFile<B, E> &elf, const pepp::core::symbol::LeafTable &table) {
+WrittenSymbols write_symbols(PackedGrowableElfFile<B, E> &elf, const pepp::core::symbol::LeafTable &table,
+                             const std::set<const pepp::core::symbol::Entry *> &preserved) {
   using namespace pepp::core::symbol;
   using Symbol = PackedElfSymbol<B, E>;
   std::vector<LeafTable::entry_ptr_t> symbols;
   enumerate(table, symbols);
-  std::erase_if(symbols, [](const auto &entry) { return entry->value && entry->value->type() == Type::Deleted; });
+  // Erase local labels that are not referenced by relocations.
+  std::erase_if(symbols, [&](const auto &entry) {
+    if (entry->value && entry->value->type() == Type::Deleted) return true;
+    const bool local_label = binding_of(*entry) == SymbolBinding::STB_LOCAL && entry->name.starts_with(".L");
+    return local_label && !preserved.contains(entry.get());
+  });
   // ELF requires every local precede any non-local. Within partitions, sort by name to make output deterministic.
   std::sort(symbols.begin(), symbols.end(), [](const auto &lhs, const auto &rhs) {
     const bool left_local = binding_of(*lhs) == SymbolBinding::STB_LOCAL;
@@ -132,8 +148,8 @@ void write_relocations(PackedGrowableElfFile<B, E> &elf,
       const auto &entry = *rel.target.symbol;
       // Local symbols (other than section symbols) might be dropped. Give them an addend which is equal to the distance
       // between the section symbol and the local symbol. In the local case, replace the requested symbol with the
-      // section symbol.
-      const bool local = binding_of(entry) == SymbolBinding::STB_LOCAL;
+      // section symbol unless the assembler specifically requested the symbol be preserved as-is.
+      const bool local = !rel.preserve_symbol && binding_of(entry) == SymbolBinding::STB_LOCAL;
       const u32 symbol = local ? symbols.section.at(entry.section_index) : symbols.index.at(&entry);
       if (symbol == 0) throw std::logic_error("No symbol to relocate against");
       sword<B> addend = 0;
@@ -220,7 +236,7 @@ pepp::tc::ElfResult build(ElfMachineType machine,
     }
   }
 
-  const auto written = write_symbols(*elf, symbols);
+  const auto written = write_symbols(*elf, symbols, preserved_symbols(object_code));
   write_relocations(*elf, prog, object_code, written);
   return ret;
 }

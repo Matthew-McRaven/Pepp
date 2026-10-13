@@ -308,6 +308,9 @@ struct Relocation {
   SymbolOffset target; // S + A
   u32 section_offset;  // Offset into a section's object code (in bytes) of the field which needs relocation.
   u32 type;            // Architecture specific, e.g., RelocationsPep.
+  // The assembler must not rewrite the symbol as an offset from the section. If the symbol is local, this may result in
+  // it being written to the final .symtab
+  bool preserve_symbol = false;
 };
 
 // True if value depends on a symbol which can move (e.g., a label or undefined symbol) or it uses a relocation

@@ -254,8 +254,10 @@ std::optional<u32> pepp::tc::RISCVObjectVistitor::operand_field(const LinearIR &
   // A constant symbol cannot be moved.
   if (fixup && !fixup->target.symbol->is_constant()) {
     const auto &[rule, target] = *fixup;
-    relocations.push_back(
-        Relocation{.target = target, .section_offset = address - base_address, .type = bits::to_underlying(rule.type)});
+    relocations.push_back(Relocation{.target = target,
+                                     .section_offset = address - base_address,
+                                     .type = bits::to_underlying(rule.type),
+                                     .preserve_symbol = rule.value == FixupValue::PcRelativeLow});
     if (rule.value == FixupValue::PcRelativeLow) {
       // Find the paired auipc that this line reference.
       const auto auipc = target.symbol->is_undefined() ? 0 : target.symbol->value->value()() + target.addend;
