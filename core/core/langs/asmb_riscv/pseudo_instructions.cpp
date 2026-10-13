@@ -106,6 +106,29 @@ addi \rd, \rd, %pcrel_lo(.Lpcrel_hi\@)
           false};
 }
 
+// Load immediate. To quote the official RISC-V assembler's programming guide on the implementation:
+// "Myriad sequences". In our implementation, if the imm fits in 12 bits, we use addi x0, imm. If the imm is a multiple
+// of 4096, we use lui. Otherwise, we use lui+addi.
+MacroDefinition li() {
+  return {"li",
+          {{.name = "rd"}, {.name = "imm"}},
+          R"(.IF !%constant(\imm)
+.ERROR "li requires a constant defined before use"
+.ELSEIF %bitwidth(\imm) > 32
+.ERROR "li requires a value which fits in 32 bits"
+.ELSEIF (((\imm) + 0x800) & 0xFFFFF000) == 0
+addi \rd, x0, \imm
+.ELSEIF ((\imm) & 0xFFF) == 0
+lui \rd, %hi(\imm)
+.ELSE
+lui \rd, %hi(\imm)
+addi \rd, \rd, %lo(\imm)
+.ENDIF
+)",
+          false,
+          false};
+}
+
 // Load global: l{b|h|w|bu|hu} rd, symbol -> auipc rd, %pcrel_hi(symbol); l{b|h|w|bu|hu} rd, %pcrel_lo(<the auipc>)(rd)
 // Shares its name with the load instruction, only differing by arity.
 MacroDefinition load_global(const std::string &mnemonic) {
@@ -126,10 +149,10 @@ MacroDefinition store_global(const std::string &mnemonic) {
 
 const std::vector<MacroDefinition> &definitions() {
   static const std::vector<MacroDefinition> ret{
-      sext_b(),           sext_h(),           zext_h(),           call(),             call_rd(),
-      tail(),             jump(),             load_address("la"), load_address("lla"), load_global("lb"),
-      load_global("lh"),  load_global("lw"),  load_global("lbu"), load_global("lhu"),  store_global("sb"),
-      store_global("sh"), store_global("sw"),
+      sext_b(),           sext_h(),           zext_h(),          call(),            call_rd(),
+      tail(),             jump(),             li(),              load_address("la"), load_address("lla"),
+      load_global("lb"),  load_global("lh"),  load_global("lw"), load_global("lbu"), load_global("lhu"),
+      store_global("sb"), store_global("sh"), store_global("sw"),
   };
   return ret;
 }

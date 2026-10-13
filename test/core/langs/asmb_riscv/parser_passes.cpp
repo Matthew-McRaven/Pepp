@@ -761,6 +761,53 @@ TEST_CASE("RISCV ASM pseudo-instructions",
     REQUIRE(wrong.count() == 1);
     CHECK(wrong.cbegin()->second == RVPE::to_string(RVPE::NullaryError::Token_MissingNewline));
   }
+  SECTION("Load immediate") {
+    // The (instruction) lines of the macro instantiation for li.
+    const auto expand = [](const char *source) {
+      DiagnosticTable diag;
+      const auto results = Parser(data(source)).parse(diag);
+      REQUIRE(diag.count() == 0);
+      const auto macro = std::dynamic_pointer_cast<MacroInstantiation>(results.back());
+      REQUIRE(macro);
+      std::vector<std::shared_ptr<IntegerInstruction>> ret;
+      for (const auto &line : macro->lines)
+        if (auto instruction = std::dynamic_pointer_cast<IntegerInstruction>(line)) ret.push_back(instruction);
+      return ret;
+    };
+
+    // imm fits in low-12 bits
+    for (const auto &[source, imm] :
+         {std::pair{"li x5, 5", 5}, std::pair{"li x5, -2048", -2048}, std::pair{"li x5, 0xFFFFFFFF", -1}}) {
+      CAPTURE(source);
+      const auto lines = expand(source);
+      REQUIRE(lines.size() == 1);
+      CHECK(lines[0]->mnemonic.mn == riscv::ADDI);
+      CHECK((lines[0]->rd == 5 && lines[0]->rs1 == 0 && lines[0]->imm->value_as<i32>() == imm));
+    }
+    // imm fits in only hi-20
+    const auto upper = expand("li x5, 0x10000");
+    REQUIRE(upper.size() == 1);
+    CHECK(upper[0]->mnemonic.mn == riscv::LUI);
+    CHECK((upper[0]->rd == 5 && upper[0]->imm->value_as<u32>() == 0x10));
+
+    // Otherwise a lui+addi pair
+    const auto pair = expand("k: .equ 0x7FF\nli x5, k + 1");
+    REQUIRE(pair.size() == 2);
+    CHECK(pair[0]->mnemonic.mn == riscv::LUI);
+    CHECK((pair[0]->rd == 5 && pair[0]->imm->value_as<u32>() == 1));
+    CHECK(pair[1]->mnemonic.mn == riscv::ADDI);
+    CHECK((pair[1]->rd == 5 && pair[1]->rs1 == 5 && pair[1]->imm->value_as<i32>() == -2048));
+
+    for (const auto &[source, message] :
+         {std::pair{"li x5, l\nl:", "li requires a constant defined before use"},
+          std::pair{"li x5, 0x100000000", "li requires a value which fits in 32 bits"}}) {
+      CAPTURE(source);
+      DiagnosticTable diag;
+      (void)Parser(data(source)).parse(diag);
+      REQUIRE(diag.count() == 1);
+      CHECK(diag.cbegin()->second == message);
+    }
+  }
   SECTION("Load address") {
     DiagnosticTable diag;
     auto p = Parser(data("lla x5, msg\nla x6, msg"));
