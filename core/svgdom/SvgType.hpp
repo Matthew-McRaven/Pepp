@@ -1,4 +1,7 @@
 #pragma once
+#include <array>
+#include <string>
+#include <utility>
 
 class SvgType
 {
