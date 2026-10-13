@@ -15,6 +15,7 @@
  */
 #include "core/langs/asmb_riscv/pseudo_instructions.hpp"
 #include <memory>
+#include <string>
 #include <vector>
 #include "core/compile/macro/macro_registry.hpp"
 
@@ -94,8 +95,30 @@ jalr zero, %pcrel_lo(.Lpcrel_hi\@)(\rt)
           false};
 }
 
+// Load global: l{b|h|w|bu|hu} rd, symbol -> auipc rd, %pcrel_hi(symbol); l{b|h|w|bu|hu} rd, %pcrel_lo(<the auipc>)(rd)
+// Shares its name with the load instruction, only differing by arity.
+MacroDefinition load_global(const std::string &mnemonic) {
+  return {mnemonic,
+          {{.name = "rd"}, {.name = "symbol"}},
+          ".Lpcrel_hi\\@: auipc \\rd, %pcrel_hi(\\symbol)\n" + mnemonic + " \\rd, %pcrel_lo(.Lpcrel_hi\\@)(\\rd)\n",
+          false};
+}
+
+// Store global: s{b|h|w} rs, symbol, rt -> auipc rt, %pcrel_hi(symbol); s{b|h|w} rs, %pcrel_lo(<the auipc>)(rt)
+// Shares its mnemonic with the store instruction, only differing by arity.
+MacroDefinition store_global(const std::string &mnemonic) {
+  return {mnemonic,
+          {{.name = "rs"}, {.name = "symbol"}, {.name = "rt"}},
+          ".Lpcrel_hi\\@: auipc \\rt, %pcrel_hi(\\symbol)\n" + mnemonic + " \\rs, %pcrel_lo(.Lpcrel_hi\\@)(\\rt)\n",
+          false};
+}
+
 const std::vector<MacroDefinition> &definitions() {
-  static const std::vector<MacroDefinition> ret{sext_b(), sext_h(), zext_h(), call(), call_rd(), tail(), jump()};
+  static const std::vector<MacroDefinition> ret{
+      sext_b(),           sext_h(),           zext_h(),           call(),             call_rd(),
+      tail(),             jump(),             load_global("lb"),  load_global("lh"),  load_global("lw"),
+      load_global("lbu"), load_global("lhu"), store_global("sb"), store_global("sh"), store_global("sw"),
+  };
   return ret;
 }
 } // namespace

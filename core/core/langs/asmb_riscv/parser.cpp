@@ -336,29 +336,6 @@ pepp::tc::parser::RISCVParser::match_alternative(const riscv::Mnemonic &entry, s
   return make_instruction(entry.name, entry.mn, values);
 }
 
-std::shared_ptr<pepp::tc::IntegerInstruction> pepp::tc::parser::RISCVParser::instruction() {
-  auto buf = active_buffer();
-  lex::Checkpoint cp(*buf);
-  const auto maybe_instr = buf->match<lex::Identifier>();
-  if (!maybe_instr) return cp.rollback(), nullptr;
-  auto instr_str = maybe_instr->to_string();
-  bits::to_lower_inplace(instr_str);
-  const auto [first, last] = riscv::string_to_mnemonic.equal_range(instr_str);
-  if (first == last) return cp.rollback(), nullptr;
-
-  // Parse the operands once, then find the pattern that fits
-  const auto ops = mnemonic_operands();
-  std::optional<E> problem;
-  bool fit = false;
-  for (auto candidate = first; candidate != last; ++candidate) {
-    if (const auto why = mismatch(candidate->mn, ops)) problem = why;
-    else if (fit = true; auto built = match_alternative(*candidate, ops)) return built;
-  }
-  // Report why the most recent pattern did not fit. If there was a fit but it returned nullptr, roll back.
-  if (!fit && problem) throw RISCVParserError(*problem, buf->matched_interval());
-  return cp.rollback(), nullptr;
-}
-
 namespace {
 using DC = pepp::tc::DotCommands;
 using LDC = pepp::tc::RISCVDotCommands;
@@ -613,27 +590,71 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::pseudo(Option
   return nullptr;
 }
 
-std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::macro(DiagnosticTable &diag) {
+std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::mnemonic(DiagnosticTable &diag) {
   using RVPE = RISCVParserError;
   auto buf = active_buffer();
   auto lexer = active_lexer();
   lex::Checkpoint cp(*buf);
   const auto name = buf->match<lex::Identifier>();
   if (!name) return cp.rollback(), nullptr;
-  if (!_macros->contains(name->to_string())) return cp.rollback(), nullptr;
-  cp.commit();
 
-  // Consume all non-comments, non-empty tokens until the end of the current line.
+  // Determine if this matches an instruction and/or a macro.
+  auto lowered = name->to_string();
+  bits::to_lower_inplace(lowered);
+  const auto [first, last] = riscv::string_to_mnemonic.equal_range(lowered);
+  const bool is_macro = _macros->contains(name->to_string());
+  if (first == last && !is_macro) return cp.rollback(), nullptr;
+  // Argument parsing behaves slightly differently for instructions vs macros, so we may need to backtrack to this marker.
+  lex::Checkpoint after_name(*buf);
+
+  // Parse the operands once and try to match them against any possible candidate.
+  // mismatch_error is set when there is at least one candidate and the most recent alternative reports an error.
+  std::optional<RVPE> mismatch_error;
+  if (first != last) {
+    const auto ops = mnemonic_operands();
+    std::optional<E> problem;
+    bool fit = false;
+    for (auto candidate = first; candidate != last; ++candidate) {
+      if (const auto why = mismatch(candidate->mn, ops)) problem = why;
+      else if (fit = true; auto built = match_alternative(*candidate, ops)) return built;
+    }
+    // A pattern fit but could not be built, allow other grammar rules to try and parse the line.
+    if (fit) return cp.rollback(), nullptr;
+    mismatch_error.emplace(*problem, buf->matched_interval());
+    // If the mnemonic is not also a macro name, this is an unambiguous failure.
+    if (!is_macro) throw *mismatch_error;
+  }
+
+  // Re-parse the arguments as a comma-separated list.
+  after_name.rollback();
   while (buf->match_not<lex::Empty, lex::EoF, lex::InlineComment>());
-  // The arguments are the text of the rest of the line, up to any comment.
-  auto args = split_arguments(buf->matched_tokens_after(cp.marker()), *lexer);
-  // A name may have one definition per number of arguments.
+  // Determine best match based on the argument count.
+  auto args = split_arguments(buf->matched_tokens_after(after_name.marker()), *lexer);
   const auto definition = _macros->find(name->to_string(), args.size());
-  if (!definition) throw RVPE(RVPE::UnaryError::Macro_WrongArgumentCount, name->to_string(), buf->matched_interval());
+  // If the macro shares a name with an instruction, prefer to return the instruction's error.
+  if (!definition && mismatch_error) throw *mismatch_error;
+  // Definitely not an instruction so it must be a macro. Only reason find can fail is due to arity mismatch.
+  else if (!definition)
+    throw RVPE(RVPE::UnaryError::Macro_WrongArgumentCount, name->to_string(), buf->matched_interval());
+
+  // Parse the macro by pushing a new lexer onto the stack. If the nested parse fails, propagate the instruction's error
+  // instead of the macro's. Since we prefer instruction errors to macro errors, we need to avoid reporting a macro's
+  // error into the main table if the instruction's error might be taken.
+  DiagnosticTable expansion;
+  auto ret = expand(mismatch_error ? expansion : diag, definition, std::move(args));
+  // True when macro expansion failed AND instruction parsing failed, in which case we should prefer instruction error.
+  if (expansion.count() > 0) throw *mismatch_error;
+  return ret;
+}
+
+std::shared_ptr<pepp::tc::LinearIR>
+pepp::tc::parser::RISCVParser::expand(DiagnosticTable &diag, std::shared_ptr<const MacroDefinition> definition,
+                                      std::vector<std::string> args) {
+  using RVPE = RISCVParserError;
+  auto buf = active_buffer();
   if (_lexer_stack.size() > max_expansion_depth)
     throw RVPE(RVPE::NullaryError::Macro_ExcessiveRecursion, buf->matched_interval());
 
-  // TODO: Validate # of matched arguments vs number of args in definition, accounting for default values.
   auto replacements = _counters.counters_for(definition->name);
   for (std::size_t it = 0; it < definition->arguments.size(); it++) {
     const auto &argument = definition->arguments[it];
@@ -657,9 +678,8 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::line(Diagnost
   // This line gets its own location counter, and a macro expanded from it does not share the line's.
   Restore restore{_location_counter, std::exchange(_location_counter, nullptr)};
   std::shared_ptr<pepp::tc::LinearIR> ret = nullptr;
-  // Macros are tried first, so that a macro may replace an instruction of the same name.
-  if (auto macro = this->macro(diag); macro) ret = macro;
-  else if (auto instr = instruction(); instr) ret = instr;
+  // Try both macros and instructions at the same time to avoid complex backtracking.
+  if (auto named = mnemonic(diag); named) ret = named;
   else if (auto dot = pseudo(symbol); dot) ret = dot;
   else return nullptr;
 

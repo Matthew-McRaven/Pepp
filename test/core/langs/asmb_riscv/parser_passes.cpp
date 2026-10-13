@@ -666,6 +666,40 @@ TEST_CASE("RISCV ASM pseudo-instructions",
     CHECK(srai->mnemonic.mn == riscv::SRAI);
     CHECK((srai->rd == 1 && srai->rs1 == 1 && srai->imm->value_as<u32>() == 24));
   }
+  SECTION("Global loads/stores") {
+    DiagnosticTable diag;
+    auto p = Parser(data("lw x5, msg\nsw x5, msg, x6\nlw x5, 0(x6)\nsw x5, 0(x6)"));
+    const auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 4);
+    const auto lines = [&](int index) {
+      const auto macro = std::dynamic_pointer_cast<MacroInstantiation>(results[index]);
+      REQUIRE(macro);
+      REQUIRE(macro->lines.size() == 2);
+      const auto auipc = std::dynamic_pointer_cast<UTypeIR>(macro->lines[0]);
+      REQUIRE(auipc);
+      CHECK(auipc->imm->string() == "%pcrel_hi(msg)");
+      return std::pair{auipc, macro->lines[1]};
+    };
+    // A load's auipc writes its rd, while a store's writes the scratch rt.
+    const auto [load_auipc, load_line] = lines(0);
+    const auto lw = std::dynamic_pointer_cast<ITypeIR>(load_line);
+    REQUIRE(lw);
+    CHECK((load_auipc->rd == 5 && lw->rd == 5 && lw->rs1 == 5 && lw->imm->string() == "%pcrel_lo(.Lpcrel_hi0)"));
+    const auto [store_auipc, store_line] = lines(1);
+    const auto sw = std::dynamic_pointer_cast<STypeIR>(store_line);
+    REQUIRE(sw);
+    CHECK((store_auipc->rd == 6 && sw->rs2 == 5 && sw->rs1 == 6 && sw->imm->string() == "%pcrel_lo(.Lpcrel_hi1)"));
+    // Prefers matching the instruction alternative when possible.
+    CHECK(std::dynamic_pointer_cast<ITypeIR>(results[2]));
+    CHECK(std::dynamic_pointer_cast<STypeIR>(results[3]));
+    // Only when we have a limited number of arguments do we choose the macro expansion.
+    using RVPE = RISCVParserError;
+    DiagnosticTable wrong;
+    (void)Parser(data("sw x5, 0(x6), x7")).parse(wrong);
+    REQUIRE(wrong.count() == 1);
+    CHECK(wrong.cbegin()->second == RVPE::to_string(RVPE::NullaryError::Token_MissingNewline));
+  }
   SECTION("Far control-flow transfers") {
     DiagnosticTable diag;
     auto p = Parser(data("call f\ncall x5, f\ntail f\njump f, x7"));
