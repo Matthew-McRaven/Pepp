@@ -621,7 +621,9 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::mnemonic(Diag
   auto lowered = name->to_string();
   bits::to_lower_inplace(lowered);
   const auto [first, last] = riscv::string_to_mnemonic.equal_range(lowered);
-  const bool is_macro = _macros->contains(name->to_string());
+  // If there's an exact match for the macro name, prefer it over the lowercase of instructions.
+  const auto macro_name = _macros->contains(name->to_string()) ? name->to_string() : lowered;
+  const bool is_macro = _macros->contains(macro_name);
   if (first == last && !is_macro) return cp.rollback(), nullptr;
   // Argument parsing behaves slightly differently for instructions vs macros, so we may need to backtrack to this marker.
   lex::Checkpoint after_name(*buf);
@@ -649,7 +651,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::mnemonic(Diag
   while (buf->match_not<lex::Empty, lex::EoF, lex::InlineComment>());
   // Determine best match based on the argument count.
   auto args = split_arguments(buf->matched_tokens_after(after_name.marker()), *lexer);
-  const auto definition = _macros->find(name->to_string(), args.size());
+  const auto definition = _macros->find(macro_name, args.size());
   // If the macro shares a name with an instruction, prefer to return the instruction's error.
   if (!definition && mismatch_error) throw *mismatch_error;
   // Definitely not an instruction so it must be a macro. Only reason find can fail is due to arity mismatch.

@@ -761,6 +761,16 @@ TEST_CASE("RISCV ASM pseudo-instructions",
     REQUIRE(wrong.count() == 1);
     CHECK(wrong.cbegin()->second == RVPE::to_string(RVPE::NullaryError::Token_MissingNewline));
   }
+  SECTION("Pseudo-instructions are case-insensitive, like instructions") {
+    for (const char *source : {"LI x5, 1", "SEXT.B x1, x2", "Lw x5, msg"}) {
+      CAPTURE(source);
+      DiagnosticTable diag;
+      const auto results = Parser(data(source)).parse(diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 1);
+      CHECK(std::dynamic_pointer_cast<MacroInstantiation>(results[0]));
+    }
+  }
   SECTION("Load immediate") {
     // The (instruction) lines of the macro instantiation for li.
     const auto expand = [](const char *source) {
