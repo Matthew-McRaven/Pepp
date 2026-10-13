@@ -160,14 +160,18 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::macro(Diagnosti
   lex::Checkpoint cp(*buf);
   auto name = buf->match<lex::Identifier>();
   if (!name) return cp.rollback(), nullptr;
-  auto definition = _macros->find(name->to_string());
-  if (!definition) return cp.rollback(), nullptr;
+  if (!_macros->contains(name->to_string())) return cp.rollback(), nullptr;
   else cp.commit();
 
   // Consume all non-comments, non-empty tokens until the end of the current line.
   while (buf->match_not<tc::lex::Empty, tc::lex::EoF, tc::lex::InlineComment>());
   // The arguments are the text of the tokens after the macro name.
   const auto args = split_arguments(buf->matched_tokens_after(cp.marker()), *lexer);
+  // A name may have one definition per number of arguments.
+  const auto definition = _macros->find(name->to_string(), args.size());
+  if (!definition)
+    throw PepParserError(PepParserError::UnaryError::Macro_WrongArgumentCount, name->to_string(),
+                         buf->matched_interval());
   auto replacements = _counters.counters_for(definition->name);
 
   // TODO: Validate # of matched arguments vs number of args in definition, accounting for default values.

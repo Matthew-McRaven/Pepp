@@ -560,6 +560,26 @@ TEST_CASE("RISCV ASM parser dot commands",
       CHECK(addi->rd == 5);
       CHECK(addi->rs1 == 5);
     }
+    {
+      // A name may have one definition per number of arguments.
+      DiagnosticTable diag;
+      const auto results = parse(".macro m a\n.byte \\a\n.endm\n.macro m a, b\n.half \\b\n.endm\nm 1\nm 2, 3", diag);
+      CHECK(diag.count() == 0);
+      REQUIRE(results.size() == 4);
+      const auto one = std::dynamic_pointer_cast<MacroInstantiation>(results[2]);
+      const auto two = std::dynamic_pointer_cast<MacroInstantiation>(results[3]);
+      REQUIRE(one);
+      REQUIRE(two);
+      CHECK(one->macro->arguments.size() == 1);
+      CHECK(two->macro->arguments.size() == 2);
+      // No definition has three arguments.
+      DiagnosticTable wrong;
+      (void)parse(".macro m a\n.byte \\a\n.endm\nm 1, 2, 3", wrong);
+      REQUIRE(wrong.count() == 1);
+      std::string name = "m";
+      CHECK(wrong.cbegin()->second ==
+            RISCVParserError::to_string(RISCVParserError::UnaryError::Macro_WrongArgumentCount, name));
+    }
     using RVPE = RISCVParserError;
     for (const auto &[source, error] : std::vector<std::pair<const char *, RVPE::NullaryError>>{
              {".macro m\nm\n.endm\nm", RVPE::NullaryError::Macro_ExcessiveRecursion},

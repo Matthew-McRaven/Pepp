@@ -619,14 +619,16 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::RISCVParser::macro(Diagnos
   lex::Checkpoint cp(*buf);
   const auto name = buf->match<lex::Identifier>();
   if (!name) return cp.rollback(), nullptr;
-  const auto definition = _macros->find(name->to_string());
-  if (!definition) return cp.rollback(), nullptr;
+  if (!_macros->contains(name->to_string())) return cp.rollback(), nullptr;
   cp.commit();
 
   // Consume all non-comments, non-empty tokens until the end of the current line.
   while (buf->match_not<lex::Empty, lex::EoF, lex::InlineComment>());
   // The arguments are the text of the rest of the line, up to any comment.
   auto args = split_arguments(buf->matched_tokens_after(cp.marker()), *lexer);
+  // A name may have one definition per number of arguments.
+  const auto definition = _macros->find(name->to_string(), args.size());
+  if (!definition) throw RVPE(RVPE::UnaryError::Macro_WrongArgumentCount, name->to_string(), buf->matched_interval());
   if (_lexer_stack.size() > max_expansion_depth)
     throw RVPE(RVPE::NullaryError::Macro_ExcessiveRecursion, buf->matched_interval());
 
