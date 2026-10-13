@@ -20,6 +20,7 @@
 const std::string pepp::tc::CodegenError::to_string(NullaryError err) {
   switch (err) {
   case NullaryError::Argument_OddOffset: return "Branch and jump offsets must be even";
+  case NullaryError::Argument_UnpairedPcrelLo: return "%pcrel_lo must target an auipc using %pcrel_hi";
   case NullaryError::Argument_NotRelocatable: return "This use of a symbol cannot be relocated";
   }
   PEPP_UNREACHABLE();

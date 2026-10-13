@@ -238,6 +238,42 @@ data: .word 0)");
     const auto auipc = result.code.section_slices.at(0).get(0, 4);
     CHECK((u32(auipc[0]) | u32(auipc[1]) << 8 | u32(auipc[2]) << 16 | u32(auipc[3]) << 24) >> 12 == 2);
   }
+  SECTION("%pcrel_lo completes the %pcrel_hi") {
+    // data is at 0x1800, 0x1800 bytes past the auipc, so the addi and sw take its lower 12 bits (0x800).
+    const auto result = assemble(R"(.Lhi: auipc x1, %pcrel_hi(data)
+addi x1, x1, %pcrel_lo(.Lhi)
+sw x2, %pcrel_lo(.Lhi)(x1)
+.skip 0x17F4
+data: .word 0)");
+    CHECK(result.diag.count() == 0);
+    const auto &relocations = result.code.relocations.at(0);
+    REQUIRE(relocations.size() == 3);
+    CHECK(relocations[0].type == bits::to_underlying(R_RISCV_PCREL_HI20));
+    CHECK(relocations[0].target.symbol->name == "data");
+    // The lower parts are relocated against the auipc's label, not the original target data.
+    for (const auto &[index, type] : {std::pair{1, R_RISCV_PCREL_LO12_I}, std::pair{2, R_RISCV_PCREL_LO12_S}}) {
+      CAPTURE(index);
+      CHECK(relocations[index].section_offset == 4u * index);
+      CHECK(relocations[index].type == bits::to_underlying(type));
+      CHECK(relocations[index].target.symbol->name == ".Lhi");
+    }
+    const auto word = [&](u32 offset) {
+      const auto bytes = result.code.section_slices.at(0).get(offset, 4);
+      return u32(bytes[0]) | u32(bytes[1]) << 8 | u32(bytes[2]) << 16 | u32(bytes[3]) << 24;
+    };
+    CHECK(word(0) >> 12 == 2);
+    CHECK(word(4) >> 20 == 0x800);                                    // I-type imm[11:0]
+    CHECK((word(8) >> 25 == 0x40 && ((word(8) >> 7) & 0x1F) == 0)); // S-type imm[11:5], imm[4:0]
+  }
+  SECTION("%pcrel_lo requires a previous auipc %pcrel_hi") {
+    using E = CodegenError;
+    for (const char *source : {"addi x1, x1, %pcrel_lo(l)\nl: nop", "l: lui x1, 1\naddi x1, x1, %pcrel_lo(l)"}) {
+      CAPTURE(source);
+      const auto result = assemble(source);
+      REQUIRE(result.diag.count() == 1);
+      CHECK(result.diag.cbegin()->second == E::to_string(E::NullaryError::Argument_UnpairedPcrelLo));
+    }
+  }
   SECTION("A symbol which can move needs a fixup rule for its format and shape") {
     using E = CodegenError;
     // The accepted forms of each are covered by the relocations above.
