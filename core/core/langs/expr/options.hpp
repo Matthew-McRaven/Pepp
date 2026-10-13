@@ -69,6 +69,8 @@ struct Options {
   } dot = Dot::Forbidden;
   // Lex %name as an identifier, which must then name a function (e.g., RISC-V's %hi). Otherwise, % is modulo.
   bool percent_identifiers = false;
+  // Lex .L<name> as an identifier, a GNU local label, rather than as the location counter followed by a name.
+  bool local_labels = false;
   // Functions that should be recognized by the language.
   std::span<const Function> functions;
 };

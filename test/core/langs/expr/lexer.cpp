@@ -61,6 +61,9 @@ TEST_CASE("Expression lexer", "[scope:core][scope:core.langs][kind:unit][arch:*]
           V{"Identifier(a)", "Literal(.)", "Identifier(b)", "Literal(.)", "EoF()"});
     // As an operator
     CHECK(reprs("a.b", {.dot = Dot::Operator}) == V{"Identifier(a)", "Literal(.)", "Identifier(b)", "EoF()"});
+    // Local labels
+    CHECK(reprs(".Lx .", {.dot = Dot::Identifier, .local_labels = true}) == V{"Identifier(.Lx)", "Literal(.)", "EoF()"});
+    CHECK(reprs(".Lx", {.dot = Dot::Identifier}) == V{"Literal(.)", "Identifier(Lx)", "EoF()"});
   }
   SECTION("% may start an identifier depending on lexer options") {
     CHECK(reprs("%hi a%b", {.percent_identifiers = true}) ==

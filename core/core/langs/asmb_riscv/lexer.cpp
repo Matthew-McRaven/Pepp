@@ -9,5 +9,6 @@ pepp::tc::lex::AsmbOptions pepp::langs::RISCVLexer::options() {
                                     .allow_parens = true,
                                     .allow_macro_arguments = true,
                                     .allow_at_in_ident = true,
+                                    .allow_local_labels = true,
                                     .line_comment_leader = "#"};
 }

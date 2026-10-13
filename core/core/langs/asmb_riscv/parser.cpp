@@ -78,10 +78,11 @@ const std::array<expr::Function, 6> functions{{
     {"%constant", Category::ConstEval, symbol_parameter, constant, nullptr},
 }};
 
-// `.` is the location counter, and %name a relocation modifier.
+// `.` is the location counter, .L<name> a local label, and %name a relocation modifier.
 const expr::Options options{.default_type = {32, expr::Signedness::Signed},
                             .dot = expr::Options::Dot::Identifier,
                             .percent_identifiers = true,
+                            .local_labels = true,
                             .functions = functions};
 
 // Conditionals choose which lines are parsed, so like equates they are evaluated as they are parsed.

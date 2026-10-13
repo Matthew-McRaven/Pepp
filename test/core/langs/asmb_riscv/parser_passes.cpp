@@ -117,6 +117,19 @@ TEST_CASE("RISCV ASM parser", "[scope:core][scope:core.langs][level:asmb3][level
     CHECK(as_b->imm);
     CHECK(as_b->imm->value_as<u32>() == 15);
   }
+  SECTION("Local labels") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".Lloop: addi x1, x1, -1\nbne x1, x0, .Lloop"));
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 2);
+    const auto declared = results[0]->typed_attribute<SymbolDeclaration>();
+    REQUIRE(declared);
+    CHECK(declared->entry->name == ".Lloop");
+    const auto branch = std::dynamic_pointer_cast<BTypeIR>(results[1]);
+    REQUIRE(branch);
+    CHECK(branch->imm->string() == ".Lloop");
+  }
   SECTION("J Type: JaL x31, -72") {
     pepp::tc::DiagnosticTable diag;
     auto p = Parser(data("JaL x31, -72"));
