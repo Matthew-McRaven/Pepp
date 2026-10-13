@@ -184,8 +184,9 @@ struct PeppObjectVistitor : public PepIRVisitor {
   bits::span<u8> out_bytes;
   std::vector<Relocation> &relocations;
   IR2ObjectCodeMap &ir_to_object_code;
-  PeppObjectVistitor(DiagnosticTable &, const IRMemoryAddressTable<PeppAddress> &, const u16 base_address,
-                     bits::span<u8>, std::vector<Relocation> &, IR2ObjectCodeMap &);
+  // Lines by address are unused, since Pep/10 has no relocation which refers to another line.
+  PeppObjectVistitor(DiagnosticTable &, const IRMemoryAddressTable<PeppAddress> &, const LinesByAddress &,
+                     const u16 base_address, bits::span<u8>, std::vector<Relocation> &, IR2ObjectCodeMap &);
   // Emit a relocation for the line's argument, which is at offset into the section.
   void relocate(const LinearIR &line, pepp::ast::IRValue &arg, u16 offset);
   void visit(const EmptyLine *) override;
@@ -206,8 +207,9 @@ struct PeppObjectVistitor : public PepIRVisitor {
 };
 
 pepp::tc::PeppObjectVistitor::PeppObjectVistitor(
-    DiagnosticTable &diag, const IRMemoryAddressTable<PeppAddress> &ir_to_address, const u16 base_address,
-    bits::span<u8> out_bytes, std::vector<Relocation> &relocs, IR2ObjectCodeMap &ir_to_object_code)
+    DiagnosticTable &diag, const IRMemoryAddressTable<PeppAddress> &ir_to_address, const LinesByAddress &,
+    const u16 base_address, bits::span<u8> out_bytes, std::vector<Relocation> &relocs,
+    IR2ObjectCodeMap &ir_to_object_code)
     : diag(diag), ir_to_address(ir_to_address), base_address(base_address), out_bytes(out_bytes), relocations(relocs),
       ir_to_object_code(ir_to_object_code) {}
 

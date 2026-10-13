@@ -368,6 +368,10 @@ struct ProgramObjectCodeResult {
   std::vector<pepp::bts::BlockStorage::BlockStorageSlice> section_slices;
 };
 
+// The lines of one section which occupy memory, sorted by address. Zero-sized lines (e.g., labels) share an address
+// with the line after them, so they are omitted.
+using LinesByAddress = fc::vector_map<u32, const LinearIR *>;
+
 // Values which do not fit their field are reported to diag, and their bytes are left as zeros.
 template <typename Address, typename Visitor>
 ProgramObjectCodeResult to_object_code(DiagnosticTable &diag, const IRMemoryAddressTable<Address> &addresses,
@@ -393,7 +397,13 @@ ProgramObjectCodeResult to_object_code(DiagnosticTable &diag, const IRMemoryAddr
     const auto &[sec, ir] = prog[it];
     const auto &offset = offsets[it];
     auto &slice = ret.section_slices.emplace_back(ret.object_code, offset.object_code_offset, offset.object_code_size);
-    Visitor visitor(diag, addresses, sec.low_address, slice.get(0, slice.size()), ret.relocations[it],
+    LinesByAddress lines_by_address;
+    for (const auto &line : ir)
+      if (const auto found = addresses.find(line.get()); found != addresses.end() && found->second.size > 0)
+        lines_by_address.container.emplace_back(found->second.address, line.get());
+    // Establish flat-map invariant
+    std::sort(lines_by_address.container.begin(), lines_by_address.container.end());
+    Visitor visitor(diag, addresses, lines_by_address, sec.low_address, slice.get(0, slice.size()), ret.relocations[it],
                     ret.ir_to_object_code);
     for (const auto &line : ir) visitor.accept(line.get());
   }

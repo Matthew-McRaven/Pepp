@@ -102,21 +102,24 @@ namespace pepp::tc {
 struct RISCVObjectVistitor : public RISCVIRVisitor {
   DiagnosticTable &diag;
   const IRMemoryAddressTable<RISCVAddress> &ir_to_address;
+  // Mapping of addresses->this section's IR
+  const LinesByAddress &lines_by_address;
   const u32 base_address;
   // On each call, out_bytes will be shortened by the size of the visited line;
   bits::span<u8> out_bytes;
   std::vector<Relocation> &relocations;
   IR2ObjectCodeMap &ir_to_object_code;
-  RISCVObjectVistitor(DiagnosticTable &, const IRMemoryAddressTable<RISCVAddress> &, const u32 base_address,
-                      bits::span<u8>, std::vector<Relocation> &, IR2ObjectCodeMap &);
+  RISCVObjectVistitor(DiagnosticTable &, const IRMemoryAddressTable<RISCVAddress> &, const LinesByAddress &,
+                      const u32 base_address, bits::span<u8>, std::vector<Relocation> &, IR2ObjectCodeMap &);
   // Integer instructions can delegate to a shared implementation.
   void emit_line(const IntegerInstruction *line);
   // The value to encode for a line's operand at address, recording the relocation it needs (if any). nullopt if the
   // operand is invalid, which has been reported.
   std::optional<u32> operand_field(const LinearIR &line, pepp::ast::IRValue &value, ArgumentConstraint constraint,
                                    u32 address);
-  // Find the symbol at a given address. Used from %pcrel_ro
-  std::optional<SymbolOffset> pcrel_hi_at(u32 address) const;
+  // The value inside %pcrel_hi() at a given address. Nullopt if target is not an auipc or if it does not use
+  // %pcrel_hi().
+  std::optional<SymbolOffset> pcrel_hi_value(u32 address) const;
   void visit(const EmptyLine *) override;
   void visit(const CommentLine *) override;
   void visit(const SymbolLine *) override;
@@ -138,10 +141,11 @@ struct RISCVObjectVistitor : public RISCVIRVisitor {
 };
 
 pepp::tc::RISCVObjectVistitor::RISCVObjectVistitor(
-    DiagnosticTable &diag, const IRMemoryAddressTable<RISCVAddress> &ir_to_address, const u32 base_address,
-    bits::span<u8> out_bytes, std::vector<Relocation> &relocs, IR2ObjectCodeMap &ir_to_object_code)
-    : diag(diag), ir_to_address(ir_to_address), base_address(base_address), out_bytes(out_bytes), relocations(relocs),
-      ir_to_object_code(ir_to_object_code) {}
+    DiagnosticTable &diag, const IRMemoryAddressTable<RISCVAddress> &ir_to_address,
+    const LinesByAddress &lines_by_address, const u32 base_address, bits::span<u8> out_bytes,
+    std::vector<Relocation> &relocs, IR2ObjectCodeMap &ir_to_object_code)
+    : diag(diag), ir_to_address(ir_to_address), lines_by_address(lines_by_address), base_address(base_address),
+      out_bytes(out_bytes), relocations(relocs), ir_to_object_code(ir_to_object_code) {}
 
 void pepp::tc::RISCVObjectVistitor::visit(const EmptyLine *) {
   // Does not generate object code
@@ -253,16 +257,15 @@ std::optional<u32> pepp::tc::RISCVObjectVistitor::operand_field(const LinearIR &
     relocations.push_back(
         Relocation{.target = target, .section_offset = address - base_address, .type = bits::to_underlying(rule.type)});
     if (rule.value == FixupValue::PcRelativeLow) {
-      // Find the auipc that pairs with this %pcrel_lo via the address of the symbol we were given.
-      // The auipc is found by its address, and its own S + A - P gives the field.
+      // Find the paired auipc that this line reference.
       const auto auipc = target.symbol->is_undefined() ? 0 : target.symbol->value->value()() + target.addend;
-      const auto hi = target.symbol->is_undefined() ? std::nullopt : pcrel_hi_at(auipc);
+      const auto hi = target.symbol->is_undefined() ? std::nullopt : pcrel_hi_value(auipc);
       if (!hi) {
         const CodegenError error(CodegenError::NullaryError::Argument_UnpairedPcrelLo, line.source_interval);
         diag.add_message(error.loc, error.what());
         return std::nullopt;
       } else if (hi->symbol->is_undefined()) return 0;
-      // S + A - P
+      // Per standard, we are supposed to compute the relocation as S + A - P
       return static_cast<u32>(hi->symbol->value->value()() + hi->addend - auipc) & 0xFFF;
     } else if (rule.value != FixupValue::OperandValue) {
       // An undefined symbol is only known once linked, so no attempt is made to emit a correct immediate.
@@ -282,15 +285,12 @@ std::optional<u32> pepp::tc::RISCVObjectVistitor::operand_field(const LinearIR &
   return value.value_as<u32>();
 }
 
-std::optional<pepp::tc::SymbolOffset> pepp::tc::RISCVObjectVistitor::pcrel_hi_at(u32 address) const {
-  // Find the IR at address via linear search.
-  // If that line requires R_RISCV_PCREL_HI20, then return the associated symbol.
-  for (const auto &[line, info] : ir_to_address.container) {
-    const auto *instruction = dynamic_cast<const UTypeIR *>(line);
-    if (info.address != address || !instruction || !instruction->imm) continue;
-    const auto fixup = find_fixup_rule<FixupRule>(fixup_rules, IRFormat::U, *instruction->imm);
-    if (fixup && fixup->rule.type == RV::R_RISCV_PCREL_HI20) return fixup->target;
-  }
+std::optional<pepp::tc::SymbolOffset> pepp::tc::RISCVObjectVistitor::pcrel_hi_value(u32 address) const {
+  if (const auto found = lines_by_address.find(address); found == lines_by_address.end()) return std::nullopt;
+  else if (const auto *instr = dynamic_cast<const UTypeIR *>(found->second); !instr || !instr->imm) return std::nullopt;
+  else if (const auto fixup = find_fixup_rule<FixupRule>(fixup_rules, IRFormat::U, *instr->imm);
+           fixup && fixup->rule.type == RV::R_RISCV_PCREL_HI20)
+    return fixup->target;
   return std::nullopt;
 }
 
