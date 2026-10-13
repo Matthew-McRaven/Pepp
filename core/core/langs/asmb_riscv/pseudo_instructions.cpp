@@ -95,6 +95,17 @@ jalr zero, %pcrel_lo(.Lpcrel_hi\@)(\rt)
           false};
 }
 
+// Load local address: lla rd, symbol -> auipc rd, %pcrel_hi(symbol); addi rd, rd, %pcrel_lo(<the auipc>)
+// Without .option pic, la is equivalent.
+MacroDefinition load_address(const std::string &mnemonic) {
+  return {mnemonic,
+          {{.name = "rd"}, {.name = "symbol"}},
+          R"(.Lpcrel_hi\@: auipc \rd, %pcrel_hi(\symbol)
+addi \rd, \rd, %pcrel_lo(.Lpcrel_hi\@)
+)",
+          false};
+}
+
 // Load global: l{b|h|w|bu|hu} rd, symbol -> auipc rd, %pcrel_hi(symbol); l{b|h|w|bu|hu} rd, %pcrel_lo(<the auipc>)(rd)
 // Shares its name with the load instruction, only differing by arity.
 MacroDefinition load_global(const std::string &mnemonic) {
@@ -116,8 +127,9 @@ MacroDefinition store_global(const std::string &mnemonic) {
 const std::vector<MacroDefinition> &definitions() {
   static const std::vector<MacroDefinition> ret{
       sext_b(),           sext_h(),           zext_h(),           call(),             call_rd(),
-      tail(),             jump(),             load_global("lb"),  load_global("lh"),  load_global("lw"),
-      load_global("lbu"), load_global("lhu"), store_global("sb"), store_global("sh"), store_global("sw"),
+      tail(),             jump(),             load_address("la"), load_address("lla"), load_global("lb"),
+      load_global("lh"),  load_global("lw"),  load_global("lbu"), load_global("lhu"),  store_global("sb"),
+      store_global("sh"), store_global("sw"),
   };
   return ret;
 }

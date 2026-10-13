@@ -448,11 +448,6 @@ static void add_rv32i_instructions(riscv::MnemonicSet &mn_set) {
 static void add_rv32i_psueodo_instructions(riscv::MnemonicSet &mn_set) {
   using namespace riscv;
   auto add = [&](const riscv::Mnemonic &mn) { mn_set.insert(mn); };
-  // with .option pic
-  // load address: la rd, symbol -> auipc rd, symbol[31:12]; addi rd, rd, symbol[11:0]
-  // else
-  // load address: la rd, symbol -> auipc rd, symbol@GOT[31:12]; l{w|d} rd, symbol@GOT[11:0](rd)
-  // load local address: lla rd, symbol -> auipc rd, symbol[31:12]; addi rd, rd, symbol[11:0]
   add({"j", J});
   add({"jr", JR});
   add({"ret", RET});

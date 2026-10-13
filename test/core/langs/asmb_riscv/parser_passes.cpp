@@ -700,6 +700,28 @@ TEST_CASE("RISCV ASM pseudo-instructions",
     REQUIRE(wrong.count() == 1);
     CHECK(wrong.cbegin()->second == RVPE::to_string(RVPE::NullaryError::Token_MissingNewline));
   }
+  SECTION("Load address") {
+    DiagnosticTable diag;
+    auto p = Parser(data("lla x5, msg\nla x6, msg"));
+    const auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 2);
+    // Without .option pic, la is equivalent to lla.
+    for (const auto &[index, rd] : {std::pair{0, 5}, std::pair{1, 6}}) {
+      CAPTURE(index);
+      const auto macro = std::dynamic_pointer_cast<MacroInstantiation>(results[index]);
+      REQUIRE(macro);
+      REQUIRE(macro->lines.size() == 2);
+      const auto auipc = std::dynamic_pointer_cast<UTypeIR>(macro->lines[0]);
+      const auto addi = std::dynamic_pointer_cast<ITypeIR>(macro->lines[1]);
+      REQUIRE(auipc);
+      REQUIRE(addi);
+      CHECK((auipc->rd == rd && auipc->imm->string() == "%pcrel_hi(msg)"));
+      CHECK(addi->mnemonic.mn == riscv::ADDI);
+      CHECK((addi->rd == rd && addi->rs1 == rd &&
+             addi->imm->string() == "%pcrel_lo(.Lpcrel_hi" + std::to_string(index) + ")"));
+    }
+  }
   SECTION("Far control-flow transfers") {
     DiagnosticTable diag;
     auto p = Parser(data("call f\ncall x5, f\ntail f\njump f, x7"));
