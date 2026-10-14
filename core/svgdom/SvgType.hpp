@@ -1,6 +1,8 @@
 #pragma once
+#include <algorithm>
 #include <array>
 #include <string>
+#include <string_view>
 #include <utility>
 
 class SvgType
