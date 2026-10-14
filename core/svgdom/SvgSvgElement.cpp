@@ -15,15 +15,20 @@ factory methods.
 //	Public interface
 SvgSvgElement::SvgSvgElement() : Cloneable<SvgSvgElement, SvgElement>() {}
 
-SvgSvgElement::SvgSvgElement(const std::string &xmlName, const std::string &value)
-    : SvgSvgElement()
-{
-    SvgElement::setXmlName(xmlName);
-    SvgElement::setValue(value);
+SvgSvgElement::SvgSvgElement(const std::string &xmlName, const std::string &value) : SvgSvgElement() {
+  SvgElement::setXmlName(xmlName);
+  //  Value is not used in SvgSvgElement
 }
 
 //  Derived class accessors
 SvgType::Type SvgSvgElement::elementType() const { return TYPE; }
+
+//  Value is not valid for a svg element
+const std::string &SvgSvgElement::value() const {
+  static std::string empty{};
+  return empty;
+};
+void SvgSvgElement::setValue(const std::string &value) {};
 
 SvgRect &SvgSvgElement::viewBox() { return _viewBox; }
 const SvgRect &SvgSvgElement::viewBox() const
@@ -40,9 +45,10 @@ void SvgSvgElement::toXml(SvgRope &output) const
     attributeXml(output);
 
     //  No child elements, and no values, add end tag
-    if (SvgElement::children().empty() && SvgElement::value().empty()) {
-        output.push_back(" />");
-        return;
+    //  Value is not valid for rectangle element
+    if (SvgElement::children().empty() /*&& SvgElement::value().empty()*/) {
+      output.push_back(" />");
+      return;
     }
     output.push_back(">");
 
