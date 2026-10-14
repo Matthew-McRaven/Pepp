@@ -4,3 +4,4 @@
 
 * [RIPES](https://github.com/mortbopet/Ripes)
 * [QtMIPS](https://github.com/cvut/QtMips)
+* [SICXE](https://github.com/ekareem/SICXE)

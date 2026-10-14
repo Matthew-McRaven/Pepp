@@ -8,3 +8,5 @@ Indirect branch perdiction: https://blog.nelhage.com/post/ittage-branch-predicto
 [Speedrunning a CPU: RISC-V in a Week](daymare.net https://daymare.net/blogs/speedrunning-a-cpu/)
 
 Formally verifying FP division with Gappa part 1 - Embedded and Microcontrollers blog - Arm Community blogs - Arm Community https://community.arm.com/arm-community-blogs/b/embedded-and-microcontrollers-blog/posts/formally-verifying-a-floating-point-division-routine-with-gappa-p1
+
+[Adding new architecture to QEMU](http://events17.linuxfoundation.org/sites/events/files/slides/ossj-2017.pdf)

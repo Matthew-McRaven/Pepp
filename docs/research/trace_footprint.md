@@ -1,3 +1,6 @@
+# Background Resources
+Evolution of an Undo system https://mdodis.substack.com/p/smooth-brained-undo?r=6bskrl
+
 # Trace footprint: TVM programs vs. sim3 packets
 
 I measured the trace format on `hwdebug` (TVM programs in a `tvm::TraceBuffer`) against the format it replaces (`lib/sim3`, variant fragments serialized with zpp_bits into an `InfiniteBuffer`).

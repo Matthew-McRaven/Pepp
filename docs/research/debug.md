@@ -1,4 +1,9 @@
-https://media.ccc.de/v/38c3-demystifying-common-microcontroller-debug-protocols
+Demystifying Common Microcontroller Debug Protocols - media.ccc.de (https://media.ccc.de/v/38c3-demystifying-common-microcontroller-debug-protocols#t=2647)
+
+Writing a debugger https://www.timdbg.com
+
+
+# Current Debugger Design
 
 Hijack existing trace tags snytax for debugger actions.
 That use syntax akin to `@params #myNum`.
