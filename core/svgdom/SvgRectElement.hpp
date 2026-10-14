@@ -10,9 +10,6 @@ class SvgRectElement final : public Cloneable<SvgRectElement, SvgElement>
   SvgUnitValue _rx;
   SvgUnitValue _ry;
 
-  const std::string &value() const override;
-  void setValue(const std::string &value) override;
-
 public:
   static constexpr SvgType::Type TYPE = SvgType::Type::SvgRectElement;
 
@@ -27,6 +24,10 @@ public:
 
   //	User access functions
   SvgType::Type elementType() const override;
+
+  //  Value does not apply to SvgRect
+  const std::string &value() const override;
+  void setValue(const std::string &value) override;
 
   //  Values can be changed, but not units of measure (yet)
   SvgUnitValue rx() const;
