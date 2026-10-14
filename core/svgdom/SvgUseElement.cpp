@@ -14,11 +14,7 @@ a non-exposed DOM, then pasted where the <use> element is, much like cloned
 */
 
 //	Public interface
-SvgUseElement::SvgUseElement()
-    : Cloneable<SvgUseElement, SvgElement>()
-{
-    SvgElement::setElementType(SvgType::Type::SvgUseElement);
-}
+SvgUseElement::SvgUseElement() : Cloneable<SvgUseElement, SvgElement>() {}
 
 SvgUseElement::SvgUseElement(const std::string &xmlName, const std::string &value)
     : SvgUseElement()
@@ -29,6 +25,8 @@ SvgUseElement::SvgUseElement(const std::string &xmlName, const std::string &valu
 
 //  Derived class accessors
 //  Dimension accessors
+SvgType::Type SvgUseElement::elementType() const { return TYPE; }
+
 auto SvgUseElement::href() const
 {
     return _href;

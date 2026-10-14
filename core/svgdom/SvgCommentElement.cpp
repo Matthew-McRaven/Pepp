@@ -17,7 +17,6 @@ derive from the SVGElement interface.
 SvgCommentElement::SvgCommentElement()
     : Cloneable<SvgCommentElement, SvgElement>()
 {
-    SvgElement::setElementType(SvgType::Type::SvgCommentElement);
 }
 
 SvgCommentElement::SvgCommentElement(const std::string &comment)
@@ -25,6 +24,9 @@ SvgCommentElement::SvgCommentElement(const std::string &comment)
 {
     SvgElement::setValue(comment);
 }
+
+//  Derived class accessors
+SvgType::Type SvgCommentElement::elementType() const { return TYPE; }
 
 bool SvgCommentElement::setAttribute(const std::string &key, const std::string &value)
 {

@@ -13,11 +13,7 @@ factory methods.
 */
 
 //	Public interface
-SvgRectElement::SvgRectElement()
-    : Cloneable<SvgRectElement, SvgElement>()
-{
-  SvgElement::setElementType(SvgType::Type::SvgRectElement);
-}
+SvgRectElement::SvgRectElement() : Cloneable<SvgRectElement, SvgElement>() {}
 
 SvgRectElement::SvgRectElement(const std::string &xmlName, const std::string &value)
     : SvgRectElement()
@@ -27,6 +23,8 @@ SvgRectElement::SvgRectElement(const std::string &xmlName, const std::string &va
 }
 
 //  Derived class accessors
+SvgType::Type SvgRectElement::elementType() const { return TYPE; }
+
 //  Dimension accessors
 SvgUnitValue SvgRectElement::rx() const { return _rx; }
 void SvgRectElement::setRx(double x)

@@ -57,6 +57,7 @@ const SvgSvgElement &Document::documentElement() const
 }
 
 size_t Document::fileSize() const { return _fileSize; }
+const std::string &Document::fileName() const { return _fileName; }
 
 //  File operations
 bool Document::saveAs(const std::string &fileName) {
@@ -229,23 +230,11 @@ const std::string Document::toXml() const
 //  persisted.
 std::string Document::flattenRope(SvgRope &rope) const
 {
-    std::string xml;
-
     //  Create in memory rope of Xml structure
     _svgDocument->toXml(rope);
 
-    //  Resize string if Xml is longer than current string length
-    if (xml.capacity() < rope.size()) {
-        xml.resize(rope.size() + 1);
-        xml.clear();
-    }
-
-    //  Create single string in memory
-    for (auto &fragment : rope.rope()) {
-        xml.append(fragment);
-    }
-
     //  File size may change during reconstruction
+    std::string xml = rope.toString();
     _fileSize = xml.size();
 
     return std::move(xml);

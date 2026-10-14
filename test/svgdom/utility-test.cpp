@@ -199,6 +199,7 @@ TEST_CASE("Utility file-SvgRope tests", "[scope:core][scope:core.svgdom][kind:un
   rope.push_back("5678"s);
   rope.push_back("90"s);
   CHECK(rope.size() == 10);
+  CHECK(rope.toString() == "1234567890"s);
 
   rope.clear();
   CHECK(rope.size() == 0);

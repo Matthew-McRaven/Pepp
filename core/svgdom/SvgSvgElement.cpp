@@ -13,11 +13,7 @@ factory methods.
 */
 
 //	Public interface
-SvgSvgElement::SvgSvgElement()
-    : Cloneable<SvgSvgElement, SvgElement>()
-{
-    SvgElement::setElementType(SvgType::Type::SvgSvgElement);
-}
+SvgSvgElement::SvgSvgElement() : Cloneable<SvgSvgElement, SvgElement>() {}
 
 SvgSvgElement::SvgSvgElement(const std::string &xmlName, const std::string &value)
     : SvgSvgElement()
@@ -27,10 +23,9 @@ SvgSvgElement::SvgSvgElement(const std::string &xmlName, const std::string &valu
 }
 
 //  Derived class accessors
-SvgRect &SvgSvgElement::viewBox()
-{
-    return _viewBox;
-}
+SvgType::Type SvgSvgElement::elementType() const { return TYPE; }
+
+SvgRect &SvgSvgElement::viewBox() { return _viewBox; }
 const SvgRect &SvgSvgElement::viewBox() const
 {
     return _viewBox;

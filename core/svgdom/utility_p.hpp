@@ -209,6 +209,26 @@ public:
         _rope.push_back(value);
         _size += value.size();
     }
+
+    //  Loop through all elements and get a rope of values.
+    //  flatten values into a single string that is later
+    //  persisted.
+    std::string toString() const {
+      std::string xml;
+
+      //  Resize string if Xml is longer than current string length
+      if (xml.capacity() < _size) {
+        xml.resize(_size + 1);
+        xml.clear();
+      }
+
+      //  Create single string in memory
+      for (auto &fragment : _rope) {
+        xml.append(fragment);
+      }
+
+      return std::move(xml);
+    }
 };
 
 class SvgList {

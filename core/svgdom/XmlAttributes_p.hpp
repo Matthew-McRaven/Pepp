@@ -67,15 +67,12 @@ public:
         static std::string empty;
 
         //	Search lamdba
-        auto query = [&value](const std::pair<std::string, std::string> &attr) {
-            return value == attr.second;
-        };
+        auto query = [&value](const std::pair<std::string, std::string> &attr) { return value == attr.second; };
 
         //	Execute search
         auto it = std::ranges::find_if(attrs_.cbegin(), attrs_.cend(), query);
 
-        if (it != attrs_.cend())
-            return it->second;
+        if (it != attrs_.cend()) return it->first;
 
         return empty;
     }

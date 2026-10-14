@@ -2,7 +2,9 @@
 
 //	Standard library
 #include <algorithm> //  std::transform
-#include <memory> //  std::make_unique
+#include <iostream>  //  std::cout
+#include <memory>    //  std::make_unique
+using namespace std::string_literals;
 
 #include "SvgCDataElement.hpp"
 #include "SvgCommentElement.hpp"
@@ -67,14 +69,8 @@ SvgElement::SvgElement(const SvgElement &original)
 }
 
 //  Generic Dom fields
-SvgType::Type SvgElement::elementType() const
-{
-    return _elementType;
-}
-void SvgElement::setElementType(const SvgType::Type elementType)
-{
-    _elementType = elementType;
-}
+SvgType::Type SvgElement::elementType() const { return _elementType; }
+void SvgElement::setElementType(const SvgType::Type elementType) { _elementType = elementType; }
 
 const std::string &SvgElement::xmlName() const
 {
@@ -97,6 +93,8 @@ void SvgElement::setDocument(Document *doc)
 {
     _doc = doc;
 }
+
+const Document *SvgElement::document() const { return _doc; }
 
 //  Svg specific fields
 const std::string &SvgElement::id() const
@@ -202,30 +200,11 @@ std::list<std::unique_ptr<SvgInterface>> &SvgElement::children()
 
 SvgInterface *SvgElement::createElement(const std::string &name)
 {
-    if (name == "comment"s)
-        createElement(SvgType::Type::SvgCommentElement);
-    else if (name == "cdata"s)
-        createElement(SvgType::Type::SvgCDataElement);
-    else if (name == "rect"s)
-        createElement(SvgType::Type::SvgRectElement);
-    else if (name == "defs"s)
-        createElement(SvgType::Type::SvgDefsElement);
-    else if (name == "g"s)
-        createElement(SvgType::Type::SvgGElement);
-    else if (name == "desc"s)
-        createElement(SvgType::Type::SvgDescElement);
-    else if (name == "metadata"s)
-        createElement(SvgType::Type::SvgMetadataElement);
-    else if (name == "title"s)
-        createElement(SvgType::Type::SvgTitleElement);
-    else {
-        createElement(SvgType::Type::SvgUnknownElement);
-    }
+  auto temp = createElement(SvgType::fromName(name));
+  SvgElement *element = static_cast<SvgElement *>(temp);
+  element->setXmlName(name);
 
-    SvgElement *element = static_cast<SvgElement *>(_children.back().get());
-    element->setXmlName(name);
-
-    return _children.back().get();
+  return element;
 }
 
 SvgInterface *SvgElement::createElement(const SvgType::Type type)
@@ -234,8 +213,6 @@ SvgInterface *SvgElement::createElement(const SvgType::Type type)
 
     //  Some elements require additional processing
     auto child = static_cast<SvgElement *>(_children.back().get());
-    if (child->elementType() == SvgType::Type::SvgUnknownElement)
-        child->setElementType(type);
 
     //  We track certain types, add pointers now
     switch (type) {
@@ -245,10 +222,9 @@ SvgInterface *SvgElement::createElement(const SvgType::Type type)
     case SvgType::Type::SvgMetadataElement:
         _metadata = child;
         break;
-    case SvgType::Type::SvgTitleElement: {
-        _title = child;
-        break;
-    }
+    case SvgType::Type::SvgTitleElement: _title = child; break;
+    case SvgType::Type::SvgUnknownElement: child->setElementType(type); break;
+    default: break;
     }
 
     //  All children must refer to this document
@@ -258,12 +234,11 @@ SvgInterface *SvgElement::createElement(const SvgType::Type type)
 
 void SvgElement::appendChild(SvgInterface *child)
 {
-    // This is a move operation. Add move logic later.
-    //  Just return now.
-    if (child->currentDocument() == _doc)
-        return;
-
+  // This is a copy operation. Add move logic later.
+  // Just return now.
+  if (child->currentDocument() != _doc) {
     _children.emplace_back(child->clone());
+  }
 }
 
 void SvgElement::toXml(SvgRope &output) const

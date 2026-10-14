@@ -10,98 +10,106 @@
 //	Forward declarations
 class XmlAttributes;
 class Document;
+class SvgDocument;
+class SvgFactory;
 
 class SvgElement : public Cloneable<SvgElement, SvgInterface>
 {
 public:
-    SvgElement() = default;
-    explicit SvgElement(const std::string &name, const std::string &value = "");
-    virtual ~SvgElement() = default;
-    //Can copy and move
-    SvgElement(const SvgElement &); // = default;
-    SvgElement &operator=(const SvgElement &) = default;
-    SvgElement(SvgElement &&) noexcept = default;
-    SvgElement &operator=(SvgElement &&) noexcept = default;
+  //  SvgFactory is a separate class to create Svg Elements
+  friend class SvgFactory;
 
-    //	User access functions
-    //  Standard Xml
-    SvgType::Type elementType() const override;
-    void setElementType(const SvgType::Type elementType) override;
-    const std::string &xmlName() const override;
-    void setXmlName(const std::string &xmlName) override;
-    const std::string &value() const override;
-    void setValue(const std::string &value) override;
-    void setDocument(Document *doc) override;
+  SvgElement() = default;
+  explicit SvgElement(const std::string &name, const std::string &value = "");
+  virtual ~SvgElement() = default;
+  // Can copy and move
+  SvgElement(const SvgElement &); // = default;
+  SvgElement &operator=(const SvgElement &) = default;
+  SvgElement(SvgElement &&) noexcept = default;
+  SvgElement &operator=(SvgElement &&) noexcept = default;
 
-    //  Svg specific functions
-    const std::string &id() const;
-    void setId(const std::string &id);
-    SvgList &classList();
-    const SvgList &classList() const;
-    const std::string &title() const;
-    void setTitle(const std::string &title);
-    const std::string &metadata() const;
-    void setMetadata(const std::string &metadata);
-    const std::string &desc() const;
-    void setDesc(const std::string &desc);
+  //	User access functions
+  //  Standard Xml
+  virtual SvgType::Type elementType() const override;
+  const std::string &xmlName() const override;
+  void setXmlName(const std::string &xmlName) override;
+  const std::string &value() const override;
+  void setValue(const std::string &value) override;
+  void setDocument(Document *doc) override;
+  const Document *document() const;
 
-    //	User access functions
-    //  Values can be changed, but not units of measure (yet)
-    SvgUnitValue x() const;
-    void setX(double x = 0);
-    void setX(const std::string_view sv);
-    SvgUnitValue y() const;
-    void setY(double y = 0);
-    void setY(const std::string_view sv);
-    SvgUnitValue width() const;
-    void setWidth(double width = 0);
-    void setWidth(const std::string_view sv);
-    SvgUnitValue height() const;
-    void setHeight(double height = 0);
-    void setHeight(const std::string_view sv);
+  //  Svg specific functions
+  const std::string &id() const;
+  void setId(const std::string &id);
+  SvgList &classList();
+  const SvgList &classList() const;
+  const std::string &title() const;
+  void setTitle(const std::string &title);
+  const std::string &metadata() const;
+  void setMetadata(const std::string &metadata);
+  const std::string &desc() const;
+  void setDesc(const std::string &desc);
 
-    const XmlAttributes &attributes() const;
-    XmlAttributes &attributes();
+  //	User access functions
+  //  Values can be changed, but not units of measure (yet)
+  SvgUnitValue x() const;
+  void setX(double x = 0);
+  void setX(const std::string_view sv);
+  SvgUnitValue y() const;
+  void setY(double y = 0);
+  void setY(const std::string_view sv);
+  SvgUnitValue width() const;
+  void setWidth(double width = 0);
+  void setWidth(const std::string_view sv);
+  SvgUnitValue height() const;
+  void setHeight(double height = 0);
+  void setHeight(const std::string_view sv);
 
-    const std::list<std::unique_ptr<SvgInterface>> &children() const;
-    std::list<std::unique_ptr<SvgInterface>> &children();
-    SvgInterface *createElement(const std::string &name) override;
-    SvgInterface *createElement(const SvgType::Type type) override;
-    void appendChild(SvgInterface *child) override;
+  const XmlAttributes &attributes() const;
+  XmlAttributes &attributes();
 
-    //  Overrides
-    virtual void toXml(SvgRope &output) const override;
-    virtual bool setAttribute(const std::string &key, const std::string &value) override;
-    virtual bool attributeXml(SvgRope &output) const;
+  const std::list<std::unique_ptr<SvgInterface>> &children() const;
+  std::list<std::unique_ptr<SvgInterface>> &children();
+  SvgInterface *createElement(const std::string &name) override;
+  SvgInterface *createElement(const SvgType::Type type) override;
+  void appendChild(SvgInterface *child) override;
+
+  //  Overrides
+  virtual void toXml(SvgRope &output) const override;
+  virtual bool setAttribute(const std::string &key, const std::string &value) override;
+  virtual bool attributeXml(SvgRope &output) const;
 
 private:
-    //  Standard Xml Data
-    SvgType::Type _elementType = SvgType::Type::SvgUnknownElement;
-    std::string _xmlName;
-    std::string _value;
+  //  Type cannot be externally changed except by factory class
+  void setElementType(const SvgType::Type elementType) override;
 
-    //  Svg specific data
-    std::string _id;
-    SvgList _classList;
+  //  Standard Xml Data
+  SvgType::Type _elementType = SvgType::Type::SvgUnknownElement;
+  std::string _xmlName;
+  std::string _value;
 
-    //  Stored as Elements in svg
-    SvgElement *_title{};
-    SvgElement *_metadata{};
-    SvgElement *_desc{};
+  //  Svg specific data
+  std::string _id;
+  SvgList _classList;
 
-    SvgUnitValue _x;
-    SvgUnitValue _y;
-    SvgUnitValue _width;
-    SvgUnitValue _height;
+  //  Stored as Elements in svg
+  SvgElement *_title{};
+  SvgElement *_metadata{};
+  SvgElement *_desc{};
 
-    Document *_doc{};
+  SvgUnitValue _x;
+  SvgUnitValue _y;
+  SvgUnitValue _width;
+  SvgUnitValue _height;
 
-    //SVGElement ownerSVGElement
+  Document *_doc{};
 
-    //  Used to store unprocessed xml elements
-    std::list<std::unique_ptr<SvgInterface>> _children;
-    XmlAttributes _attributes;
+  // SVGElement ownerSVGElement
 
-    //  Returned by string functions when empy string is needed
-    std::string _empty;
+  //  Used to store unprocessed xml elements
+  std::list<std::unique_ptr<SvgInterface>> _children;
+  XmlAttributes _attributes;
+
+  //  Returned by string functions when empy string is needed
+  std::string _empty;
 };
