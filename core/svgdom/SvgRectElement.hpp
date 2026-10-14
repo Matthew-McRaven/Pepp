@@ -11,7 +11,7 @@ class SvgRectElement final : public Cloneable<SvgRectElement, SvgElement>
     SvgUnitValue _ry;
 
 public:
-  SvgType::Type TYPE = SvgType::Type::SvgRectElement;
+  static constexpr SvgType::Type TYPE = SvgType::Type::SvgRectElement;
 
   SvgRectElement();
   explicit SvgRectElement(const std::string &name, const std::string &value = "");

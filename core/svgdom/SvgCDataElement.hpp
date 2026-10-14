@@ -7,7 +7,7 @@
 class SvgCDataElement final : public Cloneable<SvgCDataElement, SvgElement>
 {
 public:
-  SvgType::Type TYPE = SvgType::Type::SvgCDataElement;
+  static constexpr SvgType::Type TYPE = SvgType::Type::SvgCDataElement;
 
   SvgCDataElement();
   explicit SvgCDataElement(const std::string &value);

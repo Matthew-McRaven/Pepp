@@ -12,7 +12,7 @@ class SvgSvgElement final : public Cloneable<SvgSvgElement, SvgElement>
     std::string _xmlns = "http://www.w3.org/2000/svg";
 
 public:
-  SvgType::Type TYPE = SvgType::Type::SvgSvgElement;
+  static constexpr SvgType::Type TYPE = SvgType::Type::SvgSvgElement;
 
   SvgSvgElement(); // = default;
   explicit SvgSvgElement(const std::string &name, const std::string &value = "");

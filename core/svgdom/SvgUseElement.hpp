@@ -10,7 +10,7 @@ class SvgUseElement final : public Cloneable<SvgUseElement, SvgElement>
     std::string _href;
 
 public:
-  SvgType::Type TYPE = SvgType::Type::SvgUseElement;
+  static constexpr SvgType::Type TYPE = SvgType::Type::SvgUseElement;
 
   SvgUseElement();
   explicit SvgUseElement(const std::string &name, const std::string &value = "");

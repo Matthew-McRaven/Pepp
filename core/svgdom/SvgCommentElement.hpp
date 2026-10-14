@@ -7,7 +7,7 @@
 class SvgCommentElement final : public Cloneable<SvgCommentElement, SvgElement>
 {
 public:
-  SvgType::Type TYPE = SvgType::Type::SvgCommentElement;
+  static constexpr SvgType::Type TYPE = SvgType::Type::SvgCommentElement;
 
   SvgCommentElement();
   explicit SvgCommentElement(const std::string &comment);
