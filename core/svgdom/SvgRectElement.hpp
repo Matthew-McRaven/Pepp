@@ -7,14 +7,17 @@
 
 class SvgRectElement final : public Cloneable<SvgRectElement, SvgElement>
 {
-    SvgUnitValue _rx;
-    SvgUnitValue _ry;
+  SvgUnitValue _rx;
+  SvgUnitValue _ry;
+
+  const std::string &value() const override;
+  void setValue(const std::string &value) override;
 
 public:
   static constexpr SvgType::Type TYPE = SvgType::Type::SvgRectElement;
 
   SvgRectElement();
-  explicit SvgRectElement(const std::string &name, const std::string &value = "");
+  explicit SvgRectElement(const std::string &name);
   ~SvgRectElement() = default;
   // Allo copy and move
   SvgRectElement(const SvgRectElement &) = default;
