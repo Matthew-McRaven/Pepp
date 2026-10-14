@@ -2,20 +2,21 @@
 
 #include <list>
 #include <string>
+using namespace std::string_literals;
 
 #include "SvgElement.hpp"
 #include "utility_p.hpp"
 
 class SvgSvgElement final : public Cloneable<SvgSvgElement, SvgElement>
 {
-    SvgRect _viewBox;
-    std::string _xmlns = "http://www.w3.org/2000/svg";
+  SvgRect _viewBox;
+  std::string _xmlns = "http://www.w3.org/2000/svg"s;
 
 public:
   static constexpr SvgType::Type TYPE = SvgType::Type::SvgSvgElement;
 
   SvgSvgElement(); // = default;
-  explicit SvgSvgElement(const std::string &name, const std::string &value = "");
+  explicit SvgSvgElement(const std::string &name, const std::string &value = ""s);
   ~SvgSvgElement() = default;
   //  Can copy and move
   SvgSvgElement(const SvgSvgElement &) = default;
@@ -26,6 +27,10 @@ public:
   //	User access functions
   SvgRect &viewBox();
   const SvgRect &viewBox() const;
+
+  //  Value does not apply to SvgSvgElement.
+  const std::string &value() const override;
+  void setValue(const std::string &value) override;
 
   SvgType::Type elementType() const override;
   void toXml(SvgRope &output) const override;
