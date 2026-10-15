@@ -124,6 +124,8 @@ pepp::tc::IRProgram pepp::tc::parser::flatten_macros(const IRProgram &program, s
         auto end = comments->columns(leader, "End " + macro->macro->name, "", "");
         expansion.emplace_back(std::make_shared<CommentLine>(Comment{end.substr(1)}));
       }
+      // Rows in a macro body are not rows of the original source file. Map the inner lines back to the source.
+      for (const auto &expanded : expansion) expanded->source_interval = macro->source_interval;
       work_queue.insert(work_queue.begin(), expansion.begin(), expansion.end());
       continue;
     }
