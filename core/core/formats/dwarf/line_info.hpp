@@ -17,31 +17,10 @@
 
 #pragma once
 #include "../../integers.h"
+#include "core/formats/dwarf/cursor.hpp"
+#include "core/formats/dwarf/enums.hpp"
 #include "core/formats/elf/packed_types.hpp"
 namespace pepp::bts {
-
-/*
- * All of the following has been taken from the DWARF 5 standard, Section 6.2
- */
-enum class StandardOpcodes : u8 {
-  DW_LNS_copy = 1,
-  DW_LNS_advance_pc = 2,
-  DW_LNS_advance_line = 3,
-  DW_LNS_set_file = 4,
-  DW_LNS_set_column = 5,
-  DW_LNS_negate_stmt = 6,
-  DW_LNS_set_basic_block = 7,
-  DW_LNS_const_add_pc = 8,
-  DW_LNS_fixed_advance_pc = 9,
-  DW_LNS_set_prologue_end = 10,
-  DW_LNS_set_epilogue_begin = 11,
-  DW_LNS_set_isa = 12,
-};
-enum class ExtendedOpcodes : u8 {
-  DW_LNE_end_sequence = 1,
-  DW_LNE_set_address = 2,
-  DW_LNE_set_discriminator = 4,
-};
 
 #pragma pack(push, 1)
 // Fixed-size prefix of a line program header, per DWARF 5 Section 6.2.4 items 1-11. Only 32-bit DWARF is supported.
