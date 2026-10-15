@@ -17,6 +17,7 @@
 
 #pragma once
 #include "../../integers.h"
+#include "core/formats/elf/packed_types.hpp"
 namespace pepp::bts {
 
 /*
@@ -39,41 +40,29 @@ enum class StandardOpcodes : u8 {
 enum class ExtendedOpcodes : u8 {
   DW_LNE_end_sequence = 1,
   DW_LNE_set_address = 2,
-  DW_LNE_define_file = 3,
   DW_LNE_set_discriminator = 4,
 };
 
 #pragma pack(push, 1)
-struct PackedDebugLineHeader {
-  u32 length;
-  u16 version;
-  // Number of bytes
-  i32 header_length;
-  u8 min_instruction_length;
+// Fixed-size prefix of a line program header, per DWARF 5 Section 6.2.4 items 1-11. Only 32-bit DWARF is supported.
+// Variable-length fields (opcode lengths, directory and file tables) follow it.
+template <ElfEndian E> struct PackedLineProgramHeader {
+  // Bytes following this field to the end of the unit.
+  U32<E> unit_length;
+  U16<E> version;
+  u8 address_size;
+  u8 segment_selector_size;
+  // Bytes following this field to the first opcode.
+  U32<E> header_length;
+  u8 minimum_instruction_length;
+  u8 maximum_operations_per_instruction;
   u8 default_is_stmt;
   i8 line_base;
   u8 line_range;
   u8 opcode_base;
 };
 #pragma pack(pop)
-
-struct FileEntry {
-  std::string name;
-  // The directory containing this file as an index into include_directories, encoded as ULEB128
-  u32 directory_index = 0;
-  // Implementation-defined timestamp for when the file was last modified, encoded as ULEB128. 0 if unknown.
-  u32 last_modification_time = 0;
-  // Size of file in bytes, encoded as ULEB128. 0 if unknown.
-  u32 file_length = 0;
-};
-
-struct DebugLineHeader {
-  PackedDebugLineHeader header;
-  std::vector<u8> standard_opcode_lengths;
-  // TODO: directory and file entries.
-  // std::vector<std::string> include_directories;
-  // std::vector<FileEntry> file_entries;
-};
+static_assert(sizeof(PackedLineProgramHeader<ElfEndian::le>) == 18);
 
 struct DebugLineState {
   // Current instructions is a recommended breakpoint location to "represent" a line

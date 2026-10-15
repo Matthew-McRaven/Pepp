@@ -26,22 +26,23 @@ TEST_CASE("DWARF Cursor", "[scope:dwarf][kind:unit][arch:*]") {
   SECTION("Round-trip serialization tests") {
     BlockStorage storage;
     storage.append(U16<ElfEndian::be>(0x1234));
-    CHECK(storage.append_uleb(624485) == 2);
-    storage.append_sleb(-123456);
+    CHECK(storage.append_uleb(12857) == 2);
+    storage.append_sleb(-129);
     storage.append_cstr("a.pep");
     storage.append(U32<ElfEndian::le>(0xDEADBEEF));
     const auto out = storage.get(0, storage.size());
-    // Spot-check the byte order and LEB encodings against DWARF 5 Section 7.6 examples.
+    // Spot-check the byte order, and the LEB encodings against DWARF 5 Tables 7.7 and 7.8.
     CHECK(out[0] == 0x12);
     CHECK(out[1] == 0x34);
-    CHECK(out[2] == 0xE5);
-    CHECK(out[3] == 0x8E);
-    CHECK(out[4] == 0x26);
+    CHECK(out[2] == 0xB9);
+    CHECK(out[3] == 0x64);
+    CHECK(out[4] == 0xFF);
+    CHECK(out[5] == 0x7E);
 
     DwarfCursor c{out};
     CHECK(c.fixed<U16<ElfEndian::be>>() == 0x1234);
-    CHECK(c.uleb() == 624485);
-    CHECK(c.sleb() == -123456);
+    CHECK(c.uleb() == 12857);
+    CHECK(c.sleb() == -129);
     CHECK(c.cstr() == "a.pep");
     CHECK(c.fixed<U32<ElfEndian::le>>() == 0xDEADBEEF);
     CHECK(c.ok());
