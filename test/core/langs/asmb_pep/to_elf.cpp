@@ -15,6 +15,7 @@
  */
 
 #include <algorithm>
+#include <array>
 #include <catch.hpp>
 #include <elfio/elfio.hpp>
 #include <optional>
@@ -29,6 +30,7 @@
 #include "core/langs/asmb_pep/codegen.hpp"
 #include "core/langs/asmb_pep/ir_visitor.hpp"
 #include "core/langs/asmb_pep/parser.hpp"
+#include "core/langs/asmb_pep/text_format.hpp"
 #include "core/math/bitmanip/enums.hpp"
 
 namespace {
@@ -225,6 +227,51 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     CHECK(address_of(8) == text + 3); // cruel:BR 0, after bye in the same .text
     CHECK(address_of(10) == elf.sections["memvec"]->get_address()); // World:.BYTE 0
     CHECK_FALSE(elf_result.ir_to_listing.container.empty());
+    // Executables keep absolute addresses.
+    CHECK(elf.sections[".rela.debug_line"] == nullptr);
+  }
+  SECTION("ET_REL .debug_line relocates one sequence per section") {
+    const auto txt = R"(
+.SECTION ".text","rx"
+LDWA 1,i
+LDWA 2,i
+.SECTION ".data","rw"
+.WORD 5
+)";
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(txt), std::make_shared<MR>());
+    auto code = pepp::tc::parser::flatten_macros(p.parse(diag));
+    auto result = pepp::tc::pepp_split_to_sections(diag, code);
+    auto &sections = result.grouped_ir;
+    REQUIRE(sections.size() == 2);
+    auto addresses = pepp::tc::pepp_assign_addresses(sections);
+    auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
+    REQUIRE(diag.count() == 0);
+    // Assembler normally generate ET_EXEC, but force it to become relocatable.
+    using namespace pepp::bts;
+    auto elf_result = sections_to_elf(ElfBits::b32, ElfEndian::be, ElfMachineType::EM_PEP10, sections, object_code,
+                                      *p.symbol_table());
+    std::get<std::unique_ptr<PackedGrowableElfBE32>>(elf_result.elf)->header.e_type =
+        bits::to_underlying(ElfFileType::ET_REL);
+    const auto abs16 = bits::to_underlying(RelocationsPep::R_PEP10_ABS16);
+    const auto listing = number_listing_lines(sections, object_code, pep_listing_bytes_per_line);
+    write_debug_line(elf_result.elf, 2, abs16, sections, addresses, listing);
+    auto elf = read_back(elf_result);
+    const auto *lines = elf.sections[debugLineSection];
+    REQUIRE(lines != nullptr);
+    REQUIRE(elf.sections[".rela.debug_line"] != nullptr);
+    CHECK(elf.sections[".rela.debug_line"]->get_info() == lines->get_index());
+
+    // Two units (source, listing) times two sections. Each sequence's DW_LNE_set_address is relocated.
+    const auto relocations = relocations_of(elf, ".rela.debug_line", symbols_of(elf));
+    const std::array<std::string, 4> targets{".text", ".data", ".text", ".data"};
+    REQUIRE(relocations.size() == targets.size());
+    for (size_t it = 0; it < targets.size(); ++it) {
+      CHECK(relocations[it] == Rela{relocations[it].offset, targets[it], abs16, 0});
+      // S + A is the address already written into the operand.
+      const auto *operand = reinterpret_cast<const u8 *>(lines->get_data()) + relocations[it].offset;
+      CHECK(elf.sections[targets[it]]->get_address() == (u32(operand[0]) << 8 | operand[1]));
+    }
   }
   SECTION("A leading .SECTION does not create an empty implicit section") {
     pepp::tc::DiagnosticTable diag;

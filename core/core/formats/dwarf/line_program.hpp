@@ -21,6 +21,7 @@
 #include <stdexcept>
 #include <string>
 #include <utility>
+#include <vector>
 #include "../../integers.h"
 #include "core/formats/dwarf/cursor.hpp"
 #include "core/formats/dwarf/enums.hpp"
@@ -70,6 +71,12 @@ struct DebugLineState {
   }
 };
 
+// The location in the section and value of an DW_LNE_set_address operand
+struct AddressOperand {
+  size_t offset;
+  u64 address;
+};
+
 // Construct a single line program into `out` in a streaming fashion. The header is written on construction and opcodes
 // are emitted as row() is called. Out may have no concurrent writers until finish() is called.
 // maximum_operations_per_instruction must be 1, so op_index is always 0.
@@ -84,6 +91,8 @@ public:
   void end_sequence();
   // Ends any open sequence and patches unit_length. Returns the offset of the unit within `out`.
   size_t finish();
+  // Every DW_LNE_set_address operand written so far, so a relocatable file can relocate them.
+  const std::vector<AddressOperand> &address_operands() const noexcept { return _address_operands; }
 
 private:
   void standard(StandardOpcodes opcode);
@@ -103,6 +112,7 @@ private:
   size_t _unit;
   bool _open = false;
   u64 _sequence_end = 0;
+  std::vector<AddressOperand> _address_operands;
 };
 
 // Executes `unit.program`, calling `on_row(const DebugLineState &)` each time a row is appended to the matrix.
@@ -236,6 +246,7 @@ template <ElfEndian E> void LineProgramWriter<E>::extended(ExtendedOpcodes opcod
 
 template <ElfEndian E> void LineProgramWriter<E>::set_address(u64 address) {
   extended(ExtendedOpcodes::DW_LNE_set_address, _address_size);
+  _address_operands.push_back({.offset = _out.size(), .address = address});
   detail::write_address<E>(_out, _address_size, address);
   _state.address = address;
 }

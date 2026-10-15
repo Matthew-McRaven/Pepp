@@ -414,7 +414,7 @@ pepp::tc::ElfResult pepp::tc::riscv_to_elf(std::vector<std::pair<SectionDescript
 
   ret.ir_to_listing = number_listing_lines(prog, object_code, riscv_listing_bytes_per_line);
   // RV32 addresses are 4 bytes.
-  write_debug_line(ret.elf, 4, prog, addrs, ret.ir_to_listing);
+  write_debug_line(ret.elf, 4, bits::to_underlying(RelocationsRISCV::R_RISCV_32), prog, addrs, ret.ir_to_listing);
 
   /*ELFIO::section *symTab = nullptr;
   for (auto &sec : ret->sections)
