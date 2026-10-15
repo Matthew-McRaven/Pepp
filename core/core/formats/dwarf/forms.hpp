@@ -44,6 +44,8 @@ template <ElfEndian E> FormValue read_form(DwarfCursor &c, AttributeForms form) 
   case DW_FORM_data4: ret.number = c.fixed<U32<E>>(); break;
   case DW_FORM_data8: ret.number = c.fixed<U64<E>>(); break;
   case DW_FORM_udata: ret.number = c.uleb(); break;
+  // An offset into .debug_line_str, which the caller resolves. Section 6.2.4.1: 4 bytes in the 32-bit DWARF format.
+  case DW_FORM_line_strp: ret.number = c.fixed<U32<E>>(); break;
   // Consumed but not currently decoded.
   case DW_FORM_data16: c.bytes(16); break;
   case DW_FORM_block: c.bytes(c.uleb()); break;

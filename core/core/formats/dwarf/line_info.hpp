@@ -207,8 +207,19 @@ template <ElfEndian E> size_t write_line_program_unit(AStorage &out, const LineP
 namespace detail {
 // Reads a directory count+entries, followed by File count+entries.
 // Per: DWARF 5 Section 6.2.4 items 13-16 (directories) and 17-20 (files).
-template <ElfEndian E> std::vector<LineFileEntry> read_entries(DwarfCursor &c) {
+template <ElfEndian E> std::vector<LineFileEntry> read_entries(DwarfCursor &c, bits::span<const u8> line_str) {
   using enum LineContentTypes;
+  // Section 6.2.4.1: a DW_FORM_line_strp path is an offset to a null-terminated string in .debug_line_str.
+  const auto line_string = [&](u64 offset) -> std::string_view {
+    if (offset >= line_str.size()) {
+      c.fail("DW_FORM_line_strp offset is past the end of .debug_line_str");
+      return {};
+    }
+    DwarfCursor strings{line_str.subspan(offset)};
+    const auto ret = strings.cstr();
+    if (!strings.ok()) c.fail(strings.error);
+    return ret;
+  };
   std::vector<EntryFormat> formats(c.fixed<u8>());
   for (auto &format : formats) {
     format.content = LineContentTypes(c.uleb());
@@ -225,9 +236,10 @@ template <ElfEndian E> std::vector<LineFileEntry> read_entries(DwarfCursor &c) {
     for (const auto &format : formats) {
       const auto value = read_form<E>(c, format.form);
       if (format.content == DW_LNCT_path) {
-        // Section 6.2.4.1: other string forms are offsets into .debug_line_str / .debug_str, which we do not read.
-        if (format.form != AttributeForms::DW_FORM_string) c.fail("DW_LNCT_path must use DW_FORM_string");
-        entry.path = value.string;
+        // Section 6.2.4.1 also allows DW_FORM_strp and DW_FORM_strp_sup, whose strings live in sections we do not read.
+        if (format.form == AttributeForms::DW_FORM_string) entry.path = value.string;
+        else if (format.form == AttributeForms::DW_FORM_line_strp) entry.path = line_string(value.number);
+        else c.fail("unsupported form for DW_LNCT_path");
       } else if (format.content == DW_LNCT_directory_index) entry.directory_index = value.number;
     }
   }
@@ -236,9 +248,11 @@ template <ElfEndian E> std::vector<LineFileEntry> read_entries(DwarfCursor &c) {
 } // namespace detail
 
 // Parses the line program unit starting at `offset` within a .debug_line section.
+// `line_str` is the .debug_line_str section, which is only needed for DW_FORM_line_strp paths.
 // Only DWARF5's  32-bit format is supported.
 template <ElfEndian E>
-std::expected<LineProgramUnit, std::string> parse_line_program_unit(bits::span<const u8> section, size_t offset) {
+std::expected<LineProgramUnit, std::string> parse_line_program_unit(bits::span<const u8> section, size_t offset,
+                                                                    bits::span<const u8> line_str = {}) {
   using Packed = PackedLineProgramHeader<E>;
   if (offset >= section.size()) return std::unexpected("unit offset is past the end of the section");
   DwarfCursor c{section.subspan(offset)};
@@ -275,8 +289,9 @@ std::expected<LineProgramUnit, std::string> parse_line_program_unit(bits::span<c
   c.data = c.data.first(program_start);
   const auto lengths = c.bytes(packed.opcode_base - 1);
   header.standard_opcode_lengths.assign(lengths.begin(), lengths.end());
-  for (auto &directory : detail::read_entries<E>(c)) header.directories.emplace_back(std::move(directory.path));
-  header.files = detail::read_entries<E>(c);
+  for (auto &directory : detail::read_entries<E>(c, line_str))
+    header.directories.emplace_back(std::move(directory.path));
+  header.files = detail::read_entries<E>(c, line_str);
   if (!c.ok()) return std::unexpected(c.error);
 
   ret.program = section.subspan(offset + program_start, unit_end - program_start);
