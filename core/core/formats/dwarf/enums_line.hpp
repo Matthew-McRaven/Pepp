@@ -46,7 +46,7 @@ enum class ExtendedOpcodes : u8 {
 };
 
 // Content type codes for directory and file entry formats.
-// Per: DWARF 5 Section 6.2.4.1, Table 7.27. Encoded as ULEB128 (Section 6.2.4 items 14 and 18).
+// Per: DWARF 5 Sections 6.2.4.1 and 6.2.4.2, Table 7.27. Encoded as ULEB128 (Section 6.2.4 items 14 and 18).
 enum class LineContentTypes : u64 {
   DW_LNCT_path = 0x1,
   DW_LNCT_directory_index = 0x2,

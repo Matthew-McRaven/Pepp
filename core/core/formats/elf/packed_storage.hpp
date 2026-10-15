@@ -137,6 +137,7 @@ struct BlockStorage : public AStorage {
   explicit BlockStorage(std::vector<char> &&storage) noexcept;
   // Un-hide the templated helpers.
   using AStorage::append;
+  using AStorage::set;
   // AStorage interface
   size_t append(bits::span<const u8> data) override;
   size_t allocate(size_t size, u8 fill = 0) override;
@@ -151,6 +152,8 @@ struct BlockStorage : public AStorage {
 
   struct BlockStorageSlice : public AStorage {
     BlockStorageSlice(std::shared_ptr<BlockStorage> parent, size_t offset, size_t length);
+    // Un-hide the templated helpers.
+    using AStorage::set;
     size_t append(bits::span<const u8> data) override;
     size_t allocate(size_t size, u8 fill = 0) override;
     void set(size_t offset, bits::span<const u8> data) override;
@@ -175,6 +178,7 @@ private:
 struct PagedStorage : public AStorage {
   // Un-hide the templated helpers.
   using AStorage::append;
+  using AStorage::set;
   // AStorage interface
   size_t append(bits::span<const u8> data) override;
   size_t allocate(size_t size, u8 fill = 0) override;
@@ -194,6 +198,8 @@ private:
 // Uses a memory-mapped file as the backing store. Data is lazily loaded on first access.
 struct MemoryMapped : public AStorage {
   explicit MemoryMapped(std::shared_ptr<MappedFile::Slice>);
+  // Un-hide the templated helpers.
+  using AStorage::set;
 
   // AStorage interface
   size_t append(bits::span<const u8> data) override;

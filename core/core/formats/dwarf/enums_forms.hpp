@@ -19,7 +19,7 @@
 #include "../../integers.h"
 namespace pepp::bts {
 // Attribute form encodings, shared by every DWARF section that describes its data with forms.
-// Per: DWARF 5 Table 7.6. Encoded as ULEB128 wherever they appear in a byte stream.
+// Per: DWARF 5 Table 7.6.
 enum class AttributeForms : u64 {
   DW_FORM_addr = 0x01,
   // 0x02 is reserved.
