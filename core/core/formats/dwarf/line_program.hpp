@@ -25,6 +25,7 @@
 #include "../../integers.h"
 #include "core/formats/dwarf/cursor.hpp"
 #include "core/formats/dwarf/enums.hpp"
+#include "core/formats/dwarf/forms.hpp"
 #include "core/formats/dwarf/line_info.hpp"
 #include "core/formats/elf/packed_storage.hpp"
 #include "core/formats/elf/packed_types.hpp"
@@ -123,28 +124,6 @@ std::expected<void, std::string> run_line_program(const LineProgramUnit &unit, O
 /*
  * Implementations
  */
-
-namespace detail {
-template <ElfEndian E> void write_address(AStorage &out, u8 size, u64 address) {
-  switch (size) {
-  case 1: out.append(static_cast<u8>(address)); break;
-  case 2: out.append(U16<E>(static_cast<u16>(address))); break;
-  case 4: out.append(U32<E>(static_cast<u32>(address))); break;
-  case 8: out.append(U64<E>(address)); break;
-  default: throw std::logic_error("write_address: unsupported address_size");
-  }
-}
-
-template <ElfEndian E> u64 read_address(DwarfCursor &c, u8 size) {
-  switch (size) {
-  case 1: return c.fixed<u8>();
-  case 2: return c.fixed<U16<E>>();
-  case 4: return c.fixed<U32<E>>();
-  case 8: return c.fixed<U64<E>>();
-  default: c.fail("unsupported address_size"); return 0;
-  }
-}
-} // namespace detail
 
 template <ElfEndian E>
 LineProgramWriter<E>::LineProgramWriter(AStorage &out, const LineProgramHeader &header)

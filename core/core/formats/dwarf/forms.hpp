@@ -44,6 +44,13 @@ template <ElfEndian E> FormValue read_form(DwarfCursor &c, AttributeForms form) 
   case DW_FORM_data4: ret.number = c.fixed<U32<E>>(); break;
   case DW_FORM_data8: ret.number = c.fixed<U64<E>>(); break;
   case DW_FORM_udata: ret.number = c.uleb(); break;
+  case DW_FORM_sdata: ret.number = static_cast<u64>(c.sleb()); break;
+  // Section 7.5.5: present, with no value encoded in the entry itself.
+  case DW_FORM_flag_present: ret.number = 1; break;
+  // Section 7.4 item 3: 4 bytes in the 32-bit DWARF format.
+  case DW_FORM_sec_offset: ret.number = c.fixed<U32<E>>(); break;
+  // Section 7.5.5: a 4-byte offset from the first byte of the containing unit's header.
+  case DW_FORM_ref4: ret.number = c.fixed<U32<E>>(); break;
   // An offset into .debug_line_str, which the caller resolves. Section 6.2.4.1: 4 bytes in the 32-bit DWARF format.
   case DW_FORM_line_strp: ret.number = c.fixed<U32<E>>(); break;
   // Consumed but not currently decoded.
@@ -63,6 +70,10 @@ inline size_t form_size(AttributeForms form, const FormValue &value) {
   case DW_FORM_data4: return 4;
   case DW_FORM_data8: return 8;
   case DW_FORM_udata: return bits::getULEB128Size(value.number);
+  case DW_FORM_sdata: return bits::getSLEB128Size(static_cast<i64>(value.number));
+  case DW_FORM_flag_present: return 0;
+  case DW_FORM_sec_offset: return 4;
+  case DW_FORM_ref4: return 4;
   default: throw std::logic_error("form_size: unsupported attribute form");
   }
 }
@@ -77,8 +88,35 @@ template <ElfEndian E> void write_form(AStorage &out, AttributeForms form, const
   case DW_FORM_data4: out.append(U32<E>(static_cast<u32>(value.number))); break;
   case DW_FORM_data8: out.append(U64<E>(value.number)); break;
   case DW_FORM_udata: out.append_uleb(value.number); break;
+  case DW_FORM_sdata: out.append_sleb(static_cast<i64>(value.number)); break;
+  case DW_FORM_flag_present: break;
+  case DW_FORM_sec_offset: out.append(U32<E>(static_cast<u32>(value.number))); break;
+  case DW_FORM_ref4: out.append(U32<E>(static_cast<u32>(value.number))); break;
   default: throw std::logic_error("write_form: unsupported attribute form");
   }
 }
+
+// Addresses are size bytes wide
+namespace detail {
+template <ElfEndian E> void write_address(AStorage &out, u8 size, u64 address) {
+  switch (size) {
+  case 1: out.append(static_cast<u8>(address)); break;
+  case 2: out.append(U16<E>(static_cast<u16>(address))); break;
+  case 4: out.append(U32<E>(static_cast<u32>(address))); break;
+  case 8: out.append(U64<E>(address)); break;
+  default: throw std::logic_error("write_address: unsupported address_size");
+  }
+}
+
+template <ElfEndian E> u64 read_address(DwarfCursor &c, u8 size) {
+  switch (size) {
+  case 1: return c.fixed<u8>();
+  case 2: return c.fixed<U16<E>>();
+  case 4: return c.fixed<U32<E>>();
+  case 8: return c.fixed<U64<E>>();
+  default: c.fail("unsupported address_size"); return 0;
+  }
+}
+} // namespace detail
 
 } // namespace pepp::bts
