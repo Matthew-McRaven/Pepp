@@ -4,7 +4,9 @@
 #include "core/formats/elf/enums.hpp"
 #include "core/langs/asmb/codegen.hpp"
 #include "core/langs/asmb/codegen_error.hpp"
+#include "core/langs/asmb/debug_line.hpp"
 #include "core/langs/asmb_riscv/ir_lines.hpp"
+#include "core/langs/asmb_riscv/text_format.hpp"
 #include "core/math/bitmanip/copy.hpp"
 #include "ir_visitor.hpp"
 #include "spdlog/spdlog.h"
@@ -410,8 +412,9 @@ pepp::tc::ElfResult pepp::tc::riscv_to_elf(std::vector<std::pair<SectionDescript
   SPDLOG_INFO("Creating RISC-V ELF");
   auto ret = sections_to_elf(ElfBits::b32, ElfEndian::le, ElfMachineType::EM_RISCV, prog, object_code, symbols);
 
-  // TODO: restore once .debug_line can be written to a packed file
-  // ret.ir_to_listing = write_line_mapping(*ret.elf, prog, addrs, object_code);
+  ret.ir_to_listing = number_listing_lines(prog, object_code, riscv_listing_bytes_per_line);
+  // RV32 addresses are 4 bytes.
+  write_debug_line(ret.elf, 4, prog, addrs, ret.ir_to_listing);
 
   /*ELFIO::section *symTab = nullptr;
   for (auto &sec : ret->sections)

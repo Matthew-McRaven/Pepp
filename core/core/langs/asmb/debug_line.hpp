@@ -74,26 +74,10 @@ void write_debug_line(pepp::bts::AnyGrowableElf &elf, u8 address_size,
   std::visit(f, elf);
 }
 
-// Numbers listing lines in program order. `lines_for(line, has_object_code, object_code_size)` is how many listing
-// lines `line` takes, where 0 leaves it out of the listing.
-template <typename LinesFor>
+// Numbers listing lines in program order, as a listing with `bytes_per_line` bytes of object code per row prints them.
+// Lines hidden from the listing get no number.
 IR2ListingLineMap number_listing_lines(const std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
-                                       const ProgramObjectCodeResult &object_code, LinesFor &&lines_for) {
-  IR2ListingLineMap ret;
-  u32 listing_number = 0;
-  for (const auto &sec : prog) {
-    for (const auto &line : sec.second) {
-      const auto oc_it = object_code.ir_to_object_code.find(line.get());
-      const size_t size = oc_it == object_code.ir_to_object_code.cend() ? 0 : oc_it->second.size();
-      const u32 count = lines_for(*line, oc_it != object_code.ir_to_object_code.cend(), size);
-      if (count == 0) continue;
-      ret.container.emplace_back(IR2ListingLinePair{line.get(), listing_number});
-      listing_number += count;
-    }
-  }
-  std::sort(ret.container.begin(), ret.container.end(), IR2ListingLineComparator{});
-  return ret;
-}
+                                       const ProgramObjectCodeResult &object_code, u32 bytes_per_line);
 
 // Decodes .debug_line, as written by write_debug_line, into one mapping per address in ascending order.
 // `debug_line_str` is only needed when a unit names its files with DW_FORM_line_strp.

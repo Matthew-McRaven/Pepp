@@ -24,6 +24,7 @@
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
 #include "core/formats/elf/enums.hpp"
+#include "core/langs/asmb/debug_line.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/langs/asmb_pep/codegen.hpp"
 #include "core/langs/asmb_pep/ir_visitor.hpp"
@@ -197,22 +198,26 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
       CHECK(sec->get_address() == desc.low_address);
     }
 
-    // .debug_line maps addresses back to 1-indexed source lines. Decoded as pas::obj::common::getLineMappings does.
-    const auto *lines = elf.sections[pepp::tc::lineMapStr];
+    // .debug_line holds two DWARF 5 units, mapping addresses back to 1-indexed source and listing lines.
+    const auto *lines = elf.sections[pepp::tc::debugLineSection];
     REQUIRE(lines != nullptr);
     CHECK(lines->get_type() == ELFIO::SHT_PROGBITS);
-    const auto encoded = std::span<const char>(lines->get_data(), static_cast<size_t>(lines->get_size()));
-    zpp::bits::in in(encoded);
-    std::vector<BinaryLineMapping> mappings;
-    BinaryLineMapping prev;
-    while (in.position() < encoded.size()) {
-      BinaryLineMapping current;
-      (void)current.serialize(in, current, &prev);
-      mappings.push_back(prev = current);
-    }
-    const auto address_of = [&](uint16_t src_line) -> std::optional<u32> {
-      for (const auto &mapping : mappings)
-        if (mapping.srcLine == src_line) return mapping.address;
+    const auto encoded = bits::span<const u8>(reinterpret_cast<const u8 *>(lines->get_data()),
+                                              static_cast<size_t>(lines->get_size()));
+    const auto source_unit = pepp::bts::parse_line_program_unit<pepp::bts::ElfEndian::be>(encoded, 0);
+    REQUIRE(source_unit.has_value());
+    CHECK(source_unit->header.address_size == 2);
+    CHECK(source_unit->header.files[0].path == pepp::tc::debugLineSourceFile);
+    const auto listing_unit =
+        pepp::bts::parse_line_program_unit<pepp::bts::ElfEndian::be>(encoded, source_unit->next_unit);
+    REQUIRE(listing_unit.has_value());
+    CHECK(listing_unit->header.files[0].path == pepp::tc::debugLineListingFile);
+    CHECK(listing_unit->next_unit == encoded.size());
+    const auto mappings = pepp::tc::read_line_mappings(encoded, {}, pepp::bts::ElfEndian::be);
+    REQUIRE(mappings.has_value());
+    const auto address_of = [&](u32 source_line) -> std::optional<u32> {
+      for (const auto &mapping : *mappings)
+        if (mapping.source_line == source_line) return static_cast<u32>(mapping.address);
       return std::nullopt;
     };
     const u32 text = elf.sections[".text"]->get_address();

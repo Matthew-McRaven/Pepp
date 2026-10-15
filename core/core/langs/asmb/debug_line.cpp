@@ -1,5 +1,6 @@
 #include "core/langs/asmb/debug_line.hpp"
 #include <map>
+#include "core/compile/ir_linear/attr_comment.hpp"
 
 pepp::bts::LineProgramHeader pepp::tc::detail::debug_line_header(u8 address_size, std::string_view file) {
   pepp::bts::LineProgramHeader ret;
@@ -13,6 +14,25 @@ pepp::bts::LineProgramHeader pepp::tc::detail::debug_line_header(u8 address_size
   ret.standard_opcode_lengths = {0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1};
   ret.directories = {"."};
   ret.files = {{.path = std::string(file), .directory_index = 0}};
+  return ret;
+}
+
+pepp::tc::IR2ListingLineMap
+pepp::tc::number_listing_lines(const std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
+                               const ProgramObjectCodeResult &object_code, u32 bytes_per_line) {
+  IR2ListingLineMap ret;
+  u32 listing_number = 0;
+  for (const auto &sec : prog) {
+    for (const auto &line : sec.second) {
+      if (hidden_from_listing(*line)) continue;
+      const auto oc_it = object_code.ir_to_object_code.find(line.get());
+      const size_t size = oc_it == object_code.ir_to_object_code.cend() ? 0 : oc_it->second.size();
+      ret.container.emplace_back(IR2ListingLinePair{line.get(), listing_number});
+      // The first row always prints, even without object code. Each further row continues the object code.
+      listing_number += std::max<u32>(1, static_cast<u32>((size + bytes_per_line - 1) / bytes_per_line));
+    }
+  }
+  std::sort(ret.container.begin(), ret.container.end(), IR2ListingLineComparator{});
   return ret;
 }
 

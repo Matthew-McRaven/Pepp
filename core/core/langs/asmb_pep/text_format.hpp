@@ -25,6 +25,8 @@ std::string format_as_columns(const std::string &col0, const std::string &col1, 
 std::string format_source(const LinearIR *line);
 std::vector<std::string> format_source(const IRProgram &program);
 
+// Bytes of object code per listing row. Longer lines continue onto extra rows.
+static constexpr int pep_listing_bytes_per_line = 3;
 // Format a single line
 std::vector<std::string> format_listing(const LinearIR *line, const IRMemoryAddressTable<PeppAddress> &addresses,
                                         const ProgramObjectCodeResult &object_code);

@@ -1,6 +1,7 @@
 #include "./common.hpp"
 #include <elfio/elfio.hpp>
 #include <zpp_bits.h>
+#include "core/langs/asmb/debug_line.hpp"
 #include "core/langs/asmb_pep/codegen.hpp"
 #include "toolchain/pas/operations/generic/addr2line.hpp"
 #include "toolchain/symbol/table.hpp"
@@ -111,6 +112,23 @@ void pas::obj::common::writeLineMapping(ELFIO::elfio &elf, ast::Node &root) {
 std::vector<pas::obj::common::BinaryLineMapping> pas::obj::common::getLineMappings(ELFIO::elfio &elf) {
   auto lineNumbers = detail::getLineMappingSection(elf);
   if (lineNumbers == nullptr) return {};
+  // Prefer DWARF 5, which the new assemblers write.
+  const auto bytes_of = [](const ELFIO::section *sec) -> bits::span<const u8> {
+    if (sec == nullptr || sec->get_data() == nullptr) return {};
+    return {reinterpret_cast<const u8 *>(sec->get_data()), static_cast<std::size_t>(sec->get_size())};
+  };
+  const auto endian = elf.get_encoding() == ELFIO::ELFDATA2LSB ? pepp::bts::ElfEndian::le : pepp::bts::ElfEndian::be;
+  if (const auto dwarf = pepp::tc::read_line_mappings(
+          bytes_of(lineNumbers), bytes_of(elf.sections[pepp::tc::debugLineStrSection]), endian)) {
+    std::vector<BinaryLineMapping> ret;
+    ret.reserve(dwarf->size());
+    for (const auto &mapping : *dwarf)
+      ret.push_back({.address = static_cast<uint32_t>(mapping.address),
+                     .srcLine = static_cast<uint16_t>(mapping.source_line),
+                     .listLine = static_cast<uint16_t>(mapping.listing_line)});
+    return ret;
+  }
+  // Otherwise, it is the legacy encoding that writeLineMapping produces.
   auto data = std::span<const char>(lineNumbers->get_data(), (std::size_t)lineNumbers->get_size());
   zpp::bits::in in(data);
   std::vector<BinaryLineMapping> ret;

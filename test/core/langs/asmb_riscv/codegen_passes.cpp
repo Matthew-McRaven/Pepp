@@ -25,6 +25,7 @@
 #include "core/compile/symbol/entry.hpp"
 #include "core/compile/symbol/leaf_table.hpp"
 #include "core/langs/asmb/codegen_error.hpp"
+#include "core/langs/asmb/debug_line.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/langs/asmb_riscv/codegen.hpp"
 #include "core/langs/asmb_riscv/parser.hpp"
@@ -73,6 +74,48 @@ TEST_CASE("RISCV ASM code generator",
     CHECK((u8)data[1] == 0x00);
     CHECK((u8)data[2] == 0x31);
     CHECK((u8)data[3] == 0x00);
+  }
+  SECTION("DWARF 5 .debug_line output") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data("add x1, x2, x3\nsub x1, x2, x3"));
+    auto results = p.parse(diag);
+    auto result = pepp::tc::riscv_split_to_sections(diag, results);
+    auto &sections = result.grouped_ir;
+    auto addresses = pepp::tc::riscv_assign_addresses(sections, 0x1000);
+    auto object_code = pepp::tc::riscv_to_object_code(diag, addresses, sections);
+    auto elf_result = pepp::tc::riscv_to_elf(sections, addresses, object_code, *p.symbol_table());
+    REQUIRE(diag.count() == 0);
+    const auto bytes = pepp::tc::elf_bytes(elf_result);
+    std::istringstream in(std::string(reinterpret_cast<const char *>(bytes.data()), bytes.size()));
+    ELFIO::elfio elf;
+    REQUIRE(elf.load(in));
+    const auto *lines = elf.sections[pepp::tc::debugLineSection];
+    REQUIRE(lines != nullptr);
+    const auto encoded = bits::span<const u8>(reinterpret_cast<const u8 *>(lines->get_data()),
+                                              static_cast<size_t>(lines->get_size()));
+
+    const auto source = pepp::bts::parse_line_program_unit<pepp::bts::ElfEndian::le>(encoded, 0);
+    REQUIRE(source.has_value());
+    CHECK(source->header.address_size == 4);
+    CHECK(source->header.files[0].path == pepp::tc::debugLineSourceFile);
+    std::vector<std::pair<u64, u64>> rows;
+    const auto ran = pepp::bts::run_line_program<pepp::bts::ElfEndian::le>(
+        *source, [&](const auto &row) { rows.emplace_back(row.address, row.end_sequence ? 0 : row.line); });
+    REQUIRE(ran.has_value());
+    // The sequence ends after the second instruction.
+    CHECK(rows == std::vector<std::pair<u64, u64>>{{0x1000, 1}, {0x1004, 2}, {0x1008, 0}});
+
+    const auto listing = pepp::bts::parse_line_program_unit<pepp::bts::ElfEndian::le>(encoded, source->next_unit);
+    REQUIRE(listing.has_value());
+    CHECK(listing->header.files[0].path == pepp::tc::debugLineListingFile);
+    CHECK(listing->next_unit == encoded.size());
+    const auto mappings = pepp::tc::read_line_mappings(encoded, {}, pepp::bts::ElfEndian::le);
+    REQUIRE(mappings.has_value());
+    REQUIRE(mappings->size() == 2);
+    CHECK((*mappings)[0].source_line == 1);
+    CHECK((*mappings)[0].listing_line != 0);
+    CHECK((*mappings)[1].source_line == 2);
+    CHECK((*mappings)[1].listing_line > (*mappings)[0].listing_line);
   }
   SECTION("Symbols for B-/J-type instructions encode as relative offsets") {
     const auto jump = [](const char *source) {

@@ -27,8 +27,9 @@ std::string riscv_format_source(const LinearIR *line);
 // Format every line of a program as source code with one string per line.
 std::vector<std::string> riscv_format_source(const IRProgram &program);
 
-// Format a line as a listing (address + object bytes + source code). Keep 4 bytes of object code per row, with
-// continuation rows for directives that generate more bytes.
+// Bytes of object code per listing row. Directives that generate more bytes continue onto extra rows.
+static constexpr int riscv_listing_bytes_per_line = 4;
+// Format a line as a listing (address + object bytes + source code), riscv_listing_bytes_per_line bytes per row.
 std::vector<std::string> riscv_format_listing(const LinearIR *line,
                                               const IRMemoryAddressTable<RISCVAddress> &addresses,
                                               const ProgramObjectCodeResult &object_code);
