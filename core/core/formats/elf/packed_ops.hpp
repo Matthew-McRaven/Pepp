@@ -41,6 +41,8 @@ template <ElfBits B, ElfEndian E>
 u16 add_named_rel(PackedGrowableElfFile<B, E> &, std::string_view name, u16 symtab_idx, u16 section_idx);
 template <ElfBits B, ElfEndian E>
 u16 add_named_rela(PackedGrowableElfFile<B, E> &, std::string_view name, u16 symtab_idx, u16 section_idx);
+// Index of the first section named `name`, or 0 if there is none.
+template <ElfBits B, ElfEndian E> u16 find_named_section(const PackedElf<B, E> &, std::string_view name);
 
 template <ElfBits B, ElfEndian E> u32 symbol_count(const PackedElfShdr<B, E> &shdr) {
   if (shdr.sh_entsize == 0 || shdr.sh_size == 0) return 0;
@@ -186,6 +188,15 @@ u16 add_named_rela(PackedGrowableElfFile<B, E> &elf, std::string_view name, u16 
   shdr.sh_link = symtab_idx;
   shdr.sh_info = section_idx;
   return elf.add_section(std::move(shdr));
+}
+
+template <ElfBits B, ElfEndian E> u16 find_named_section(const PackedElf<B, E> &elf, std::string_view name) {
+  PackedStringReader<B, E> names(elf, elf.header.e_shstrndx);
+  for (u16 it = 1; it < elf.section_headers.size(); ++it) {
+    const auto n = names.get_string_span(elf.section_headers[it].sh_name);
+    if (std::string_view(n.data(), n.size()) == name) return it;
+  }
+  return 0;
 }
 
 // Place the section header followed by the program header table at the given offset

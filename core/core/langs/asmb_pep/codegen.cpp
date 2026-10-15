@@ -363,8 +363,9 @@ write_line_mapping(pepp::tc::ElfResult &result,
                    const pepp::tc::ProgramObjectCodeResult &object_code) {
   auto ret = pepp::tc::number_listing_lines(prog, object_code, pepp::tc::pep_listing_bytes_per_line);
   // Pep/10 addresses are 2 bytes.
-  pepp::tc::write_debug_line(result.elf, 2, bits::to_underlying(pepp::bts::RelocationsPep::R_PEP10_ABS16), prog, addrs,
-                             ret);
+  const auto abs16 = bits::to_underlying(pepp::bts::RelocationsPep::R_PEP10_ABS16);
+  const auto abs32 = bits::to_underlying(pepp::bts::RelocationsPep::R_PEP10_ABS32);
+  pepp::tc::write_debug_line(result.elf, 2, abs16, abs32, prog, addrs, ret);
   return ret;
 }
 

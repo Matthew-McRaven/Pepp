@@ -139,6 +139,7 @@ enum class RelocationsPep : u32 {
   R_PEP10_NONE = 0,
   R_PEP10_ABS16 = 1, // Compute S + A
   R_PEP10_ABS8 = 2,  // Compute S + A, truncated to 8 bits
+  R_PEP10_ABS32 = 3, // Compute S + A as 4 bytes, needed when generating reloctable ELF files.
 };
 
 enum class Relocationsx86_64 : u32 {

@@ -17,8 +17,8 @@
 #include <QFile>
 #include <catch.hpp>
 #include "core/formats/dwarf/line_program.hpp"
-#include "core/formats/elf/packed_access_strings.hpp"
 #include "core/formats/elf/packed_elf.hpp"
+#include "core/formats/elf/packed_ops.hpp"
 
 using namespace pepp::bts;
 
@@ -39,11 +39,9 @@ TEST_CASE("DWARF line program from GCC", "[scope:dwarf][kind:unit][arch:riscv]")
   PackedInputElfFile<ElfBits::b64, E> elf(
       std::make_shared<BufferSource>(std::vector<char>(contents.cbegin(), contents.cend())));
   const auto section = [&](std::string_view name) -> bits::span<const u8> {
-    PackedStringReader<ElfBits::b64, E> names(elf, elf.header.e_shstrndx);
-    for (size_t it = 0; it < elf.section_headers.size(); ++it)
-      if (const auto n = names.get_string_span(elf.section_headers[it].sh_name); std::string_view(n.data(), n.size()) == name)
-        return elf.section_data[it]->get(0, elf.section_data[it]->size());
-    return {};
+    const auto index = find_named_section(elf, name);
+    if (index == 0) return {};
+    return elf.section_data[index]->get(0, elf.section_data[index]->size());
   };
   const auto debug_line = section(".debug_line"), debug_line_str = section(".debug_line_str");
   REQUIRE_FALSE(debug_line.empty());

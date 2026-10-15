@@ -255,7 +255,8 @@ LDWA 2,i
         bits::to_underlying(ElfFileType::ET_REL);
     const auto abs16 = bits::to_underlying(RelocationsPep::R_PEP10_ABS16);
     const auto listing = number_listing_lines(sections, object_code, pep_listing_bytes_per_line);
-    write_debug_line(elf_result.elf, 2, abs16, sections, addresses, listing);
+    const auto abs32 = bits::to_underlying(RelocationsPep::R_PEP10_ABS32);
+    write_debug_line(elf_result.elf, 2, abs16, abs32, sections, addresses, listing);
     auto elf = read_back(elf_result);
     const auto *lines = elf.sections[debugLineSection];
     REQUIRE(lines != nullptr);
@@ -263,7 +264,8 @@ LDWA 2,i
     CHECK(elf.sections[".rela.debug_line"]->get_info() == lines->get_index());
 
     // Two units (source, listing) times two sections. Each sequence's DW_LNE_set_address is relocated.
-    const auto relocations = relocations_of(elf, ".rela.debug_line", symbols_of(elf));
+    const auto symbols = symbols_of(elf);
+    const auto relocations = relocations_of(elf, ".rela.debug_line", symbols);
     const std::array<std::string, 4> targets{".text", ".data", ".text", ".data"};
     REQUIRE(relocations.size() == targets.size());
     for (size_t it = 0; it < targets.size(); ++it) {
@@ -272,6 +274,14 @@ LDWA 2,i
       const auto *operand = reinterpret_cast<const u8 *>(lines->get_data()) + relocations[it].offset;
       CHECK(elf.sections[targets[it]]->get_address() == (u32(operand[0]) << 8 | operand[1]));
     }
+    // One range per section, each a DW_RLE_start_length after the 12-byte table header.
+    CHECK(relocations_of(elf, ".rela.debug_rnglists", symbols) ==
+          std::vector<Rela>{{13, ".text", abs16, 0}, {17, ".data", abs16, 0}});
+    // The unit header's abbreviation offset, then DW_AT_stmt_list and DW_AT_ranges.
+    CHECK(relocations_of(elf, ".rela.debug_info", symbols) ==
+          std::vector<Rela>{{8, debugAbbrevSection, abs32, 0},
+                            {13, debugLineSection, abs32, 0},
+                            {17, debugRnglistsSection, abs32, sizeof(PackedRangeListHeader<ElfEndian::be>)}});
   }
   SECTION("A leading .SECTION does not create an empty implicit section") {
     pepp::tc::DiagnosticTable diag;
@@ -356,9 +366,10 @@ LDWA 2,i
     auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
     auto elf = read_back(elf_result);
     const auto symbols = symbols_of(elf);
-    // The null symbol and a section symbol per section are local. a is global via .EXPORT, while d and i are global
-    // because they are undefined.
-    REQUIRE(symbols.size() == 6);
+    // The null symbol and a section symbol per section, then per reserved DWARF section, are local. a is global via
+    // .EXPORT, while d and i are global because they are undefined.
+    const auto named = 1 + sections.size() + debugSections.size();
+    REQUIRE(symbols.size() == named + 3);
     CHECK(symbols[0].name.empty());
     // Every section gets one, in order, so prog section i is symbol [1 + i]
     for (u32 it = 0; it < sections.size(); ++it) {
@@ -369,16 +380,21 @@ LDWA 2,i
       CHECK(sym.bind == ELFIO::STB_LOCAL);
       CHECK(sym.shndx == elf.sections[sections[it].first.name]->get_index());
     }
-    CHECK(symbols[3].name == "a");
-    CHECK(symbols[3].bind == ELFIO::STB_GLOBAL);
-    CHECK(symbols[3].shndx == elf.sections[".text"]->get_index());
-    CHECK(symbols[4].name == "d");
-    CHECK(symbols[4].bind == ELFIO::STB_GLOBAL);
-    CHECK(symbols[4].shndx == ELFIO::SHN_UNDEF);
-    CHECK(symbols[5].name == "i");
-    CHECK(symbols[5].bind == ELFIO::STB_GLOBAL);
-    CHECK(symbols[5].shndx == ELFIO::SHN_UNDEF);
-    CHECK(elf.sections[".symtab"]->get_info() == 3); // One past the last local.
+    for (size_t it = 0; it < debugSections.size(); ++it) {
+      INFO(debugSections[it]);
+      CHECK(symbols.at(1 + sections.size() + it).type == ELFIO::STT_SECTION);
+      CHECK(symbols.at(1 + sections.size() + it).shndx == elf.sections[debugSections[it]]->get_index());
+    }
+    CHECK(symbols[named].name == "a");
+    CHECK(symbols[named].bind == ELFIO::STB_GLOBAL);
+    CHECK(symbols[named].shndx == elf.sections[".text"]->get_index());
+    CHECK(symbols[named + 1].name == "d");
+    CHECK(symbols[named + 1].bind == ELFIO::STB_GLOBAL);
+    CHECK(symbols[named + 1].shndx == ELFIO::SHN_UNDEF);
+    CHECK(symbols[named + 2].name == "i");
+    CHECK(symbols[named + 2].bind == ELFIO::STB_GLOBAL);
+    CHECK(symbols[named + 2].shndx == ELFIO::SHN_UNDEF);
+    CHECK(elf.sections[".symtab"]->get_info() == named); // One past the last local.
 
     using enum pepp::bts::RelocationsPep;
     // Offsets are of the patched operand specifier, not instruction specifier
