@@ -154,16 +154,13 @@ inline u32 LineProgramHeader::header_length() const noexcept {
   return static_cast<u32>(ret);
 }
 
-// Appends a complete line program unit. The fixed-sized header portions followed by variable-sized directory/files,
-// followed by the actual unit program. Returns the offset of the unit within `out`.
-// Section 6.2.4 items 16 and 20 describe entry 0 as the compilation directory and the primary source file. The caller
-// supplies both.
-// Per: DWARF 5 Section 6.2.4, in the 32-bit format (Section 7.4).
-template <ElfEndian E> size_t write_line_program_unit(AStorage &out, const LineProgramUnit &unit) {
-  const auto &header = unit.header;
+// Appends a line program header items 1-20. Returns the offset of the header.
+// The caller must provide the compilation directory (header.directories[0]) and the primary source file
+// (header.files[0]). The caller must also provide the unit_length per Section 6.2.4.
+template <ElfEndian E> size_t write_line_program_header(AStorage &out, const LineProgramHeader &header, u32 unit_length) {
   // Items 1-11.
   PackedLineProgramHeader<E> packed{};
-  packed.unit_length = unit.unit_length();
+  packed.unit_length = unit_length;
   packed.version = LineProgramHeader::version();
   packed.address_size = header.address_size;
   packed.segment_selector_size = header.segment_selector_size;
@@ -197,37 +194,15 @@ template <ElfEndian E> size_t write_line_program_unit(AStorage &out, const LineP
   out.append_uleb(header.files.size());
   for (const auto &file : header.files)
     write_entry(LineProgramHeader::file_name_entry_format, file.path, file.directory_index);
-
-  out.append(unit.program);
   return ret;
 }
 
-struct DebugLineState {
-  // Current instructions is a recommended breakpoint location to "represent" a line
-  // Value at reset actually needs to be default_is_stmt.
-  bool is_stmt = false;
-  // Current instruction begins a basic block.
-  bool basic_block = false;
-  // Current address if the first byte after the end of a sequence of lines. Other fields in this row are meaningful
-  bool end_sequence = false;
-  // Current address is the first address (of possibly many) where a function-entry breakpoint should be taken
-  bool prologue_end = false;
-  // Current address is the last address (of possibly many) where a function-exit breakpoint should be taken
-  bool epilogue_begin = false;
-  u8 discriminator = 0;
-  // Only meaningful for VLIW architectures. Otherwise 0.
-  u8 op_index = 0;
-  // ABI-defined value that declares the applicable instruction set for the current instruction
-  u16 isa = 0;
-  // Program counter value
-  u32 address = 0;
-  // Which source file this row applies to
-  u32 file = 1;
-  // 1-indexed, with 0 reserved for "no line info"
-  u32 line = 1;
-  // 1-indexed, with 0 reserved for "left edge" of a line
-  u32 column = 0;
-};
+// Appends a complete line program unit: its header followed by `unit.program`. Returns the offset of the unit.
+template <ElfEndian E> size_t write_line_program_unit(AStorage &out, const LineProgramUnit &unit) {
+  const auto ret = write_line_program_header<E>(out, unit.header, unit.unit_length());
+  out.append(unit.program);
+  return ret;
+}
 
 namespace detail {
 // Reads a directory count+entries, followed by File count+entries.
