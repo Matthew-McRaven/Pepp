@@ -3,6 +3,7 @@
 #include <map>
 #include <zpp_bits.h>
 #include "core/compile/ir_linear/attr_section.hpp"
+#include "core/compile/ir_linear/line_macro.hpp"
 #include "core/integers.h"
 #include "core/langs/asmb/elf_symtab.hpp"
 #include "core/langs/asmb/ir_constraints.hpp"
@@ -58,6 +59,7 @@ ProgramObjectCodeResult riscv_to_object_code(DiagnosticTable &diag, const IRMemo
 // `source_order` holds the lines of `prog` in source order, which is the order the listing prints them.
 ElfResult riscv_to_elf(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog, const IRProgram &source_order,
                        const IRMemoryAddressTable<RISCVAddress> &addrs, const ProgramObjectCodeResult &object_code,
-                       const pepp::core::symbol::LeafTable &symbols, const DebugLineFiles &files = {});
+                       const pepp::core::symbol::LeafTable &symbols, const DebugLineFiles &files = {},
+                       const std::vector<std::shared_ptr<const InlineMacroDefinition>> &macros = {});
 
 } // namespace pepp::tc

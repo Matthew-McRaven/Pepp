@@ -20,6 +20,11 @@ pepp::bts::LineProgramHeader pepp::tc::detail::debug_line_header(u8 address_size
   return ret;
 }
 
+std::string pepp::tc::detail::define_string(const InlineMacroDefinition &definition) {
+  const std::vector<std::string_view> parameters(definition.arguments.begin(), definition.arguments.end());
+  return pepp::bts::format_define(definition.name, parameters, definition.body);
+}
+
 pepp::tc::IR2ListingLineMap pepp::tc::number_listing_lines(const IRProgram &program,
                                                            const ProgramObjectCodeResult &object_code,
                                                            u32 bytes_per_line) {
