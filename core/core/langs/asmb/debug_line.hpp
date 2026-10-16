@@ -35,7 +35,7 @@ static inline const std::array<const char *, 4> debugSections{debugAbbrevSection
 static inline const auto debugProducer = "Pepp";
 
 // .debug_line holds two DWARF 5 line program units. The first maps addresses to source lines, and the second maps the
-// same addresses to listing lines. Each unit names a single file, so readers can tell them apart.
+// same addresses to listing lines. Each unit names a single file, which defaults to these.
 static inline const auto debugLineSourceFile = "source";
 static inline const auto debugLineListingFile = "listing";
 
@@ -47,7 +47,7 @@ struct LineMapping {
 };
 
 namespace detail {
-pepp::bts::LineProgramHeader debug_line_header(u8 address_size, std::string_view file);
+pepp::bts::LineProgramHeader debug_line_header(u8 address_size, std::string_view directory, std::string_view file);
 }
 
 namespace detail {
@@ -115,7 +115,14 @@ inline constexpr std::array<pepp::bts::Abbreviation, 1> unit_abbreviations{{
 template <typename Address>
 void write_debug_line(pepp::bts::AnyGrowableElf &elf, u8 address_size, u32 address_relocation, u32 offset_relocation,
                       const std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
-                      const IRMemoryAddressTable<Address> &addrs, const IR2ListingLineMap &listing) {
+                      const IRMemoryAddressTable<Address> &addrs, const IR2ListingLineMap &listing,
+                      const DebugLineFiles &files = {}) {
+  const auto name_or = [](const std::optional<std::string> &name, const char *fallback) -> std::string_view {
+    return name && !name->empty() ? std::string_view(*name) : std::string_view(fallback);
+  };
+  const auto source_name = name_or(files.source, debugLineSourceFile);
+  const auto listing_name = name_or(files.listing, debugLineListingFile);
+  const auto directory = name_or(files.directory, ".");
   auto f = [&](auto &file) {
     if (!file) return;
     using File = std::remove_cvref_t<decltype(*file)>;
@@ -130,14 +137,14 @@ void write_debug_line(pepp::bts::AnyGrowableElf &elf, u8 address_size, u32 addre
     std::vector<detail::SectionRelocation> line_relocations;
     const auto write_unit = [&](std::string_view name, bool for_listing) {
       pepp::bts::LineProgramWriter<E> writer(*file->section_data[line_index],
-                                             detail::debug_line_header(address_size, name));
+                                             detail::debug_line_header(address_size, directory, name));
       for (const auto &[desc, lines] : prog) {
         const auto first_operand = writer.address_operands().size();
         for (const auto &line : lines) {
           const auto addr_it = addrs.find(line.get());
           if (addr_it == addrs.cend()) continue;
           const u32 number = for_listing ? detail::listing_line(listing, *line) : detail::source_line(*line);
-          if (number != 0) writer.row(addr_it->second.address, addr_it->second.size, 0, number);
+          if (number != 0) writer.row(addr_it->second.address, addr_it->second.size, 1, number);
         }
         // A linker places each section on its own, so a sequence must not continue into the next one.
         writer.end_sequence();
@@ -148,8 +155,8 @@ void write_debug_line(pepp::bts::AnyGrowableElf &elf, u8 address_size, u32 addre
       }
       return writer.finish();
     };
-    const auto source_unit = write_unit(debugLineSourceFile, false);
-    write_unit(debugLineListingFile, true);
+    const auto source_unit = write_unit(source_name, false);
+    write_unit(listing_name, true);
 
     // Extract the spanned ranges of the source program and emit to a range list.
     std::vector<detail::SectionRelocation> range_relocations;
@@ -174,8 +181,8 @@ void write_debug_line(pepp::bts::AnyGrowableElf &elf, u8 address_size, u32 addre
         {unit.value(DW_FORM_sec_offset, {.number = source_unit}), line_index, source_unit},
         {unit.value(DW_FORM_sec_offset, {.number = list}), rnglists_index, list},
     };
-    unit.value(DW_FORM_string, {.string = debugLineSourceFile});
-    unit.value(DW_FORM_string, {.string = "."});
+    unit.value(DW_FORM_string, {.string = source_name});
+    unit.value(DW_FORM_string, {.string = directory});
     unit.value(DW_FORM_string, {.string = debugProducer});
     unit.value(DW_FORM_data2, {.number = bits::to_underlying(pepp::bts::Languages::DW_LANG_Assembler)});
     unit.finish();
@@ -199,6 +206,7 @@ IR2ListingLineMap number_listing_lines(const std::vector<std::pair<SectionDescri
                                        const ProgramObjectCodeResult &object_code, u32 bytes_per_line);
 
 // Decodes .debug_line, as written by write_debug_line, into one mapping per address in ascending order.
+// The second unit holds listing lines, and every other unit holds source lines.
 // `debug_line_str` is only needed when a unit names its files with DW_FORM_line_strp.
 std::expected<std::vector<LineMapping>, std::string> read_line_mappings(bits::span<const u8> debug_line,
                                                                        bits::span<const u8> debug_line_str,

@@ -59,7 +59,8 @@ ProgramObjectCodeResult pepp_to_object_code(DiagnosticTable &diag, const IRMemor
 
 ElfResult pepp_to_elf(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
                       const IRMemoryAddressTable<PeppAddress> &addrs, const ProgramObjectCodeResult &object_code,
-                      const pepp::core::symbol::LeafTable &symbols, const std::vector<obj::IO> &mmios);
+                      const pepp::core::symbol::LeafTable &symbols, const std::vector<obj::IO> &mmios,
+                      const DebugLineFiles &files = {});
 
 struct BinaryLineMapping {
   uint32_t address = 0;

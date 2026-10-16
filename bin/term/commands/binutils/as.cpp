@@ -1,4 +1,5 @@
 #include "as.hpp"
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <regex>
@@ -69,7 +70,14 @@ void AsTask::run() {
     std::cerr << "Error: No architecture specified. Use -march to specify an architecture.\n";
     return emit finished(1);
   }
-  const auto cfg = std::visit([this](const auto &arch_opts) { return prepare(arch_opts); }, _arch_opts);
+  auto cfg = std::visit([this](const auto &arch_opts) { return prepare(arch_opts); }, _arch_opts);
+  //  Provide names for .debug_line's units after the file parameters when they're not from standard io.
+  pepp::tc::DebugLineFiles debug_files;
+  std::error_code cwd_error;
+  if (const auto cwd = std::filesystem::current_path(cwd_error); !cwd_error) debug_files.directory = cwd.string();
+  if (_opts.file_sources.size() == 1 && _opts.file_sources[0] != "-") debug_files.source = _opts.file_sources[0];
+  if (_opts.listing_enable && _opts.file_listing != "-") debug_files.listing = _opts.file_listing;
+  std::visit([&](auto &arch_cfg) { arch_cfg.debug_files = debug_files; }, cfg);
   pepp::tc::FormattingConfig fmt_cfg;
   if (_opts.listing_enable) {
     fmt_cfg.listing_format = [&](std::vector<std::string> &&lines) { write_lines(_opts.file_listing, lines); };

@@ -57,6 +57,6 @@ ProgramObjectCodeResult riscv_to_object_code(DiagnosticTable &diag, const IRMemo
 
 ElfResult riscv_to_elf(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
                        const IRMemoryAddressTable<RISCVAddress> &addrs, const ProgramObjectCodeResult &object_code,
-                       const pepp::core::symbol::LeafTable &symbols);
+                       const pepp::core::symbol::LeafTable &symbols, const DebugLineFiles &files = {});
 
 } // namespace pepp::tc

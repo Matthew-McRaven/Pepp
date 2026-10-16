@@ -83,7 +83,9 @@ TEST_CASE("RISCV ASM code generator",
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::riscv_assign_addresses(sections, 0x1000);
     auto object_code = pepp::tc::riscv_to_object_code(diag, addresses, sections);
-    auto elf_result = pepp::tc::riscv_to_elf(sections, addresses, object_code, *p.symbol_table());
+    // An empty name keeps its default.
+    const pepp::tc::DebugLineFiles files{.source = "prog.s", .listing = "", .directory = "/work"};
+    auto elf_result = pepp::tc::riscv_to_elf(sections, addresses, object_code, *p.symbol_table(), files);
     REQUIRE(diag.count() == 0);
     const auto bytes = pepp::tc::elf_bytes(elf_result);
     std::istringstream in(std::string(reinterpret_cast<const char *>(bytes.data()), bytes.size()));
@@ -97,7 +99,8 @@ TEST_CASE("RISCV ASM code generator",
     const auto source = pepp::bts::parse_line_program_unit<pepp::bts::ElfEndian::le>(encoded, 0);
     REQUIRE(source.has_value());
     CHECK(source->header.address_size == 4);
-    CHECK(source->header.files[0].path == pepp::tc::debugLineSourceFile);
+    CHECK(source->header.files[0].path == "prog.s");
+    CHECK(source->header.directories == std::vector<std::string>{"/work"});
     std::vector<std::pair<u64, u64>> rows;
     const auto ran = pepp::bts::run_line_program<pepp::bts::ElfEndian::le>(
         *source, [&](const auto &row) { rows.emplace_back(row.address, row.end_sequence ? 0 : row.line); });
@@ -109,6 +112,15 @@ TEST_CASE("RISCV ASM code generator",
     REQUIRE(listing.has_value());
     CHECK(listing->header.files[0].path == pepp::tc::debugLineListingFile);
     CHECK(listing->next_unit == encoded.size());
+
+    // The compile unit is named after the source unit's file
+    const auto *info = elf.sections[pepp::tc::debugInfoSection];
+    REQUIRE(info != nullptr);
+    const auto info_bytes = std::string_view(info->get_data(), info->get_size());
+    CHECK(info_bytes.find("prog.s") != std::string_view::npos);
+    CHECK(info_bytes.find("/work") != std::string_view::npos);
+
+    // Readers find the listing unit by its position
     const auto mappings = pepp::tc::read_line_mappings(encoded, {}, pepp::bts::ElfEndian::le);
     REQUIRE(mappings.has_value());
     REQUIRE(mappings->size() == 2);

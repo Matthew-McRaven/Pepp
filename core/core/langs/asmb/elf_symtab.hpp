@@ -1,5 +1,7 @@
 #pragma once
 #include <map>
+#include <optional>
+#include <string>
 #include <zpp_bits.h>
 #include "codegen.hpp"
 #include "core/compile/ir_linear/attr_section.hpp"
@@ -25,6 +27,11 @@ struct IR2ListingLineComparator {
 };
 using IR2ListingLineMap = fc::flat_map<std::vector<IR2ListingLinePair>, IR2ListingLineComparator>;
 
+// File names for .debug_line's source and listing units, and the directory they are relative to.
+// Replaces the default when a non-empty string.
+struct DebugLineFiles {
+  std::optional<std::string> source, listing, directory;
+};
 
 struct ElfResult {
   pepp::bts::AnyGrowableElf elf;
