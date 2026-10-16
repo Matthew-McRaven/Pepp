@@ -34,8 +34,8 @@ DriverResult assemble_pep10(const Pep10DriverConfig &cfg, const FormattingConfig
     auto listing = format_listing(flattened, addresses, object_code);
     fmtcfg.listing_format(std::move(listing));
   }
-  result.elf =
-      pepp_to_elf(split.grouped_ir, addresses, object_code, *pep_parser.symbol_table(), split.mmios, cfg.debug_files);
+  result.elf = pepp_to_elf(split.grouped_ir, flattened, addresses, object_code, *pep_parser.symbol_table(), split.mmios,
+                           cfg.debug_files);
   return result;
 }
 

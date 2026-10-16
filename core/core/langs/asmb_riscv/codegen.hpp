@@ -55,7 +55,8 @@ std::optional<ArgumentConstraint> riscv_argument_constraint(const LinearIR &line
 ProgramObjectCodeResult riscv_to_object_code(DiagnosticTable &diag, const IRMemoryAddressTable<RISCVAddress> &,
                                              std::vector<std::pair<SectionDescriptor, IRProgram>> &prog);
 
-ElfResult riscv_to_elf(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
+// `source_order` holds the lines of `prog` in source order, which is the order the listing prints them.
+ElfResult riscv_to_elf(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog, const IRProgram &source_order,
                        const IRMemoryAddressTable<RISCVAddress> &addrs, const ProgramObjectCodeResult &object_code,
                        const pepp::core::symbol::LeafTable &symbols, const DebugLineFiles &files = {});
 

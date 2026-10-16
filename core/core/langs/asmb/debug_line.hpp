@@ -44,10 +44,10 @@ static inline const auto debugProducer = "Pepp";
 static inline const auto debugLineSourceFile = "source";
 static inline const auto debugLineListingFile = "listing";
 
-// Numbers listing lines in program order, as a listing with `bytes_per_line` bytes of object code per row prints them.
+// Numbers listing lines in source order, as a listing with `bytes_per_line` bytes of object code per row prints them.
 // Lines hidden from the listing get no number.
-IR2ListingLineMap number_listing_lines(const std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
-                                       const ProgramObjectCodeResult &object_code, u32 bytes_per_line);
+IR2ListingLineMap number_listing_lines(const IRProgram &program, const ProgramObjectCodeResult &object_code,
+                                       u32 bytes_per_line);
 
 // One address's lines, merged from both units. Lines are 1-based, and 0 means the address has no such line.
 // In a relocatable file, `address` is an offset into `section`. SHN_ABS means `address` is absolute.

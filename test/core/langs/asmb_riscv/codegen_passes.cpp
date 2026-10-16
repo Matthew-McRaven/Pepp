@@ -59,7 +59,7 @@ TEST_CASE("RISCV ASM code generator",
     CHECK(addresses.at(&*instr).address == 0xfeed);
     CHECK(addresses.at(&*instr).size == 4);
     auto object_code = pepp::tc::riscv_to_object_code(diag, addresses, sections);
-    auto elf_result = pepp::tc::riscv_to_elf(sections, addresses, object_code, *symbol_tab);
+    auto elf_result = pepp::tc::riscv_to_elf(sections, results, addresses, object_code, *symbol_tab);
     // Read what would actually be written, rather than the in-memory model of it.
     const auto bytes = pepp::tc::elf_bytes(elf_result);
     std::istringstream in(std::string(reinterpret_cast<const char *>(bytes.data()), bytes.size()));
@@ -85,7 +85,7 @@ TEST_CASE("RISCV ASM code generator",
     auto object_code = pepp::tc::riscv_to_object_code(diag, addresses, sections);
     // An empty name keeps its default.
     const pepp::tc::DebugLineFiles files{.source = "prog.s", .listing = "", .directory = "/work"};
-    auto elf_result = pepp::tc::riscv_to_elf(sections, addresses, object_code, *p.symbol_table(), files);
+    auto elf_result = pepp::tc::riscv_to_elf(sections, results, addresses, object_code, *p.symbol_table(), files);
     REQUIRE(diag.count() == 0);
     const auto bytes = pepp::tc::elf_bytes(elf_result);
     std::istringstream in(std::string(reinterpret_cast<const char *>(bytes.data()), bytes.size()));
@@ -245,6 +245,7 @@ TEST_CASE("RISCV ASM code generator relocations",
     DiagnosticTable diag;
     // Keep the symbol table alive after parsing to prevent dangling pointers in relocations
     std::shared_ptr<pepp::core::symbol::LeafTable> symbols;
+    IRProgram program;
     RISCVSectionAnalysisResults split;
     IRMemoryAddressTable<RISCVAddress> addresses;
     ProgramObjectCodeResult code;
@@ -253,9 +254,9 @@ TEST_CASE("RISCV ASM code generator relocations",
     Assembled ret;
     auto p = Parser(data(source));
     ret.symbols = p.symbol_table();
-    auto results = p.parse(ret.diag);
+    ret.program = p.parse(ret.diag);
     REQUIRE(ret.diag.count() == 0);
-    ret.split = riscv_split_to_sections(ret.diag, results);
+    ret.split = riscv_split_to_sections(ret.diag, ret.program);
     ret.addresses = riscv_assign_addresses(ret.split.grouped_ir);
     ret.code = riscv_to_object_code(ret.diag, ret.addresses, ret.split.grouped_ir);
     return ret;
@@ -311,7 +312,7 @@ data: .word 0)");
     CHECK((word(28) >> 25 == 0x40 && ((word(28) >> 7) & 0x1F) == 0)); // S-type imm[11:5], imm[4:0]
   }
   SECTION("Local labels are removed unless they are a target of a relocation") {
-    auto written = riscv_to_elf(result.split.grouped_ir, result.addresses, result.code, *result.symbols);
+    auto written = riscv_to_elf(result.split.grouped_ir, result.program, result.addresses, result.code, *result.symbols);
     const auto bytes = elf_bytes(written);
     std::istringstream in(std::string(reinterpret_cast<const char *>(bytes.data()), bytes.size()));
     ELFIO::elfio elf;

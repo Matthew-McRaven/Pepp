@@ -28,6 +28,7 @@
 #include "core/formats/elf/enums.hpp"
 #include "core/langs/asmb/debug_line.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
+#include "core/langs/asmb_driver.hpp"
 #include "core/langs/asmb_pep/codegen.hpp"
 #include "core/langs/asmb_pep/ir_visitor.hpp"
 #include "core/langs/asmb_pep/parser.hpp"
@@ -184,7 +185,7 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
     auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
-    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
+    auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
 
     REQUIRE(sections.size() == 3);
     auto elf = read_back(elf_result);
@@ -262,7 +263,7 @@ LDWA 2,i
     std::get<std::unique_ptr<PackedGrowableElfBE32>>(elf_result.elf)->header.e_type =
         bits::to_underlying(ElfFileType::ET_REL);
     const auto abs16 = bits::to_underlying(RelocationsPep::R_PEP10_ABS16);
-    const auto listing = number_listing_lines(sections, object_code, pep_listing_bytes_per_line);
+    const auto listing = number_listing_lines(code, object_code, pep_listing_bytes_per_line);
     const auto abs32 = bits::to_underlying(RelocationsPep::R_PEP10_ABS32);
     write_debug_line(elf_result.elf, 2, abs16, abs32, sections, addresses, listing);
     auto elf = read_back(elf_result);
@@ -318,7 +319,7 @@ LDWA 2,i
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
     auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
-    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
+    auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
 
     // The blank first line joins .data instead of forcing an empty .text into existence.
     REQUIRE(sections.size() == 1);
@@ -344,7 +345,7 @@ LDWA 2,i
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
     auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
-    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
+    auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
 
     REQUIRE(sections.size() == 3);
     auto elf = read_back(elf_result);
@@ -383,7 +384,7 @@ LDWA 2,i
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
     auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
-    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
+    auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
     auto elf = read_back(elf_result);
     const auto symbols = symbols_of(elf);
     // The null symbol and a section symbol per section, then per reserved DWARF section, are local. a is global via
@@ -464,7 +465,7 @@ LDWA 2,i
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
     auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
-    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
+    auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
     auto elf = read_back(elf_result);
     const auto symbols = symbols_of(elf);
     // Section symbols hold their section's address
@@ -509,7 +510,7 @@ LDWA 2,i
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
     auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
-    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
+    auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
     auto elf = read_back(elf_result);
     const auto symbols = symbols_of(elf);
 
@@ -541,7 +542,7 @@ LDWA 2,i
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
     auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
-    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
+    auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
     auto elf = read_back(elf_result);
     const auto symbols = symbols_of(elf);
 
@@ -655,4 +656,28 @@ TEST_CASE("Pepp ASM segments derive from sections",
     REQUIRE(segs.size() == 1);
     CHECK(segs[0].memsz == 4);
   }
+}
+
+TEST_CASE("Listings work as expected when re-opening sections",
+          "[scope:core][scope:core.langs][kind:unit][arch:pep10]") {
+  const auto source = R"(         .SECTION "text", "rx"
+         LDWA    1,i
+         .SECTION "data", "rw"
+x:       .WORD   5
+         .SECTION "text", "rx"
+         RET
+)";
+  std::vector<std::string> listing;
+  pepp::tc::FormattingConfig fmt;
+  fmt.listing_format = [&](std::vector<std::string> &&lines) { listing = std::move(lines); };
+  auto result = pepp::tc::assemble_pep10(pepp::tc::Pep10DriverConfig{}, fmt, source);
+  REQUIRE(result.ok());
+  const auto input = pepp::tc::to_input_elf(result.elf);
+  const auto mappings = std::visit([](const auto &file) { return pepp::tc::read_line_mappings(*file); }, input);
+  REQUIRE(mappings.has_value());
+  const auto stop = std::ranges::find(*mappings, 6u, &pepp::tc::LineMapping::source_line);
+  REQUIRE(stop != mappings->end());
+  REQUIRE(stop->listing_line != 0);
+  REQUIRE(stop->listing_line <= listing.size());
+  CHECK(listing[stop->listing_line - 1].find("RET") != std::string::npos);
 }
