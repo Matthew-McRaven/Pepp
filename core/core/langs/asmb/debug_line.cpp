@@ -1,5 +1,4 @@
 #include "core/langs/asmb/debug_line.hpp"
-#include <map>
 #include "core/compile/ir_linear/attr_comment.hpp"
 
 pepp::bts::LineProgramHeader pepp::tc::detail::debug_line_header(u8 address_size, std::string_view directory,
@@ -38,43 +37,4 @@ pepp::tc::number_listing_lines(const std::vector<std::pair<SectionDescriptor, IR
   }
   std::sort(ret.container.begin(), ret.container.end(), IR2ListingLineComparator{});
   return ret;
-}
-
-namespace {
-template <pepp::bts::ElfEndian E>
-std::expected<std::vector<pepp::tc::LineMapping>, std::string> read_units(bits::span<const u8> debug_line,
-                                                                         bits::span<const u8> listing_line,
-                                                                         bits::span<const u8> debug_line_str) {
-  // Source and listing lines arrive in separate sections, so merge them by address.
-  std::map<u64, std::pair<u32, u32>> lines;
-  const auto read_section = [&](bits::span<const u8> section, bool listing) -> std::expected<void, std::string> {
-    for (size_t offset = 0; offset < section.size();) {
-      const auto unit = pepp::bts::parse_line_program_unit<E>(section, offset, debug_line_str);
-      if (!unit) return std::unexpected(unit.error());
-      const auto ran = pepp::bts::run_line_program<E>(*unit, [&](const pepp::bts::DebugLineState &row) {
-        if (row.end_sequence) return;
-        auto &[source_line, listing_line] = lines[row.address];
-        (listing ? listing_line : source_line) = static_cast<u32>(row.line);
-      });
-      if (!ran) return std::unexpected(ran.error());
-      offset = unit->next_unit;
-    }
-    return {};
-  };
-  if (const auto read = read_section(debug_line, false); !read) return std::unexpected(read.error());
-  if (const auto read = read_section(listing_line, true); !read) return std::unexpected(read.error());
-  std::vector<pepp::tc::LineMapping> ret;
-  ret.reserve(lines.size());
-  for (const auto &[address, line] : lines)
-    ret.push_back({.address = address, .source_line = line.first, .listing_line = line.second});
-  return ret;
-}
-} // namespace
-
-std::expected<std::vector<pepp::tc::LineMapping>, std::string>
-pepp::tc::read_line_mappings(bits::span<const u8> debug_line, bits::span<const u8> listing_line,
-                             bits::span<const u8> debug_line_str, pepp::bts::ElfEndian endian) {
-  if (endian == pepp::bts::ElfEndian::le)
-    return read_units<pepp::bts::ElfEndian::le>(debug_line, listing_line, debug_line_str);
-  return read_units<pepp::bts::ElfEndian::be>(debug_line, listing_line, debug_line_str);
 }

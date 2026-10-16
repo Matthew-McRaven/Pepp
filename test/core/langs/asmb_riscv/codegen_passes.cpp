@@ -105,7 +105,7 @@ TEST_CASE("RISCV ASM code generator",
     CHECK(source->header.directories == std::vector<std::string>{"/work"});
     std::vector<std::pair<u64, u64>> rows;
     const auto ran = pepp::bts::run_line_program<pepp::bts::ElfEndian::le>(
-        *source, [&](const auto &row) { rows.emplace_back(row.address, row.end_sequence ? 0 : row.line); });
+        *source, [&](const auto &row, auto) { rows.emplace_back(row.address, row.end_sequence ? 0 : row.line); });
     REQUIRE(ran.has_value());
     // The sequence ends after the second instruction.
     CHECK(rows == std::vector<std::pair<u64, u64>>{{0x1000, 1}, {0x1004, 2}, {0x1008, 0}});
@@ -125,7 +125,8 @@ TEST_CASE("RISCV ASM code generator",
     CHECK(info_bytes.find("prog.s") != std::string_view::npos);
     CHECK(info_bytes.find("/work") != std::string_view::npos);
 
-    const auto mappings = pepp::tc::read_line_mappings(encoded, listing_encoded, {}, pepp::bts::ElfEndian::le);
+    const auto input = pepp::tc::to_input_elf(elf_result);
+    const auto mappings = std::visit([](const auto &file) { return pepp::tc::read_line_mappings(*file); }, input);
     REQUIRE(mappings.has_value());
     REQUIRE(mappings->size() == 2);
     CHECK((*mappings)[0].source_line == 1);

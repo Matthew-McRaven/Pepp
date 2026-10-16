@@ -59,7 +59,7 @@ template <ElfEndian E> std::vector<Row> run(const std::vector<u8> &bytes) {
   REQUIRE(unit.has_value());
   CHECK(unit->next_unit == bytes.size());
   std::vector<Row> rows;
-  const auto ok = run_line_program<E>(*unit, [&](const DebugLineState &s) {
+  const auto ok = run_line_program<E>(*unit, [&](const DebugLineState &s, std::optional<size_t>) {
     // An end_sequence row's other fields are not meaningful.
     if (s.end_sequence) rows.push_back({s.address, 0, 0, true});
     else rows.push_back({s.address, s.file, s.line, false});
@@ -158,7 +158,8 @@ TEST_CASE("DWARF line program", "[scope:dwarf][kind:unit][arch:*][!throws]") {
     const auto bytes = bytes_of(s);
     const auto unit = parse_line_program_unit<ElfEndian::be>(bytes, 0);
     REQUIRE(unit.has_value());
-    CHECK_FALSE(run_line_program<ElfEndian::be>(*unit, [](const DebugLineState &) {}).has_value());
+    const auto ignore = [](const DebugLineState &, std::optional<size_t>) {};
+    CHECK_FALSE(run_line_program<ElfEndian::be>(*unit, ignore).has_value());
   }
 
   SECTION("Reject VLIW headers") {

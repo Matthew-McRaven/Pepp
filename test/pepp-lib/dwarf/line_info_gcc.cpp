@@ -38,12 +38,8 @@ TEST_CASE("DWARF line program from GCC", "[scope:dwarf][kind:unit][arch:riscv]")
   const auto contents = file.readAll();
   PackedInputElfFile<ElfBits::b64, E> elf(
       std::make_shared<BufferSource>(std::vector<char>(contents.cbegin(), contents.cend())));
-  const auto section = [&](std::string_view name) -> bits::span<const u8> {
-    const auto index = find_named_section(elf, name);
-    if (index == 0) return {};
-    return elf.section_data[index]->get(0, elf.section_data[index]->size());
-  };
-  const auto debug_line = section(".debug_line"), debug_line_str = section(".debug_line_str");
+  const auto debug_line = section_bytes(elf, find_named_section(elf, ".debug_line"));
+  const auto debug_line_str = section_bytes(elf, find_named_section(elf, ".debug_line_str"));
   REQUIRE_FALSE(debug_line.empty());
   REQUIRE_FALSE(debug_line_str.empty());
 
@@ -60,7 +56,7 @@ TEST_CASE("DWARF line program from GCC", "[scope:dwarf][kind:unit][arch:riscv]")
 
   // Matches `riscv64-elf-readelf --debug-dump=decodedline line_info.elf`.
   std::vector<Row> rows;
-  const auto ran = run_line_program<E>(*unit, [&](const DebugLineState &s) {
+  const auto ran = run_line_program<E>(*unit, [&](const DebugLineState &s, std::optional<size_t>) {
     if (s.end_sequence) rows.push_back({s.address, 0, 0, true});
     else rows.push_back({s.address, s.file, s.line, false});
   });

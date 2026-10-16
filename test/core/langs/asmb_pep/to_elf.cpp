@@ -19,6 +19,7 @@
 #include <catch.hpp>
 #include <elfio/elfio.hpp>
 #include <optional>
+#include <set>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -218,8 +219,11 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     REQUIRE(listing_unit.has_value());
     CHECK(listing_unit->header.files[0].path == pepp::tc::debugLineListingFile);
     CHECK(listing_unit->next_unit == listing_encoded.size());
-    const auto mappings = pepp::tc::read_line_mappings(encoded, listing_encoded, {}, pepp::bts::ElfEndian::be);
+    const auto input = pepp::tc::to_input_elf(elf_result);
+    const auto mappings = std::visit([](const auto &file) { return pepp::tc::read_line_mappings(*file); }, input);
     REQUIRE(mappings.has_value());
+    const auto abs = bits::to_underlying(pepp::bts::SectionIndices::SHN_ABS);
+    CHECK(std::ranges::all_of(*mappings, [&](const auto &mapping) { return mapping.section == abs; }));
     const auto address_of = [&](u32 source_line) -> std::optional<u32> {
       for (const auto &mapping : *mappings)
         if (mapping.source_line == source_line) return static_cast<u32>(mapping.address);
@@ -289,6 +293,15 @@ LDWA 2,i
           std::vector<Rela>{{8, debugAbbrevSection, abs32, 0},
                             {13, debugLineSection, abs32, 0},
                             {17, debugRnglistsSection, abs32, sizeof(PackedRangeListHeader<ElfEndian::be>)}});
+
+    // Reading the relocations back tags each row with its section.
+    const auto input = to_input_elf(elf_result);
+    const auto mappings = std::visit([](const auto &file) { return read_line_mappings(*file); }, input);
+    REQUIRE(mappings.has_value());
+    std::set<u16> tagged;
+    for (const auto &mapping : *mappings) tagged.insert(mapping.section);
+    CHECK(tagged == std::set<u16>{static_cast<u16>(elf.sections[".text"]->get_index()),
+                                  static_cast<u16>(elf.sections[".data"]->get_index())});
   }
   SECTION("A leading .SECTION does not create an empty implicit section") {
     pepp::tc::DiagnosticTable diag;

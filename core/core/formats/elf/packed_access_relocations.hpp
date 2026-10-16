@@ -16,6 +16,7 @@
  */
 
 #pragma once
+#include <map>
 #include "core/formats/elf/packed_access_symbol.hpp"
 #include "core/formats/elf/packed_elf.hpp"
 namespace pepp::bts {
@@ -207,5 +208,26 @@ void PackedRelocationAccessor<B, E, Const>::swap_symbols(u32 first, u32 second) 
       else if (sym == second) update_rel(rel, first);
     }
   }
+}
+
+// Given a target section, walk through all of the locations that apply to it. For each relocation, record the offset
+// into the target section and the section of the symbol that the relocation refers to. 0/SHN_UNDEF returns 0.
+template <ElfBits B, ElfEndian E>
+std::map<u64, u16> relocation_symbol_sections(const PackedElf<B, E> &elf, u16 target_shndx) {
+  std::map<u64, u16> ret;
+  if (target_shndx == 0) return ret;
+  for (u16 index = 1; index < elf.section_headers.size(); ++index) {
+    const auto &shdr = elf.section_headers[index];
+    const bool rela = shdr.sh_type == bits::to_underlying(SectionTypes::SHT_RELA);
+    if ((!rela && shdr.sh_type != bits::to_underlying(SectionTypes::SHT_REL)) || shdr.sh_info != target_shndx) continue;
+    PackedRelocationReader<B, E> relocations(elf, index);
+    PackedSymbolReader<B, E> symbols(elf, shdr.sh_link);
+    const auto record = [&](const auto &rel) {
+      ret[rel.r_offset] = symbols.get_symbol(static_cast<u32>(rel.r_sym())).st_shndx;
+    };
+    for (u32 it = 0; it < relocations.relocation_count(); ++it)
+      rela ? record(relocations.get_rela(it)) : record(relocations.get_rel(it));
+  }
+  return ret;
 }
 } // namespace pepp::bts

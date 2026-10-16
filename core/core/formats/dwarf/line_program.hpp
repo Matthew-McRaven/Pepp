@@ -16,6 +16,7 @@
  */
 
 #pragma once
+#include <concepts>
 #include <expected>
 #include <optional>
 #include <stdexcept>
@@ -116,9 +117,14 @@ private:
   std::vector<AddressOperand> _address_operands;
 };
 
-// Executes `unit.program`, calling `on_row(const DebugLineState &)` each time a row is appended to the matrix.
+// Handle a row being copied into the line number matrix by inspecting the state machine's registers. If the 2nd
+// argument is not nullopt, it is the offset within the program unit of a DW_LNE_set_address argument.
+template <typename F>
+concept LineRowVisitor = std::invocable<F &, const DebugLineState &, std::optional<size_t>>;
+
+// Executes `unit.program`, passing each row to `on_row`.
 // Per: DWARF 5 Section 6.2.5.
-template <ElfEndian E, typename OnRow>
+template <ElfEndian E, LineRowVisitor OnRow>
 std::expected<void, std::string> run_line_program(const LineProgramUnit &unit, OnRow &&on_row);
 
 /*
@@ -240,7 +246,7 @@ template <ElfEndian E> void LineProgramWriter<E>::advance_to(u64 address) {
   _state.address = address;
 }
 
-template <ElfEndian E, typename OnRow>
+template <ElfEndian E, LineRowVisitor OnRow>
 std::expected<void, std::string> run_line_program(const LineProgramUnit &unit, OnRow &&on_row) {
   using enum StandardOpcodes;
   using enum ExtendedOpcodes;
@@ -249,6 +255,7 @@ std::expected<void, std::string> run_line_program(const LineProgramUnit &unit, O
     return std::unexpected("maximum_operations_per_instruction must be nonzero");
   const u8 opcode_base = header.opcode_base();
   DebugLineState state(header);
+  std::optional<size_t> address_operand;
 
   // Section 6.2.5.1: how special opcodes, DW_LNS_advance_pc, and DW_LNS_const_add_pc move the operation pointer.
   const auto advance = [&](u64 operation_advance) {
@@ -258,7 +265,7 @@ std::expected<void, std::string> run_line_program(const LineProgramUnit &unit, O
   };
   // Sections 6.2.5.1 and 6.2.5.2 (DW_LNS_copy): these registers reset after a row is appended.
   const auto append_row = [&] {
-    on_row(static_cast<const DebugLineState &>(state));
+    on_row(static_cast<const DebugLineState &>(state), address_operand);
     state.discriminator = 0;
     state.basic_block = state.prologue_end = state.epilogue_begin = false;
   };
@@ -282,10 +289,11 @@ std::expected<void, std::string> run_line_program(const LineProgramUnit &unit, O
       // Section 6.2.5.3.
       case DW_LNE_end_sequence:
         state.end_sequence = true;
-        on_row(static_cast<const DebugLineState &>(state));
-        state = DebugLineState(header);
+        on_row(static_cast<const DebugLineState &>(state), address_operand);
+        state = DebugLineState(header), address_operand.reset();
         break;
       case DW_LNE_set_address:
+        address_operand = static_cast<size_t>(body.data.data() + body.offset - unit.program.data());
         state.address = detail::read_address<E>(body, header.address_size);
         state.op_index = 0;
         break;
