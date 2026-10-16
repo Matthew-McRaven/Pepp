@@ -91,10 +91,12 @@ TEST_CASE("RISCV ASM code generator",
     std::istringstream in(std::string(reinterpret_cast<const char *>(bytes.data()), bytes.size()));
     ELFIO::elfio elf;
     REQUIRE(elf.load(in));
-    const auto *lines = elf.sections[pepp::tc::debugLineSection];
-    REQUIRE(lines != nullptr);
-    const auto encoded = bits::span<const u8>(reinterpret_cast<const u8 *>(lines->get_data()),
-                                              static_cast<size_t>(lines->get_size()));
+    const auto bytes_of = [&](const char *name) {
+      const auto *sec = elf.sections[name];
+      REQUIRE(sec != nullptr);
+      return bits::span<const u8>(reinterpret_cast<const u8 *>(sec->get_data()), static_cast<size_t>(sec->get_size()));
+    };
+    const auto encoded = bytes_of(pepp::tc::debugLineSection);
 
     const auto source = pepp::bts::parse_line_program_unit<pepp::bts::ElfEndian::le>(encoded, 0);
     REQUIRE(source.has_value());
@@ -108,10 +110,13 @@ TEST_CASE("RISCV ASM code generator",
     // The sequence ends after the second instruction.
     CHECK(rows == std::vector<std::pair<u64, u64>>{{0x1000, 1}, {0x1004, 2}, {0x1008, 0}});
 
-    const auto listing = pepp::bts::parse_line_program_unit<pepp::bts::ElfEndian::le>(encoded, source->next_unit);
+    CHECK(source->next_unit == encoded.size());
+
+    const auto listing_encoded = bytes_of(pepp::tc::debugListingLineSection);
+    const auto listing = pepp::bts::parse_line_program_unit<pepp::bts::ElfEndian::le>(listing_encoded, 0);
     REQUIRE(listing.has_value());
     CHECK(listing->header.files[0].path == pepp::tc::debugLineListingFile);
-    CHECK(listing->next_unit == encoded.size());
+    CHECK(listing->next_unit == listing_encoded.size());
 
     // The compile unit is named after the source unit's file
     const auto *info = elf.sections[pepp::tc::debugInfoSection];
@@ -120,8 +125,7 @@ TEST_CASE("RISCV ASM code generator",
     CHECK(info_bytes.find("prog.s") != std::string_view::npos);
     CHECK(info_bytes.find("/work") != std::string_view::npos);
 
-    // Readers find the listing unit by its position
-    const auto mappings = pepp::tc::read_line_mappings(encoded, {}, pepp::bts::ElfEndian::le);
+    const auto mappings = pepp::tc::read_line_mappings(encoded, listing_encoded, {}, pepp::bts::ElfEndian::le);
     REQUIRE(mappings.has_value());
     REQUIRE(mappings->size() == 2);
     CHECK((*mappings)[0].source_line == 1);

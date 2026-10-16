@@ -118,8 +118,9 @@ std::vector<pas::obj::common::BinaryLineMapping> pas::obj::common::getLineMappin
     return {reinterpret_cast<const u8 *>(sec->get_data()), static_cast<std::size_t>(sec->get_size())};
   };
   const auto endian = elf.get_encoding() == ELFIO::ELFDATA2LSB ? pepp::bts::ElfEndian::le : pepp::bts::ElfEndian::be;
-  if (const auto dwarf = pepp::tc::read_line_mappings(
-          bytes_of(lineNumbers), bytes_of(elf.sections[pepp::tc::debugLineStrSection]), endian)) {
+  if (const auto dwarf = pepp::tc::read_line_mappings(bytes_of(lineNumbers),
+                                                      bytes_of(elf.sections[pepp::tc::debugListingLineSection]),
+                                                      bytes_of(elf.sections[pepp::tc::debugLineStrSection]), endian)) {
     std::vector<BinaryLineMapping> ret;
     ret.reserve(dwarf->size());
     for (const auto &mapping : *dwarf)

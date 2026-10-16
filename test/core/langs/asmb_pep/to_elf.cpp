@@ -200,22 +200,25 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
       CHECK(sec->get_address() == desc.low_address);
     }
 
-    // .debug_line holds two DWARF 5 units, mapping addresses back to 1-indexed source and listing lines.
-    const auto *lines = elf.sections[pepp::tc::debugLineSection];
-    REQUIRE(lines != nullptr);
-    CHECK(lines->get_type() == ELFIO::SHT_PROGBITS);
-    const auto encoded = bits::span<const u8>(reinterpret_cast<const u8 *>(lines->get_data()),
-                                              static_cast<size_t>(lines->get_size()));
+    // The two line number sections each hold one DWARF 5 unit, mapping addresses back to 1-indexed lines.
+    const auto bytes_of = [&](const char *name) {
+      const auto *sec = elf.sections[name];
+      REQUIRE(sec != nullptr);
+      CHECK(sec->get_type() == ELFIO::SHT_PROGBITS);
+      return bits::span<const u8>(reinterpret_cast<const u8 *>(sec->get_data()), static_cast<size_t>(sec->get_size()));
+    };
+    const auto encoded = bytes_of(pepp::tc::debugLineSection);
     const auto source_unit = pepp::bts::parse_line_program_unit<pepp::bts::ElfEndian::be>(encoded, 0);
     REQUIRE(source_unit.has_value());
     CHECK(source_unit->header.address_size == 2);
     CHECK(source_unit->header.files[0].path == pepp::tc::debugLineSourceFile);
-    const auto listing_unit =
-        pepp::bts::parse_line_program_unit<pepp::bts::ElfEndian::be>(encoded, source_unit->next_unit);
+    CHECK(source_unit->next_unit == encoded.size());
+    const auto listing_encoded = bytes_of(pepp::tc::debugListingLineSection);
+    const auto listing_unit = pepp::bts::parse_line_program_unit<pepp::bts::ElfEndian::be>(listing_encoded, 0);
     REQUIRE(listing_unit.has_value());
     CHECK(listing_unit->header.files[0].path == pepp::tc::debugLineListingFile);
-    CHECK(listing_unit->next_unit == encoded.size());
-    const auto mappings = pepp::tc::read_line_mappings(encoded, {}, pepp::bts::ElfEndian::be);
+    CHECK(listing_unit->next_unit == listing_encoded.size());
+    const auto mappings = pepp::tc::read_line_mappings(encoded, listing_encoded, {}, pepp::bts::ElfEndian::be);
     REQUIRE(mappings.has_value());
     const auto address_of = [&](u32 source_line) -> std::optional<u32> {
       for (const auto &mapping : *mappings)
@@ -229,6 +232,7 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     CHECK_FALSE(elf_result.ir_to_listing.container.empty());
     // Executables keep absolute addresses.
     CHECK(elf.sections[".rela.debug_line"] == nullptr);
+    CHECK(elf.sections[std::string(".rela") + pepp::tc::debugListingLineSection] == nullptr);
   }
   SECTION("ET_REL .debug_line relocates one sequence per section") {
     const auto txt = R"(
@@ -258,21 +262,24 @@ LDWA 2,i
     const auto abs32 = bits::to_underlying(RelocationsPep::R_PEP10_ABS32);
     write_debug_line(elf_result.elf, 2, abs16, abs32, sections, addresses, listing);
     auto elf = read_back(elf_result);
-    const auto *lines = elf.sections[debugLineSection];
-    REQUIRE(lines != nullptr);
-    REQUIRE(elf.sections[".rela.debug_line"] != nullptr);
-    CHECK(elf.sections[".rela.debug_line"]->get_info() == lines->get_index());
-
-    // Two units (source, listing) times two sections. Each sequence's DW_LNE_set_address is relocated.
     const auto symbols = symbols_of(elf);
-    const auto relocations = relocations_of(elf, ".rela.debug_line", symbols);
-    const std::array<std::string, 4> targets{".text", ".data", ".text", ".data"};
-    REQUIRE(relocations.size() == targets.size());
-    for (size_t it = 0; it < targets.size(); ++it) {
-      CHECK(relocations[it] == Rela{relocations[it].offset, targets[it], abs16, 0});
-      // S + A is the address already written into the operand.
-      const auto *operand = reinterpret_cast<const u8 *>(lines->get_data()) + relocations[it].offset;
-      CHECK(elf.sections[targets[it]]->get_address() == (u32(operand[0]) << 8 | operand[1]));
+    // The source and listing units each have one sequence per section, and each DW_LNE_set_address is relocated.
+    for (const auto *name : {debugLineSection, debugListingLineSection}) {
+      INFO(name);
+      const auto *lines = elf.sections[name];
+      REQUIRE(lines != nullptr);
+      const auto rela = std::string(".rela") + name;
+      REQUIRE(elf.sections[rela] != nullptr);
+      CHECK(elf.sections[rela]->get_info() == lines->get_index());
+      const auto relocations = relocations_of(elf, rela, symbols);
+      const std::array<std::string, 2> targets{".text", ".data"};
+      REQUIRE(relocations.size() == targets.size());
+      for (size_t it = 0; it < targets.size(); ++it) {
+        CHECK(relocations[it] == Rela{relocations[it].offset, targets[it], abs16, 0});
+        // S + A is the address already written into the operand.
+        const auto *operand = reinterpret_cast<const u8 *>(lines->get_data()) + relocations[it].offset;
+        CHECK(elf.sections[targets[it]]->get_address() == (u32(operand[0]) << 8 | operand[1]));
+      }
     }
     // One range per section, each a DW_RLE_start_length after the 12-byte table header.
     CHECK(relocations_of(elf, ".rela.debug_rnglists", symbols) ==

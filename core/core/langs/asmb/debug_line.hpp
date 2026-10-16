@@ -27,15 +27,18 @@ static inline const auto debugInfoSection = ".debug_info";
 static inline const auto debugLineSection = ".debug_line";
 static inline const auto debugLineStrSection = ".debug_line_str";
 static inline const auto debugRnglistsSection = ".debug_rnglists";
+// Line program units mapping addresses to listing lines. The name is outside DWARF's .debug_ namespace, so DWARF
+// consumers ignore it, while binutils should still treat it as debug information.
+static inline const auto debugListingLineSection = ".debug.pepp.listing_line";
 // The sections write_debug_line fills. sections_to_elf reserves them before .symtab, so each gets a section symbol for
 // relocations to target.
-static inline const std::array<const char *, 4> debugSections{debugAbbrevSection, debugInfoSection, debugLineSection,
-                                                              debugRnglistsSection};
+static inline const std::array<const char *, 5> debugSections{
+    debugAbbrevSection, debugInfoSection, debugLineSection, debugRnglistsSection, debugListingLineSection};
 // The producer named by DW_AT_producer.
 static inline const auto debugProducer = "Pepp";
 
-// .debug_line holds two DWARF 5 line program units. The first maps addresses to source lines, and the second maps the
-// same addresses to listing lines. Each unit names a single file, which defaults to these.
+// .debug_line holds a DWARF 5 line program unit mapping addresses to source lines. debugListingLineSection holds a unit
+// in the same format mapping the same addresses to listing lines. Each unit names one file, which defaults to these.
 static inline const auto debugLineSourceFile = "source";
 static inline const auto debugLineListingFile = "listing";
 
@@ -108,10 +111,10 @@ inline constexpr std::array<pepp::bts::Abbreviation, 1> unit_abbreviations{{
 }};
 } // namespace detail
 
-// Fills the sections of debugSections. Creates line programs for the source and listing and writes them to .debug_line.
-// A compile unit is written so that address-to-line tools work as expected. Sections are emitted as independet
-// sequences. For ET_REL files, the initial addresses are relocated against the STT_SECTION symbol of the section they
-// came from. Advances assume the linker does not apply relaxations.
+// Fills the sections of debugSections. Writes the source line program to .debug_line and the listing line program to a
+// separate section. A compile unit is written so that address-to-line tools work as expected. Sections are emitted as
+// independet sequences. For ET_REL files, the initial addresses are relocated against the STT_SECTION symbol of the
+// section they came from. Advances assume the linker does not apply relaxations.
 template <typename Address>
 void write_debug_line(pepp::bts::AnyGrowableElf &elf, u8 address_size, u32 address_relocation, u32 offset_relocation,
                       const std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
@@ -133,10 +136,12 @@ void write_debug_line(pepp::bts::AnyGrowableElf &elf, u8 address_size, u32 addre
     };
     const auto line_index = section(debugLineSection), abbrev_index = section(debugAbbrevSection);
     const auto info_index = section(debugInfoSection), rnglists_index = section(debugRnglistsSection);
+    const auto listing_index = section(debugListingLineSection);
 
-    std::vector<detail::SectionRelocation> line_relocations;
-    const auto write_unit = [&](std::string_view name, bool for_listing) {
-      pepp::bts::LineProgramWriter<E> writer(*file->section_data[line_index],
+    std::vector<detail::SectionRelocation> line_relocations, listing_relocations;
+    const auto write_unit = [&](u16 target, std::vector<detail::SectionRelocation> &relocations,
+                                std::string_view name, bool for_listing) {
+      pepp::bts::LineProgramWriter<E> writer(*file->section_data[target],
                                              detail::debug_line_header(address_size, directory, name));
       for (const auto &[desc, lines] : prog) {
         const auto first_operand = writer.address_operands().size();
@@ -150,13 +155,12 @@ void write_debug_line(pepp::bts::AnyGrowableElf &elf, u8 address_size, u32 addre
         writer.end_sequence();
         const auto &operands = writer.address_operands();
         for (auto it = first_operand; it < operands.size(); ++it)
-          line_relocations.push_back(
-              {operands[it].offset, desc.section_index, operands[it].address - desc.low_address});
+          relocations.push_back({operands[it].offset, desc.section_index, operands[it].address - desc.low_address});
       }
       return writer.finish();
     };
-    const auto source_unit = write_unit(source_name, false);
-    write_unit(listing_name, true);
+    const auto source_unit = write_unit(line_index, line_relocations, source_name, false);
+    write_unit(listing_index, listing_relocations, listing_name, true);
 
     // Extract the spanned ranges of the source program and emit to a range list.
     std::vector<detail::SectionRelocation> range_relocations;
@@ -191,6 +195,8 @@ void write_debug_line(pepp::bts::AnyGrowableElf &elf, u8 address_size, u32 addre
       using detail::write_section_relocations;
       write_section_relocations<File::elf_bits, E>(*file, line_index, debugLineSection, address_relocation,
                                                    line_relocations);
+      write_section_relocations<File::elf_bits, E>(*file, listing_index, debugListingLineSection, address_relocation,
+                                                   listing_relocations);
       write_section_relocations<File::elf_bits, E>(*file, rnglists_index, debugRnglistsSection, address_relocation,
                                                    range_relocations);
       write_section_relocations<File::elf_bits, E>(*file, info_index, debugInfoSection, offset_relocation,
@@ -205,10 +211,10 @@ void write_debug_line(pepp::bts::AnyGrowableElf &elf, u8 address_size, u32 addre
 IR2ListingLineMap number_listing_lines(const std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
                                        const ProgramObjectCodeResult &object_code, u32 bytes_per_line);
 
-// Decodes .debug_line, as written by write_debug_line, into one mapping per address in ascending order.
-// The second unit holds listing lines, and every other unit holds source lines.
-// `debug_line_str` is only needed when a unit names its files with DW_FORM_line_strp.
+// Decodes all line info written by write_debug_line, into one mapping per address in ascending order. Either source or
+// listing may be empty. `debug_line_str` is only needed when a unit uses DW_FORM_line_strp.
 std::expected<std::vector<LineMapping>, std::string> read_line_mappings(bits::span<const u8> debug_line,
+                                                                       bits::span<const u8> listing_line,
                                                                        bits::span<const u8> debug_line_str,
                                                                        pepp::bts::ElfEndian endian);
 } // namespace pepp::tc
