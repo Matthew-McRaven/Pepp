@@ -9,6 +9,7 @@
 #include "core/formats/elf/packed_access_relocations.hpp"
 #include "core/formats/elf/packed_access_symbol.hpp"
 #include "core/formats/elf/packed_ops.hpp"
+#include "core/langs/asmb/debug_line.hpp"
 #include "spdlog/spdlog.h"
 
 namespace {
@@ -102,10 +103,12 @@ WrittenSymbols write_symbols(PackedGrowableElfFile<B, E> &elf, const pepp::core:
   elf.section_headers[symtab].sh_addralign = sizeof(word<B>);
   PackedSymbolWriter<B, E> writer(elf, symtab);
   WrittenSymbols ret{.symtab = symtab, .index = {}, .section = std::vector<u32>(elf.section_headers.size(), 0)};
-  // Create a STT_SECTION symbol for each allocatable section
+  // Create a STT_SECTION symbol for each allocatable section, and for the reserved DWARF sections so that their
+  // relocations have a target.
   for (u16 index = 1; index < elf.section_headers.size(); ++index) {
     const word<B> flags = elf.section_headers[index].sh_flags;
-    if ((flags & bits::to_underlying(SectionFlags::SHF_ALLOC)) == 0) continue;
+    const bool progbits = elf.section_headers[index].sh_type == bits::to_underlying(SectionTypes::SHT_PROGBITS);
+    if ((flags & bits::to_underlying(SectionFlags::SHF_ALLOC)) == 0 && !progbits) continue;
     Symbol symbol;
     // Assign the base address of the section as the section symbol's value. This makes it trivial to compute Pep/10
     // S+A relocations.
@@ -236,6 +239,11 @@ pepp::tc::ElfResult build(ElfMachineType machine,
     }
   }
 
+  // write_debug_line fills these later, but their section symbols must exist before .symtab is written.
+  for (const auto *name : pepp::tc::debugSections) {
+    const auto index = add_named_section(*elf, name, SectionTypes::SHT_PROGBITS);
+    elf->section_headers[index].sh_addralign = 1;
+  }
   const auto written = write_symbols(*elf, symbols, preserved_symbols(object_code));
   write_relocations(*elf, prog, object_code, written);
   return ret;

@@ -16,6 +16,7 @@
  */
 
 #pragma once
+#include <string_view>
 #include "../../integers.h"
 #include "core/ds/alloc/paged.hpp"
 #include "core/formats/elf/packed_access_headers.hpp"
@@ -88,6 +89,11 @@ struct AStorage {
     static_assert(alignof(T) == 1, "Types must be packed / have alignment of 1");
     return append(bits::span<const u8>((const u8 *)&data, sizeof(T)));
   }
+  // Helpers for variable-length encodings. Each returns the offset of the first appended byte.
+  size_t append_uleb(u64 value);
+  size_t append_sleb(i64 value);
+  // Appends the string and its NUL terminator.
+  size_t append_cstr(std::string_view str);
   // Helpers which access the block storage as a fixed-size array with type T entries.
   // Automatically computes an offset useing index and sizeof(T).
   // Assuming the section contains fixed-size entries of type T, get the entry at the given index.
@@ -129,6 +135,9 @@ struct BlockStorage : public AStorage {
   BlockStorage() = default;
   // Adopts already-serialized bytes without copying them.
   explicit BlockStorage(std::vector<char> &&storage) noexcept;
+  // Un-hide the templated helpers.
+  using AStorage::append;
+  using AStorage::set;
   // AStorage interface
   size_t append(bits::span<const u8> data) override;
   size_t allocate(size_t size, u8 fill = 0) override;
@@ -143,6 +152,8 @@ struct BlockStorage : public AStorage {
 
   struct BlockStorageSlice : public AStorage {
     BlockStorageSlice(std::shared_ptr<BlockStorage> parent, size_t offset, size_t length);
+    // Un-hide the templated helpers.
+    using AStorage::set;
     size_t append(bits::span<const u8> data) override;
     size_t allocate(size_t size, u8 fill = 0) override;
     void set(size_t offset, bits::span<const u8> data) override;
@@ -165,6 +176,9 @@ private:
 
 // PagedAllocator-backed storage, which makes growth cheap and prevents pointer invalidation / reallocation
 struct PagedStorage : public AStorage {
+  // Un-hide the templated helpers.
+  using AStorage::append;
+  using AStorage::set;
   // AStorage interface
   size_t append(bits::span<const u8> data) override;
   size_t allocate(size_t size, u8 fill = 0) override;
@@ -184,6 +198,8 @@ private:
 // Uses a memory-mapped file as the backing store. Data is lazily loaded on first access.
 struct MemoryMapped : public AStorage {
   explicit MemoryMapped(std::shared_ptr<MappedFile::Slice>);
+  // Un-hide the templated helpers.
+  using AStorage::set;
 
   // AStorage interface
   size_t append(bits::span<const u8> data) override;

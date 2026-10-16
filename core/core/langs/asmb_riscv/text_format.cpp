@@ -212,7 +212,7 @@ void riscv_format_listing(const LinearIR *line, const IRMemoryAddressTable<RISCV
   const auto code_it = object_code.ir_to_object_code.find(line);
   bits::span<u8> code = code_it == object_code.ir_to_object_code.end() ? bits::span<u8>{} : code_it->second;
 
-  static constexpr int bytes_per_line = 4;
+  static constexpr int bytes_per_line = pepp::tc::riscv_listing_bytes_per_line;
   auto obj = std::vector<char>(2 * bytes_per_line);
   auto n = std::min<size_t>(bytes_per_line, code.size());
   auto end = bits::bytesToAsciiHex(obj, code.first(n), {});

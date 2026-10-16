@@ -15,19 +15,24 @@
  */
 
 #include <algorithm>
+#include <array>
 #include <catch.hpp>
 #include <elfio/elfio.hpp>
 #include <optional>
+#include <set>
 #include <sstream>
 #include <string>
 #include <vector>
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
 #include "core/formats/elf/enums.hpp"
+#include "core/langs/asmb/debug_line.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
+#include "core/langs/asmb_driver.hpp"
 #include "core/langs/asmb_pep/codegen.hpp"
 #include "core/langs/asmb_pep/ir_visitor.hpp"
 #include "core/langs/asmb_pep/parser.hpp"
+#include "core/langs/asmb_pep/text_format.hpp"
 #include "core/math/bitmanip/enums.hpp"
 
 namespace {
@@ -180,7 +185,7 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
     auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
-    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
+    auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
 
     REQUIRE(sections.size() == 3);
     auto elf = read_back(elf_result);
@@ -197,22 +202,32 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
       CHECK(sec->get_address() == desc.low_address);
     }
 
-    // .debug_line maps addresses back to 1-indexed source lines. Decoded as pas::obj::common::getLineMappings does.
-    const auto *lines = elf.sections[pepp::tc::lineMapStr];
-    REQUIRE(lines != nullptr);
-    CHECK(lines->get_type() == ELFIO::SHT_PROGBITS);
-    const auto encoded = std::span<const char>(lines->get_data(), static_cast<size_t>(lines->get_size()));
-    zpp::bits::in in(encoded);
-    std::vector<BinaryLineMapping> mappings;
-    BinaryLineMapping prev;
-    while (in.position() < encoded.size()) {
-      BinaryLineMapping current;
-      (void)current.serialize(in, current, &prev);
-      mappings.push_back(prev = current);
-    }
-    const auto address_of = [&](uint16_t src_line) -> std::optional<u32> {
-      for (const auto &mapping : mappings)
-        if (mapping.srcLine == src_line) return mapping.address;
+    // The two line number sections each hold one DWARF 5 unit, mapping addresses back to 1-indexed lines.
+    const auto bytes_of = [&](const char *name) {
+      const auto *sec = elf.sections[name];
+      REQUIRE(sec != nullptr);
+      CHECK(sec->get_type() == ELFIO::SHT_PROGBITS);
+      return bits::span<const u8>(reinterpret_cast<const u8 *>(sec->get_data()), static_cast<size_t>(sec->get_size()));
+    };
+    const auto encoded = bytes_of(pepp::tc::debugLineSection);
+    const auto source_unit = pepp::bts::parse_line_program_unit<pepp::bts::ElfEndian::be>(encoded, 0);
+    REQUIRE(source_unit.has_value());
+    CHECK(source_unit->header.address_size == 2);
+    CHECK(source_unit->header.files[0].path == pepp::tc::debugLineSourceFile);
+    CHECK(source_unit->next_unit == encoded.size());
+    const auto listing_encoded = bytes_of(pepp::tc::debugListingLineSection);
+    const auto listing_unit = pepp::bts::parse_line_program_unit<pepp::bts::ElfEndian::be>(listing_encoded, 0);
+    REQUIRE(listing_unit.has_value());
+    CHECK(listing_unit->header.files[0].path == pepp::tc::debugLineListingFile);
+    CHECK(listing_unit->next_unit == listing_encoded.size());
+    const auto input = pepp::tc::to_input_elf(elf_result);
+    const auto mappings = std::visit([](const auto &file) { return pepp::tc::read_line_mappings(*file); }, input);
+    REQUIRE(mappings.has_value());
+    const auto abs = bits::to_underlying(pepp::bts::SectionIndices::SHN_ABS);
+    CHECK(std::ranges::all_of(*mappings, [&](const auto &mapping) { return mapping.section == abs; }));
+    const auto address_of = [&](u32 source_line) -> std::optional<u32> {
+      for (const auto &mapping : *mappings)
+        if (mapping.source_line == source_line) return static_cast<u32>(mapping.address);
       return std::nullopt;
     };
     const u32 text = elf.sections[".text"]->get_address();
@@ -220,6 +235,74 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     CHECK(address_of(8) == text + 3); // cruel:BR 0, after bye in the same .text
     CHECK(address_of(10) == elf.sections["memvec"]->get_address()); // World:.BYTE 0
     CHECK_FALSE(elf_result.ir_to_listing.container.empty());
+    // Executables keep absolute addresses.
+    CHECK(elf.sections[".rela.debug_line"] == nullptr);
+    CHECK(elf.sections[std::string(".rela") + pepp::tc::debugListingLineSection] == nullptr);
+  }
+  SECTION("ET_REL .debug_line relocates one sequence per section") {
+    const auto txt = R"(
+.SECTION ".text","rx"
+LDWA 1,i
+LDWA 2,i
+.SECTION ".data","rw"
+.WORD 5
+)";
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(txt), std::make_shared<MR>());
+    auto code = pepp::tc::parser::flatten_macros(p.parse(diag));
+    auto result = pepp::tc::pepp_split_to_sections(diag, code);
+    auto &sections = result.grouped_ir;
+    REQUIRE(sections.size() == 2);
+    auto addresses = pepp::tc::pepp_assign_addresses(sections);
+    auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
+    REQUIRE(diag.count() == 0);
+    // Assembler normally generate ET_EXEC, but force it to become relocatable.
+    using namespace pepp::bts;
+    auto elf_result = sections_to_elf(ElfBits::b32, ElfEndian::be, ElfMachineType::EM_PEP10, sections, object_code,
+                                      *p.symbol_table());
+    std::get<std::unique_ptr<PackedGrowableElfBE32>>(elf_result.elf)->header.e_type =
+        bits::to_underlying(ElfFileType::ET_REL);
+    const auto abs16 = bits::to_underlying(RelocationsPep::R_PEP10_ABS16);
+    const auto listing = number_listing_lines(code, object_code, pep_listing_bytes_per_line);
+    const auto abs32 = bits::to_underlying(RelocationsPep::R_PEP10_ABS32);
+    write_debug_line(elf_result.elf, 2, abs16, abs32, sections, addresses, listing);
+    auto elf = read_back(elf_result);
+    const auto symbols = symbols_of(elf);
+    // The source and listing units each have one sequence per section, and each DW_LNE_set_address is relocated.
+    for (const auto *name : {debugLineSection, debugListingLineSection}) {
+      INFO(name);
+      const auto *lines = elf.sections[name];
+      REQUIRE(lines != nullptr);
+      const auto rela = std::string(".rela") + name;
+      REQUIRE(elf.sections[rela] != nullptr);
+      CHECK(elf.sections[rela]->get_info() == lines->get_index());
+      const auto relocations = relocations_of(elf, rela, symbols);
+      const std::array<std::string, 2> targets{".text", ".data"};
+      REQUIRE(relocations.size() == targets.size());
+      for (size_t it = 0; it < targets.size(); ++it) {
+        CHECK(relocations[it] == Rela{relocations[it].offset, targets[it], abs16, 0});
+        // S + A is the address already written into the operand.
+        const auto *operand = reinterpret_cast<const u8 *>(lines->get_data()) + relocations[it].offset;
+        CHECK(elf.sections[targets[it]]->get_address() == (u32(operand[0]) << 8 | operand[1]));
+      }
+    }
+    // One range per section, each a DW_RLE_start_length after the 12-byte table header.
+    CHECK(relocations_of(elf, ".rela.debug_rnglists", symbols) ==
+          std::vector<Rela>{{13, ".text", abs16, 0}, {17, ".data", abs16, 0}});
+    // The unit header's abbreviation offset, then DW_AT_stmt_list and DW_AT_ranges.
+    CHECK(relocations_of(elf, ".rela.debug_info", symbols) ==
+          std::vector<Rela>{{8, debugAbbrevSection, abs32, 0},
+                            {13, debugLineSection, abs32, 0},
+                            {17, debugRnglistsSection, abs32, sizeof(PackedRangeListHeader<ElfEndian::be>)}});
+
+    // Reading the relocations back tags each row with its section.
+    const auto input = to_input_elf(elf_result);
+    const auto mappings = std::visit([](const auto &file) { return read_line_mappings(*file); }, input);
+    REQUIRE(mappings.has_value());
+    std::set<u16> tagged;
+    for (const auto &mapping : *mappings) tagged.insert(mapping.section);
+    CHECK(tagged == std::set<u16>{static_cast<u16>(elf.sections[".text"]->get_index()),
+                                  static_cast<u16>(elf.sections[".data"]->get_index())});
   }
   SECTION("A leading .SECTION does not create an empty implicit section") {
     pepp::tc::DiagnosticTable diag;
@@ -236,7 +319,7 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
     auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
-    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
+    auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
 
     // The blank first line joins .data instead of forcing an empty .text into existence.
     REQUIRE(sections.size() == 1);
@@ -262,7 +345,7 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
     auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
-    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
+    auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
 
     REQUIRE(sections.size() == 3);
     auto elf = read_back(elf_result);
@@ -301,12 +384,13 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
     auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
-    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
+    auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
     auto elf = read_back(elf_result);
     const auto symbols = symbols_of(elf);
-    // The null symbol and a section symbol per section are local. a is global via .EXPORT, while d and i are global
-    // because they are undefined.
-    REQUIRE(symbols.size() == 6);
+    // The null symbol and a section symbol per section, then per reserved DWARF section, are local. a is global via
+    // .EXPORT, while d and i are global because they are undefined.
+    const auto named = 1 + sections.size() + debugSections.size();
+    REQUIRE(symbols.size() == named + 3);
     CHECK(symbols[0].name.empty());
     // Every section gets one, in order, so prog section i is symbol [1 + i]
     for (u32 it = 0; it < sections.size(); ++it) {
@@ -317,16 +401,21 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
       CHECK(sym.bind == ELFIO::STB_LOCAL);
       CHECK(sym.shndx == elf.sections[sections[it].first.name]->get_index());
     }
-    CHECK(symbols[3].name == "a");
-    CHECK(symbols[3].bind == ELFIO::STB_GLOBAL);
-    CHECK(symbols[3].shndx == elf.sections[".text"]->get_index());
-    CHECK(symbols[4].name == "d");
-    CHECK(symbols[4].bind == ELFIO::STB_GLOBAL);
-    CHECK(symbols[4].shndx == ELFIO::SHN_UNDEF);
-    CHECK(symbols[5].name == "i");
-    CHECK(symbols[5].bind == ELFIO::STB_GLOBAL);
-    CHECK(symbols[5].shndx == ELFIO::SHN_UNDEF);
-    CHECK(elf.sections[".symtab"]->get_info() == 3); // One past the last local.
+    for (size_t it = 0; it < debugSections.size(); ++it) {
+      INFO(debugSections[it]);
+      CHECK(symbols.at(1 + sections.size() + it).type == ELFIO::STT_SECTION);
+      CHECK(symbols.at(1 + sections.size() + it).shndx == elf.sections[debugSections[it]]->get_index());
+    }
+    CHECK(symbols[named].name == "a");
+    CHECK(symbols[named].bind == ELFIO::STB_GLOBAL);
+    CHECK(symbols[named].shndx == elf.sections[".text"]->get_index());
+    CHECK(symbols[named + 1].name == "d");
+    CHECK(symbols[named + 1].bind == ELFIO::STB_GLOBAL);
+    CHECK(symbols[named + 1].shndx == ELFIO::SHN_UNDEF);
+    CHECK(symbols[named + 2].name == "i");
+    CHECK(symbols[named + 2].bind == ELFIO::STB_GLOBAL);
+    CHECK(symbols[named + 2].shndx == ELFIO::SHN_UNDEF);
+    CHECK(elf.sections[".symtab"]->get_info() == named); // One past the last local.
 
     using enum pepp::bts::RelocationsPep;
     // Offsets are of the patched operand specifier, not instruction specifier
@@ -376,7 +465,7 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
     auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
-    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
+    auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
     auto elf = read_back(elf_result);
     const auto symbols = symbols_of(elf);
     // Section symbols hold their section's address
@@ -421,7 +510,7 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
     auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
-    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
+    auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
     auto elf = read_back(elf_result);
     const auto symbols = symbols_of(elf);
 
@@ -453,7 +542,7 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
     auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
-    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
+    auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
     auto elf = read_back(elf_result);
     const auto symbols = symbols_of(elf);
 
@@ -567,4 +656,28 @@ TEST_CASE("Pepp ASM segments derive from sections",
     REQUIRE(segs.size() == 1);
     CHECK(segs[0].memsz == 4);
   }
+}
+
+TEST_CASE("Listings work as expected when re-opening sections",
+          "[scope:core][scope:core.langs][kind:unit][arch:pep10]") {
+  const auto source = R"(         .SECTION "text", "rx"
+         LDWA    1,i
+         .SECTION "data", "rw"
+x:       .WORD   5
+         .SECTION "text", "rx"
+         RET
+)";
+  std::vector<std::string> listing;
+  pepp::tc::FormattingConfig fmt;
+  fmt.listing_format = [&](std::vector<std::string> &&lines) { listing = std::move(lines); };
+  auto result = pepp::tc::assemble_pep10(pepp::tc::Pep10DriverConfig{}, fmt, source);
+  REQUIRE(result.ok());
+  const auto input = pepp::tc::to_input_elf(result.elf);
+  const auto mappings = std::visit([](const auto &file) { return pepp::tc::read_line_mappings(*file); }, input);
+  REQUIRE(mappings.has_value());
+  const auto stop = std::ranges::find(*mappings, 6u, &pepp::tc::LineMapping::source_line);
+  REQUIRE(stop != mappings->end());
+  REQUIRE(stop->listing_line != 0);
+  REQUIRE(stop->listing_line <= listing.size());
+  CHECK(listing[stop->listing_line - 1].find("RET") != std::string::npos);
 }

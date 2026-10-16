@@ -14,9 +14,11 @@
 #include "core/compile/symbol/value.hpp"
 #include "core/formats/elf/enums.hpp"
 #include "core/langs/asmb/codegen.hpp"
+#include "core/langs/asmb/debug_line.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/langs/asmb_pep/ir_lines.hpp"
 #include "core/langs/asmb_pep/ir_visitor.hpp"
+#include "core/langs/asmb_pep/text_format.hpp"
 #include "core/math/bitmanip/copy.hpp"
 #include "fmt/format.h"
 #include "spdlog/spdlog.h"
@@ -358,68 +360,27 @@ pepp::tc::IR2ListingLineMap
 write_line_mapping(pepp::tc::ElfResult &result,
                    const std::vector<std::pair<pepp::tc::SectionDescriptor, pepp::tc::IRProgram>> &prog,
                    const pepp::tc::IRMemoryAddressTable<pepp::tc::PeppAddress> &addrs,
-                   const pepp::tc::ProgramObjectCodeResult &object_code) {
-  // Compute the the listing line for each IR in the re-arranged source program.
-  // Assumes 3 bytes of object code per listing line.
-  pepp::tc::IR2ListingLineMap ret;
-  ret.container.reserve(
-      std::accumulate(prog.cbegin(), prog.cend(), 0, [](size_t l, auto &r) { return l + r.second.size(); }));
-  u16 listing_number = 0;
-  for (const auto &sec : prog) {
-    for (const auto &line : sec.second) {
-      auto oc_it = object_code.ir_to_object_code.find(line.get());
-      if (oc_it == object_code.ir_to_object_code.cend())
-        ret.container.emplace_back(pepp::tc::IR2ListingLinePair{line.get(), listing_number++});
-      else {
-        ret.container.emplace_back(pepp::tc::IR2ListingLinePair{line.get(), listing_number});
-        listing_number += 1 + oc_it->second.size() / 3;
-      }
-    }
-  }
-  std::sort(ret.container.begin(), ret.container.end(), pepp::tc::IR2ListingLineComparator{});
-
-  std::vector<char> data;
-  zpp::bits::out out(data);
-  pepp::tc::BinaryLineMapping prev;
-  bool first = true;
-  for (const auto &sec : prog) {
-    for (const auto &line : sec.second) {
-      auto addr_it = addrs.find(line.get());
-      // Row numbers are 0-indexed, while binary line mappings are 1-indexed.
-      uint16_t src_line = line->source_interval.valid() ? 1 + line->source_interval.lower().row : 0;
-      auto lst_it = ret.find(line.get());
-      uint16_t lst_line = lst_it != ret.end() ? 1 + lst_it->second : 0;
-
-      // addr2line makes no sense without an address or a line number.
-      if (src_line == 0 && lst_line == 0) continue;
-      else if (addr_it == addrs.cend()) continue;
-
-      auto current =
-          pepp::tc::BinaryLineMapping{.address = addr_it->second.address, .srcLine = src_line, .listLine = lst_line};
-      (void)current.serialize(out, current, &prev, first);
-      prev = current, first = false;
-    }
-  }
-  data.resize(out.position());
-  const auto visitor = [&](auto &file) {
-    if (!file) return;
-    const auto index = pepp::bts::add_named_section(*file, pepp::tc::lineMapStr, pepp::bts::SectionTypes::SHT_PROGBITS);
-    file->section_data[index] = std::make_shared<pepp::bts::BlockStorage>(std::move(data));
-  };
-  std::visit(visitor, result.elf);
+                   const pepp::tc::ProgramObjectCodeResult &object_code, const pepp::tc::DebugLineFiles &files,
+                   const pepp::tc::IRProgram &source_order) {
+  auto ret = pepp::tc::number_listing_lines(source_order, object_code, pepp::tc::pep_listing_bytes_per_line);
+  // Pep/10 addresses are 2 bytes.
+  const auto abs16 = bits::to_underlying(pepp::bts::RelocationsPep::R_PEP10_ABS16);
+  const auto abs32 = bits::to_underlying(pepp::bts::RelocationsPep::R_PEP10_ABS32);
+  pepp::tc::write_debug_line(result.elf, 2, abs16, abs32, prog, addrs, ret, files);
   return ret;
 }
 
 pepp::tc::ElfResult pepp::tc::pepp_to_elf(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
+                                          const IRProgram &source_order,
                                           const IRMemoryAddressTable<PeppAddress> &addrs,
                                           const ProgramObjectCodeResult &object_code,
                                           const pepp::core::symbol::LeafTable &symbols,
-                                          const std::vector<obj::IO> &mmios) {
+                                          const std::vector<obj::IO> &mmios, const DebugLineFiles &files) {
   using namespace pepp::bts;
   SPDLOG_INFO("Creating pep/10 ELF");
   auto ret = sections_to_elf(ElfBits::b32, ElfEndian::be, ElfMachineType::EM_PEP10, prog, object_code, symbols);
 
-  ret.ir_to_listing = write_line_mapping(ret, prog, addrs, object_code);
+  ret.ir_to_listing = write_line_mapping(ret, prog, addrs, object_code, files, source_order);
 
   /*ELFIO::section *symTab = nullptr;
   for (auto &sec : ret->sections)

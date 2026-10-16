@@ -818,6 +818,16 @@ TEST_CASE("RISCV ASM pseudo-instructions",
       CHECK(diag.cbegin()->second == message);
     }
   }
+  SECTION("Flattened expansions have updates source intervals") {
+    DiagnosticTable diag;
+    const auto flattened = parser::flatten_macros(Parser(data("add x1, x2, x3\nli x5, 0x12345678")).parse(diag));
+    REQUIRE(diag.count() == 0);
+    // li needs to be lui+addi
+    REQUIRE(flattened.size() >= 3);
+    CHECK(flattened[0]->source_interval.lower().row == 0);
+    // Both lui+addi are treated as being on line 1.
+    for (size_t it = 1; it < flattened.size(); ++it) CHECK(flattened[it]->source_interval.lower().row == 1);
+  }
   SECTION("Load address") {
     DiagnosticTable diag;
     auto p = Parser(data("lla x5, msg\nla x6, msg"));

@@ -10,6 +10,17 @@ target_link_libraries(test-pepplib PRIVATE pepp-lib catch Qt6::Core)
 set_target_properties(test-pepplib PROPERTIES FOLDER "qtc_runnable")
 pepp_precompile_headers(test-pepplib PRIVATE <QtCore>)
 
+# Checked-in DWARF fixtures; see dwarf/data/Makefile.
+qt_add_resources(
+  test-pepplib
+  "test_dwarf"
+  PREFIX
+  "/dwarf"
+  BASE
+  "${CMAKE_CURRENT_LIST_DIR}/dwarf/data"
+  FILES
+  "${CMAKE_CURRENT_LIST_DIR}/dwarf/data/line_info.elf")
+
 if(NOT IOS)
   # WASM execution requires an extra shim
   if(EMSCRIPTEN)

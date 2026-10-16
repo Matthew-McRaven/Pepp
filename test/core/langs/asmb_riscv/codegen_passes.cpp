@@ -25,6 +25,7 @@
 #include "core/compile/symbol/entry.hpp"
 #include "core/compile/symbol/leaf_table.hpp"
 #include "core/langs/asmb/codegen_error.hpp"
+#include "core/langs/asmb/debug_line.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/langs/asmb_riscv/codegen.hpp"
 #include "core/langs/asmb_riscv/parser.hpp"
@@ -58,7 +59,7 @@ TEST_CASE("RISCV ASM code generator",
     CHECK(addresses.at(&*instr).address == 0xfeed);
     CHECK(addresses.at(&*instr).size == 4);
     auto object_code = pepp::tc::riscv_to_object_code(diag, addresses, sections);
-    auto elf_result = pepp::tc::riscv_to_elf(sections, addresses, object_code, *symbol_tab);
+    auto elf_result = pepp::tc::riscv_to_elf(sections, results, addresses, object_code, *symbol_tab);
     // Read what would actually be written, rather than the in-memory model of it.
     const auto bytes = pepp::tc::elf_bytes(elf_result);
     std::istringstream in(std::string(reinterpret_cast<const char *>(bytes.data()), bytes.size()));
@@ -73,6 +74,65 @@ TEST_CASE("RISCV ASM code generator",
     CHECK((u8)data[1] == 0x00);
     CHECK((u8)data[2] == 0x31);
     CHECK((u8)data[3] == 0x00);
+  }
+  SECTION("DWARF 5 .debug_line output") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data("add x1, x2, x3\nsub x1, x2, x3"));
+    auto results = p.parse(diag);
+    auto result = pepp::tc::riscv_split_to_sections(diag, results);
+    auto &sections = result.grouped_ir;
+    auto addresses = pepp::tc::riscv_assign_addresses(sections, 0x1000);
+    auto object_code = pepp::tc::riscv_to_object_code(diag, addresses, sections);
+    // An empty name keeps its default.
+    const pepp::tc::DebugLineFiles files{.source = "prog.s", .listing = "", .directory = "/work"};
+    auto elf_result = pepp::tc::riscv_to_elf(sections, results, addresses, object_code, *p.symbol_table(), files);
+    REQUIRE(diag.count() == 0);
+    const auto bytes = pepp::tc::elf_bytes(elf_result);
+    std::istringstream in(std::string(reinterpret_cast<const char *>(bytes.data()), bytes.size()));
+    ELFIO::elfio elf;
+    REQUIRE(elf.load(in));
+    const auto bytes_of = [&](const char *name) {
+      const auto *sec = elf.sections[name];
+      REQUIRE(sec != nullptr);
+      return bits::span<const u8>(reinterpret_cast<const u8 *>(sec->get_data()), static_cast<size_t>(sec->get_size()));
+    };
+    const auto encoded = bytes_of(pepp::tc::debugLineSection);
+
+    const auto source = pepp::bts::parse_line_program_unit<pepp::bts::ElfEndian::le>(encoded, 0);
+    REQUIRE(source.has_value());
+    CHECK(source->header.address_size == 4);
+    CHECK(source->header.files[0].path == "prog.s");
+    CHECK(source->header.directories == std::vector<std::string>{"/work"});
+    std::vector<std::pair<u64, u64>> rows;
+    const auto ran = pepp::bts::run_line_program<pepp::bts::ElfEndian::le>(
+        *source, [&](const auto &row, auto) { rows.emplace_back(row.address, row.end_sequence ? 0 : row.line); });
+    REQUIRE(ran.has_value());
+    // The sequence ends after the second instruction.
+    CHECK(rows == std::vector<std::pair<u64, u64>>{{0x1000, 1}, {0x1004, 2}, {0x1008, 0}});
+
+    CHECK(source->next_unit == encoded.size());
+
+    const auto listing_encoded = bytes_of(pepp::tc::debugListingLineSection);
+    const auto listing = pepp::bts::parse_line_program_unit<pepp::bts::ElfEndian::le>(listing_encoded, 0);
+    REQUIRE(listing.has_value());
+    CHECK(listing->header.files[0].path == pepp::tc::debugLineListingFile);
+    CHECK(listing->next_unit == listing_encoded.size());
+
+    // The compile unit is named after the source unit's file
+    const auto *info = elf.sections[pepp::tc::debugInfoSection];
+    REQUIRE(info != nullptr);
+    const auto info_bytes = std::string_view(info->get_data(), info->get_size());
+    CHECK(info_bytes.find("prog.s") != std::string_view::npos);
+    CHECK(info_bytes.find("/work") != std::string_view::npos);
+
+    const auto input = pepp::tc::to_input_elf(elf_result);
+    const auto mappings = std::visit([](const auto &file) { return pepp::tc::read_line_mappings(*file); }, input);
+    REQUIRE(mappings.has_value());
+    REQUIRE(mappings->size() == 2);
+    CHECK((*mappings)[0].source_line == 1);
+    CHECK((*mappings)[0].listing_line != 0);
+    CHECK((*mappings)[1].source_line == 2);
+    CHECK((*mappings)[1].listing_line > (*mappings)[0].listing_line);
   }
   SECTION("Symbols for B-/J-type instructions encode as relative offsets") {
     const auto jump = [](const char *source) {
@@ -185,6 +245,7 @@ TEST_CASE("RISCV ASM code generator relocations",
     DiagnosticTable diag;
     // Keep the symbol table alive after parsing to prevent dangling pointers in relocations
     std::shared_ptr<pepp::core::symbol::LeafTable> symbols;
+    IRProgram program;
     RISCVSectionAnalysisResults split;
     IRMemoryAddressTable<RISCVAddress> addresses;
     ProgramObjectCodeResult code;
@@ -193,9 +254,9 @@ TEST_CASE("RISCV ASM code generator relocations",
     Assembled ret;
     auto p = Parser(data(source));
     ret.symbols = p.symbol_table();
-    auto results = p.parse(ret.diag);
+    ret.program = p.parse(ret.diag);
     REQUIRE(ret.diag.count() == 0);
-    ret.split = riscv_split_to_sections(ret.diag, results);
+    ret.split = riscv_split_to_sections(ret.diag, ret.program);
     ret.addresses = riscv_assign_addresses(ret.split.grouped_ir);
     ret.code = riscv_to_object_code(ret.diag, ret.addresses, ret.split.grouped_ir);
     return ret;
@@ -251,7 +312,7 @@ data: .word 0)");
     CHECK((word(28) >> 25 == 0x40 && ((word(28) >> 7) & 0x1F) == 0)); // S-type imm[11:5], imm[4:0]
   }
   SECTION("Local labels are removed unless they are a target of a relocation") {
-    auto written = riscv_to_elf(result.split.grouped_ir, result.addresses, result.code, *result.symbols);
+    auto written = riscv_to_elf(result.split.grouped_ir, result.program, result.addresses, result.code, *result.symbols);
     const auto bytes = elf_bytes(written);
     std::istringstream in(std::string(reinterpret_cast<const char *>(bytes.data()), bytes.size()));
     ELFIO::elfio elf;

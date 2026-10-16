@@ -25,10 +25,12 @@ struct FormattingConfig {
 struct RISCVDriverConfig {
   std::vector<std::pair<std::string, u32>> symdefs;
   std::shared_ptr<pepp::tc::MacroRegistry> macros = nullptr;
+  DebugLineFiles debug_files;
 };
 struct Pep10DriverConfig {
   std::vector<std::pair<std::string, u32>> symdefs;
   std::shared_ptr<pepp::tc::MacroRegistry> macros = nullptr;
+  DebugLineFiles debug_files;
 };
 using DriverConfig = std::variant<RISCVDriverConfig, Pep10DriverConfig>;
 

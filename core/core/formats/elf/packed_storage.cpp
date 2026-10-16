@@ -17,8 +17,28 @@
 
 #include "core/formats/elf/packed_storage.hpp"
 #include "core/formats/elf/packed_ops.hpp"
+#include "core/math/bitmanip/leb128.hpp"
 
 pepp::bts::AStorage::~AStorage() = default;
+
+size_t pepp::bts::AStorage::append_uleb(u64 value) {
+  u8 buffer[10];
+  const auto length = bits::encodeULEB128(value, buffer);
+  return append(bits::span<const u8>{buffer, length});
+}
+
+size_t pepp::bts::AStorage::append_sleb(i64 value) {
+  u8 buffer[10];
+  const auto length = bits::encodeSLEB128(value, buffer);
+  return append(bits::span<const u8>{buffer, length});
+}
+
+size_t pepp::bts::AStorage::append_cstr(std::string_view str) {
+  // Two appends would not guarantee the terminator is contiguous with the string.
+  const auto ret = allocate(str.size() + 1, 0);
+  set(ret, bits::span<const u8>{reinterpret_cast<const u8 *>(str.data()), str.size()});
+  return ret;
+}
 
 pepp::bts::BlockStorage::BlockStorage(std::vector<char> &&storage) noexcept : _storage(std::move(storage)) {}
 

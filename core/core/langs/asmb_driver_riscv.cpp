@@ -35,7 +35,8 @@ DriverResult assemble_riscv(const RISCVDriverConfig &cfg, const FormattingConfig
     auto listing = riscv_format_listing(flattened, addresses, object_code);
     fmtcfg.listing_format(std::move(listing));
   }
-  result.elf = riscv_to_elf(split.grouped_ir, addresses, object_code, *rv_parser.symbol_table());
+  result.elf =
+      riscv_to_elf(split.grouped_ir, flattened, addresses, object_code, *rv_parser.symbol_table(), cfg.debug_files);
   return result;
 }
 
