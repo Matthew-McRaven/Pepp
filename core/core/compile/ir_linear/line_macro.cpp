@@ -7,6 +7,8 @@ void pepp::tc::MacroInstantiation::insert(std::unique_ptr<AAttribute> attr) { Li
 
 int pepp::tc::MacroInstantiation::type() const { return TYPE; }
 
+std::span<const std::shared_ptr<pepp::tc::LinearIR>> pepp::tc::MacroInstantiation::children() const { return lines; }
+
 const pepp::tc::AAttribute *pepp::tc::MacroInstantiation::attribute(int type) const { return LinearIR::attribute(type); }
 
 pepp::tc::InlineMacroDefinition::InlineMacroDefinition(std::string name, std::vector<std::string> args)

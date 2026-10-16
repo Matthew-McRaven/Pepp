@@ -12,6 +12,7 @@ struct MacroInstantiation : public LinearIR {
   const AAttribute *attribute(int type) const override;
   void insert(std::unique_ptr<AAttribute> attr) override;
   int type() const override;
+  std::span<const std::shared_ptr<LinearIR>> children() const override;
   // Do not expose via attibutes because I do not expect to do any pattern matching against this node.
   // I expoect usage will always check against the macro type and then static_cast.
   std::shared_ptr<const MacroDefinition> macro;

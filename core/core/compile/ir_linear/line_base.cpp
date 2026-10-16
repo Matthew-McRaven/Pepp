@@ -23,3 +23,5 @@ void pepp::tc::LinearIR::insert(std::unique_ptr<AAttribute> attr) {
 }
 
 std::optional<u64> pepp::tc::LinearIR::object_size(u64) const { return std::nullopt; }
+
+std::span<const std::shared_ptr<pepp::tc::LinearIR>> pepp::tc::LinearIR::children() const { return {}; }

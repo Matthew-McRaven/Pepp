@@ -135,3 +135,13 @@ pepp::tc::IRProgram pepp::tc::parser::flatten_macros(const IRProgram &program, s
   }
   return ret;
 }
+
+std::vector<std::shared_ptr<const pepp::tc::InlineMacroDefinition>>
+pepp::tc::parser::defined_macros(const IRProgram &program) {
+  std::vector<std::shared_ptr<const InlineMacroDefinition>> ret;
+  for_each_line(program, [&](const std::shared_ptr<LinearIR> &line) {
+    if (line->type() == InlineMacroDefinition::TYPE)
+      ret.emplace_back(std::static_pointer_cast<const InlineMacroDefinition>(line));
+  });
+  return ret;
+}
