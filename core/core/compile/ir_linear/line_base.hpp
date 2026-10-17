@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <optional>
+#include <span>
 #include "core/compile/ir_linear/attr_base.hpp"
 #include "core/compile/source/location.hpp"
 
@@ -28,6 +29,9 @@ struct LinearIR {
   // nullopt. If a machines address model uses <64 bits, keep only the low-order bits.
   virtual std::optional<u64> object_size(u64 base_address) const;
 
+  // Lines nested within this one, such as a macro's expansion. Override if a line contains other lines.
+  virtual std::span<const std::shared_ptr<LinearIR>> children() const;
+
   // We had a pattern of casting base pointers to derived pointers in IR.
   // Derived types have wildly different behaviors even if they have the same API.
   // Instead of using true OO visitor pattern, I've opted for switch(type()) with static casts, which is a poor-mans
@@ -50,6 +54,14 @@ struct LinearIR {
   // Head of linked list of additional attributes
   std::unique_ptr<AAttributeListNode> extended_attributes;
 };
+// Calls f on each line, then on that line's children, depth-first in program order.
+template <typename F> void for_each_line(std::span<const std::shared_ptr<LinearIR>> lines, F &&f) {
+  for (const auto &line : lines) {
+    f(line);
+    for_each_line(line->children(), f);
+  }
+}
+
 // Every deriving class must have a unique enum entry.
 enum class LinearIRType : int {
   Empty,

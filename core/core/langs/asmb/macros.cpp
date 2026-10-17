@@ -87,6 +87,7 @@ pepp::tc::parser::MacroCapture::capture(lex::AsmbLexer &lexer, MacroRegistry &re
   if (first && last) definition->body = macro->body = lexer.view({*first, *last});
   if (!registry.insert(macro))
     return std::unexpected(Error{Kind::Redefinition, {start, last.value_or(start)}, definition->name});
+  definition->macro = macro;
   return {};
 }
 
@@ -133,5 +134,15 @@ pepp::tc::IRProgram pepp::tc::parser::flatten_macros(const IRProgram &program, s
     default: ret.emplace_back(line);
     }
   }
+  return ret;
+}
+
+std::vector<std::shared_ptr<const pepp::tc::InlineMacroDefinition>>
+pepp::tc::parser::defined_macros(const IRProgram &program) {
+  std::vector<std::shared_ptr<const InlineMacroDefinition>> ret;
+  for_each_line(program, [&](const std::shared_ptr<LinearIR> &line) {
+    if (line->type() == InlineMacroDefinition::TYPE)
+      ret.emplace_back(std::static_pointer_cast<const InlineMacroDefinition>(line));
+  });
   return ret;
 }

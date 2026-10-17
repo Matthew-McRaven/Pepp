@@ -1,5 +1,6 @@
 #pragma once
 #include <zpp_bits.h>
+#include "core/compile/ir_linear/line_macro.hpp"
 #include "core/integers.h"
 #include "core/langs/asmb/elf_symtab.hpp"
 #include "core/langs/asmb/ir_constraints.hpp"
@@ -61,7 +62,8 @@ ProgramObjectCodeResult pepp_to_object_code(DiagnosticTable &diag, const IRMemor
 ElfResult pepp_to_elf(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog, const IRProgram &source_order,
                       const IRMemoryAddressTable<PeppAddress> &addrs, const ProgramObjectCodeResult &object_code,
                       const pepp::core::symbol::LeafTable &symbols, const std::vector<obj::IO> &mmios,
-                      const DebugLineFiles &files = {});
+                      const DebugLineFiles &files = {},
+                      const std::vector<std::shared_ptr<const InlineMacroDefinition>> &macros = {});
 
 struct BinaryLineMapping {
   uint32_t address = 0;

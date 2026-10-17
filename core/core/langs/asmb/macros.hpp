@@ -66,5 +66,8 @@ struct MacroComments {
 // Replace each macro instantiation with its lines, and drop macro definitions. An instantiation's symbol is declared on
 // a line of its own before them.
 IRProgram flatten_macros(const IRProgram &program, std::optional<MacroComments> comments = std::nullopt);
+// Each .MACRO in an unflattened program, in source order. Once program is flattened, a definition inside an expansion
+// has the source_interval of the expansion's outermost instantiation.
+std::vector<std::shared_ptr<const InlineMacroDefinition>> defined_macros(const IRProgram &program);
 
 } // namespace pepp::tc::parser

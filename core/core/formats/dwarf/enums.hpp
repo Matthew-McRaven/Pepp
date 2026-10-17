@@ -19,4 +19,5 @@
 #include "./enums_forms.hpp"
 #include "./enums_info.hpp"
 #include "./enums_line.hpp"
+#include "./enums_macro.hpp"
 #include "./enums_rnglists.hpp"

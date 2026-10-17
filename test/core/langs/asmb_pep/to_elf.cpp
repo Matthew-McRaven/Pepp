@@ -289,11 +289,14 @@ LDWA 2,i
     // One range per section, each a DW_RLE_start_length after the 12-byte table header.
     CHECK(relocations_of(elf, ".rela.debug_rnglists", symbols) ==
           std::vector<Rela>{{13, ".text", abs16, 0}, {17, ".data", abs16, 0}});
-    // The unit header's abbreviation offset, then DW_AT_stmt_list and DW_AT_ranges.
+    // The unit header's abbreviation offset, then DW_AT_stmt_list, DW_AT_ranges, and DW_AT_macros.
     CHECK(relocations_of(elf, ".rela.debug_info", symbols) ==
           std::vector<Rela>{{8, debugAbbrevSection, abs32, 0},
                             {13, debugLineSection, abs32, 0},
-                            {17, debugRnglistsSection, abs32, sizeof(PackedRangeListHeader<ElfEndian::be>)}});
+                            {17, debugRnglistsSection, abs32, sizeof(PackedRangeListHeader<ElfEndian::be>)},
+                            {21, debugMacroSection, abs32, 0}});
+    // The macro unit's debug_line_offset follows its version and flags.
+    CHECK(relocations_of(elf, ".rela.debug_macro", symbols) == std::vector<Rela>{{3, debugLineSection, abs32, 0}});
 
     // Reading the relocations back tags each row with its section.
     const auto input = to_input_elf(elf_result);

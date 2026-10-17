@@ -20,6 +20,37 @@ pepp::bts::LineProgramHeader pepp::tc::detail::debug_line_header(u8 address_size
   return ret;
 }
 
+std::string pepp::tc::detail::define_string(const MacroDefinition &definition) {
+  std::vector<std::string> parameters;
+  for (const auto &[name, default_value] : definition.arguments) {
+    // A name containing = would read back as a default.
+    if (name.find('=') != name.npos) throw std::logic_error("define_string: parameter name contains =");
+    parameters.push_back(default_value ? name + "=" + *default_value : name);
+  }
+  // TODO: avoid extra copy to vector by make format_define smarter.
+  const std::vector<std::string_view> views(parameters.begin(), parameters.end());
+  return pepp::bts::format_define(definition.name, views, definition.body);
+}
+
+std::expected<std::shared_ptr<pepp::tc::MacroDefinition>, std::string>
+pepp::tc::detail::parse_define_string(std::string_view string) {
+  const auto parsed = pepp::bts::parse_define(string);
+  if (!parsed) return std::unexpected("unterminated parameter list in define string");
+  // define_string always writes a parameter list.
+  else if (!parsed->parameters) return std::unexpected("define string has no parameter list");
+  auto ret = std::make_shared<MacroDefinition>();
+  ret->name = parsed->name;
+  for (const auto &parameter : *parsed->parameters) {
+    const auto equals = parameter.find('=');
+    if (equals == parameter.npos) ret->arguments.push_back({.name = std::string(parameter)});
+    else
+      ret->arguments.push_back({.name = std::string(parameter.substr(0, equals)),
+                                .default_value = std::string(parameter.substr(equals + 1))});
+  }
+  ret->body = parsed->definition;
+  return ret;
+}
+
 pepp::tc::IR2ListingLineMap pepp::tc::number_listing_lines(const IRProgram &program,
                                                            const ProgramObjectCodeResult &object_code,
                                                            u32 bytes_per_line) {

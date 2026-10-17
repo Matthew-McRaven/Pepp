@@ -10,7 +10,10 @@
 #include <variant>
 #include <vector>
 #include "core/formats/dwarf/info.hpp"
+#include "core/compile/ir_linear/line_macro.hpp"
+#include "core/compile/macro/macro_registry.hpp"
 #include "core/formats/dwarf/line_program.hpp"
+#include "core/formats/dwarf/macro.hpp"
 #include "core/formats/dwarf/rnglists.hpp"
 #include "core/formats/elf/enums_sections.hpp"
 #include "core/formats/elf/packed_access_relocations.hpp"
@@ -28,14 +31,16 @@ static inline const auto debugAbbrevSection = ".debug_abbrev";
 static inline const auto debugInfoSection = ".debug_info";
 static inline const auto debugLineSection = ".debug_line";
 static inline const auto debugLineStrSection = ".debug_line_str";
+static inline const auto debugMacroSection = ".debug_macro";
 static inline const auto debugRnglistsSection = ".debug_rnglists";
 // Line program units mapping addresses to listing lines. The name is outside DWARF's .debug_ namespace, so DWARF
 // consumers ignore it, while binutils should still treat it as debug information.
 static inline const auto debugListingLineSection = ".debug.pepp.listing_line";
 // The sections write_debug_line fills. sections_to_elf reserves them before .symtab, so each gets a section symbol for
 // relocations to target.
-static inline const std::array<const char *, 5> debugSections{debugAbbrevSection, debugInfoSection, debugLineSection,
-                                                              debugRnglistsSection, debugListingLineSection};
+static inline const std::array<const char *, 6> debugSections{
+    debugAbbrevSection,   debugInfoSection,        debugLineSection,
+    debugRnglistsSection, debugListingLineSection, debugMacroSection};
 // The producer named by DW_AT_producer.
 static inline const auto debugProducer = "Pepp";
 
@@ -104,10 +109,12 @@ void write_section_relocations(pepp::bts::PackedGrowableElfFile<B, E> &elf, u16 
     writer.add_rela(offset, type, symbol, static_cast<sword<B>>(addend));
   }
 }
-// The compile unit's only abbreviation. Section 3.1.1 lists these attributes. The order matches that of GNU as.
-inline constexpr std::array<pepp::bts::AttributeSpecification, 6> unit_attributes{{
+// The compile unit's only abbreviation. Section 3.1.1 lists these attributes. The order matches that of GNU as, with
+// the addition of DW_AT_macros.
+inline constexpr std::array<pepp::bts::AttributeSpecification, 7> unit_attributes{{
     {pepp::bts::AttributeNames::DW_AT_stmt_list, pepp::bts::AttributeForms::DW_FORM_sec_offset},
     {pepp::bts::AttributeNames::DW_AT_ranges, pepp::bts::AttributeForms::DW_FORM_sec_offset},
+    {pepp::bts::AttributeNames::DW_AT_macros, pepp::bts::AttributeForms::DW_FORM_sec_offset},
     {pepp::bts::AttributeNames::DW_AT_name, pepp::bts::AttributeForms::DW_FORM_string},
     {pepp::bts::AttributeNames::DW_AT_comp_dir, pepp::bts::AttributeForms::DW_FORM_string},
     {pepp::bts::AttributeNames::DW_AT_producer, pepp::bts::AttributeForms::DW_FORM_string},
@@ -116,6 +123,12 @@ inline constexpr std::array<pepp::bts::AttributeSpecification, 6> unit_attribute
 inline constexpr std::array<pepp::bts::Abbreviation, 1> unit_abbreviations{{
     {1, pepp::bts::Tags::DW_TAG_compile_unit, pepp::bts::ChildrenDetermination::DW_CHILDREN_no, unit_attributes},
 }};
+
+// Convert a macro definition into a well-formatted definition string per Section 6.3.2.2. A parameter with a default
+// value is written as name=default, which Section 6.3.2.2 does not describe.
+std::string define_string(const MacroDefinition &definition);
+// The macro of a define string written by define_string.
+std::expected<std::shared_ptr<MacroDefinition>, std::string> parse_define_string(std::string_view string);
 } // namespace detail
 
 // Fills the sections of debugSections. Writes the source line program to .debug_line and the listing line program to a
@@ -126,7 +139,8 @@ template <typename Address>
 void write_debug_line(pepp::bts::AnyGrowableElf &elf, u8 address_size, u32 address_relocation, u32 offset_relocation,
                       const std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
                       const IRMemoryAddressTable<Address> &addrs, const IR2ListingLineMap &listing,
-                      const DebugLineFiles &files = {}) {
+                      const DebugLineFiles &files = {},
+                      const std::vector<std::shared_ptr<const InlineMacroDefinition>> &macros = {}) {
   const auto name_or = [](const std::optional<std::string> &name, const char *fallback) -> std::string_view {
     return name && !name->empty() ? std::string_view(*name) : std::string_view(fallback);
   };
@@ -143,7 +157,7 @@ void write_debug_line(pepp::bts::AnyGrowableElf &elf, u8 address_size, u32 addre
     };
     const auto line_index = section(debugLineSection), abbrev_index = section(debugAbbrevSection);
     const auto info_index = section(debugInfoSection), rnglists_index = section(debugRnglistsSection);
-    const auto listing_index = section(debugListingLineSection);
+    const auto listing_index = section(debugListingLineSection), macro_index = section(debugMacroSection);
 
     std::vector<detail::SectionRelocation> line_relocations, listing_relocations;
     const auto write_unit = [&](u16 target, std::vector<detail::SectionRelocation> &relocations, std::string_view name,
@@ -183,6 +197,20 @@ void write_debug_line(pepp::bts::AnyGrowableElf &elf, u8 address_size, u32 addre
     ranges.end_list();
     ranges.finish();
 
+    // Refer to the source unit, so that DW_MACRO_start_file names the source rather than the listing.
+    pepp::bts::MacroUnitWriter<E> macro_unit(*file->section_data[macro_index], static_cast<u32>(source_unit));
+    // Section 6.3.3.1: the primary source file's DW_MACRO_start_file is at line 0. debug_line_header repeats the
+    // primary source file as file 1, which GCC also uses here.
+    macro_unit.start_file(0, 1);
+    for (const auto &macro : macros) {
+      if (!macro->macro) throw std::logic_error("write_debug_line: .MACRO was never registered");
+      macro_unit.define(detail::source_line(*macro), detail::define_string(*macro->macro));
+    }
+    macro_unit.end_file();
+    const std::vector<detail::SectionRelocation> macro_relocations{
+        {*macro_unit.debug_line_offset_field(), line_index, source_unit}};
+    const auto macro_offset = macro_unit.finish();
+
     using enum pepp::bts::AttributeForms;
     const auto abbrevs = pepp::bts::write_abbreviations(*file->section_data[abbrev_index], detail::unit_abbreviations);
     pepp::bts::CompileUnitWriter<E> unit(*file->section_data[info_index], address_size, static_cast<u32>(abbrevs));
@@ -191,6 +219,7 @@ void write_debug_line(pepp::bts::AnyGrowableElf &elf, u8 address_size, u32 addre
         {unit.abbrev_offset_field(), abbrev_index, abbrevs},
         {unit.value(DW_FORM_sec_offset, {.number = source_unit}), line_index, source_unit},
         {unit.value(DW_FORM_sec_offset, {.number = list}), rnglists_index, list},
+        {unit.value(DW_FORM_sec_offset, {.number = macro_offset}), macro_index, macro_offset},
     };
     unit.value(DW_FORM_string, {.string = source_name});
     unit.value(DW_FORM_string, {.string = directory});
@@ -208,6 +237,8 @@ void write_debug_line(pepp::bts::AnyGrowableElf &elf, u8 address_size, u32 addre
                                                    range_relocations);
       write_section_relocations<File::elf_bits, E>(*file, info_index, debugInfoSection, offset_relocation,
                                                    info_relocations);
+      write_section_relocations<File::elf_bits, E>(*file, macro_index, debugMacroSection, offset_relocation,
+                                                   macro_relocations);
     }
   };
   std::visit(f, elf);
@@ -248,6 +279,45 @@ std::expected<std::vector<LineMapping>, std::string> read_line_mappings(const pe
   for (const auto &[where, line] : lines)
     ret.push_back(
         {.section = where.first, .address = where.second, .source_line = line.first, .listing_line = line.second});
+  return ret;
+}
+
+// A macro read from .debug_macro, with the 1-based source line which defined it.
+struct DebugMacro {
+  std::shared_ptr<MacroDefinition> definition;
+  u32 line = 0;
+};
+
+// Decodes every macro unit of elf's .debug_macro, as written by write_debug_line, in the order they were written.
+// Only definitions inside a DW_MACRO_start_file are returned, since others come from outside the source (Section
+// 6.3.2.4). A DW_MACRO_undef removes the earlier definitions of its name.
+template <pepp::bts::ElfBits B, pepp::bts::ElfEndian E>
+std::expected<std::vector<DebugMacro>, std::string> read_macros(const pepp::bts::PackedElf<B, E> &elf) {
+  const auto data = pepp::bts::section_bytes(elf, pepp::bts::find_named_section(elf, debugMacroSection));
+  std::vector<DebugMacro> ret;
+  for (size_t offset = 0; offset < data.size();) {
+    const auto unit = pepp::bts::parse_macro_unit<E>(data, offset);
+    if (!unit) return std::unexpected(unit.error());
+    for (const auto &[opcode, line, string, in_file] : unit->entries) {
+      switch (opcode) {
+      case pepp::bts::MacroOpcodes::DW_MACRO_define: {
+        if (!in_file) break;
+        auto definition = detail::parse_define_string(string);
+        if (!definition) return std::unexpected(definition.error());
+        ret.push_back({std::move(*definition), static_cast<u32>(line)});
+        break;
+      }
+      case pepp::bts::MacroOpcodes::DW_MACRO_undef:
+        std::erase_if(ret, [&](const DebugMacro &macro) { return macro.definition->name == string; });
+        break;
+      // Do not silently fail on unexpected opcodes.
+      default:
+        return std::unexpected("unsupported macro information opcode " +
+                               std::to_string(bits::to_underlying(opcode)));
+      }
+    }
+    offset = unit->next_unit;
+  }
   return ret;
 }
 } // namespace pepp::tc
