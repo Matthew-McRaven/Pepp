@@ -43,6 +43,8 @@ public:
   void add_note(std::span<const char> name, std::span<const char> desc, u32 type);
 
 private:
+  // Offset of the note following the one at `offset`.
+  u64 next_offset(u64 offset) const noexcept;
   Shdr &shdr;
   Data &data;
 };
@@ -59,34 +61,34 @@ template <ElfBits B, ElfEndian E, bool Const>
 PackedNoteAccessor<B, E, Const>::PackedNoteAccessor(Shdr &shdr_note, Data &data) noexcept
     : shdr(shdr_note), data(data) {}
 
+template <ElfBits B, ElfEndian E, bool Const>
+u64 PackedNoteAccessor<B, E, Const>::next_offset(u64 offset) const noexcept {
+  const auto *hdr = data->template get_at<PackedElfNoteHeader<E>>(offset);
+  return offset + sizeof(PackedElfNoteHeader<E>) + round_up4(hdr->n_namesz) + round_up4(hdr->n_descsz);
+}
+
 template <ElfBits B, ElfEndian E, bool Const> inline u32 PackedNoteAccessor<B, E, Const>::note_count() const noexcept {
-  u32 current_pos = 0, current_idx = 0;
-  PackedElfNoteHeader<E> *hdr = nullptr;
-  while (current_pos < data.size()) {
-    hdr = reinterpret_cast<const PackedElfNoteHeader<E> *>(data.data() + current_pos);
-    current_pos += sizeof(PackedElfNoteHeader<E>) + round_up4(hdr->n_namesz) + round_up4(hdr->n_descsz);
-    current_idx++;
-  }
-  return current_idx;
+  u32 count = 0;
+  for (u64 offset = 0; offset + sizeof(PackedElfNoteHeader<E>) <= data->size(); offset = next_offset(offset)) count++;
+  return count;
 }
 
 template <ElfBits B, ElfEndian E, bool Const>
 std::optional<NoteEntry> PackedNoteAccessor<B, E, Const>::get_note(u32 index) const noexcept {
-  u32 current_pos = 0, current_idx = 0;
-  PackedElfNoteHeader<E> *hdr = nullptr;
-  while (current_idx != index && current_pos < data.size()) {
-    hdr = reinterpret_cast<const PackedElfNoteHeader<E> *>(data.data() + current_pos);
-    current_pos += sizeof(PackedElfNoteHeader<E>) + round_up4(hdr->n_namesz) + round_up4(hdr->n_descsz);
-    current_idx++;
-  }
-  if (current_pos >= data.size() || current_idx != index) return std::nullopt;
+  u64 offset = 0;
+  for (u32 it = 0; it < index && offset + sizeof(PackedElfNoteHeader<E>) <= data->size(); ++it)
+    offset = next_offset(offset);
+  if (offset + sizeof(PackedElfNoteHeader<E>) > data->size()) return std::nullopt;
+  const auto *hdr = data->template get_at<PackedElfNoteHeader<E>>(offset);
   NoteEntry ret;
   ret.namesz = hdr->n_namesz;
   ret.descsz = hdr->n_descsz;
   ret.type = hdr->n_type;
-  ret.name = bits::span<const char>(reinterpret_cast<const char *>(hdr + 1), hdr->n_namesz);
-  ret.desc = bits::span<const char>(
-      reinterpret_cast<const char *>(reinterpret_cast<const u8 *>(hdr + 1) + round_up4(hdr->n_namesz)), hdr->n_descsz);
+  const u64 name_start = offset + sizeof(PackedElfNoteHeader<E>), desc_start = name_start + round_up4(ret.namesz);
+  const auto name = data->get(name_start, ret.namesz), desc = data->get(desc_start, ret.descsz);
+  if (name.size() != ret.namesz || desc.size() != ret.descsz) return std::nullopt;
+  ret.name = bits::span<const char>(reinterpret_cast<const char *>(name.data()), name.size());
+  ret.desc = bits::span<const char>(reinterpret_cast<const char *>(desc.data()), desc.size());
   return ret;
 }
 

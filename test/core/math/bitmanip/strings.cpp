@@ -38,3 +38,12 @@ TEST_CASE("Escaped character bit ops", "[scope:core][scope:core.math][kind:unit]
     CHECK(!bits::escapedToByte(R"(\x+1)")); // Not hex digits.
   }
 }
+
+TEST_CASE("Extract C strings from span", "[scope:core][scope:core.math][kind:unit][arch:*]") {
+  using namespace std::string_view_literals;
+  const auto view = [](std::string_view sv) { return bits::until_nul(bits::span<const char>(sv.data(), sv.size())); };
+  CHECK(view("abc\0def"sv) == "abc");
+  CHECK(view("abc"sv) == "abc");
+  CHECK(view("\0abc"sv).empty());
+  CHECK(view(""sv).empty());
+}

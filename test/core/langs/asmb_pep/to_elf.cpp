@@ -328,6 +328,38 @@ LDWA 2,i
     CHECK(elf.sections[".data"] != nullptr);
     CHECK(elf.sections[".text"] == nullptr);
   }
+  SECTION("Generate NOTE sections for MMIOs") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(R"(
+      .INPUT charIn
+      .OUTPUT charOut
+      charIn: .BLOCK 1
+      charOut: .BLOCK 1)"),
+                    std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    auto code = pepp::tc::parser::flatten_macros(results);
+    auto result = pepp::tc::pepp_split_to_sections(diag, code);
+    CHECK(diag.count() == 0);
+    auto symbol_tab = p.symbol_table();
+    auto &sections = result.grouped_ir;
+    auto addresses = pepp::tc::pepp_assign_addresses(sections);
+    auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
+    auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
+
+    auto elf = read_back(elf_result);
+    REQUIRE(elf.sections[mmioNoteSection] != nullptr);
+    CHECK(elf.sections[mmioNoteSection]->get_type() == ELFIO::SHT_NOTE);
+    const auto input = to_input_elf(elf_result);
+    const auto ios = std::visit([](const auto &file) { return MMIONoteReader(*file).declarations(); }, input);
+    REQUIRE(ios.size() == 2);
+    CHECK(ios[0].name == "charIn");
+    CHECK(ios[0].type == IO::Type::kInput);
+    CHECK(ios[0].minOffset == 0);
+    CHECK(ios[1].name == "charOut");
+    CHECK(ios[1].type == IO::Type::kOutput);
+    CHECK(ios[1].minOffset == 1);
+  }
   SECTION("An explicitly empty section is still emitted") {
     pepp::tc::DiagnosticTable diag;
     auto p = Parser(data(R"(

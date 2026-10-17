@@ -151,6 +151,12 @@ inline bool contains(std::string_view haystack, std::string_view needle) {
   return haystack.find(needle) != std::string_view::npos;
 }
 
+// Return the prefix of str up until (but not including) the first NUL character, or the entire string if there is no
+// NUL character.
+inline std::string_view until_nul(span<const char> str) {
+  return std::string_view(str.data(), std::find(str.begin(), str.end(), '\0') - str.begin());
+}
+
 // Right-strip whitespace
 inline std::string_view rtrimmed_view(const std::string &str) {
   std::size_t size = str.size();

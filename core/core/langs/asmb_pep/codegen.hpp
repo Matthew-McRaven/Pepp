@@ -4,11 +4,10 @@
 #include "core/langs/asmb/elf_symtab.hpp"
 #include "core/langs/asmb/ir_constraints.hpp"
 #include "core/langs/asmb/ir_program.hpp"
+#include "core/langs/asmb/mmio.hpp"
 #include "core/math/bitmanip/leb128.hpp"
 #include "fmt/format.h"
 #include "ir_attributes.hpp"
-#include "toolchain/link/mmio.hpp"
-
 
 namespace pepp::core::symbol {
 class LeafTable;
@@ -22,7 +21,7 @@ static const SectionDescriptor default_descriptor = {.name = ".text", .flags = S
 struct PeppSectionAnalysisResults {
   std::vector<std::pair<SectionDescriptor, IRProgram>> grouped_ir;
   std::vector<std::string> system_calls;
-  std::vector<obj::IO> mmios;
+  std::vector<IO> mmios;
 };
 
 // Expects that tree-like IR has already been flattened in a previous step.
@@ -57,7 +56,7 @@ ProgramObjectCodeResult pepp_to_object_code(DiagnosticTable &diag, const IRMemor
 // `source_order` holds the lines of `prog` in source order, which is the order the listing prints them.
 ElfResult pepp_to_elf(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog, const IRProgram &source_order,
                       const IRMemoryAddressTable<PeppAddress> &addrs, const ProgramObjectCodeResult &object_code,
-                      const pepp::core::symbol::LeafTable &symbols, const std::vector<obj::IO> &mmios,
+                      const pepp::core::symbol::LeafTable &symbols, const std::vector<IO> &mmios,
                       const DebugLineFiles &files = {});
 
 struct BinaryLineMapping {

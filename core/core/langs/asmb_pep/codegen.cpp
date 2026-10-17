@@ -131,9 +131,9 @@ pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(Diagnostic
       auto arg_str = as_annotate->argument.value->string();
       if (as_annotate->which == DotAnnotate::Which::SCALL) ret.system_calls.emplace_back(arg_str);
       else if (as_annotate->which == DotAnnotate::Which::INPUT)
-        ret.mmios.emplace_back(obj::IO{.name = arg_str, .type = obj::IO::Type::kInput});
+        ret.mmios.emplace_back(IO{.name = arg_str, .type = IO::Type::kInput});
       else if (as_annotate->which == DotAnnotate::Which::OUTPUT)
-        ret.mmios.emplace_back(obj::IO{.name = arg_str, .type = obj::IO::Type::kOutput});
+        ret.mmios.emplace_back(IO{.name = arg_str, .type = IO::Type::kOutput});
       break;
     }
     case DotOrg::TYPE: {
@@ -364,12 +364,21 @@ pepp::tc::ElfResult pepp::tc::pepp_to_elf(std::vector<std::pair<SectionDescripto
                                           const IRMemoryAddressTable<PeppAddress> &addrs,
                                           const ProgramObjectCodeResult &object_code,
                                           const pepp::core::symbol::LeafTable &symbols,
-                                          const std::vector<obj::IO> &mmios, const DebugLineFiles &files) {
+                                          const std::vector<IO> &mmios, const DebugLineFiles &files) {
   using namespace pepp::bts;
   SPDLOG_INFO("Creating pep/10 ELF");
   auto ret = sections_to_elf(ElfBits::b32, ElfEndian::be, ElfMachineType::EM_PEP10, prog, object_code, symbols);
 
   ret.ir_to_listing = write_line_mapping(ret, prog, addrs, object_code, files, source_order);
 
+  if (!mmios.empty()) {
+    auto f = [&](auto &file) {
+      if (!file) return;
+      MMIONoteWriter writer(*file, find_named_section(*file, ".symtab"));
+      for (const auto &io : mmios)
+        if (!writer.add(io)) throw std::logic_error("pepp_to_elf: no symbol for MMIO port " + io.name);
+    };
+    std::visit(f, ret.elf);
+  }
   return ret;
 }
