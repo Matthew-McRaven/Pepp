@@ -128,6 +128,7 @@ pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(Diagnostic
     }
     case DotAnnotate::TYPE: {
       auto as_annotate = std::static_pointer_cast<pepp::tc::DotAnnotate>(line);
+      if (as_annotate->which == DotAnnotate::Which::END) break;
       auto arg_str = as_annotate->argument.value->string();
       if (as_annotate->which == DotAnnotate::Which::SCALL) ret.system_calls.emplace_back(arg_str);
       else if (as_annotate->which == DotAnnotate::Which::INPUT)

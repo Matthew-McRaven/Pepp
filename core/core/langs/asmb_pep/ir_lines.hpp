@@ -11,6 +11,7 @@ enum class PepIRType : int { Monadic = static_cast<int>(LinearIRType::FirstUser)
 
 enum class PepDotCommands : int {
   EXPORT = static_cast<int>(DotCommands::FIRST_USER),
+  END,
   IMPORT,
   INPUT,
   OUTPUT,
@@ -41,8 +42,8 @@ struct DyadicInstruction : public LinearIR {
 
 struct DotAnnotate : public LinearIR {
   static constexpr int TYPE = static_cast<int>(PepIRType::DotAnnotate);
-  enum class Which { EXPORT, IMPORT, INPUT, OUTPUT, SCALL } which;
-  // Arg must always be an identifier
+  enum class Which { END, EXPORT, IMPORT, INPUT, OUTPUT, SCALL } which;
+  // Arg is an identifier, except for END, which has none
   DotAnnotate(Which dir, Argument arg);
   const AAttribute *attribute(int type) const override;
   void insert(std::unique_ptr<AAttribute> attr) override;
