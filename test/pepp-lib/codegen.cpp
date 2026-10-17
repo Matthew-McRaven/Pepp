@@ -16,6 +16,8 @@
 
 #include "core/langs/asmb_pep/codegen.hpp"
 #include <catch.hpp>
+#include <elfio/elfio.hpp>
+#include <sstream>
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
@@ -172,4 +174,44 @@ TEST_CASE("Pepp ASM codegen .INPUT and .OUTPUT",
   CHECK(mmios[0].type == obj::IO::Type::kInput);
   CHECK(mmios[1].name == "deco");
   CHECK(mmios[1].type == obj::IO::Type::kOutput);
+}
+
+TEST_CASE("New assembler emits MMIO notes compatible with old simulator",
+          "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:pep10]") {
+  using Parser = pepp::tc::parser::PepParser;
+  using MR = pepp::tc::MacroRegistry;
+  using namespace pepp::tc;
+
+  pepp::tc::DiagnosticTable diag;
+  auto p = Parser(data(R"(
+    .INPUT charIn
+    .OUTPUT charOut
+    charIn: .BLOCK 1
+    charOut: .BLOCK 1)"),
+                  std::make_shared<MR>());
+  auto results = p.parse(diag);
+  CHECK(diag.count() == 0);
+  auto code = pepp::tc::parser::flatten_macros(results);
+  auto result = pepp::tc::pepp_split_to_sections(diag, code);
+  CHECK(diag.count() == 0);
+  auto &sections = result.grouped_ir;
+  auto addresses = pepp::tc::pepp_assign_addresses(sections);
+  auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
+  auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *p.symbol_table(), result.mmios);
+
+  const auto input = to_input_elf(elf_result);
+  const auto ours = std::visit([](const auto &file) { return MMIONoteReader(*file).declarations(); }, input);
+  const auto bytes = elf_bytes(elf_result);
+  std::istringstream in(std::string(reinterpret_cast<const char *>(bytes.data()), bytes.size()));
+  ELFIO::elfio elf;
+  REQUIRE(elf.load(in));
+  const auto theirs = obj::getMMIODeclarations(elf);
+  REQUIRE(ours.size() == 2);
+  REQUIRE(theirs.size() == ours.size());
+  for (size_t it = 0; it < ours.size(); ++it) {
+    CHECK(theirs[it].name == ours[it].name);
+    CHECK(theirs[it].type == ours[it].type);
+    CHECK(theirs[it].minOffset == ours[it].minOffset);
+    CHECK(theirs[it].maxOffset == ours[it].maxOffset);
+  }
 }

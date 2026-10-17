@@ -12,10 +12,6 @@
 #include "fmt/format.h"
 #include "ir_attributes.hpp"
 
-namespace ELFIO {
-class elfio;
-}
-
 namespace pepp::core::symbol {
 class LeafTable;
 }

@@ -179,3 +179,24 @@ CPBA '+',i
                                  0x00, '+'};
   CHECK(std::vector<u8>(bytes.begin(), bytes.end()) == expected);
 }
+
+TEST_CASE("Pepp ASM codegen object code size", "[scope:core][scope:core.langs][kind:unit][arch:pep10]") {
+  using Parser = pepp::tc::parser::PepParser;
+  using MR = pepp::tc::MacroRegistry;
+  const auto assemble = [](const char *txt, pepp::tc::DiagnosticTable &diag) {
+    auto p = Parser(data(txt), std::make_shared<MR>());
+    auto results = p.parse(diag);
+    REQUIRE(diag.count() == 0);
+    auto code = pepp::tc::parser::flatten_macros(results);
+    auto result = pepp::tc::pepp_split_to_sections(diag, code);
+    REQUIRE(diag.count() == 0);
+    auto addresses = pepp::tc::pepp_assign_addresses(result.grouped_ir);
+    (void)pepp::tc::pepp_to_object_code(diag, addresses, result.grouped_ir);
+  };
+  SECTION("0x1'0000 bytes is illegal") {
+    pepp::tc::DiagnosticTable diag;
+    assemble(".BLOCK 0xFFFF\n.WORD 0", diag);
+    REQUIRE(diag.count() == 1);
+    CHECK(diag.begin()->second == "Object code must fit within 65536 bytes.");
+  }
+}

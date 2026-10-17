@@ -237,12 +237,12 @@ namespace {
 using DC = pepp::tc::DotCommands;
 using PDC = pepp::tc::PepDotCommands;
 static const auto dot_map = std::map<std::string, int>{
-    {"ALIGN", (int)DC::ALIGN},    {"ASCII", (int)DC::ASCII},   {"BLOCK", (int)DC::BLOCK},
-    {"BYTE", (int)DC::BYTE},      {"EQUATE", (int)DC::EQUATE}, {"EXPORT", (int)PDC::EXPORT},
-    {"IMPORT", (int)PDC::IMPORT}, {"INPUT", (int)PDC::INPUT},  {"ORG", (int)DC::ORG},
-    {"OUTPUT", (int)PDC::OUTPUT}, {"SCALL", (int)PDC::SCALL},  {"SECTION", (int)DC::SECTION},
-    {"WORD", (int)DC::WORD},      {"IF", (int)DC::IF},         {"ELSEIF", (int)DC::ELSEIF},
-    {"ELSE", (int)DC::ELSE},      {"ENDIF", (int)DC::ENDIF},   {"MACRO", (int)DC::INLINE_MACRO},
+    {"ALIGN", (int)DC::ALIGN},       {"ASCII", (int)DC::ASCII},     {"BLOCK", (int)DC::BLOCK},
+    {"BYTE", (int)DC::BYTE},         {"END", (int)PDC::END},        {"EQUATE", (int)DC::EQUATE},
+    {"EXPORT", (int)PDC::EXPORT},    {"INPUT", (int)PDC::INPUT},    {"ORG", (int)DC::ORG},
+    {"OUTPUT", (int)PDC::OUTPUT},    {"SCALL", (int)PDC::SCALL},    {"SECTION", (int)DC::SECTION},
+    {"WORD", (int)DC::WORD},         {"IF", (int)DC::IF},           {"ELSEIF", (int)DC::ELSEIF},
+    {"ELSE", (int)DC::ELSE},         {"ENDIF", (int)DC::ENDIF},     {"MACRO", (int)DC::INLINE_MACRO},
     {"ENDM", (int)DC::END_MACRO}};
 } // namespace
 std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(OptionalSymbol symbol) {
@@ -305,6 +305,10 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
         bits::MaskedBits{.byteCount = 2, .bitPattern = **value & bits::mask(2), .mask = bits::mask(2)});
     return std::make_shared<DotEquate>(SymbolDeclaration{*symbol}, Argument{arg});
   }
+  case (int)PDC::END: {
+    if (symbol) throw PepParserError(PepParserError::NullaryError::SymbolDeclaration_Forbidden, buf->matched_interval());
+    return std::make_shared<DotAnnotate>(DotAnnotate::Which::END, Argument{nullptr});
+  }
   case (int)PDC::EXPORT: {
     auto arg = identifier_argument();
     if (!arg) throw PepParserError(PepParserError::NullaryError::Argument_ExpectedIdentifier, buf->matched_interval());
@@ -312,14 +316,6 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
       throw PepParserError(PepParserError::NullaryError::SymbolDeclaration_Forbidden, buf->matched_interval());
     arg->symbol()->binding = pepp::core::symbol::Binding::Global;
     return std::make_shared<DotAnnotate>(DotAnnotate::Which::EXPORT, Argument{arg});
-  }
-  case (int)PDC::IMPORT: {
-    auto arg = identifier_argument();
-    if (!arg) throw PepParserError(PepParserError::NullaryError::Argument_ExpectedIdentifier, buf->matched_interval());
-    else if (symbol)
-      throw PepParserError(PepParserError::NullaryError::SymbolDeclaration_Forbidden, buf->matched_interval());
-    arg->symbol()->binding = pepp::core::symbol::Binding::Weak;
-    return std::make_shared<DotAnnotate>(DotAnnotate::Which::IMPORT, Argument{arg});
   }
   case (int)PDC::INPUT: {
     auto arg = identifier_argument();

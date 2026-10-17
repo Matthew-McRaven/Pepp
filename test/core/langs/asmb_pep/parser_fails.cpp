@@ -83,14 +83,23 @@ TEST_CASE("Pepp ASM parser errors",
     CHECK(start != end);
     CHECK(start->second == PE::to_string(NullaryError::Argument_ExpectedString));
   }
-  SECTION(".IMPORT expected identifier") {
+  SECTION(".EXPORT expected identifier") {
     pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data("\n .IMPORT 3"), std::make_shared<MR>());
+    auto p = Parser(data("\n .EXPORT 3"), std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 1);
     auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
     CHECK(start != end);
     CHECK(start->second == PE::to_string(NullaryError::Argument_ExpectedIdentifier));
+  }
+  SECTION(".END forbids a symbol") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data("done: .END"), std::make_shared<MR>());
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 1);
+    auto [start, end] = diag.overlapping_interval(LocationInterval(Location(0, 0), Location(0, Location::MAX)));
+    CHECK(start != end);
+    CHECK(start->second == PE::to_string(NullaryError::SymbolDeclaration_Forbidden));
   }
   SECTION(".ORG expected hex") {
     pepp::tc::DiagnosticTable diag;

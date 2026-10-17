@@ -18,6 +18,7 @@
 #pragma once
 #include <elfio/elfio.hpp>
 #include <vector>
+#include "core/langs/asmb/mmio.hpp"
 
 namespace obj {
 
@@ -26,10 +27,7 @@ const ELFIO::section *getMMIONoteSection(const ELFIO::elfio &elf);
 // If no MMIO note section, will create.
 ELFIO::section *addMMIONoteSection(ELFIO::elfio &elf);
 
-struct IO {
-  std::string name;
-  enum class Type { kInput, kOutput, kIDE } type;
-};
+using IO = pepp::tc::IO;
 void addMMIODeclarations(ELFIO::elfio &elf, ELFIO::section *symTab, std::vector<IO> mmios);
 // Mark the following symbol as the starting symbol for an memory-mapped IDE controller.
 void addIDEDeclaration(ELFIO::elfio &elf, ELFIO::section *symTab, std::string symbol);

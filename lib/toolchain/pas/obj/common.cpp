@@ -124,5 +124,7 @@ std::vector<pas::obj::common::BinaryLineMapping> pas::obj::common::getLineMappin
 }
 
 ELFIO::section *pas::obj::common::detail::getLineMappingSection(ELFIO::elfio &elf) {
-  return pepp::tc::getLineMappingSection(elf);
+  for (auto &sec : elf.sections)
+    if (sec->get_name() == lineMapStr && sec->get_type() == ELFIO::SHT_PROGBITS) return sec.get();
+  return nullptr;
 }

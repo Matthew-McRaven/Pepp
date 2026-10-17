@@ -1,5 +1,4 @@
 #include "core/langs/asmb_pep/codegen.hpp"
-#include <elfio/elfio.hpp>
 #include <list>
 #include <numeric>
 #include <ranges>
@@ -128,12 +127,13 @@ pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(Diagnostic
     }
     case DotAnnotate::TYPE: {
       auto as_annotate = std::static_pointer_cast<pepp::tc::DotAnnotate>(line);
+      if (as_annotate->which == DotAnnotate::Which::END) break;
       auto arg_str = as_annotate->argument.value->string();
       if (as_annotate->which == DotAnnotate::Which::SCALL) ret.system_calls.emplace_back(arg_str);
       else if (as_annotate->which == DotAnnotate::Which::INPUT)
-        ret.mmios.emplace_back(obj::IO{.name = arg_str, .type = obj::IO::Type::kInput});
+        ret.mmios.emplace_back(IO{.name = arg_str, .type = IO::Type::kInput});
       else if (as_annotate->which == DotAnnotate::Which::OUTPUT)
-        ret.mmios.emplace_back(obj::IO{.name = arg_str, .type = obj::IO::Type::kOutput});
+        ret.mmios.emplace_back(IO{.name = arg_str, .type = IO::Type::kOutput});
       break;
     }
     case DotOrg::TYPE: {
@@ -324,17 +324,6 @@ void pepp::tc::PeppObjectVistitor::visit(const MacroInstantiation *) {
   // Does not generate object code
 }
 
-ELFIO::section *getLineMappingSection(ELFIO::elfio &elf) {
-  ELFIO::section *lineNumbers = nullptr;
-  for (auto &sec : elf.sections) {
-    if (sec->get_name() == lineMapStr && sec->get_type() == ELFIO::SHT_PROGBITS) {
-      lineNumbers = sec.get();
-      break;
-    }
-  }
-  return lineNumbers;
-}
-
 std::optional<ArgumentConstraint> pepp_argument_constraint(const LinearIR &line) {
   using Which = DotLiteral::Which;
   using enum expr::Signedness;
@@ -351,6 +340,16 @@ std::optional<ArgumentConstraint> pepp_argument_constraint(const LinearIR &line)
 
 ProgramObjectCodeResult pepp_to_object_code(DiagnosticTable &diag, const IRMemoryAddressTable<PeppAddress> &addresses,
                                             std::vector<std::pair<SectionDescriptor, IRProgram>> &prog) {
+  // Every section shares the 16-bit address space, so their sizes are summed, NOBITS included.
+  u64 total = 0;
+  for (const auto &[desc, ir] : prog) total += desc.byte_count;
+  if (total > pep_address_space_size) {
+    // No one line is at fault, so the error covers the whole file.
+    using support::Location;
+    diag.add_message({Location(0, 0), Location(Location::MAX, Location::MAX)},
+                     fmt::format("Object code must fit within {} bytes.", pep_address_space_size));
+    return {};
+  }
   return to_object_code<PeppAddress, PeppObjectVistitor>(diag, addresses, prog);
 }
 
@@ -376,7 +375,7 @@ pepp::tc::ElfResult pepp::tc::pepp_to_elf(std::vector<std::pair<SectionDescripto
                                           const IRMemoryAddressTable<PeppAddress> &addrs,
                                           const ProgramObjectCodeResult &object_code,
                                           const pepp::core::symbol::LeafTable &symbols,
-                                          const std::vector<obj::IO> &mmios, const DebugLineFiles &files,
+                                          const std::vector<IO> &mmios, const DebugLineFiles &files,
                                           const std::vector<std::shared_ptr<const InlineMacroDefinition>> &macros) {
   using namespace pepp::bts;
   SPDLOG_INFO("Creating pep/10 ELF");
@@ -384,14 +383,14 @@ pepp::tc::ElfResult pepp::tc::pepp_to_elf(std::vector<std::pair<SectionDescripto
 
   ret.ir_to_listing = write_line_mapping(ret, prog, addrs, object_code, files, macros, source_order);
 
-  /*ELFIO::section *symTab = nullptr;
-  for (auto &sec : ret->sections)
-    if (sec->get_type() == ELFIO::SHT_SYMTAB && sec->get_name() == "os.symtab") symTab = &*sec;
-  Q_ASSERT(symTab != nullptr);
-  // TODO: populate mmios if mmios is not empty
-  obj::addMMIONoteSection(*ret);
-  ::obj::addMMIODeclarations(*ret, symTab, mmios);*/
-  // pas::obj::common::writeLineMapping(*_elf, *_osRoot);
-  //  pas::obj::common::writeDebugCommands(*_elf, {&*_osRoot});
+  if (!mmios.empty()) {
+    auto f = [&](auto &file) {
+      if (!file) return;
+      MMIONoteWriter writer(*file, find_named_section(*file, ".symtab"));
+      for (const auto &io : mmios)
+        if (!writer.add(io)) throw std::logic_error("pepp_to_elf: no symbol for MMIO port " + io.name);
+    };
+    std::visit(f, ret.elf);
+  }
   return ret;
 }

@@ -54,6 +54,7 @@ TEST_CASE("Pepp ASM source formatting", "[scope:core][scope:core.langs][level:as
                                       std::make_tuple("execErr:   .EQUATE     8  ", "execErr: .EQUATE 8"),
                                       std::make_tuple(R"(.SECTION "text",    "rx")", R"(         .SECTION "text", "rx")"),
                                       std::make_tuple(".export     feed  ", "         .EXPORT feed"),
+                                      std::make_tuple(".end ;done", "         .END                ;done"),
                                       std::make_tuple(".ORG     0xfeed  ", "         .ORG    0xFEED"));
     CAPTURE(input);
     pepp::tc::DiagnosticTable diag;
@@ -166,6 +167,30 @@ ADDA 15,d ;hi)";
     CHECK(listing[0] == "0000 000000 execErr: .BLOCK  7");
     CHECK(listing[1] == "     000000");
     CHECK(listing[2] == "     00");
+  }
+  SECTION(".END") {
+    const auto assemble = [](std::string txt) {
+      pepp::tc::DiagnosticTable diag;
+      auto p = Parser(data(txt), std::make_shared<MR>());
+      auto r = p.parse(diag);
+      auto code = pepp::tc::parser::flatten_macros(r);
+      auto result = pepp::tc::pepp_split_to_sections(diag, code);
+      auto addresses = pepp::tc::pepp_assign_addresses(result.grouped_ir);
+      auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, result.grouped_ir);
+      CHECK(diag.count() == 0);
+      return std::make_tuple(std::move(r), std::move(addresses), std::move(object_code));
+    };
+    auto [with_r, with_addresses, with_oc] = assemble("LDWA 5,i\nRET\n.END ;done");
+    auto [without_r, without_addresses, without_oc] = assemble("LDWA 5,i\nRET");
+    const auto bytes = [](const auto &oc) {
+      auto span = oc.object_code->get(0, oc.object_code->size());
+      return std::vector<u8>(span.begin(), span.end());
+    };
+    CHECK(bytes(with_oc) == bytes(without_oc));
+    REQUIRE(with_r.size() == 3);
+    auto listing = format_listing(with_r[2].get(), with_addresses, with_oc);
+    REQUIRE(listing.size() == 1);
+    CHECK(listing[0] == "                     .END                ;done");
   }
 }
 

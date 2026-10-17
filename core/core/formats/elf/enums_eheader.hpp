@@ -285,8 +285,8 @@ enum class ElfMachineType : u16 {
   EM_ALPHA = 0x9026,             // Alpha
   EM_WEBASSEMBLY = 0x4157,       // Web Assembly
   EM_DLX = 0x5aa5,               // OpenDL
-  EM_PEP9 = 0x7038,              // Pep/8  "p8"
-  EM_PEP8 = 0x7039,              // Pep/8  "p9"
+  EM_PEP8 = 0x7038,              // Pep/8  "p8"
+  EM_PEP9 = 0x7039,              // Pep/9  "p9"
   EM_PEP10 = 0x7078,             // Pep/10 "px"
   EM_XSTORMY16 = 0xad45,         // Sanyo XStormy16 CPU core
   EM_IQ2000 = 0xFEBA,            // Vitesse IQ2000

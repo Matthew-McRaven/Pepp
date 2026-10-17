@@ -137,15 +137,15 @@ void pepp::tc::SourceVisitor::visit(const DotAnnotate *line) {
   std::string dot = "", comment = "";
   using Which = DotAnnotate::Which;
   switch (line->which) {
+  case Which::END: dot = ".END"; break;
   case Which::EXPORT: dot = ".EXPORT"; break;
-  case Which::IMPORT: dot = ".IMPORT"; break;
   case Which::INPUT: dot = ".INPUT"; break;
   case Which::OUTPUT: dot = ".OUTPUT"; break;
   case Which::SCALL: dot = ".SCALL"; break;
   }
 
   if (auto maybe_comment = line->typed_attribute<Comment>(); maybe_comment) comment = ";" + maybe_comment->value;
-  text = format_as_columns("", dot, line->argument.value->string(), comment);
+  text = format_as_columns("", dot, line->argument.value ? line->argument.value->string() : "", comment);
 }
 
 void pepp::tc::SourceVisitor::visit(const DotOrg *line) {
