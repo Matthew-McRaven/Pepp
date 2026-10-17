@@ -17,6 +17,8 @@ namespace pepp::tc {
 class DiagnosticTable;
 
 static const SectionDescriptor default_descriptor = {.name = ".text", .flags = SectionFlags(true, true, true, false)};
+// Bytes addressable by a 16-bit Pep address.
+static constexpr u64 pep_address_space_size = 0x10000;
 
 struct PeppSectionAnalysisResults {
   std::vector<std::pair<SectionDescriptor, IRProgram>> grouped_ir;
@@ -50,6 +52,8 @@ IRMemoryAddressTable<PeppAddress> pepp_assign_addresses(std::vector<std::pair<Se
 // The constraint for a line's argument.
 std::optional<ArgumentConstraint> pepp_argument_constraint(const LinearIR &line);
 
+// Object code larger than the address space is an error, and produces no object code. Undefined symbols are left as
+// relocations.
 ProgramObjectCodeResult pepp_to_object_code(DiagnosticTable &diag, const IRMemoryAddressTable<PeppAddress> &,
                                             std::vector<std::pair<SectionDescriptor, IRProgram>> &prog);
 

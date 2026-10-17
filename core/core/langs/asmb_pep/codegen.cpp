@@ -340,6 +340,16 @@ std::optional<ArgumentConstraint> pepp_argument_constraint(const LinearIR &line)
 
 ProgramObjectCodeResult pepp_to_object_code(DiagnosticTable &diag, const IRMemoryAddressTable<PeppAddress> &addresses,
                                             std::vector<std::pair<SectionDescriptor, IRProgram>> &prog) {
+  // Every section shares the 16-bit address space, so their sizes are summed, NOBITS included.
+  u64 total = 0;
+  for (const auto &[desc, ir] : prog) total += desc.byte_count;
+  if (total > pep_address_space_size) {
+    // No one line is at fault, so the error covers the whole file.
+    using support::Location;
+    diag.add_message({Location(0, 0), Location(Location::MAX, Location::MAX)},
+                     fmt::format("Object code must fit within {} bytes.", pep_address_space_size));
+    return {};
+  }
   return to_object_code<PeppAddress, PeppObjectVistitor>(diag, addresses, prog);
 }
 
