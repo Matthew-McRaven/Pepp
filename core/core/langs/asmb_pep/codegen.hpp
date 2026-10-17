@@ -9,9 +9,6 @@
 #include "ir_attributes.hpp"
 #include "toolchain/link/mmio.hpp"
 
-namespace ELFIO {
-class elfio;
-}
 
 namespace pepp::core::symbol {
 class LeafTable;
@@ -171,8 +168,4 @@ struct BinaryLineMapping {
     throw std::logic_error(e);
   }
 };
-
-static inline const auto lineMapStr = ".debug_line";
-// Get line mapping section or return nullptr;
-ELFIO::section *getLineMappingSection(ELFIO::elfio &elf);
 } // namespace pepp::tc

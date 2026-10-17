@@ -417,15 +417,5 @@ pepp::tc::ElfResult pepp::tc::riscv_to_elf(std::vector<std::pair<SectionDescript
   // RV32 addresses are 4 bytes.
   const auto r_riscv_32 = bits::to_underlying(RelocationsRISCV::R_RISCV_32);
   write_debug_line(ret.elf, 4, r_riscv_32, r_riscv_32, prog, addrs, ret.ir_to_listing, files);
-
-  /*ELFIO::section *symTab = nullptr;
-  for (auto &sec : ret->sections)
-    if (sec->get_type() == ELFIO::SHT_SYMTAB && sec->get_name() == "os.symtab") symTab = &*sec;
-  Q_ASSERT(symTab != nullptr);
-  // TODO: populate mmios if mmios is not empty
-  obj::addMMIONoteSection(*ret);
-  ::obj::addMMIODeclarations(*ret, symTab, mmios);*/
-  // pas::obj::common::writeLineMapping(*_elf, *_osRoot);
-  //  pas::obj::common::writeDebugCommands(*_elf, {&*_osRoot});
   return ret;
 }

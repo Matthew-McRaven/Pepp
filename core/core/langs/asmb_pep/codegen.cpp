@@ -1,5 +1,4 @@
 #include "core/langs/asmb_pep/codegen.hpp"
-#include <elfio/elfio.hpp>
 #include <list>
 #include <numeric>
 #include <ranges>
@@ -325,17 +324,6 @@ void pepp::tc::PeppObjectVistitor::visit(const MacroInstantiation *) {
   // Does not generate object code
 }
 
-ELFIO::section *getLineMappingSection(ELFIO::elfio &elf) {
-  ELFIO::section *lineNumbers = nullptr;
-  for (auto &sec : elf.sections) {
-    if (sec->get_name() == lineMapStr && sec->get_type() == ELFIO::SHT_PROGBITS) {
-      lineNumbers = sec.get();
-      break;
-    }
-  }
-  return lineNumbers;
-}
-
 std::optional<ArgumentConstraint> pepp_argument_constraint(const LinearIR &line) {
   using Which = DotLiteral::Which;
   using enum expr::Signedness;
@@ -383,14 +371,5 @@ pepp::tc::ElfResult pepp::tc::pepp_to_elf(std::vector<std::pair<SectionDescripto
 
   ret.ir_to_listing = write_line_mapping(ret, prog, addrs, object_code, files, source_order);
 
-  /*ELFIO::section *symTab = nullptr;
-  for (auto &sec : ret->sections)
-    if (sec->get_type() == ELFIO::SHT_SYMTAB && sec->get_name() == "os.symtab") symTab = &*sec;
-  Q_ASSERT(symTab != nullptr);
-  // TODO: populate mmios if mmios is not empty
-  obj::addMMIONoteSection(*ret);
-  ::obj::addMMIODeclarations(*ret, symTab, mmios);*/
-  // pas::obj::common::writeLineMapping(*_elf, *_osRoot);
-  //  pas::obj::common::writeDebugCommands(*_elf, {&*_osRoot});
   return ret;
 }
