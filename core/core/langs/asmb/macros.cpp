@@ -87,6 +87,7 @@ pepp::tc::parser::MacroCapture::capture(lex::AsmbLexer &lexer, MacroRegistry &re
   if (first && last) definition->body = macro->body = lexer.view({*first, *last});
   if (!registry.insert(macro))
     return std::unexpected(Error{Kind::Redefinition, {start, last.value_or(start)}, definition->name});
+  definition->macro = macro;
   return {};
 }
 

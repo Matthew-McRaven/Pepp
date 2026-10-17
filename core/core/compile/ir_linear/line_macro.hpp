@@ -29,5 +29,6 @@ struct InlineMacroDefinition : public LinearIR {
   std::string name;
   std::vector<std::string> arguments;
   std::string body;
+  std::shared_ptr<const MacroDefinition> macro;
 };
 } // namespace pepp::tc

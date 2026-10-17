@@ -54,3 +54,23 @@ TEST_CASE("ET_REL and .debug_line", "[scope:core][scope:core.langs][kind:unit][a
   // text and data are at the same address, but are both kept because they have different sections
   CHECK(read_line_mappings(elf) == std::vector<LineMapping>{{text, 0x0, 1, 0}, {data, 0x0, 5, 0}});
 }
+
+TEST_CASE("Macro define strings keep default arguments", "[scope:core][scope:core.langs][kind:unit][arch:*]") {
+  using namespace pepp::tc;
+  const MacroDefinition macro{
+      "m", {{.name = "a"}, {.name = "b", .default_value = "0"}, {.name = "c", .default_value = ""}}, ".WORD \\a"};
+  const auto string = detail::define_string(macro);
+  CHECK(string == "m(a,b=0,c=) .WORD \\a");
+  const auto parsed = detail::parse_define_string(string);
+  REQUIRE(parsed.has_value());
+  const auto &arguments = (*parsed)->arguments;
+  REQUIRE(arguments.size() == 3);
+  CHECK(arguments[0].name == "a");
+  CHECK(!arguments[0].default_value.has_value());
+  CHECK(arguments[1].name == "b");
+  CHECK(arguments[1].default_value == "0");
+  // An empty default is still a default.
+  CHECK(arguments[2].name == "c");
+  CHECK(arguments[2].default_value == "");
+  CHECK((*parsed)->body == ".WORD \\a");
+}

@@ -124,8 +124,9 @@ inline constexpr std::array<pepp::bts::Abbreviation, 1> unit_abbreviations{{
     {1, pepp::bts::Tags::DW_TAG_compile_unit, pepp::bts::ChildrenDetermination::DW_CHILDREN_no, unit_attributes},
 }};
 
-// Convert a macro IR line into a well-formatted definition string per Section 6.3.2.2
-std::string define_string(const InlineMacroDefinition &definition);
+// Convert a macro definition into a well-formatted definition string per Section 6.3.2.2. A parameter with a default
+// value is written as name=default, which Section 6.3.2.2 does not describe.
+std::string define_string(const MacroDefinition &definition);
 // The macro of a define string written by define_string.
 std::expected<std::shared_ptr<MacroDefinition>, std::string> parse_define_string(std::string_view string);
 } // namespace detail
@@ -201,7 +202,10 @@ void write_debug_line(pepp::bts::AnyGrowableElf &elf, u8 address_size, u32 addre
     // Section 6.3.3.1: the primary source file's DW_MACRO_start_file is at line 0. debug_line_header repeats the
     // primary source file as file 1, which GCC also uses here.
     macro_unit.start_file(0, 1);
-    for (const auto &macro : macros) macro_unit.define(detail::source_line(*macro), detail::define_string(*macro));
+    for (const auto &macro : macros) {
+      if (!macro->macro) throw std::logic_error("write_debug_line: .MACRO was never registered");
+      macro_unit.define(detail::source_line(*macro), detail::define_string(*macro->macro));
+    }
     macro_unit.end_file();
     const std::vector<detail::SectionRelocation> macro_relocations{
         {*macro_unit.debug_line_offset_field(), line_index, source_unit}};
