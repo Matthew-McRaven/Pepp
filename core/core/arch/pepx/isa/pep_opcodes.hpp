@@ -84,6 +84,10 @@ enum class AddrMode : u8 {
   INVALID,
 };
 
+// Bit (1 << mode) for each AddrMode in a set.
+using AddrModeMask = u16;
+constexpr AddrModeMask mask_of(AddrMode mode) { return static_cast<AddrModeMask>(1u << static_cast<u8>(mode)); }
+
 // How to interpret the low bits of the opcode?
 enum class LowBitSpecifiers {
   None,
