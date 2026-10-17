@@ -181,8 +181,6 @@ void targets::isa::System::doReloadEntries() {
 
 // Duplicated logic from systemFromElf to get the params to pass to reconfigure.
 void targets::isa::System::reconfigure(const ELFIO::elfio &elf) {
-
-  using size_type = bits::span<const u8>::size_type;
   auto segs = obj::getLoadableSegments(elf);
   auto memmap = obj::mergeSegmentRegions(segs);
   auto mmios = obj::getMMIODeclarations(elf);

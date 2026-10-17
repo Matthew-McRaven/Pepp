@@ -286,14 +286,14 @@ constexpr std::pair<std::array<Opcode, 256>, isa::OpcodePlane> initOpcodes() {
   bh_ix(static_cast<uint8_t>(M::CALL), isa::SharedOpBehavior::CALL);
   // Add unary traps
   mn[(uint8_t)M::NOP0] = {.instr = {.mnemon = M::NOP0, .type = T::N_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  bh[(uint8_t)M::NOP0] = {.behavior = isa::SharedOpBehavior::TRAP_CALL, .addr = isa::SharedAddrMode::Unary};
+  bh[(uint8_t)M::NOP0] = {.behavior = isa::SharedOpBehavior::UNARY_TRAP, .addr = isa::SharedAddrMode::Unary};
   mn[(uint8_t)M::NOP1] = {.instr = {.mnemon = M::NOP1, .type = T::N_none, .unary = 1}, .mode = AM::NONE, .valid = true};
-  bh[(uint8_t)M::NOP1] = {.behavior = isa::SharedOpBehavior::TRAP_CALL, .addr = isa::SharedAddrMode::Unary};
+  bh[(uint8_t)M::NOP1] = {.behavior = isa::SharedOpBehavior::UNARY_TRAP, .addr = isa::SharedAddrMode::Unary};
   // Add non-unary traps, and patch up the non-unary traps' addressing modes.
   add_all({.mnemon = M::NOP, .type = T::AAA_i, .unary = 1});
-  bh_all_aaa(static_cast<uint8_t>(M::NOP), isa::SharedOpBehavior::TRAP_CALL);
+  bh_all_aaa(static_cast<uint8_t>(M::NOP), isa::SharedOpBehavior::NONUNARY_TRAP);
   add_all({.mnemon = M::DECI, .type = T::AAA_noi, .unary = 1});
-  bh_noi_aaa(static_cast<uint8_t>(M::DECI), isa::SharedOpBehavior::TRAP_CALL);
+  bh_noi_aaa(static_cast<uint8_t>(M::DECI), isa::SharedOpBehavior::NONUNARY_TRAP);
   mn[(uint8_t)M::DECI].valid = false;
   bh[(uint8_t)M::DECI] = {.behavior = isa::SharedOpBehavior::INVALID, .addr = isa::SharedAddrMode::Unary};
   mn[(uint8_t)M::DECI + 0].valid = false;
@@ -303,11 +303,11 @@ constexpr std::pair<std::array<Opcode, 256>, isa::OpcodePlane> initOpcodes() {
   mn[(uint8_t)M::DECI + 7].valid = false;
   bh[(uint8_t)M::DECI + 7] = {.behavior = isa::SharedOpBehavior::INVALID, .addr = isa::SharedAddrMode::Unary};
   add_all({.mnemon = M::DECO, .type = T::AAA_all, .unary = 1});
-  bh_all_aaa(static_cast<uint8_t>(M::DECO), isa::SharedOpBehavior::TRAP_CALL);
+  bh_all_aaa(static_cast<uint8_t>(M::DECO), isa::SharedOpBehavior::NONUNARY_TRAP);
   add_all({.mnemon = M::HEXO, .type = T::AAA_all, .unary = 1});
-  bh_all_aaa(static_cast<uint8_t>(M::HEXO), isa::SharedOpBehavior::TRAP_CALL);
+  bh_all_aaa(static_cast<uint8_t>(M::HEXO), isa::SharedOpBehavior::NONUNARY_TRAP);
   add_all({.mnemon = M::STRO, .type = T::AAA_stro, .unary = 1});
-  bh_all_aaa(static_cast<uint8_t>(M::STRO), isa::SharedOpBehavior::TRAP_CALL);
+  bh_all_aaa(static_cast<uint8_t>(M::STRO), isa::SharedOpBehavior::NONUNARY_TRAP);
 
   add_all({.mnemon = M::ADDSP, .type = T::AAA_all, .unary = 0});
   bh_all_aaa(static_cast<uint8_t>(M::ADDSP), isa::SharedOpBehavior::ADDSP, Register::SP);

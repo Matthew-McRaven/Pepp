@@ -153,6 +153,7 @@ Target *PepISA3CPU::port(MemoryKind kind) {
   case MemoryKind::Instruction: [[fallthrough]];
   case MemoryKind::Data: return _target;
   case MemoryKind::MicrocodeROM: return nullptr;
+  default: throw std::logic_error("PepISA3CPU: unknown memory kind");
   }
   return nullptr;
 }
@@ -314,7 +315,8 @@ void PepISA3CPU::handle(Op opcode) {
   case ROL: return handle_rolr(this, (R)opcode.target);
   case ROR: return handle_rorr(this, (R)opcode.target);
   case SCALL: return handle_scall(this);
-  case TRAP_CALL: throw std::logic_error("Unimplemented instruction: TRAP_CALL");
+  case NONUNARY_TRAP: throw std::logic_error("Unimplemented instruction: NONUNARY_TRAP");
+  case UNARY_TRAP: throw std::logic_error("Unimplemented instruction: UNARY_TRAP");
   case BR: return handle_unconditional_branch(this, opcode, operand_value_word());
   case BRLE: return handle_branch(this, opcode, BC::LE, operand_value_word());
   case BRLT: return handle_branch(this, opcode, BC::LT, operand_value_word());
