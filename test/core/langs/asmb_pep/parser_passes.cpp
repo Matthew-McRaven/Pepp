@@ -304,15 +304,6 @@ TEST_CASE("Pepp ASM parser dot commands",
     CHECK(end->which == DotAnnotate::Which::END);
   }
 
-  SECTION(".IMPORT") {
-    pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(".IMPORT charIn"), std::make_shared<MR>());
-    auto results = p.parse(diag);
-    CHECK(diag.count() == 0);
-    REQUIRE(results.size() == 1);
-    CHECK(std::dynamic_pointer_cast<DotAnnotate>(results[0]));
-  }
-
   SECTION(".INPUT") {
     pepp::tc::DiagnosticTable diag;
     auto p = Parser(data(".INPUT charIn"), std::make_shared<MR>());

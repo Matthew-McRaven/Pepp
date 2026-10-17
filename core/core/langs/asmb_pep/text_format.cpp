@@ -139,7 +139,6 @@ void pepp::tc::SourceVisitor::visit(const DotAnnotate *line) {
   switch (line->which) {
   case Which::END: dot = ".END"; break;
   case Which::EXPORT: dot = ".EXPORT"; break;
-  case Which::IMPORT: dot = ".IMPORT"; break;
   case Which::INPUT: dot = ".INPUT"; break;
   case Which::OUTPUT: dot = ".OUTPUT"; break;
   case Which::SCALL: dot = ".SCALL"; break;
