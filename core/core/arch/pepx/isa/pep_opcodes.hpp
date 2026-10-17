@@ -14,7 +14,9 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #pragma once
+#include <array>
 #include "core/architectures.hpp"
+#include "core/arch/pepx/isa/pep_registers.hpp"
 #include "core/integers.h"
 namespace pep {
 // The possible simulation behaviors of the pep CPU, formed by a union over all instructions of Pep8, 9, and 10.
@@ -91,12 +93,12 @@ enum class LowBitSpecifiers {
   RAAA,
 };
 
-using TargetRegister = u8;
+using TargetRegister = Register;
 
 struct Operation {
   SharedOpBehavior opcode = SharedOpBehavior::INVALID;
   AddrMode addr_mode = AddrMode::INVALID;
-  TargetRegister target = -1;
+  TargetRegister target = Register::INVALID;
 };
 
 using OpcodePlane = std::array<Operation, 256>;
@@ -108,8 +110,7 @@ constexpr bool is_trap(SharedOpBehavior op) {
 constexpr bool is_trap(Operation op) { return is_trap(op.opcode); }
 constexpr bool is_store(SharedOpBehavior op) { return op == SharedOpBehavior::STW || op == SharedOpBehavior::STB; }
 constexpr u8 operand_width(Operation op) {
-  if (is_trap(op)) return 2;
-  else if (is_unary(op)) return 0;
+  if (is_unary(op)) return 0;
   switch (op.opcode) {
   case SharedOpBehavior::LDB:
   case SharedOpBehavior::CPB: return 1;
