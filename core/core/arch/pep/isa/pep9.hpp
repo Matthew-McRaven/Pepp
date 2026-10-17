@@ -150,16 +150,6 @@ constexpr std::pair<std::array<Opcode, 256>, isa::OpcodePlane> initOpcodes() {
     bh[base] = {.behavior = b, .addr = isa::SharedAddrMode::I};
     bh[base + 1] = {.behavior = b, .addr = isa::SharedAddrMode::X};
   };
-  auto bh_unary_aaa = [&bh](u8 base, isa::SharedOpBehavior b, Register r = Register ::INVALID) {
-    bh[base] = {.behavior = b, .addr = isa::SharedAddrMode::Unary, .target = static_cast<u8>(r)};
-    bh[base + 1] = {.behavior = b, .addr = isa::SharedAddrMode::Unary, .target = static_cast<u8>(r)};
-    bh[base + 2] = {.behavior = b, .addr = isa::SharedAddrMode::Unary, .target = static_cast<u8>(r)};
-    bh[base + 3] = {.behavior = b, .addr = isa::SharedAddrMode::Unary, .target = static_cast<u8>(r)};
-    bh[base + 4] = {.behavior = b, .addr = isa::SharedAddrMode::Unary, .target = static_cast<u8>(r)};
-    bh[base + 5] = {.behavior = b, .addr = isa::SharedAddrMode::Unary, .target = static_cast<u8>(r)};
-    bh[base + 6] = {.behavior = b, .addr = isa::SharedAddrMode::Unary, .target = static_cast<u8>(r)};
-    bh[base + 7] = {.behavior = b, .addr = isa::SharedAddrMode::Unary, .target = static_cast<u8>(r)};
-  };
   auto bh_all_aaa = [&bh](u8 base, isa::SharedOpBehavior b, Register r = Register ::INVALID) {
     bh[base] = {.behavior = b, .addr = isa::SharedAddrMode::I, .target = static_cast<u8>(r)};
     bh[base + 1] = {.behavior = b, .addr = isa::SharedAddrMode::D, .target = static_cast<u8>(r)};
