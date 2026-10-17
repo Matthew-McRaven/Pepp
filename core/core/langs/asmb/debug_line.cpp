@@ -25,6 +25,19 @@ std::string pepp::tc::detail::define_string(const InlineMacroDefinition &definit
   return pepp::bts::format_define(definition.name, parameters, definition.body);
 }
 
+std::expected<std::shared_ptr<pepp::tc::MacroDefinition>, std::string>
+pepp::tc::detail::parse_define_string(std::string_view string) {
+  const auto parsed = pepp::bts::parse_define(string);
+  if (!parsed) return std::unexpected("unterminated parameter list in define string");
+  // define_string always writes a parameter list.
+  else if (!parsed->parameters) return std::unexpected("define string has no parameter list");
+  auto ret = std::make_shared<MacroDefinition>();
+  ret->name = parsed->name;
+  for (const auto &parameter : *parsed->parameters) ret->arguments.push_back({.name = std::string(parameter)});
+  ret->body = parsed->definition;
+  return ret;
+}
+
 pepp::tc::IR2ListingLineMap pepp::tc::number_listing_lines(const IRProgram &program,
                                                            const ProgramObjectCodeResult &object_code,
                                                            u32 bytes_per_line) {

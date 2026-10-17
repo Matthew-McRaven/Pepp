@@ -11,6 +11,7 @@
 #include <vector>
 #include "core/formats/dwarf/info.hpp"
 #include "core/compile/ir_linear/line_macro.hpp"
+#include "core/compile/macro/macro_registry.hpp"
 #include "core/formats/dwarf/line_program.hpp"
 #include "core/formats/dwarf/macro.hpp"
 #include "core/formats/dwarf/rnglists.hpp"
@@ -125,6 +126,8 @@ inline constexpr std::array<pepp::bts::Abbreviation, 1> unit_abbreviations{{
 
 // Convert a macro IR line into a well-formatted definition string per Section 6.3.2.2
 std::string define_string(const InlineMacroDefinition &definition);
+// The macro of a define string written by define_string.
+std::expected<std::shared_ptr<MacroDefinition>, std::string> parse_define_string(std::string_view string);
 } // namespace detail
 
 // Fills the sections of debugSections. Writes the source line program to .debug_line and the listing line program to a
@@ -272,6 +275,45 @@ std::expected<std::vector<LineMapping>, std::string> read_line_mappings(const pe
   for (const auto &[where, line] : lines)
     ret.push_back(
         {.section = where.first, .address = where.second, .source_line = line.first, .listing_line = line.second});
+  return ret;
+}
+
+// A macro read from .debug_macro, with the 1-based source line which defined it.
+struct DebugMacro {
+  std::shared_ptr<MacroDefinition> definition;
+  u32 line = 0;
+};
+
+// Decodes every macro unit of elf's .debug_macro, as written by write_debug_line, in the order they were written.
+// Only definitions inside a DW_MACRO_start_file are returned, since others come from outside the source (Section
+// 6.3.2.4). A DW_MACRO_undef removes the earlier definitions of its name.
+template <pepp::bts::ElfBits B, pepp::bts::ElfEndian E>
+std::expected<std::vector<DebugMacro>, std::string> read_macros(const pepp::bts::PackedElf<B, E> &elf) {
+  const auto data = pepp::bts::section_bytes(elf, pepp::bts::find_named_section(elf, debugMacroSection));
+  std::vector<DebugMacro> ret;
+  for (size_t offset = 0; offset < data.size();) {
+    const auto unit = pepp::bts::parse_macro_unit<E>(data, offset);
+    if (!unit) return std::unexpected(unit.error());
+    for (const auto &[opcode, line, string, in_file] : unit->entries) {
+      switch (opcode) {
+      case pepp::bts::MacroOpcodes::DW_MACRO_define: {
+        if (!in_file) break;
+        auto definition = detail::parse_define_string(string);
+        if (!definition) return std::unexpected(definition.error());
+        ret.push_back({std::move(*definition), static_cast<u32>(line)});
+        break;
+      }
+      case pepp::bts::MacroOpcodes::DW_MACRO_undef:
+        std::erase_if(ret, [&](const DebugMacro &macro) { return macro.definition->name == string; });
+        break;
+      // Do not silently fail on unexpected opcodes.
+      default:
+        return std::unexpected("unsupported macro information opcode " +
+                               std::to_string(bits::to_underlying(opcode)));
+      }
+    }
+    offset = unit->next_unit;
+  }
   return ret;
 }
 } // namespace pepp::tc

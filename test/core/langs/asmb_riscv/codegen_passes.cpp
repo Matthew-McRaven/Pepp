@@ -27,6 +27,7 @@
 #include "core/langs/asmb/codegen_error.hpp"
 #include "core/langs/asmb/debug_line.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
+#include "core/langs/asmb_driver.hpp"
 #include "core/langs/asmb_riscv/codegen.hpp"
 #include "core/langs/asmb_riscv/parser.hpp"
 #include "elfio/elfio.hpp"
@@ -161,6 +162,20 @@ struct Expect {
   pepp::core::symbol::Type type;
 };
 } // namespace
+TEST_CASE("RISCV ASM .debug_macro", "[scope:core][scope:core.langs][kind:unit][arch:riscv]") {
+  using namespace pepp::tc;
+  const auto source = ".macro inc reg\naddi \\reg, \\reg, 1\n.endm\ninc x5\n";
+  auto result = assemble_riscv(RISCVDriverConfig{}, FormattingConfig{}, source);
+  REQUIRE(result.ok());
+  const auto input = to_input_elf(result.elf);
+  const auto macros = std::visit([](const auto &file) { return read_macros(*file); }, input);
+  REQUIRE(macros.has_value());
+  // Pseudo-instructions are registry macros, so only inc is exported.
+  REQUIRE(macros->size() == 1);
+  CHECK((*macros)[0].definition->name == "inc");
+  CHECK((*macros)[0].line == 1);
+}
+
 TEST_CASE("RISCV ASM code generator symbol-only lines",
           "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:riscv]") {
   using Parser = pepp::tc::parser::RISCVParser;
