@@ -17,13 +17,13 @@
 #include "./api.hpp"
 
 TEST_CASE("(new) Pep/10, SCALL", "[scope:core][scope:core.sim][kind:instr][arch:pep10]") {
-  using Register = isa::Pep10::Register;
-  using MN = isa::Pep10::Mnemonic;
+  using Register = pep::Register;
+  const Opcodes mn{pep::pep10::instructions};
   auto [sys, mem, cpu] = make_cpu(PepISA3CPU::ISA::Pep10);
-  const auto program = std::array<u8, 3>{(u8)MN::SCALL, 0xCA, 0xBE};
+  const auto program = std::array<u8, 3>{(u8)mn("SCALL"), 0xCA, 0xBE};
   REQUIRE_NOTHROW(mem->write(0, {program.data(), program.size()}, rw));
   const auto os_sp = std::array<u8, 2>{0x80, 0x86};
-  REQUIRE_NOTHROW(mem->write((u16)isa::Pep10::MemoryVectors::SystemStackPtr, {os_sp.data(), os_sp.size()}, rw));
+  REQUIRE_NOTHROW(mem->write((u16)pep::pep10::MemoryVectors::SystemStackPtr, {os_sp.data(), os_sp.size()}, rw));
 
   cpu->registers()->clear(0);
   cpu->csrs()->clear(0);
@@ -39,7 +39,7 @@ TEST_CASE("(new) Pep/10, SCALL", "[scope:core][scope:core.sim][kind:instr][arch:
                                         /*X*/ 0xBA,           0xAD,
                                         /*PC*/ 0x00,          0x03,
                                         /*SP*/ 0xFE,          0xED,
-                                        /*IS*/ (u8)MN::SCALL,
+                                        /*IS*/ (u8)mn("SCALL"),
                                         /*OS*/ 0xCA,          0xBE};
   const auto sp = reg(cpu, Register::SP);
   CHECK(sp + frame.size() == 0x8086);
@@ -49,10 +49,10 @@ TEST_CASE("(new) Pep/10, SCALL", "[scope:core][scope:core.sim][kind:instr][arch:
 }
 
 TEST_CASE("(new) Pep/10, SRET", "[scope:core][scope:core.sim][kind:instr][arch:pep10]") {
-  using Register = isa::Pep10::Register;
-  using MN = isa::Pep10::Mnemonic;
+  using Register = pep::Register;
+  const Opcodes mn{pep::pep10::instructions};
   auto [sys, mem, cpu] = make_cpu(PepISA3CPU::ISA::Pep10);
-  const auto program = std::array<u8, 1>{(u8)MN::SRET};
+  const auto program = std::array<u8, 1>{(u8)mn("SRET")};
   REQUIRE_NOTHROW(mem->write(0, {program.data(), program.size()}, rw));
 
   const auto frame = std::array<u8, 10>{/*NZVC*/ 0b1101,
@@ -60,7 +60,7 @@ TEST_CASE("(new) Pep/10, SRET", "[scope:core][scope:core.sim][kind:instr][arch:p
                                         /*X*/ 0xBA,          0xAD,
                                         /*PC*/ 0xCA,         0xDE,
                                         /*SP*/ 0xFE,         0xED,
-                                        /*IS*/ (u8)MN::SCALL};
+                                        /*IS*/ (u8)mn("SCALL")};
   const u16 frame_at = 0x8086 - 12;
   REQUIRE_NOTHROW(mem->write(frame_at, {frame.data(), frame.size()}, rw));
 
@@ -77,6 +77,6 @@ TEST_CASE("(new) Pep/10, SRET", "[scope:core][scope:core.sim][kind:instr][arch:p
   CHECK(reg(cpu, Register::SP) == 0xFEED);
 
   std::array<u8, 2> os_sp{};
-  REQUIRE_NOTHROW(mem->read((u16)isa::Pep10::MemoryVectors::SystemStackPtr, {os_sp.data(), os_sp.size()}, rw));
+  REQUIRE_NOTHROW(mem->read((u16)pep::pep10::MemoryVectors::SystemStackPtr, {os_sp.data(), os_sp.size()}, rw));
   CHECK((os_sp[0] << 8 | os_sp[1]) == 0x8086);
 }

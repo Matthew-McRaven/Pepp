@@ -126,64 +126,64 @@ void inner_xor(PepISA3CPU::ISA isa, Register target_reg, Register other_reg, Mne
 } // namespace
 
 TEST_CASE("(new) Pep/10, ANDA, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
-  using Register = isa::Pep10::Register;
-  using CSR = isa::Pep10::CSR;
-  using MN = isa::Pep10::Mnemonic;
-  inner_and<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, Register::A, Register::X, MN::ANDA);
+  using Register = pep::Register;
+  using CSR = pep::StatusBit;
+  const Opcodes mn{pep::pep10::instructions};
+  inner_and<Register, CSR, u8>(PepISA3CPU::ISA::Pep10, Register::A, Register::X, mn("ANDA"));
 }
 TEST_CASE("(new) Pep/10, ANDX, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
-  using Register = isa::Pep10::Register;
-  using CSR = isa::Pep10::CSR;
-  using MN = isa::Pep10::Mnemonic;
-  inner_and<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, Register::X, Register::A, MN::ANDX);
+  using Register = pep::Register;
+  using CSR = pep::StatusBit;
+  const Opcodes mn{pep::pep10::instructions};
+  inner_and<Register, CSR, u8>(PepISA3CPU::ISA::Pep10, Register::X, Register::A, mn("ANDX"));
 }
 TEST_CASE("(new) Pep/9, ANDA, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
-  using Register = isa::Pep9::Register;
-  using CSR = isa::Pep9::CSR;
-  using MN = isa::Pep9::Mnemonic;
-  inner_and<Register, CSR, MN>(PepISA3CPU::ISA::Pep9, Register::A, Register::X, MN::ANDA);
+  using Register = pep::Register;
+  using CSR = pep::StatusBit;
+  const Opcodes mn{pep::pep9::instructions};
+  inner_and<Register, CSR, u8>(PepISA3CPU::ISA::Pep9, Register::A, Register::X, mn("ANDA"));
 }
 TEST_CASE("(new) Pep/9, ANDX, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
-  using Register = isa::Pep9::Register;
-  using CSR = isa::Pep9::CSR;
-  using MN = isa::Pep9::Mnemonic;
-  inner_and<Register, CSR, MN>(PepISA3CPU::ISA::Pep9, Register::X, Register::A, MN::ANDX);
+  using Register = pep::Register;
+  using CSR = pep::StatusBit;
+  const Opcodes mn{pep::pep9::instructions};
+  inner_and<Register, CSR, u8>(PepISA3CPU::ISA::Pep9, Register::X, Register::A, mn("ANDX"));
 }
 
 TEST_CASE("(new) Pep/10, ORA, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
-  using Register = isa::Pep10::Register;
-  using CSR = isa::Pep10::CSR;
-  using MN = isa::Pep10::Mnemonic;
-  inner_or<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, Register::A, Register::X, MN::ORA);
+  using Register = pep::Register;
+  using CSR = pep::StatusBit;
+  const Opcodes mn{pep::pep10::instructions};
+  inner_or<Register, CSR, u8>(PepISA3CPU::ISA::Pep10, Register::A, Register::X, mn("ORA"));
 }
 TEST_CASE("(new) Pep/10, ORX, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
-  using Register = isa::Pep10::Register;
-  using CSR = isa::Pep10::CSR;
-  using MN = isa::Pep10::Mnemonic;
-  inner_or<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, Register::X, Register::A, MN::ORX);
+  using Register = pep::Register;
+  using CSR = pep::StatusBit;
+  const Opcodes mn{pep::pep10::instructions};
+  inner_or<Register, CSR, u8>(PepISA3CPU::ISA::Pep10, Register::X, Register::A, mn("ORX"));
 }
 TEST_CASE("(new) Pep/9, ORA, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
-  using Register = isa::Pep9::Register;
-  using CSR = isa::Pep9::CSR;
-  using MN = isa::Pep9::Mnemonic;
-  inner_or<Register, CSR, MN>(PepISA3CPU::ISA::Pep9, Register::A, Register::X, MN::ORA);
+  using Register = pep::Register;
+  using CSR = pep::StatusBit;
+  const Opcodes mn{pep::pep9::instructions};
+  inner_or<Register, CSR, u8>(PepISA3CPU::ISA::Pep9, Register::A, Register::X, mn("ORA"));
 }
 TEST_CASE("(new) Pep/9, ORX, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
-  using Register = isa::Pep9::Register;
-  using CSR = isa::Pep9::CSR;
-  using MN = isa::Pep9::Mnemonic;
-  inner_or<Register, CSR, MN>(PepISA3CPU::ISA::Pep9, Register::X, Register::A, MN::ORX);
+  using Register = pep::Register;
+  using CSR = pep::StatusBit;
+  const Opcodes mn{pep::pep9::instructions};
+  inner_or<Register, CSR, u8>(PepISA3CPU::ISA::Pep9, Register::X, Register::A, mn("ORX"));
 }
 
 TEST_CASE("(new) Pep/10, XORA, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
-  using Register = isa::Pep10::Register;
-  using CSR = isa::Pep10::CSR;
-  using MN = isa::Pep10::Mnemonic;
-  inner_xor<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, Register::A, Register::X, MN::XORA);
+  using Register = pep::Register;
+  using CSR = pep::StatusBit;
+  const Opcodes mn{pep::pep10::instructions};
+  inner_xor<Register, CSR, u8>(PepISA3CPU::ISA::Pep10, Register::A, Register::X, mn("XORA"));
 }
 TEST_CASE("(new) Pep/10, XORX, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
-  using Register = isa::Pep10::Register;
-  using CSR = isa::Pep10::CSR;
-  using MN = isa::Pep10::Mnemonic;
-  inner_xor<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, Register::X, Register::A, MN::XORX);
+  using Register = pep::Register;
+  using CSR = pep::StatusBit;
+  const Opcodes mn{pep::pep10::instructions};
+  inner_xor<Register, CSR, u8>(PepISA3CPU::ISA::Pep10, Register::X, Register::A, mn("XORX"));
 }

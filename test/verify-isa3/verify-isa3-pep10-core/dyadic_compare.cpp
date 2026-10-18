@@ -102,51 +102,51 @@ void inner_cpb(PepISA3CPU::ISA isa, Register target_reg, Register other_reg, Mne
 } // namespace
 
 TEST_CASE("(new) Pep/10, CPWA, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
-  using Register = isa::Pep10::Register;
-  using CSR = isa::Pep10::CSR;
-  using MN = isa::Pep10::Mnemonic;
-  inner_cpw<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, Register::A, Register::X, MN::CPWA);
+  using Register = pep::Register;
+  using CSR = pep::StatusBit;
+  const Opcodes mn{pep::pep10::instructions};
+  inner_cpw<Register, CSR, u8>(PepISA3CPU::ISA::Pep10, Register::A, Register::X, mn("CPWA"));
 }
 TEST_CASE("(new) Pep/10, CPWX, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
-  using Register = isa::Pep10::Register;
-  using CSR = isa::Pep10::CSR;
-  using MN = isa::Pep10::Mnemonic;
-  inner_cpw<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, Register::X, Register::A, MN::CPWX);
+  using Register = pep::Register;
+  using CSR = pep::StatusBit;
+  const Opcodes mn{pep::pep10::instructions};
+  inner_cpw<Register, CSR, u8>(PepISA3CPU::ISA::Pep10, Register::X, Register::A, mn("CPWX"));
 }
 TEST_CASE("(new) Pep/9, CPWA, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
-  using Register = isa::Pep9::Register;
-  using CSR = isa::Pep9::CSR;
-  using MN = isa::Pep9::Mnemonic;
-  inner_cpw<Register, CSR, MN>(PepISA3CPU::ISA::Pep9, Register::A, Register::X, MN::CPWA);
+  using Register = pep::Register;
+  using CSR = pep::StatusBit;
+  const Opcodes mn{pep::pep9::instructions};
+  inner_cpw<Register, CSR, u8>(PepISA3CPU::ISA::Pep9, Register::A, Register::X, mn("CPWA"));
 }
 TEST_CASE("(new) Pep/9, CPWX, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
-  using Register = isa::Pep9::Register;
-  using CSR = isa::Pep9::CSR;
-  using MN = isa::Pep9::Mnemonic;
-  inner_cpw<Register, CSR, MN>(PepISA3CPU::ISA::Pep9, Register::X, Register::A, MN::CPWX);
+  using Register = pep::Register;
+  using CSR = pep::StatusBit;
+  const Opcodes mn{pep::pep9::instructions};
+  inner_cpw<Register, CSR, u8>(PepISA3CPU::ISA::Pep9, Register::X, Register::A, mn("CPWX"));
 }
 
 TEST_CASE("(new) Pep/10, CPBA, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
-  using Register = isa::Pep10::Register;
-  using CSR = isa::Pep10::CSR;
-  using MN = isa::Pep10::Mnemonic;
-  inner_cpb<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, Register::A, Register::X, MN::CPBA);
+  using Register = pep::Register;
+  using CSR = pep::StatusBit;
+  const Opcodes mn{pep::pep10::instructions};
+  inner_cpb<Register, CSR, u8>(PepISA3CPU::ISA::Pep10, Register::A, Register::X, mn("CPBA"));
 }
 TEST_CASE("(new) Pep/10, CPBX, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
-  using Register = isa::Pep10::Register;
-  using CSR = isa::Pep10::CSR;
-  using MN = isa::Pep10::Mnemonic;
-  inner_cpb<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, Register::X, Register::A, MN::CPBX);
+  using Register = pep::Register;
+  using CSR = pep::StatusBit;
+  const Opcodes mn{pep::pep10::instructions};
+  inner_cpb<Register, CSR, u8>(PepISA3CPU::ISA::Pep10, Register::X, Register::A, mn("CPBX"));
 }
 TEST_CASE("(new) Pep/9, CPBA, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
-  using Register = isa::Pep9::Register;
-  using CSR = isa::Pep9::CSR;
-  using MN = isa::Pep9::Mnemonic;
-  inner_cpb<Register, CSR, MN>(PepISA3CPU::ISA::Pep9, Register::A, Register::X, MN::CPBA);
+  using Register = pep::Register;
+  using CSR = pep::StatusBit;
+  const Opcodes mn{pep::pep9::instructions};
+  inner_cpb<Register, CSR, u8>(PepISA3CPU::ISA::Pep9, Register::A, Register::X, mn("CPBA"));
 }
 TEST_CASE("(new) Pep/9, CPBX, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
-  using Register = isa::Pep9::Register;
-  using CSR = isa::Pep9::CSR;
-  using MN = isa::Pep9::Mnemonic;
-  inner_cpb<Register, CSR, MN>(PepISA3CPU::ISA::Pep9, Register::X, Register::A, MN::CPBX);
+  using Register = pep::Register;
+  using CSR = pep::StatusBit;
+  const Opcodes mn{pep::pep9::instructions};
+  inner_cpb<Register, CSR, u8>(PepISA3CPU::ISA::Pep9, Register::X, Register::A, mn("CPBX"));
 }

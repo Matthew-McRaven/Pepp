@@ -93,51 +93,51 @@ void inner_neg(PepISA3CPU::ISA isa, Register target_reg, Register other_reg, Mne
 } // namespace
 
 TEST_CASE("(new) Pep/10, NOTA", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
-  using Register = isa::Pep10::Register;
-  using CSR = isa::Pep10::CSR;
-  using MN = isa::Pep10::Mnemonic;
-  inner_not<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, Register::A, Register::X, MN::NOTA);
+  using Register = pep::Register;
+  using CSR = pep::StatusBit;
+  const Opcodes mn{pep::pep10::instructions};
+  inner_not<Register, CSR, u8>(PepISA3CPU::ISA::Pep10, Register::A, Register::X, mn("NOTA"));
 }
 TEST_CASE("(new) Pep/10, NOTX", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
-  using Register = isa::Pep10::Register;
-  using CSR = isa::Pep10::CSR;
-  using MN = isa::Pep10::Mnemonic;
-  inner_not<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, Register::X, Register::A, MN::NOTX);
+  using Register = pep::Register;
+  using CSR = pep::StatusBit;
+  const Opcodes mn{pep::pep10::instructions};
+  inner_not<Register, CSR, u8>(PepISA3CPU::ISA::Pep10, Register::X, Register::A, mn("NOTX"));
 }
 TEST_CASE("(new) Pep/9, NOTA", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
-  using Register = isa::Pep9::Register;
-  using CSR = isa::Pep9::CSR;
-  using MN = isa::Pep9::Mnemonic;
-  inner_not<Register, CSR, MN>(PepISA3CPU::ISA::Pep9, Register::A, Register::X, MN::NOTA);
+  using Register = pep::Register;
+  using CSR = pep::StatusBit;
+  const Opcodes mn{pep::pep9::instructions};
+  inner_not<Register, CSR, u8>(PepISA3CPU::ISA::Pep9, Register::A, Register::X, mn("NOTA"));
 }
 TEST_CASE("(new) Pep/9, NOTX", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
-  using Register = isa::Pep9::Register;
-  using CSR = isa::Pep9::CSR;
-  using MN = isa::Pep9::Mnemonic;
-  inner_not<Register, CSR, MN>(PepISA3CPU::ISA::Pep9, Register::X, Register::A, MN::NOTX);
+  using Register = pep::Register;
+  using CSR = pep::StatusBit;
+  const Opcodes mn{pep::pep9::instructions};
+  inner_not<Register, CSR, u8>(PepISA3CPU::ISA::Pep9, Register::X, Register::A, mn("NOTX"));
 }
 
 TEST_CASE("(new) Pep/10, NEGA", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
-  using Register = isa::Pep10::Register;
-  using CSR = isa::Pep10::CSR;
-  using MN = isa::Pep10::Mnemonic;
-  inner_neg<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, Register::A, Register::X, MN::NEGA);
+  using Register = pep::Register;
+  using CSR = pep::StatusBit;
+  const Opcodes mn{pep::pep10::instructions};
+  inner_neg<Register, CSR, u8>(PepISA3CPU::ISA::Pep10, Register::A, Register::X, mn("NEGA"));
 }
 TEST_CASE("(new) Pep/10, NEGX", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
-  using Register = isa::Pep10::Register;
-  using CSR = isa::Pep10::CSR;
-  using MN = isa::Pep10::Mnemonic;
-  inner_neg<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, Register::X, Register::A, MN::NEGX);
+  using Register = pep::Register;
+  using CSR = pep::StatusBit;
+  const Opcodes mn{pep::pep10::instructions};
+  inner_neg<Register, CSR, u8>(PepISA3CPU::ISA::Pep10, Register::X, Register::A, mn("NEGX"));
 }
 TEST_CASE("(new) Pep/9, NEGA", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
-  using Register = isa::Pep9::Register;
-  using CSR = isa::Pep9::CSR;
-  using MN = isa::Pep9::Mnemonic;
-  inner_neg<Register, CSR, MN>(PepISA3CPU::ISA::Pep9, Register::A, Register::X, MN::NEGA);
+  using Register = pep::Register;
+  using CSR = pep::StatusBit;
+  const Opcodes mn{pep::pep9::instructions};
+  inner_neg<Register, CSR, u8>(PepISA3CPU::ISA::Pep9, Register::A, Register::X, mn("NEGA"));
 }
 TEST_CASE("(new) Pep/9, NEGX", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
-  using Register = isa::Pep9::Register;
-  using CSR = isa::Pep9::CSR;
-  using MN = isa::Pep9::Mnemonic;
-  inner_neg<Register, CSR, MN>(PepISA3CPU::ISA::Pep9, Register::X, Register::A, MN::NEGX);
+  using Register = pep::Register;
+  using CSR = pep::StatusBit;
+  const Opcodes mn{pep::pep9::instructions};
+  inner_neg<Register, CSR, u8>(PepISA3CPU::ISA::Pep9, Register::X, Register::A, mn("NEGX"));
 }
