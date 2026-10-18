@@ -50,14 +50,14 @@ TEST_CASE("New Pep/10 architeture definition matches old definitions") {
       INFO("opcode " << it);
       const auto &now = pep::pep10::opcode_plane[it];
       const auto &old = isa::Pep10::opcode_plane[it];
-      // The new plane keeps immediate stores; their handler must reject them.
+      // The new plane keeps immediate stores
       if (pep::is_store(now.opcode) && now.addr_mode == pep::AddrMode::I) {
         CHECK(old.behavior == B::INVALID);
         continue;
       }
       CHECK(now.opcode == old.behavior);
       if (now.opcode == B::INVALID || now.opcode == B::UNIMPL) continue;
-      // The old plane marks SCALL unary; the new one fetches its operand specifier as immediate.
+      // The old plane marks SCALL unary while the new one fetches its operand specifier as immediate.
       if (now.opcode == B::SCALL) CHECK(now.addr_mode == pep::AddrMode::I);
       else CHECK(now.addr_mode == old.addr);
       // The old plane spells "no register" as either -1 or Register::INVALID.
