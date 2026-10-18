@@ -16,6 +16,8 @@
 
 #include <catch.hpp>
 #include <map>
+#include <string>
+#include <vector>
 #include "core/compile/ir_linear/line_comment.hpp"
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
@@ -28,6 +30,7 @@
 #include "core/langs/asmb_pep/codegen.hpp"
 #include "core/langs/asmb_pep/ir_lines.hpp"
 #include "core/langs/asmb_pep/parser.hpp"
+#include "core/langs/asmb_pep/parser_error.hpp"
 #include "spdlog/spdlog.h"
 
 namespace {
@@ -603,6 +606,32 @@ TEST_CASE("Pepp ASM parser with macros instantiations",
 
     CHECK(lines(parser::flatten_macros(results, true)) == "cbcb");
     CHECK(lines(parser::flatten_macros(results, false)) == "bb");
+  }
+  SECTION("instructions and macros can share a name") {
+    pepp::tc::DiagnosticTable diag;
+    auto mr = std::make_shared<MR>();
+    mr->insert(std::make_shared<MacroDefinition>(MacroDefinition{"NOTA", {{.name = "x"}}, ".byte \\x\n"}));
+    auto p = Parser(data("NOTA\nNOTA 5"), mr);
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 2);
+    // The instruction is preferred when the operands fit it.
+    CHECK(std::dynamic_pointer_cast<MonadicInstruction>(results[0]));
+    CHECK(std::dynamic_pointer_cast<MacroInstantiation>(results[1]));
+  }
+  SECTION("prefer instructions over macros when reporting errors") {
+    using PE = pepp::tc::PepParserError;
+    pepp::tc::DiagnosticTable diag;
+    auto mr = std::make_shared<MR>();
+    mr->insert(std::make_shared<MacroDefinition>(MacroDefinition{"ADDA", {{.name = "x"}}, ".byte \\x,\n"}));
+    auto p = Parser(data("ADDA 10\nADDA 10,j,k"), mr);
+    p.parse(diag);
+    REQUIRE(diag.count() == 2);
+    std::vector<std::string> messages;
+    for (const auto &[_, message] : diag) messages.emplace_back(message);
+    // The first expands to an invalid line; the second has no 3-argument macro.
+    CHECK(messages == std::vector<std::string>{PE::to_string(PE::NullaryError::AddressingMode_Required),
+                                               PE::to_string(PE::NullaryError::AddressingMode_Invalid)});
   }
   SECTION("a conditional in a macro body may be nested in the caller's conditional") {
     pepp::tc::DiagnosticTable diag;

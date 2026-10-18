@@ -162,28 +162,12 @@ pepp::tc::IRProgram pepp::tc::parser::PepParser::do_parse(DiagnosticTable &diag,
   return lines;
 }
 
-std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::macro(DiagnosticTable &diag, OptionalSymbol symbol) {
+std::shared_ptr<pepp::tc::LinearIR>
+pepp::tc::parser::PepParser::expand(DiagnosticTable &diag, std::shared_ptr<const MacroDefinition> definition,
+                                    std::vector<std::string> args) {
   auto buf = active_buffer();
-  auto lexer = active_lexer();
-  lex::Checkpoint cp(*buf);
-  auto name = buf->match<lex::Identifier>();
-  if (!name) return cp.rollback(), nullptr;
-  if (!_macros->contains(name->to_string())) return cp.rollback(), nullptr;
-  else cp.commit();
-
-  // Consume all non-comments, non-empty tokens until the end of the current line.
-  while (buf->match_not<tc::lex::Empty, tc::lex::EoF, tc::lex::InlineComment>());
-  // The arguments are the text of the tokens after the macro name.
-  const auto args = split_arguments(buf->matched_tokens_after(cp.marker()), *lexer);
-  // A name may have one definition per number of arguments.
-  const auto definition = _macros->find(name->to_string(), args.size());
-  if (!definition)
-    throw PepParserError(PepParserError::UnaryError::Macro_WrongArgumentCount, name->to_string(),
-                         buf->matched_interval());
   auto replacements = _counters.counters_for(definition->name);
-
-  // TODO: Validate # of matched arguments vs number of args in definition, accounting for default values.
-  for (int it = 0; it < definition->arguments.size(); it++) {
+  for (std::size_t it = 0; it < definition->arguments.size(); it++) {
     const auto &argument = definition->arguments[it];
     replacements["\\" + argument.name] = it < args.size() ? args[it] : argument.default_value.value_or("");
   }
@@ -192,13 +176,12 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::macro(Diagnosti
   auto new_lexer = std::make_shared<lex::PepLexer>(_pool, support::SeekableData{std::move(new_body)});
   _lexer_stack.emplace(new_lexer, std::make_shared<lex::Buffer>(&*new_lexer));
 
-  auto ret = std::make_shared<MacroInstantiation>(definition, args);
+  auto ret = std::make_shared<MacroInstantiation>(definition, std::move(args));
   ret->insert(std::make_unique<ExpansionComments>(definition->expansion_comments));
   const auto floor = std::exchange(_conditional_floor, _conditionals.depth());
+  // do_parse pops the expansion's lexer.
   ret->lines = do_parse(diag, buf->matched_interval());
   _conditional_floor = floor;
-  // Attach symbol def if it exists.
-  if (symbol) ret->insert(std::make_unique<SymbolDeclaration>(*symbol));
   return ret;
 }
 
@@ -296,28 +279,58 @@ pepp::tc::parser::PepParser::match_alternative(const pep::MnemonicMap::value_typ
   return make_instruction(name, mn, values);
 }
 
-std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::instruction() {
+std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::mnemonic(DiagnosticTable &diag) {
   auto buf = active_buffer();
+  auto lexer = active_lexer();
   lex::Checkpoint cp(*buf);
   const auto name = buf->match<lex::Identifier>();
   if (!name) return cp.rollback(), nullptr;
-  const auto [first, last] = _dialect->alternatives(name->to_string());
-  if (first == last)
-    throw PepParserError(PepParserError::UnaryError::Mnemonic_Invalid, name->to_string(), buf->matched_interval());
 
-  // Parse the operands once and try to match them against each alternative. On failure, report the error of the
-  // alternative with the most operands. Its error message is most likely to be meaningful (e.g., missing address mode
-  // vs a short arity reporting a missing \n).
-  const auto ops = mnemonic_operands();
-  std::optional<PepParserError> problem;
-  std::size_t problem_arity = 0;
-  for (auto candidate = first; candidate != last; ++candidate) {
-    const auto arity = candidate->second.operands().size();
-    if (auto why = mismatch(*_dialect, candidate->second, ops, buf->matched_interval()); !why)
-      return match_alternative(*canonicalize(*_dialect, first, last, candidate, ops), ops);
-    else if (!problem || arity >= problem_arity) problem.emplace(std::move(*why)), problem_arity = arity;
+  // Determine if this matches an instruction and/or a macro. Names containing @ are never instructions.
+  const auto text = name->to_string();
+  const auto none = std::pair{_dialect->mnemonics.end(), _dialect->mnemonics.end()};
+  const auto [first, last] = text.contains('@') ? none : _dialect->alternatives(text);
+  const bool is_macro = _macros->contains(text);
+  if (first == last && !is_macro)
+    throw PepParserError(PepParserError::UnaryError::Mnemonic_Invalid, text, buf->matched_interval());
+  // Instructions and macros parse arguments differently, so we may need to backtrack to this marker.
+  lex::Checkpoint after_name(*buf);
+
+  // Parse the operands once and try to match them against each alternative. On failure, keep the error of the
+  // alternative with the most operands, since it is the most general.
+  std::optional<PepParserError> mismatch_error;
+  if (first != last) {
+    const auto ops = mnemonic_operands();
+    std::size_t problem_arity = 0;
+    for (auto candidate = first; candidate != last; ++candidate) {
+      const auto arity = candidate->second.operands().size();
+      if (auto why = mismatch(*_dialect, candidate->second, ops, buf->matched_interval()); !why)
+        return match_alternative(*canonicalize(*_dialect, first, last, candidate, ops), ops);
+      else if (!mismatch_error || arity >= problem_arity)
+        mismatch_error.emplace(std::move(*why)), problem_arity = arity;
+    }
+    // If the mnemonic is not also a macro name, this is an unambiguous failure.
+    if (!is_macro) throw *mismatch_error;
   }
-  throw *problem;
+
+  // Re-parse the arguments as a comma-separated list.
+  after_name.rollback();
+  while (buf->match_not<lex::Empty, lex::EoF, lex::InlineComment>());
+  auto args = split_arguments(buf->matched_tokens_after(after_name.marker()), *lexer);
+  // A name may have one definition per number of arguments.
+  const auto definition = _macros->find(text, args.size());
+  // If the macro shares a name with an instruction, prefer to return the instruction's error.
+  if (!definition && mismatch_error) throw *mismatch_error;
+  else if (!definition)
+    throw PepParserError(PepParserError::UnaryError::Macro_WrongArgumentCount, text, buf->matched_interval());
+
+  // Since we prefer instruction errors to macro errors, keep the expansion's errors out of the main table while the
+  // instruction's error might still be taken.
+  DiagnosticTable expansion;
+  auto ret = expand(mismatch_error ? expansion : diag, definition, std::move(args));
+  // True when macro expansion failed AND instruction parsing failed, in which case we should prefer instruction error.
+  if (expansion.count() > 0) throw *mismatch_error;
+  return ret;
 }
 
 namespace {
@@ -524,8 +537,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::line(Diagnostic
   auto buf = active_buffer();
   std::shared_ptr<pepp::tc::LinearIR> ret = nullptr;
   if (auto dot = pseudo(symbol); dot) ret = dot;
-  else if (auto macro = this->macro(diag, symbol); macro) ret = macro;
-  else if (auto instr = instruction(); instr) ret = instr;
+  else if (auto named = mnemonic(diag); named) ret = named;
 
   else return nullptr;
 
