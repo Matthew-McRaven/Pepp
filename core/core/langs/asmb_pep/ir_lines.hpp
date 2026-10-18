@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <optional>
+#include <string_view>
 #include "core/compile/ir_linear/attr_argument.hpp"
 #include "core/compile/ir_linear/line_base.hpp"
 #include "core/compile/ir_linear/line_dot.hpp"
@@ -19,25 +20,35 @@ enum class PepDotCommands : int {
 
 struct MonadicInstruction : public LinearIR {
   static constexpr int TYPE = static_cast<int>(PepIRType::Monadic);
-  explicit MonadicInstruction(Pep10Mnemonic m) : mnemonic(m) {}
+  explicit MonadicInstruction(PepMnemonic m) : mnemonic(m) {}
   const AAttribute *attribute(int type) const override;
   void insert(std::unique_ptr<AAttribute> attr) override;
   std::optional<u64> object_size(u64 base_address) const override;
   int type() const override;
-  Pep10Mnemonic mnemonic;
+  PepMnemonic mnemonic;
 };
 
 struct DyadicInstruction : public LinearIR {
   static constexpr int TYPE = static_cast<int>(PepIRType::Dyadic);
-  DyadicInstruction(Pep10Mnemonic m, Pep10AddrMode am, Argument arg) : mnemonic(m), addr_mode(am), argument(arg) {}
+  DyadicInstruction(PepMnemonic m, PepAddrMode am, Argument arg) : mnemonic(m), addr_mode(am), argument(arg) {}
   const AAttribute *attribute(int type) const override;
   void insert(std::unique_ptr<AAttribute> attr) override;
   std::optional<u64> object_size(u64 base_address) const override;
   int type() const override;
-  Pep10Mnemonic mnemonic;
-  Pep10AddrMode addr_mode;
+  PepMnemonic mnemonic;
+  PepAddrMode addr_mode;
   Argument argument;
 };
+
+// Values of an instruction's operands as parsed.
+struct PepParsedOperands {
+  std::shared_ptr<pepp::ast::IRValue> value;
+  pep::AddrMode mode = pep::AddrMode::INVALID;
+};
+
+// Select the subclass based on the descriptor.
+std::shared_ptr<LinearIR> make_instruction(std::string_view name, const pep::MnemonicDescriptor &mn,
+                                           const PepParsedOperands &operands);
 
 struct DotAnnotate : public LinearIR {
   static constexpr int TYPE = static_cast<int>(PepIRType::DotAnnotate);

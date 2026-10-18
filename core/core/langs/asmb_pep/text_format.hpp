@@ -1,4 +1,5 @@
 #pragma once
+#include "core/arch/pepx/asmb/pep_dialect.hpp"
 #include "core/langs/asmb/ir_program.hpp"
 #include "core/math/bitmanip/span.hpp"
 #include "ir_attributes.hpp"
@@ -22,14 +23,16 @@ std::string format_as_columns(const std::string &col0, const std::string &col1, 
                               const std::string &col3);
 
 // Format a single IR line as Pep/N assembly source code.
-std::string format_source(const LinearIR *line);
-std::vector<std::string> format_source(const IRProgram &program);
+std::string format_source(const pep::Dialect &dialect, const LinearIR *line);
+std::vector<std::string> format_source(const pep::Dialect &dialect, const IRProgram &program);
 
 // Bytes of object code per listing row. Longer lines continue onto extra rows.
 static constexpr int pep_listing_bytes_per_line = 3;
 // Format a single line
-std::vector<std::string> format_listing(const LinearIR *line, const IRMemoryAddressTable<PeppAddress> &addresses,
+std::vector<std::string> format_listing(const pep::Dialect &dialect, const LinearIR *line,
+                                        const IRMemoryAddressTable<PeppAddress> &addresses,
                                         const ProgramObjectCodeResult &object_code);
-std::vector<std::string> format_listing(const IRProgram &program, const IRMemoryAddressTable<PeppAddress> &addresses,
+std::vector<std::string> format_listing(const pep::Dialect &dialect, const IRProgram &program,
+                                        const IRMemoryAddressTable<PeppAddress> &addresses,
                                         const ProgramObjectCodeResult &object_code);
 } // namespace pepp::tc

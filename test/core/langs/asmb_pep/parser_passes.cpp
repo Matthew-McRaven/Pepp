@@ -65,7 +65,7 @@ TEST_CASE("Pepp ASM parser", "[scope:core][scope:core.langs][level:asmb3][level:
     REQUIRE(results.size() == 1);
     auto r0 = std::dynamic_pointer_cast<MonadicInstruction>(results[0]);
     REQUIRE(r0);
-    CHECK(r0->mnemonic.instruction == isa::detail::pep10::Mnemonic::NOTA);
+    CHECK(r0->mnemonic.name == "NOTA");
   }
   SECTION("Monadic instructions declaring symbols") {
     pepp::tc::DiagnosticTable diag;
@@ -75,7 +75,7 @@ TEST_CASE("Pepp ASM parser", "[scope:core][scope:core.langs][level:asmb3][level:
     REQUIRE(results.size() == 1);
     auto r0 = std::dynamic_pointer_cast<MonadicInstruction>(results[0]);
     REQUIRE(r0);
-    CHECK(r0->mnemonic.instruction == isa::detail::pep10::Mnemonic::NOTA);
+    CHECK(r0->mnemonic.name == "NOTA");
     auto attr = r0->attribute(SymbolDeclaration::TYPE);
     REQUIRE(attr);
     auto sym = (SymbolDeclaration *)attr;
@@ -90,8 +90,8 @@ TEST_CASE("Pepp ASM parser", "[scope:core][scope:core.langs][level:asmb3][level:
     REQUIRE(results.size() == 1);
     auto r0 = std::dynamic_pointer_cast<DyadicInstruction>(results[0]);
     REQUIRE(r0);
-    CHECK(r0->mnemonic.instruction == isa::detail::pep10::Mnemonic::ADDA);
-    CHECK(r0->addr_mode.addr_mode == isa::detail::pep10::AddressingMode::I);
+    CHECK(r0->mnemonic.name == "ADDA");
+    CHECK(r0->addr_mode.addr_mode == pep::AddrMode::I);
     CHECK(std::dynamic_pointer_cast<pepp::ast::Numeric>(r0->argument.value));
   }
   SECTION("Dyadic instructions with optional addressing modes") {
@@ -102,8 +102,8 @@ TEST_CASE("Pepp ASM parser", "[scope:core][scope:core.langs][level:asmb3][level:
     REQUIRE(results.size() == 1);
     auto r0 = std::dynamic_pointer_cast<DyadicInstruction>(results[0]);
     REQUIRE(r0);
-    CHECK(r0->mnemonic.instruction == isa::detail::pep10::Mnemonic::BR);
-    CHECK(r0->addr_mode.addr_mode == isa::detail::pep10::AddressingMode::I);
+    CHECK(r0->mnemonic.name == "BR");
+    CHECK(r0->addr_mode.addr_mode == pep::AddrMode::I);
     auto ptr_arg = std::dynamic_pointer_cast<pepp::ast::Numeric>(r0->argument.value);
     CHECK(ptr_arg != nullptr);
   }
@@ -168,8 +168,8 @@ TEST_CASE("Pepp ASM parser", "[scope:core][scope:core.langs][level:asmb3][level:
     REQUIRE(results.size() == 1);
     auto r0 = std::dynamic_pointer_cast<DyadicInstruction>(results[0]);
     REQUIRE(r0);
-    CHECK(r0->mnemonic.instruction == isa::detail::pep10::Mnemonic::BR);
-    CHECK(r0->addr_mode.addr_mode == isa::detail::pep10::AddressingMode::I);
+    CHECK(r0->mnemonic.name == "BR");
+    CHECK(r0->addr_mode.addr_mode == pep::AddrMode::I);
     CHECK(std::dynamic_pointer_cast<pepp::ast::Numeric>(r0->argument.value) != nullptr);
   }
   SECTION("Dyadic instructions with symbolic argument") {
@@ -180,8 +180,8 @@ TEST_CASE("Pepp ASM parser", "[scope:core][scope:core.langs][level:asmb3][level:
     REQUIRE(results.size() == 1);
     auto r0 = std::dynamic_pointer_cast<DyadicInstruction>(results[0]);
     REQUIRE(r0);
-    CHECK(r0->mnemonic.instruction == isa::detail::pep10::Mnemonic::BR);
-    CHECK(r0->addr_mode.addr_mode == isa::detail::pep10::AddressingMode::X);
+    CHECK(r0->mnemonic.name == "BR");
+    CHECK(r0->addr_mode.addr_mode == pep::AddrMode::X);
     CHECK(std::dynamic_pointer_cast<pepp::ast::Symbolic>(r0->argument.value));
   }
 }

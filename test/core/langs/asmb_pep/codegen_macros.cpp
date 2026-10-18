@@ -15,6 +15,7 @@
  */
 
 #include <catch.hpp>
+#include "core/arch/pepx/asmb/pep10.hpp"
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
 #include "core/compile/ir_linear/line_macro.hpp"
@@ -74,7 +75,7 @@ TEST_CASE("Pepp macro ASM codegen address assignment",
     auto addresses = pepp::tc::pepp_assign_addresses(sections);
     auto oc = pepp::tc::pepp_to_object_code(diag, addresses, result.grouped_ir);
     CHECK(sections.size() == 3);
-    for (const auto &l : format_listing(code, addresses, oc)) SPDLOG_WARN("Listed:  {}", l);
+    for (const auto &l : format_listing(pep::pep10::dialect(), code, addresses, oc)) SPDLOG_WARN("Listed:  {}", l);
 
     CHECK(sections[0].first.name == ".text");
     CHECK(sections[0].second.size() == 5);

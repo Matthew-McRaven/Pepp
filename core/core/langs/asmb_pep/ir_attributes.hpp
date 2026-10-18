@@ -1,7 +1,8 @@
 #pragma once
 #include <memory>
-#include <string>
-#include "core/arch/pep/isa/pep10.hpp"
+#include <string_view>
+#include "core/arch/pepx/asmb/pep_mnemonics.hpp"
+#include "core/arch/pepx/isa/pep_opcodes.hpp"
 #include "core/compile/ir_linear/attr_base.hpp"
 #include "core/integers.h"
 
@@ -17,18 +18,20 @@ enum class PepIRAttr {
   AddressingMode,
 };
 
-struct Pep10Mnemonic : public AAttribute {
+struct PepMnemonic : public AAttribute {
   static constexpr int TYPE = static_cast<int>(PepIRAttr::Mnemonic);
   int type() const override;
-  Pep10Mnemonic(isa::Pep10::Mnemonic instruction) : instruction(instruction) {}
-  isa::Pep10::Mnemonic instruction = isa::Pep10::Mnemonic::INVALID;
+  PepMnemonic(std::string_view name, pep::MnemonicDescriptor mn) : name(name), mn(mn) {}
+  // Points into the dialect's mnemonic table, so dialect must outlive this attribute.
+  std::string_view name;
+  pep::MnemonicDescriptor mn;
 };
 
-struct Pep10AddrMode : public AAttribute {
+struct PepAddrMode : public AAttribute {
   static constexpr int TYPE = static_cast<int>(PepIRAttr::AddressingMode);
   int type() const override;
-  Pep10AddrMode(isa::Pep10::AddressingMode mode) : addr_mode(mode) {}
-  isa::Pep10::AddressingMode addr_mode = isa::Pep10::AddressingMode::INVALID;
+  PepAddrMode(pep::AddrMode mode) : addr_mode(mode) {}
+  pep::AddrMode addr_mode = pep::AddrMode::INVALID;
 };
 
 // Intentionally NOT an AAttribute, because I do not want it stored in my primary IR.
