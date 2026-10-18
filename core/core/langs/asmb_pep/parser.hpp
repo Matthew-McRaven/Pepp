@@ -62,10 +62,12 @@ private:
   std::vector<ExpressionResult> mnemonic_operands();
   std::shared_ptr<LinearIR> match_alternative(const pep::MnemonicMap::value_type &entry,
                                               std::span<const ExpressionResult> ops);
-  std::shared_ptr<LinearIR> instruction();
+  // An instruction or a macro instantiation. Names containing @ are always treated as macros.
+  std::shared_ptr<LinearIR> mnemonic(DiagnosticTable &);
   // The name of this line's location counter, created on first use.
   std::string location_counter();
-  std::shared_ptr<LinearIR> macro(DiagnosticTable &, OptionalSymbol symbol);
+  std::shared_ptr<LinearIR> expand(DiagnosticTable &, std::shared_ptr<const MacroDefinition> definition,
+                                   std::vector<std::string> args);
   std::shared_ptr<LinearIR> pseudo(OptionalSymbol symbol);
   std::shared_ptr<LinearIR> line(DiagnosticTable &, OptionalSymbol symbol);
   std::shared_ptr<LinearIR> statement(DiagnosticTable &);
