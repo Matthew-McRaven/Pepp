@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <stdexcept>
+#include "../../pepx/isa/pep_opcodes.hpp"
 #include "core/integers.h"
 
 /*
@@ -23,63 +24,8 @@
 
 namespace isa {
 
-// The possible simulation behaviors of the pep CPU, formed by a union over all instructions of Pep8, 9, and 10.
-enum class SharedOpBehavior : u8 {
-  INVALID = 0,
-  STOP,
-  UNIMPL,
-  RET,
-  SRET, // Covers RETTR and SRET
-  MOVFLGA,
-  MOVAFLG,
-  MOVSPA,
-  MOVASP,
-  HW_NOP,
-  NEG,
-  ASL,
-  ASR,
-  NOT,
-  ROL,
-  ROR,
-  BR,
-  BRLE,
-  BRLT,
-  BREQ,
-  BRNE,
-  BRGE,
-  BRGT,
-  BRV,
-  BRC,
-  CALL,
-  SCALL,
-  TRAP_CALL, // Different from SCALL in that it must clear X register.
-  ADDSP,
-  SUBSP,
-  ADD,
-  SUB,
-  AND,
-  OR,
-  XOR,
-  CPW,
-  CPB,
-  LDW,
-  LDB,
-  STW,
-  STB,
-  // Must be last, by convention!
-  MAX_VALUE
-};
-enum class SharedAddrMode : u8 {
-  Unary, // Unary
-  I,     // Immediate
-  D,     // Direct
-  N,     // Indirect
-  S,     // Stack
-  SF,    // Stack deferred
-  X,     // Indexed
-  SX,    // Stack indexed
-  SFX,   // Stack deferred indexed
-};
+using SharedOpBehavior = pep::SharedOpBehavior;
+using SharedAddrMode = pep::AddrMode;
 
 struct SharedOp {
   SharedOpBehavior behavior;

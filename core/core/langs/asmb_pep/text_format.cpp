@@ -28,7 +28,12 @@ std::string pepp::tc::format_as_columns(const std::string &col0, const std::stri
 
 namespace pepp::tc {
 struct SourceVisitor : public PepIRVisitor {
+  explicit SourceVisitor(const pep::Dialect &dialect) : dialect(dialect) {}
+  const pep::Dialect &dialect;
   std::string text;
+  // Format an instruction, respecting the order of operands from the line's MnemonicDescriptor
+  void instruction(const LinearIR *line, const PepMnemonic &mnemonic, const pepp::ast::IRValue *value,
+                   pep::AddrMode mode);
   void visit(const EmptyLine *);
   void visit(const CommentLine *);
   void visit(const SymbolLine *);
@@ -60,28 +65,30 @@ void pepp::tc::SourceVisitor::visit(const SymbolLine *line) {
   text = format_as_columns(std::string{line->symbol.entry->name} + ":", "", "", comment);
 }
 
-void pepp::tc::SourceVisitor::visit(const MonadicInstruction *line) {
-  std::string symbol = "", mn = "", comment = "";
+void pepp::tc::SourceVisitor::instruction(const LinearIR *line, const PepMnemonic &mnemonic,
+                                          const pepp::ast::IRValue *value, pep::AddrMode mode) {
+  using OT = pep::MnemonicDescriptor::OperandType;
+  std::string symbol = "", comment = "";
   if (auto maybe_symbol = line->typed_attribute<SymbolDeclaration>(); maybe_symbol)
     symbol = std::string{maybe_symbol->entry->name} + ":";
-  mn = isa::Pep10::string(line->mnemonic.instruction);
+  std::vector<std::string> operands;
+  for (const auto operand : mnemonic.mn.operands()) {
+    switch (operand) {
+    case OT::Value: operands.emplace_back(value->string()); break;
+    case OT::AddressingMode: operands.emplace_back(dialect.name(mode)); break;
+    case OT::None: break;
+    }
+  }
   if (auto maybe_comment = line->typed_attribute<Comment>(); maybe_comment) comment = ";" + maybe_comment->value;
-  text = format_as_columns(symbol, mn, "", comment);
+  text = format_as_columns(symbol, std::string{mnemonic.name}, fmt::format("{}", fmt::join(operands, ",")), comment);
+}
+
+void pepp::tc::SourceVisitor::visit(const MonadicInstruction *line) {
+  instruction(line, line->mnemonic, nullptr, line->mnemonic.mn.default_addr);
 }
 
 void pepp::tc::SourceVisitor::visit(const DyadicInstruction *line) {
-  std::vector<std::string> arg_list;
-  std::string symbol = "", mn = "", comment = "";
-  if (auto maybe_symbol = line->typed_attribute<SymbolDeclaration>(); maybe_symbol)
-    symbol = std::string{maybe_symbol->entry->name} + ":";
-  mn = isa::Pep10::string(line->mnemonic.instruction);
-  arg_list.emplace_back(line->argument.value->string());
-  auto addr_mode = line->addr_mode.addr_mode;
-  if (!isa::Pep10::canElideAddressingMode(line->mnemonic.instruction, addr_mode))
-    arg_list.emplace_back(isa::Pep10::string(addr_mode));
-  if (auto maybe_comment = line->typed_attribute<Comment>(); maybe_comment) comment = ";" + maybe_comment->value;
-  const auto joined_args = fmt::format("{}", fmt::join(arg_list, ","));
-  text = format_as_columns(symbol, mn, joined_args, comment);
+  instruction(line, line->mnemonic, line->argument.value.get(), line->addr_mode.addr_mode);
 }
 
 void pepp::tc::SourceVisitor::visit(const DotAlign *line) {
@@ -196,28 +203,28 @@ void pepp::tc::SourceVisitor::visit(const MacroInstantiation *line) {
   text = format_as_columns(symbol, line->macro->name, joined_args, comment);
 }
 
-std::string pepp::tc::format_source(const LinearIR *line) {
-  SourceVisitor r;
+std::string pepp::tc::format_source(const pep::Dialect &dialect, const LinearIR *line) {
+  SourceVisitor r(dialect);
   accept(r, line);
   return r.text;
 }
 
-std::vector<std::string> pepp::tc::format_source(const IRProgram &program) {
+std::vector<std::string> pepp::tc::format_source(const pep::Dialect &dialect, const IRProgram &program) {
   std::vector<std::string> ret;
   ret.reserve(program.size());
   for (const auto &line : program) {
     if (hidden_from_source(*line)) continue;
-    SourceVisitor r;
+    SourceVisitor r(dialect);
     accept(r, line.get());
     ret.emplace_back(r.text);
   }
   return ret;
 }
 
-void format_listing(const pepp::tc::LinearIR *line,
+void format_listing(const pep::Dialect &dialect, const pepp::tc::LinearIR *line,
                     const pepp::tc::IRMemoryAddressTable<pepp::tc::PeppAddress> &addresses,
                     const pepp::tc::ProgramObjectCodeResult &object_code, std::vector<std::string> &out) {
-  auto source_line = pepp::tc::format_source(line);
+  auto source_line = pepp::tc::format_source(dialect, line);
   auto address_it = addresses.find(line);
   std::optional<u16> address =
       address_it == addresses.cend() ? std::nullopt : std::optional<u16>(address_it->second.address);
@@ -244,19 +251,19 @@ void format_listing(const pepp::tc::LinearIR *line,
   }
 }
 
-std::vector<std::string> pepp::tc::format_listing(const LinearIR *line,
+std::vector<std::string> pepp::tc::format_listing(const pep::Dialect &dialect, const LinearIR *line,
                                                   const IRMemoryAddressTable<pepp::tc::PeppAddress> &addresses,
                                                   const ProgramObjectCodeResult &object_code) {
   std::vector<std::string> ret;
-  ::format_listing(line, addresses, object_code, ret);
+  ::format_listing(dialect, line, addresses, object_code, ret);
   return ret;
 }
 
-std::vector<std::string> pepp::tc::format_listing(const IRProgram &program,
+std::vector<std::string> pepp::tc::format_listing(const pep::Dialect &dialect, const IRProgram &program,
                                                   const IRMemoryAddressTable<pepp::tc::PeppAddress> &addresses,
                                                   const ProgramObjectCodeResult &object_code) {
   std::vector<std::string> ret;
   for (const auto &line : program)
-    if (!hidden_from_listing(*line)) ::format_listing(&*line, addresses, object_code, ret);
+    if (!hidden_from_listing(*line)) ::format_listing(dialect, &*line, addresses, object_code, ret);
   return ret;
 }

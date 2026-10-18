@@ -30,7 +30,7 @@ template <typename Register, typename CSR, typename Mnemonic> void inner_movflg(
     cpu->registers()->clear(0);
     cpu->csrs()->clear(0);
 
-    if (op == Mnemonic::MOVAFLG) cpu->write_register(Register::A, flg);
+    if (behavior(isa, op) == pep::SharedOpBehavior::MOVAFLG) cpu->write_register(Register::A, flg);
     else cpu->write_packed_csr(flg);
 
     REQUIRE_NOTHROW(cpu->clock_tick(PulseIndex{0}, 0));
@@ -77,46 +77,46 @@ void inner_movr(PepISA3CPU::ISA isa, Register src_reg, Register dest_reg, Mnemon
 } // namespace
 
 TEST_CASE("(new) Pep/10, MOVFLGA", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
-  using Register = isa::Pep10::Register;
-  using CSR = isa::Pep10::CSR;
-  using MN = isa::Pep10::Mnemonic;
-  inner_movflg<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, MN::MOVFLGA);
+  using Register = pep::Register;
+  using CSR = pep::StatusBit;
+  const Opcodes mn{pep::pep10::instructions};
+  inner_movflg<Register, CSR, u8>(PepISA3CPU::ISA::Pep10, mn("MOVFLGA"));
 }
 TEST_CASE("(new) Pep/9, MOVFLGA", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
-  using Register = isa::Pep9::Register;
-  using CSR = isa::Pep9::CSR;
-  using MN = isa::Pep9::Mnemonic;
-  inner_movflg<Register, CSR, MN>(PepISA3CPU::ISA::Pep9, MN::MOVFLGA);
+  using Register = pep::Register;
+  using CSR = pep::StatusBit;
+  const Opcodes mn{pep::pep9::instructions};
+  inner_movflg<Register, CSR, u8>(PepISA3CPU::ISA::Pep9, mn("MOVFLGA"));
 }
 TEST_CASE("(new) Pep/10, MOVAFLG", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
-  using Register = isa::Pep10::Register;
-  using CSR = isa::Pep10::CSR;
-  using MN = isa::Pep10::Mnemonic;
-  inner_movflg<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, MN::MOVAFLG);
+  using Register = pep::Register;
+  using CSR = pep::StatusBit;
+  const Opcodes mn{pep::pep10::instructions};
+  inner_movflg<Register, CSR, u8>(PepISA3CPU::ISA::Pep10, mn("MOVAFLG"));
 }
 TEST_CASE("(new) Pep/9, MOVAFLG", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
-  using Register = isa::Pep9::Register;
-  using CSR = isa::Pep9::CSR;
-  using MN = isa::Pep9::Mnemonic;
-  inner_movflg<Register, CSR, MN>(PepISA3CPU::ISA::Pep9, MN::MOVAFLG);
+  using Register = pep::Register;
+  using CSR = pep::StatusBit;
+  const Opcodes mn{pep::pep9::instructions};
+  inner_movflg<Register, CSR, u8>(PepISA3CPU::ISA::Pep9, mn("MOVAFLG"));
 }
 
 TEST_CASE("(new) Pep/10, MOVSPA", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
-  using Register = isa::Pep10::Register;
-  using CSR = isa::Pep10::CSR;
-  using MN = isa::Pep10::Mnemonic;
-  inner_movr<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, Register::SP, Register::A, MN::MOVSPA);
+  using Register = pep::Register;
+  using CSR = pep::StatusBit;
+  const Opcodes mn{pep::pep10::instructions};
+  inner_movr<Register, CSR, u8>(PepISA3CPU::ISA::Pep10, Register::SP, Register::A, mn("MOVSPA"));
 }
 TEST_CASE("(new) Pep/9, MOVSPA", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
-  using Register = isa::Pep9::Register;
-  using CSR = isa::Pep9::CSR;
-  using MN = isa::Pep9::Mnemonic;
-  inner_movr<Register, CSR, MN>(PepISA3CPU::ISA::Pep9, Register::SP, Register::A, MN::MOVSPA);
+  using Register = pep::Register;
+  using CSR = pep::StatusBit;
+  const Opcodes mn{pep::pep9::instructions};
+  inner_movr<Register, CSR, u8>(PepISA3CPU::ISA::Pep9, Register::SP, Register::A, mn("MOVSPA"));
 }
 
 TEST_CASE("(new) Pep/10, MOVASP", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
-  using Register = isa::Pep10::Register;
-  using CSR = isa::Pep10::CSR;
-  using MN = isa::Pep10::Mnemonic;
-  inner_movr<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, Register::A, Register::SP, MN::MOVASP);
+  using Register = pep::Register;
+  using CSR = pep::StatusBit;
+  const Opcodes mn{pep::pep10::instructions};
+  inner_movr<Register, CSR, u8>(PepISA3CPU::ISA::Pep10, Register::A, Register::SP, mn("MOVASP"));
 }

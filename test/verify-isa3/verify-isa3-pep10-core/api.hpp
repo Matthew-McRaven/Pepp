@@ -1,6 +1,11 @@
 #pragma once
-#include "core/arch/pep/isa/pep10.hpp"
-#include "core/arch/pep/isa/pep9.hpp"
+#include <algorithm>
+#include <span>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include "core/arch/pepx/isa/pep10.hpp"
+#include "core/arch/pepx/isa/pep9.hpp"
 #include "core/sim/cores/cpu/pep/pep_isa.hpp"
 #include "core/sim/cores/cpu/pep/pep_isa_instructions.hpp"
 #include "core/sim/clocktree.hpp"
@@ -36,12 +41,25 @@ inline auto make_cpu(PepISA3CPU::ISA isa = PepISA3CPU::ISA::Pep10) {
 
 static const Operation rw{Operation::Type::Standard, Operation::Kind::data};
 
-static inline u16 reg(PepISA3CPU *cpu, isa::Pep10::Register reg) { return cpu->read_register(reg); };
+static inline u16 reg(PepISA3CPU *cpu, pep::Register reg) { return cpu->read_register(reg); };
 
-static inline u16 csr(PepISA3CPU *cpu, isa::Pep10::CSR csr) { return cpu->read_csr(csr); };
+static inline u16 csr(PepISA3CPU *cpu, pep::StatusBit csr) { return cpu->read_csr(csr); };
 
-static inline u16 reg(PepISA3CPU *cpu, isa::Pep9::Register reg) {
-  return cpu->read_register((isa::Pep10::Register)reg);
+// What an opcode does in the CPU's ISA.
+static inline pep::SharedOpBehavior behavior(PepISA3CPU::ISA isa, u8 opcode) {
+  switch (isa) {
+  case PepISA3CPU::ISA::Pep9: return pep::pep9::opcode_plane[opcode].opcode;
+  case PepISA3CPU::ISA::Pep10: return pep::pep10::opcode_plane[opcode].opcode;
+  default: throw std::invalid_argument("No opcode plane for ISA");
+  }
+}
+
+// Base opcodes across all of the architecture's mnemonics
+struct Opcodes {
+  std::span<const pep::InstructionDefinition> rows;
+  u8 operator()(std::string_view name) const {
+    const auto row = std::ranges::find(rows, name, &pep::InstructionDefinition::mnemonic);
+    if (row == rows.end()) throw std::invalid_argument("No mnemonic named " + std::string{name});
+    return row->base;
+  }
 };
-
-static inline u16 csr(PepISA3CPU *cpu, isa::Pep9::CSR csr) { return cpu->read_csr((isa::Pep10::CSR)csr); };

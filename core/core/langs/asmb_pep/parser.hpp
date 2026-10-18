@@ -1,15 +1,19 @@
 #pragma once
 #include <memory>
 #include <optional>
+#include <span>
 #include <stack>
 #include <string>
 #include <unordered_set>
 #include <vector>
+#include "core/arch/pepx/asmb/pep10.hpp"
+#include "core/arch/pepx/asmb/pep_dialect.hpp"
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/lex/buffer.hpp"
 #include "core/compile/macro/macro_registry.hpp"
 #include "core/compile/macro/macro_replacement.hpp"
 #include "core/langs/asmb/conditionals.hpp"
+#include "core/langs/asmb/expression_operand.hpp"
 #include "core/langs/asmb/macros.hpp"
 #include "core/compile/source/seekable.hpp"
 #include "core/langs/asmb/ir_program.hpp"
@@ -41,7 +45,8 @@ class PepLexer;
 class DiagnosticTable;
 namespace parser {
 struct PepParser {
-  PepParser(support::SeekableData &&data, std::shared_ptr<pepp::tc::MacroRegistry> reg);
+  PepParser(support::SeekableData &&data, std::shared_ptr<pepp::tc::MacroRegistry> reg,
+            const pep::Dialect &dialect = pep::pep10::dialect());
 
   IRProgram parse(DiagnosticTable &);
   std::shared_ptr<pepp::core::symbol::LeafTable> symbol_table() const;
@@ -54,8 +59,15 @@ private:
   std::shared_ptr<pepp::ast::IRValue> numeric_argument();
   std::shared_ptr<pepp::ast::IRValue> hex_argument();
   std::shared_ptr<pepp::ast::Symbolic> identifier_argument();
-  std::shared_ptr<LinearIR> instruction();
-  std::shared_ptr<LinearIR> macro(DiagnosticTable &, OptionalSymbol symbol);
+  std::vector<ExpressionResult> mnemonic_operands();
+  std::shared_ptr<LinearIR> match_alternative(const pep::MnemonicMap::value_type &entry,
+                                              std::span<const ExpressionResult> ops);
+  // An instruction or a macro instantiation. Names containing @ are always treated as macros.
+  std::shared_ptr<LinearIR> mnemonic(DiagnosticTable &);
+  // The name of this line's location counter, created on first use.
+  std::string location_counter();
+  std::shared_ptr<LinearIR> expand(DiagnosticTable &, std::shared_ptr<const MacroDefinition> definition,
+                                   std::vector<std::string> args);
   std::shared_ptr<LinearIR> pseudo(OptionalSymbol symbol);
   std::shared_ptr<LinearIR> line(DiagnosticTable &, OptionalSymbol symbol);
   std::shared_ptr<LinearIR> statement(DiagnosticTable &);
@@ -73,6 +85,7 @@ private:
   std::shared_ptr<lex::PepLexer> _root_lexer;
   std::shared_ptr<pepp::core::symbol::LeafTable> _symtab;
   std::shared_ptr<pepp::tc::MacroRegistry> _macros;
+  const pep::Dialect *_dialect;
 
   MacroCounters _counters;
   Conditionals _conditionals;

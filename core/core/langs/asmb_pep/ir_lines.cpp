@@ -7,12 +7,12 @@
 #include "core/macros.hpp"
 
 const pepp::tc::AAttribute *pepp::tc::MonadicInstruction::attribute(int type) const {
-  if (type == Pep10Mnemonic::TYPE) return &mnemonic;
+  if (type == PepMnemonic::TYPE) return &mnemonic;
   else return LinearIR::attribute(type);
 }
 
 void pepp::tc::MonadicInstruction::insert(std::unique_ptr<AAttribute> attr) {
-  if (attr->type() == Pep10Mnemonic::TYPE) mnemonic = *(static_cast<Pep10Mnemonic *>(attr.release()));
+  if (attr->type() == PepMnemonic::TYPE) mnemonic = *static_cast<PepMnemonic *>(attr.get());
   else LinearIR::insert(std::move(attr));
 }
 
@@ -21,22 +21,29 @@ std::optional<u64> pepp::tc::MonadicInstruction::object_size(u64 base_address) c
 int pepp::tc::MonadicInstruction::type() const { return TYPE; }
 
 const pepp::tc::AAttribute *pepp::tc::DyadicInstruction::attribute(int type) const {
-  if (type == Pep10Mnemonic::TYPE) return &mnemonic;
-  else if (type == Pep10AddrMode::TYPE) return &argument;
+  if (type == PepMnemonic::TYPE) return &mnemonic;
+  else if (type == PepAddrMode::TYPE) return &addr_mode;
   else if (type == Argument::TYPE) return &argument;
   else return LinearIR::attribute(type);
 }
 
 void pepp::tc::DyadicInstruction::insert(std::unique_ptr<AAttribute> attr) {
-  if (attr->type() == Pep10Mnemonic::TYPE) mnemonic = *(static_cast<Pep10Mnemonic *>(attr.release()));
-  if (attr->type() == Pep10AddrMode::TYPE) addr_mode = *(static_cast<Pep10AddrMode *>(attr.release()));
-  else if (attr->type() == Argument::TYPE) argument = *(static_cast<Argument *>(attr.release()));
+  if (attr->type() == PepMnemonic::TYPE) mnemonic = *static_cast<PepMnemonic *>(attr.get());
+  else if (attr->type() == PepAddrMode::TYPE) addr_mode = *static_cast<PepAddrMode *>(attr.get());
+  else if (attr->type() == Argument::TYPE) argument = *static_cast<Argument *>(attr.get());
   else LinearIR::insert(std::move(attr));
 }
 
 std::optional<u64> pepp::tc::DyadicInstruction::object_size(u64) const { return 3; }
 
 int pepp::tc::DyadicInstruction::type() const { return TYPE; }
+
+std::shared_ptr<pepp::tc::LinearIR> pepp::tc::make_instruction(std::string_view name, const pep::MnemonicDescriptor &mn,
+                                                              const PepParsedOperands &operands) {
+  if (mn.operands().empty()) return std::make_shared<MonadicInstruction>(PepMnemonic(name, mn));
+  return std::make_shared<DyadicInstruction>(PepMnemonic(name, mn), PepAddrMode(operands.mode),
+                                             Argument(operands.value));
+}
 
 pepp::tc::DotAnnotate::DotAnnotate(Which which, Argument arg) : which(which), argument(arg) {}
 

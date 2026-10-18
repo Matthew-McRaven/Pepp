@@ -248,14 +248,14 @@ void pepp::tc::PeppObjectVistitor::visit(const SymbolLine *) {
 }
 
 void pepp::tc::PeppObjectVistitor::visit(const MonadicInstruction *line) {
-  out_bytes[0] = isa::Pep10::opcode(line->mnemonic.instruction);
+  out_bytes[0] = line->mnemonic.mn.encode(line->mnemonic.mn.default_addr);
   ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(1)});
   out_bytes = out_bytes.subspan(1);
 }
 
 void pepp::tc::PeppObjectVistitor::visit(const DyadicInstruction *line) {
   auto addr_info = ir_to_address.at(line);
-  out_bytes[0] = isa::Pep10::opcode(line->mnemonic.instruction, line->addr_mode.addr_mode);
+  out_bytes[0] = line->mnemonic.mn.encode(line->addr_mode.addr_mode);
   const u16 offset = addr_info.address - base_address + 1; // Offset by 1 to reach operand specifier.
   auto &value = *line->argument.value;
   if (validate_argument(diag, *line, value, *pepp_argument_constraint(*line), 16, true)) {

@@ -15,7 +15,7 @@
  */
 #pragma once
 #include <array>
-#include "core/arch/pep/isa/pep10.hpp"
+#include "core/arch/pepx/isa/pep_registers.hpp"
 #include "core/sim/api/device.hpp"
 #include "core/sim/api/memory.hpp"
 #include "core/sim/api/trace.hpp"
@@ -30,7 +30,7 @@
 // Pep8, Pep9, amd Pep10 declare identical Register enums, so one bank serves all ISAs.
 class PepRegisterBank final : public Device, public Target, public Traceable {
 public:
-  using Register = isa::Pep10::Register;
+  using Register = pep::Register;
   static constexpr auto REGISTER_COUNT = static_cast<u8>(Register::INVALID);
   // Fully synthetic: the CPU constructs it, nothing parses one, and it is never written out.
   struct Configuration : public Device::Configuration {};

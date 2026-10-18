@@ -1,6 +1,7 @@
 #include <memory>
 #include <utility>
 #include "asmb_driver.hpp"
+#include "core/arch/pepx/asmb/pep10.hpp"
 #include "core/compile/macro/macro_registry.hpp"
 #include "core/compile/source/seekable.hpp"
 #include "core/langs/asmb_pep/codegen.hpp"
@@ -12,14 +13,15 @@ namespace pepp::tc {
 DriverResult assemble_pep10(const Pep10DriverConfig &cfg, const FormattingConfig &fmtcfg, std::string source) {
   DriverResult result;
   auto macros = cfg.macros ? cfg.macros : std::make_shared<MacroRegistry>();
-  auto pep_parser = parser::PepParser(support::SeekableData{std::move(source)}, macros);
+  const auto &dialect = pep::pep10::dialect();
+  auto pep_parser = parser::PepParser(support::SeekableData{std::move(source)}, macros, dialect);
   auto sy = pep_parser.symbol_table();
   inject_symdefs(cfg.symdefs, *sy, 2);
 
   auto program = pep_parser.parse(result.diagnostics);
   if (result.diagnostics.count() > 0) return result;
   if (fmtcfg.source_format) {
-    auto formatted = format_source(program);
+    auto formatted = format_source(dialect, program);
     fmtcfg.source_format(std::move(formatted));
   }
 
@@ -31,7 +33,7 @@ DriverResult assemble_pep10(const Pep10DriverConfig &cfg, const FormattingConfig
   auto object_code = pepp_to_object_code(result.diagnostics, addresses, split.grouped_ir);
   if (result.diagnostics.count() > 0) return result;
   if (fmtcfg.listing_format) {
-    auto listing = format_listing(flattened, addresses, object_code);
+    auto listing = format_listing(dialect, flattened, addresses, object_code);
     fmtcfg.listing_format(std::move(listing));
   }
   // After flattening, so that a definition inside an expansion has its instantiation's line.

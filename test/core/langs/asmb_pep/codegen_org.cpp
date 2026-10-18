@@ -15,7 +15,8 @@
  */
 
 #include <catch.hpp>
-#include "core/arch/pep/isa/pep10.hpp"
+#include <string_view>
+#include "core/arch/pepx/asmb/pep10.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/langs/asmb_pep/codegen.hpp"
 #include "core/langs/asmb_pep/parser.hpp"
@@ -156,8 +157,6 @@ TEST_CASE("Pepp ASM codegen character operands",
           "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:*]") {
   using Parser = pepp::tc::parser::PepParser;
   using MR = pepp::tc::MacroRegistry;
-  using MN = isa::Pep10::Mnemonic;
-  using AM = isa::Pep10::AddressingMode;
   // A character in a field wider than a byte is a small integer, so it is right-aligned: 'A' as an operand is 0x0041.
   static const auto src = R"(LDBA 'A',i
 CPBA '+',i
@@ -175,8 +174,11 @@ CPBA '+',i
 
   const auto &slice = oc.section_slices[0];
   const auto bytes = slice.get(0, slice.size());
-  const std::vector<u8> expected{isa::Pep10::opcode(MN::LDBA, AM::I), 0x00, 'A', isa::Pep10::opcode(MN::CPBA, AM::I),
-                                 0x00, '+'};
+  const auto immediate = [](std::string_view name) {
+    const auto [first, last] = pep::pep10::dialect().alternatives(name);
+    return first->second.encode(pep::AddrMode::I);
+  };
+  const std::vector<u8> expected{immediate("LDBA"), 0x00, 'A', immediate("CPBA"), 0x00, '+'};
   CHECK(std::vector<u8>(bytes.begin(), bytes.end()) == expected);
 }
 

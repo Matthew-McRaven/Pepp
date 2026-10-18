@@ -1,7 +1,7 @@
 #pragma once
 
-#include "core/arch/pep/isa/pep10.hpp"
-#include "core/arch/pep/isa/pep_shared_ops.hpp"
+#include "core/arch/pepx/isa/pep_opcodes.hpp"
+#include "core/arch/pepx/isa/pep_registers.hpp"
 #include "core/ds/bloom.hpp"
 #include "core/sim/api/clock.hpp"
 #include "core/sim/api/device.hpp"
@@ -135,14 +135,14 @@ private:
   // Mirror of the buffer's traced bit, pushed by TraceBuffer::trace. Read several times per instruction, and the
   // reason the trace hooks below cost a branch rather than a call when tracing is off.
   bool _may_trace = true;
-  isa::OpcodePlane _opcodes;
+  pep::OpcodePlane _opcodes;
   // Bloom filter used to rule out
   pepp::SplitBlockBloom<u16, 256> _bp_filter;
   u32 _filter_hits = 0;
   // Override this value once our id is known.
   Operation _op_data = Operation(Operation::Type::Standard, Operation::Kind::data, Device::ID{0});
 
-  void handle(isa::SharedOp opcode);
+  void handle(pep::Operation opcode);
   const ClockSource *_clk = nullptr;
 };
 
@@ -152,7 +152,6 @@ template <typename RegisterType> inline void PepISA3CPU::write_register(Register
 }
 
 template <typename RegisterType> inline void PepISA3CPU::write_register_uncached(RegisterType reg, u16 value) {
-  // Pep9 and Pep10 declare identical Register enums, so the bank's is interchangeable with either.
   _regbank->write(static_cast<PepRegisterBank::Register>(reg), value);
 }
 

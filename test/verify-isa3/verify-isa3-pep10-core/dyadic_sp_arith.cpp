@@ -27,7 +27,7 @@ template <typename Register, typename CSR, typename Mnemonic> void inner(PepISA3
     for (uint16_t opspec = 0; static_cast<uint32_t>(opspec) + 1 < 0x1'0000; opspec++) {
       auto addedEnd = static_cast<u16>(opspec + init_reg);
       auto subedVal = static_cast<u16>((~opspec + 1) + init_reg);
-      auto endRegVal = op == Mnemonic::ADDSP ? addedEnd : subedVal;
+      auto endRegVal = behavior(isa, op) == pep::SharedOpBehavior::ADDSP ? addedEnd : subedVal;
 
       // Object code for instruction under test.
       auto program =
@@ -55,27 +55,27 @@ template <typename Register, typename CSR, typename Mnemonic> void inner(PepISA3
 } // namespace
 
 TEST_CASE("(new) Pep/10, ADDSP, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
-  using Register = isa::Pep10::Register;
-  using CSR = isa::Pep10::CSR;
-  using MN = isa::Pep10::Mnemonic;
-  inner<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, MN::ADDSP);
+  using Register = pep::Register;
+  using CSR = pep::StatusBit;
+  const Opcodes mn{pep::pep10::instructions};
+  inner<Register, CSR, u8>(PepISA3CPU::ISA::Pep10, mn("ADDSP"));
 }
 TEST_CASE("(new) Pep/9, ADDSP, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
-  using Register = isa::Pep9::Register;
-  using CSR = isa::Pep9::CSR;
-  using MN = isa::Pep9::Mnemonic;
-  inner<Register, CSR, MN>(PepISA3CPU::ISA::Pep9, MN::ADDSP);
+  using Register = pep::Register;
+  using CSR = pep::StatusBit;
+  const Opcodes mn{pep::pep9::instructions};
+  inner<Register, CSR, u8>(PepISA3CPU::ISA::Pep9, mn("ADDSP"));
 }
 
 TEST_CASE("(new) Pep/10, SUBSP, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
-  using Register = isa::Pep10::Register;
-  using CSR = isa::Pep10::CSR;
-  using MN = isa::Pep10::Mnemonic;
-  inner<Register, CSR, MN>(PepISA3CPU::ISA::Pep10, MN::SUBSP);
+  using Register = pep::Register;
+  using CSR = pep::StatusBit;
+  const Opcodes mn{pep::pep10::instructions};
+  inner<Register, CSR, u8>(PepISA3CPU::ISA::Pep10, mn("SUBSP"));
 }
 TEST_CASE("(new) Pep/9, SUBSP, i", "[scope:core][scope:core.sim][kind:unit][arch:pep10]") {
-  using Register = isa::Pep9::Register;
-  using CSR = isa::Pep9::CSR;
-  using MN = isa::Pep9::Mnemonic;
-  inner<Register, CSR, MN>(PepISA3CPU::ISA::Pep9, MN::SUBSP);
+  using Register = pep::Register;
+  using CSR = pep::StatusBit;
+  const Opcodes mn{pep::pep9::instructions};
+  inner<Register, CSR, u8>(PepISA3CPU::ISA::Pep9, mn("SUBSP"));
 }

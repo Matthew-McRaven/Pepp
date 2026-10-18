@@ -13,12 +13,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include <algorithm>
 #include <array>
 #include <catch.hpp>
 #include <memory>
 #include <spdlog/spdlog.h>
+#include <string_view>
 
-#include "core/arch/pep/isa/pep10.hpp"
+#include "core/arch/pepx/isa/pep10.hpp"
 #include "core/sim/cores/cpu/pep/pep_isa.hpp"
 #include "core/sim/debugger/trace_device.hpp"
 #include "core/sim/debugger/tvm_interpreter.hpp"
@@ -28,12 +30,13 @@
 #include "core/sim/system.hpp"
 
 namespace {
-using M = isa::Pep10::Mnemonic;
-
 // Offsets from a RAAA mnemonic's base opcode, mirroring how the ISA table lays the modes out. BR is not a RAAA
 // instruction, but its base is likewise the immediate form, so `I` works for it too.
 enum class Mode : u8 { i = 0, d = 1, n = 2, s = 3, sf = 4, x = 5 };
-constexpr u8 op(M m, Mode mode = Mode::i) { return static_cast<u8>(static_cast<u8>(m) + static_cast<u8>(mode)); }
+constexpr u8 op(std::string_view mnemonic, Mode mode = Mode::i) {
+  const auto row = std::ranges::find(pep::pep10::instructions, mnemonic, &pep::InstructionDefinition::mnemonic);
+  return static_cast<u8>(row->base + static_cast<u8>(mode));
+}
 
 // No initiator and will be directed to system root.
 const Operation app(Operation::Type::Application, Operation::Kind::data);
@@ -95,10 +98,10 @@ TEST_CASE("Trace footprint over a few thousand instructions",
   //   0x0006  STWA 0x9000,d   mem[0x9000] = A
   //   0x0009  BR   0x0003
   const std::array<u8, 12> fixed_program{
-      op(M::LDWA, Mode::i), 0x00, 0x01, //
-      op(M::ADDA, Mode::i), 0x00, 0x01, //
-      op(M::STWA, Mode::d), 0x90, 0x00, //
-      op(M::BR, Mode::i),   0x00, 0x03, //
+      op("LDWA", Mode::i), 0x00, 0x01, //
+      op("ADDA", Mode::i), 0x00, 0x01, //
+      op("STWA", Mode::d), 0x90, 0x00, //
+      op("BR", Mode::i),   0x00, 0x03, //
   };
 
   // Realistic case: the store walks through memory, so its body carries a different address every iteration and can
@@ -110,11 +113,11 @@ TEST_CASE("Trace footprint over a few thousand instructions",
   //   0x0009  ADDX 2,i        X += 2
   //   0x000C  BR   0x0003
   const std::array<u8, 15> walking_program{
-      op(M::LDWX, Mode::i), 0x00, 0x00, //
-      op(M::ADDA, Mode::i), 0x00, 0x01, //
-      op(M::STWA, Mode::x), 0x90, 0x00, //
-      op(M::ADDX, Mode::i), 0x00, 0x02, //
-      op(M::BR, Mode::i),   0x00, 0x03, //
+      op("LDWX", Mode::i), 0x00, 0x00, //
+      op("ADDA", Mode::i), 0x00, 0x01, //
+      op("STWA", Mode::x), 0x90, 0x00, //
+      op("ADDX", Mode::i), 0x00, 0x02, //
+      op("BR", Mode::i),   0x00, 0x03, //
   };
 
   auto h_fixed = make_traced_cpu();
@@ -147,7 +150,7 @@ TEST_CASE("Trace footprint over a few thousand instructions",
 
 TEST_CASE("A recorded loop reverses back to the state it started from",
           "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
-  using R = isa::Pep10::Register;
+  using R = pep::Register;
   // The same fixed-address loop the footprint case measures, run short enough to reason about exactly. One setup
   // instruction, then ten times round the three-instruction body -- so A is carried across iterations and the store
   // overwrites the same address ten times. Undoing that needs every record replayed, in reverse, exactly once.
@@ -159,10 +162,10 @@ TEST_CASE("A recorded loop reverses back to the state it started from",
   //   0x0006  STWA 0x9000,d   mem[0x9000] = A
   //   0x0009  BR   0x0003
   const std::array<u8, 12> program{
-      op(M::LDWA, Mode::i), 0x00, 0x01, //
-      op(M::ADDA, Mode::i), 0x00, 0x01, //
-      op(M::STWA, Mode::d), 0x90, 0x00, //
-      op(M::BR, Mode::i),   0x00, 0x03, //
+      op("LDWA", Mode::i), 0x00, 0x01, //
+      op("ADDA", Mode::i), 0x00, 0x01, //
+      op("STWA", Mode::d), 0x90, 0x00, //
+      op("BR", Mode::i),   0x00, 0x03, //
   };
 
   auto h = make_traced_cpu();

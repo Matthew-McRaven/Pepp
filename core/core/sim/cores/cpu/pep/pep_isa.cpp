@@ -2,8 +2,9 @@
 #include <fmt/format.h>
 #include <array>
 #include <nlohmann/json.hpp>
-#include "core/arch/pep/isa/pep10.hpp"
-#include "core/arch/pep/isa/pep9.hpp"
+#include "core/arch/pepx/asmb/pep10.hpp"
+#include "core/arch/pepx/isa/pep10.hpp"
+#include "core/arch/pepx/isa/pep9.hpp"
 #include "core/ds/string_compare.hpp"
 #include "core/sim/cores/cpu/pep/pep_isa_instructions.hpp"
 #include "core/sim/debugger/register_scanner.hpp"
@@ -91,7 +92,6 @@ PepISA3CPU::PepISA3CPU(Configuration cfg, System *sys) : _config(cfg) {
 void PepISA3CPU::initialize(System *sys) {
   _op_data = Operation(Operation::Type::Standard, Operation::Kind::data, id());
 
-  using enum isa::SharedOpBehavior;
   auto dev = sys->find_relative(_config.target, _config.fullname);
   if (!dev) throw std::runtime_error("PepISA3CPU: could not find target device " + _config.target);
   _target = dev->capability<Target>();
@@ -103,8 +103,8 @@ void PepISA3CPU::initialize(System *sys) {
   set_clock_source(clk);
   switch (_config.isa) {
   case ISA::Pep8: throw std::logic_error("PepISA3CPU: ISA " + isa_to_string(_config.isa) + " not implemented");
-  case ISA::Pep9: _opcodes = isa::Pep9::opcode_plane; break;
-  case ISA::Pep10: _opcodes = isa::Pep10::opcode_plane; break;
+  case ISA::Pep9: _opcodes = pep::pep9::opcode_plane; break;
+  case ISA::Pep10: _opcodes = pep::pep10::opcode_plane; break;
   }
 
   auto scan = sys->register_scan();
@@ -153,6 +153,7 @@ Target *PepISA3CPU::port(MemoryKind kind) {
   case MemoryKind::Instruction: [[fallthrough]];
   case MemoryKind::Data: return _target;
   case MemoryKind::MicrocodeROM: return nullptr;
+  default: throw std::logic_error("PepISA3CPU: unknown memory kind");
   }
   return nullptr;
 }
@@ -181,12 +182,12 @@ void PepISA3CPU::clock_tick(PulseIndex idx, u64 tick) {
 
   // Take PC out of the register bank for the duration of this instruction. Everything below moves it through _pc,
   // and the single store after handle() is the only version the trace ever sees. See read_pc().
-  _pc = read_register_uncached(isa::Pep10::Register::PC);
+  _pc = read_register_uncached(pep::Register::PC);
   const auto init_pc = _pc;
   // TODO: Should probably be an instruction access?
   u8 is = _target->read<u8, false>(_pc, op_data()).second;
   _pc += 1;
-  write_register(isa::Pep10::Register::IS, is);
+  write_register(pep::Register::IS, is);
   // Defer PC writeback until end of instruction to avoid ~3 updates on a BR (1 for to fetch IS, 1 to fetch OS, 1 for
   // the branch).
   handle(_opcodes[is]);
@@ -196,10 +197,10 @@ void PepISA3CPU::clock_tick(PulseIndex idx, u64 tick) {
   // data-dependence for the branch target.
   const auto pc_delta = _pc - init_pc;
   if ((pc_delta & 0b11) == pc_delta) {
-    auto r = _regbank->ref(isa::Pep10::Register::PC);
+    auto r = _regbank->ref(pep::Register::PC);
     if (_may_trace) _trace.emit_incr_register(op_data(), r, static_cast<i16>(pc_delta));
     _regbank->write_pc_untraced(_pc);
-  } else write_register_uncached(isa::Pep10::Register::PC, _pc);
+  } else write_register_uncached(pep::Register::PC, _pc);
   // TODO: handle breakpoints, debug info, etc
   if (has_bps && _bp_filter.maybe_contains(_pc)) {
     // Placeholder action to ensure that the bp check is not optimized out.
@@ -244,29 +245,32 @@ pepp::bts::ElfEndian PepISA3CPU::core_endian() const noexcept { return pepp::bts
 std::string PepISA3CPU::stringize_next_instruction() const {
   // TODO: only Pep/10's tables are wired up so far.
   if (_config.isa != ISA::Pep10 || _target == nullptr) return {};
-  using P10 = isa::Pep10;
+  using B = pep::SharedOpBehavior;
   // Access with debugger permissions to avoid mmio side effects.
   static const Operation peek(Operation::Type::BufferInternal, Operation::Kind::instruction);
 
   const u16 pc = _regbank->read_pc();
   const u8 is = _target->read<u8, false>(pc, peek).second;
-  const auto &op = P10::opcodeLUT[is];
-  if (!op.valid) return fmt::format("{:04X}  {:02X}      <illegal>", pc, is);
+  // Very slow linear-scan over instruction set. Since stringiz-ing is already slow, we are ignoring the consequences
+  const auto *row = pep::row_of(pep::pep10::instructions, is);
+  const auto &op = _opcodes[is];
+  if (!row || op.opcode == B::INVALID || op.opcode == B::UNIMPL)
+    return fmt::format("{:04X}  {:02X}      <illegal>", pc, is);
 
-  const auto mnemonic = P10::string(op.instr.mnemon);
-  if (P10::operandBytes(is) == 0) return fmt::format("{:04X}  {:02X}      {}", pc, is, mnemonic);
+  if (row->low_bits == pep::LowBitSpecifiers::None) return fmt::format("{:04X}  {:02X}      {}", pc, is, row->mnemonic);
   const u16 os = _target->read<u16, bits::host_is_le>(static_cast<u16>(pc + 1), peek).second;
-  if (op.mode == P10::AddressingMode::NONE)
-    return fmt::format("{:04X}  {:02X}{:04X}  {:<6} 0x{:04X}", pc, is, os, mnemonic, os);
-  return fmt::format("{:04X}  {:02X}{:04X}  {:<6} 0x{:04X},{}", pc, is, os, mnemonic, os, P10::string(op.mode));
+  // Convert the low-order bits to an addressing mode string.
+  const auto mode = pep::low_bit_mode(row->low_bits, static_cast<u8>(is - row->base));
+  return fmt::format("{:04X}  {:02X}{:04X}  {:<6} 0x{:04X},{}", pc, is, os, row->mnemonic, os,
+                     pep::pep10::dialect().name(mode));
 }
 
 void PepISA3CPU::register_core_init(Loader &loader) {
-  using MV = isa::Pep10::MemoryVectors;
+  using MV = pep::pep10::MemoryVectors;
   auto mem = dynamic_cast<Device *>(_target);
   if (!mem) throw std::logic_error("PepISA3CPU: target must be a device");
-  auto sp = _regbank->ref(isa::Pep10::Register::SP);
-  auto pc = _regbank->ref(isa::Pep10::Register::PC);
+  auto sp = _regbank->ref(pep::Register::SP);
+  auto pc = _regbank->ref(pep::Register::PC);
   // TODO: replace constants depending on the memory size / version of Pep.
   loader.copy_word(sp, mem->id(), static_cast<u16>(MV::SystemStackPtr), bits::Order::BigEndian);
   loader.copy_word(pc, mem->id(), static_cast<u16>(MV::Dispatcher), bits::Order::BigEndian);
@@ -288,16 +292,15 @@ u8 PepISA3CPU::read_packed_csr() const { return _csrs->read_packed(); }
 void PepISA3CPU::write_packed_csr(u8 value) { _csrs->write_packed(value); }
 
 void PepISA3CPU::handle(Op opcode) {
-  using R = isa::Pep10::Register;
   using BC = BranchCondition;
-  using enum isa::SharedOpBehavior;
-  const auto operand_addr = [&] { return decode_op_addr(this, opcode.addr); };
-  const auto operand_value_word = [&] { return decode_op_value_word(this, opcode.addr); };
-  const auto operand_value_byte = [&] { return decode_op_value_byte(this, opcode.addr); };
+  using enum pep::SharedOpBehavior;
+  const auto operand_addr = [&] { return decode_op_addr(this, opcode.addr_mode); };
+  const auto operand_value_word = [&] { return decode_op_value_word(this, opcode.addr_mode); };
+  const auto operand_value_byte = [&] { return decode_op_value_byte(this, opcode.addr_mode); };
   // One switch over the whole behavior enum rather than two, which is significantly faster than a monadic/dyadic split.
   // However, we can't preload operand anymore, so we need a small lambda to defer reading it until we've figured out if
   // the insruction is dyadic or not.
-  switch (opcode.behavior) {
+  switch (opcode.opcode) {
   case UNIMPL: return unimpl_handler(this);
   case STOP: throw std::logic_error("Unimplemented instruction: STOP");
   case RET: return handle_ret(this);
@@ -307,14 +310,15 @@ void PepISA3CPU::handle(Op opcode) {
   case MOVSPA: return handle_movspa(this);
   case MOVASP: return handle_movasp(this);
   case HW_NOP: return handle_nop(this);
-  case NEG: return handle_negr(this, (R)opcode.target);
-  case ASL: return handle_aslr(this, (R)opcode.target);
-  case ASR: return handle_asrr(this, (R)opcode.target);
-  case NOT: return handle_notr(this, (R)opcode.target);
-  case ROL: return handle_rolr(this, (R)opcode.target);
-  case ROR: return handle_rorr(this, (R)opcode.target);
+  case NEG: return handle_negr(this, opcode.target);
+  case ASL: return handle_aslr(this, opcode.target);
+  case ASR: return handle_asrr(this, opcode.target);
+  case NOT: return handle_notr(this, opcode.target);
+  case ROL: return handle_rolr(this, opcode.target);
+  case ROR: return handle_rorr(this, opcode.target);
   case SCALL: return handle_scall(this);
-  case TRAP_CALL: throw std::logic_error("Unimplemented instruction: TRAP_CALL");
+  case NONUNARY_TRAP: throw std::logic_error("Unimplemented instruction: NONUNARY_TRAP");
+  case UNARY_TRAP: throw std::logic_error("Unimplemented instruction: UNARY_TRAP");
   case BR: return handle_unconditional_branch(this, opcode, operand_value_word());
   case BRLE: return handle_branch(this, opcode, BC::LE, operand_value_word());
   case BRLT: return handle_branch(this, opcode, BC::LT, operand_value_word());

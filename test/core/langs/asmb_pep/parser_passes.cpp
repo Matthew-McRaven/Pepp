@@ -16,6 +16,9 @@
 
 #include <catch.hpp>
 #include <map>
+#include <string>
+#include <tuple>
+#include <vector>
 #include "core/compile/ir_linear/line_comment.hpp"
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
@@ -28,6 +31,7 @@
 #include "core/langs/asmb_pep/codegen.hpp"
 #include "core/langs/asmb_pep/ir_lines.hpp"
 #include "core/langs/asmb_pep/parser.hpp"
+#include "core/langs/asmb_pep/parser_error.hpp"
 #include "spdlog/spdlog.h"
 
 namespace {
@@ -65,7 +69,7 @@ TEST_CASE("Pepp ASM parser", "[scope:core][scope:core.langs][level:asmb3][level:
     REQUIRE(results.size() == 1);
     auto r0 = std::dynamic_pointer_cast<MonadicInstruction>(results[0]);
     REQUIRE(r0);
-    CHECK(r0->mnemonic.instruction == isa::detail::pep10::Mnemonic::NOTA);
+    CHECK(r0->mnemonic.name == "NOTA");
   }
   SECTION("Monadic instructions declaring symbols") {
     pepp::tc::DiagnosticTable diag;
@@ -75,7 +79,7 @@ TEST_CASE("Pepp ASM parser", "[scope:core][scope:core.langs][level:asmb3][level:
     REQUIRE(results.size() == 1);
     auto r0 = std::dynamic_pointer_cast<MonadicInstruction>(results[0]);
     REQUIRE(r0);
-    CHECK(r0->mnemonic.instruction == isa::detail::pep10::Mnemonic::NOTA);
+    CHECK(r0->mnemonic.name == "NOTA");
     auto attr = r0->attribute(SymbolDeclaration::TYPE);
     REQUIRE(attr);
     auto sym = (SymbolDeclaration *)attr;
@@ -90,8 +94,8 @@ TEST_CASE("Pepp ASM parser", "[scope:core][scope:core.langs][level:asmb3][level:
     REQUIRE(results.size() == 1);
     auto r0 = std::dynamic_pointer_cast<DyadicInstruction>(results[0]);
     REQUIRE(r0);
-    CHECK(r0->mnemonic.instruction == isa::detail::pep10::Mnemonic::ADDA);
-    CHECK(r0->addr_mode.addr_mode == isa::detail::pep10::AddressingMode::I);
+    CHECK(r0->mnemonic.name == "ADDA");
+    CHECK(r0->addr_mode.addr_mode == pep::AddrMode::I);
     CHECK(std::dynamic_pointer_cast<pepp::ast::Numeric>(r0->argument.value));
   }
   SECTION("Dyadic instructions with optional addressing modes") {
@@ -102,8 +106,8 @@ TEST_CASE("Pepp ASM parser", "[scope:core][scope:core.langs][level:asmb3][level:
     REQUIRE(results.size() == 1);
     auto r0 = std::dynamic_pointer_cast<DyadicInstruction>(results[0]);
     REQUIRE(r0);
-    CHECK(r0->mnemonic.instruction == isa::detail::pep10::Mnemonic::BR);
-    CHECK(r0->addr_mode.addr_mode == isa::detail::pep10::AddressingMode::I);
+    CHECK(r0->mnemonic.name == "BR");
+    CHECK(r0->addr_mode.addr_mode == pep::AddrMode::I);
     auto ptr_arg = std::dynamic_pointer_cast<pepp::ast::Numeric>(r0->argument.value);
     CHECK(ptr_arg != nullptr);
   }
@@ -168,8 +172,8 @@ TEST_CASE("Pepp ASM parser", "[scope:core][scope:core.langs][level:asmb3][level:
     REQUIRE(results.size() == 1);
     auto r0 = std::dynamic_pointer_cast<DyadicInstruction>(results[0]);
     REQUIRE(r0);
-    CHECK(r0->mnemonic.instruction == isa::detail::pep10::Mnemonic::BR);
-    CHECK(r0->addr_mode.addr_mode == isa::detail::pep10::AddressingMode::I);
+    CHECK(r0->mnemonic.name == "BR");
+    CHECK(r0->addr_mode.addr_mode == pep::AddrMode::I);
     CHECK(std::dynamic_pointer_cast<pepp::ast::Numeric>(r0->argument.value) != nullptr);
   }
   SECTION("Dyadic instructions with symbolic argument") {
@@ -180,8 +184,8 @@ TEST_CASE("Pepp ASM parser", "[scope:core][scope:core.langs][level:asmb3][level:
     REQUIRE(results.size() == 1);
     auto r0 = std::dynamic_pointer_cast<DyadicInstruction>(results[0]);
     REQUIRE(r0);
-    CHECK(r0->mnemonic.instruction == isa::detail::pep10::Mnemonic::BR);
-    CHECK(r0->addr_mode.addr_mode == isa::detail::pep10::AddressingMode::X);
+    CHECK(r0->mnemonic.name == "BR");
+    CHECK(r0->addr_mode.addr_mode == pep::AddrMode::X);
     CHECK(std::dynamic_pointer_cast<pepp::ast::Symbolic>(r0->argument.value));
   }
 }
@@ -603,6 +607,34 @@ TEST_CASE("Pepp ASM parser with macros instantiations",
 
     CHECK(lines(parser::flatten_macros(results, true)) == "cbcb");
     CHECK(lines(parser::flatten_macros(results, false)) == "bb");
+  }
+  SECTION("instructions and macros can share a name") {
+    pepp::tc::DiagnosticTable diag;
+    auto mr = std::make_shared<MR>();
+    mr->insert(std::make_shared<MacroDefinition>(MacroDefinition{"NOTA", {{.name = "x"}}, ".byte \\x\n"}));
+    auto p = Parser(data("NOTA\nNOTA 5"), mr);
+    auto results = p.parse(diag);
+    CHECK(diag.count() == 0);
+    REQUIRE(results.size() == 2);
+    // The instruction is preferred when the operands fit it.
+    CHECK(std::dynamic_pointer_cast<MonadicInstruction>(results[0]));
+    CHECK(std::dynamic_pointer_cast<MacroInstantiation>(results[1]));
+  }
+  SECTION("prefer instructions over macros when reporting errors") {
+    using PE = pepp::tc::PepParserError;
+    using NE = PE::NullaryError;
+    auto mr = std::make_shared<MR>();
+    mr->insert(std::make_shared<MacroDefinition>(MacroDefinition{"ADDA", {{.name = "x"}}, ".byte \\x,\n"}));
+    // The first expands to an invalid line; the second has no 3-argument macro.
+    auto [source, expected] = GENERATE(std::make_tuple("ADDA 10", NE::AddressingMode_Required),
+                                       std::make_tuple("ADDA 10,j,k", NE::AddressingMode_Invalid));
+    CAPTURE(source);
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(source), mr);
+    p.parse(diag);
+    std::vector<std::string> messages;
+    for (const auto &[_, message] : diag) messages.emplace_back(message);
+    CHECK(messages == std::vector<std::string>{PE::to_string(expected)});
   }
   SECTION("a conditional in a macro body may be nested in the caller's conditional") {
     pepp::tc::DiagnosticTable diag;

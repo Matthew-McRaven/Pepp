@@ -15,7 +15,7 @@
  */
 #pragma once
 #include <tuple>
-#include "core/arch/pep/isa/pep10.hpp"
+#include "core/arch/pepx/isa/pep_registers.hpp"
 #include "core/sim/api/device.hpp"
 #include "core/sim/api/memory.hpp"
 #include "core/sim/api/trace.hpp"
@@ -27,7 +27,7 @@
 // working.
 class PepCSRBank final : public Device, public Target, public Traceable {
 public:
-  using CSR = isa::Pep10::CSR;
+  using CSR = pep::StatusBit;
   // Fully synthetic: the CPU constructs it, nothing parses one, and it is never written out.
   struct Configuration : public Device::Configuration {};
 

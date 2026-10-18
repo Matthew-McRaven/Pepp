@@ -16,7 +16,7 @@
 #include <array>
 #include <catch.hpp>
 
-#include "core/arch/pep/isa/pep10.hpp"
+#include "core/arch/pepx/isa/pep10.hpp"
 #include "core/formats/elf/packed_input_group.hpp"
 #include "core/formats/elf/packed_io.hpp"
 #include "core/formats/elf/packed_ops.hpp"
@@ -61,7 +61,7 @@ void poke_be(Target *mem, Address at, u16 v) {
   mem->write(at, {bytes.data(), bytes.size()}, app);
 }
 
-using MV = isa::Pep10::MemoryVectors;
+using MV = pep::pep10::MemoryVectors;
 
 // A Pep/10 ELF with one executable PT_LOAD holding code at base, serialized in memory rather than to disk.
 pepp::bts::AnyElfGroup elf_at(Address base, const std::vector<u8> &code) {
