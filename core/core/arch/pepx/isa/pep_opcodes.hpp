@@ -112,6 +112,8 @@ constexpr bool is_trap(SharedOpBehavior op) {
   return op == SharedOpBehavior::NONUNARY_TRAP || op == SharedOpBehavior::UNARY_TRAP || op == SharedOpBehavior::SCALL;
 }
 constexpr bool is_trap(Operation op) { return is_trap(op.opcode); }
+// Calls and traps both push a return address, which matters to the debugger's step modes.
+constexpr bool is_call(SharedOpBehavior op) { return op == SharedOpBehavior::CALL || is_trap(op); }
 constexpr bool is_store(SharedOpBehavior op) { return op == SharedOpBehavior::STW || op == SharedOpBehavior::STB; }
 constexpr u8 operand_width(Operation op) {
   if (is_unary(op)) return 0;

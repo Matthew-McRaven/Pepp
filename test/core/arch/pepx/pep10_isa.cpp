@@ -18,6 +18,7 @@
 #include <string>
 #include <vector>
 #include "core/arch/pep/isa/pep10.hpp"
+#include "core/arch/pepx/asmb/pep10.hpp"
 #include "core/arch/pepx/isa/pep10.hpp"
 
 TEST_CASE("New Pep/10 architeture definition matches old definitions") {
@@ -29,6 +30,19 @@ TEST_CASE("New Pep/10 architeture definition matches old definitions") {
       const auto mn = Old::parseMnemonic(std::string{row.mnemonic});
       REQUIRE(mn != Old::Mnemonic::INVALID);
       CHECK(Old::opcode(mn) == row.base);
+    }
+  }
+  SECTION("Mnemonic list, help text, and call classification") {
+    using Old = isa::Pep10;
+    const auto names = pep::mnemonics(pep::pep10::instructions);
+    CHECK(std::vector<std::string>(names.begin(), names.end()) == Old::mnemonics());
+    for (const auto &row : pep::pep10::instructions) {
+      INFO(std::string{row.mnemonic});
+      const auto mn = Old::parseMnemonic(std::string{row.mnemonic});
+      CHECK(pep::describe(pep::pep10::descriptions, row.mnemonic) == Old::describeMnemonicUsingPlaceholders(mn));
+      CHECK(pep::specifier_with_placeholders(row) == Old::instructionSpecifierWithPlaceholders(mn));
+      CHECK(pep::is_call(row.behavior) == Old::isCall(mn));
+      CHECK(pep::is_trap(row.behavior) == Old::isTrap(mn));
     }
   }
   SECTION("Register numbers") {

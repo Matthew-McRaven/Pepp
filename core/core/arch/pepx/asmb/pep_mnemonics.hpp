@@ -18,7 +18,9 @@
 #include <span>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <unordered_map>
+#include <utility>
 #include "core/arch/pepx/isa/pep_instructions.hpp"
 #include "core/arch/pepx/isa/pep_opcodes.hpp"
 #include "core/ds/string_compare.hpp"
@@ -51,6 +53,14 @@ struct MnemonicDescriptor {
 // Valid patterns for each mnemonic. A mnemonic may have several patterns, e.g. BR v and BR v,i.
 // The last pattern is treated as the canonical pattern for determining syntax errors.
 using MnemonicMap = std::unordered_multimap<std::string, MnemonicDescriptor, pepp::bts::ci_hash, pepp::bts::ci_eq>;
+// A mnemonic's help text.
+using MnemonicDescription = std::pair<std::string_view, std::string_view>;
+constexpr std::string_view describe(std::span<const MnemonicDescription> descriptions, std::string_view mnemonic) {
+  for (const auto &[name, text] : descriptions)
+    if (name == mnemonic) return text;
+  return "Illegal instruction";
+}
+
 MnemonicMap make_mnemonics(std::span<const InstructionDefinition> rows);
 
 constexpr std::span<const MnemonicDescriptor::OperandType> MnemonicDescriptor::operands() const {

@@ -15,9 +15,12 @@
  */
 #pragma once
 #include <array>
+#include <bitset>
 #include <span>
 #include <stdexcept>
+#include <string>
 #include <string_view>
+#include <vector>
 #include "core/arch/pepx/isa/pep_opcodes.hpp"
 #include "core/arch/pepx/isa/pep_registers.hpp"
 #include "core/integers.h"
@@ -51,6 +54,33 @@ constexpr AddrMode low_bit_mode(LowBitSpecifiers low_bits, u8 offset) {
   case LowBitSpecifiers::RAAA: return static_cast<AddrMode>(static_cast<u8>(AddrMode::I) + offset);
   default: return AddrMode::Unary;
   }
+}
+
+// Every defined mnemonic in the same order as rows.
+inline std::vector<std::string_view> mnemonics(std::span<const InstructionDefinition> rows) {
+  std::vector<std::string_view> ret;
+  ret.reserve(rows.size());
+  for (const auto &row : rows) ret.emplace_back(row.mnemonic);
+  return ret;
+}
+
+// The base opcode in binary, with r for a register bit and a, aaa, or nnn for the low bits' field.
+inline std::string specifier_with_placeholders(const InstructionDefinition &row) {
+  auto ret = std::bitset<8>(row.base).to_string();
+  const bool has_register = row.target == Register::A || row.target == Register::X;
+  switch (row.low_bits) {
+  case LowBitSpecifiers::None:
+    if (has_register) ret[7] = 'r';
+    break;
+  case LowBitSpecifiers::A: ret[7] = 'a'; break;
+  case LowBitSpecifiers::AAA: ret.replace(5, 3, "aaa"); break;
+  case LowBitSpecifiers::NNN: ret.replace(5, 3, "nnn"); break;
+  case LowBitSpecifiers::RAAA:
+    ret.replace(5, 3, "aaa");
+    ret[4] = 'r';
+    break;
+  }
+  return ret;
 }
 
 // The row whose base+opcode_count include opcode. Nullptr if no match.
