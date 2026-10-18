@@ -91,4 +91,13 @@ constexpr OpcodePlane opcode_plane = []() consteval {
     plane[it] = Operation{.opcode = SharedOpBehavior::UNIMPL, .addr_mode = AddrMode::Unary};
   return plane;
 }();
+
+enum class MemoryVectors : u16 {
+  TrapHandler = 0xFFF7,
+  Dispatcher = 0xFFF9,
+  SystemStackPtr = 0xFFFB,
+  CharIn = 0xFFFD,
+  CharOut = 0xFFFE,
+  PwrOff = 0xFFFF,
+};
 } // namespace pep::pep10

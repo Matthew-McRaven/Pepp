@@ -43,6 +43,23 @@ constexpr u8 opcode_count(LowBitSpecifiers low_bits) {
   return 0;
 }
 
+// Given an instruction's expected low_bits pattern and offset = (opcode-base), compute the addressing mode.
+constexpr AddrMode low_bit_mode(LowBitSpecifiers low_bits, u8 offset) {
+  switch (low_bits) {
+  case LowBitSpecifiers::A: return offset == 0 ? AddrMode::I : AddrMode::X;
+  case LowBitSpecifiers::AAA: [[fallthrough]];
+  case LowBitSpecifiers::RAAA: return static_cast<AddrMode>(static_cast<u8>(AddrMode::I) + offset);
+  default: return AddrMode::Unary;
+  }
+}
+
+// The row whose base+opcode_count include opcode. Nullptr if no match.
+constexpr const InstructionDefinition *row_of(std::span<const InstructionDefinition> rows, u8 opcode) {
+  for (const auto &row : rows)
+    if (opcode >= row.base && opcode - row.base < opcode_count(row.low_bits)) return &row;
+  return nullptr;
+}
+
 // Convert a number of InstructionDefinitions into 8-bit lookup table.
 constexpr OpcodePlane make_opcode_plane(std::span<const InstructionDefinition> rows) {
   OpcodePlane plane{};
@@ -52,16 +69,10 @@ constexpr OpcodePlane make_opcode_plane(std::span<const InstructionDefinition> r
       auto &op = plane[row.base + offset];
       if (op.opcode != SharedOpBehavior::INVALID) throw std::logic_error("Overlapping opcodes");
       // Non-unary traps fetch the operand specifier as an immediate into OS. This advancs the PC by 2 automatically.
-      auto mode = AddrMode::Unary;
+      auto mode = low_bit_mode(row.low_bits, offset);
+      // Stores disallow immediate addressing. Keep the ,i variant INVALID.
+      if (is_store(row.behavior) && mode == AddrMode::I) continue;
       if (is_trap(row.behavior)) mode = row.behavior == SharedOpBehavior::UNARY_TRAP ? AddrMode::Unary : AddrMode::I;
-      else {
-        switch (row.low_bits) {
-        case LowBitSpecifiers::A: mode = offset == 0 ? AddrMode::I : AddrMode::X; break;
-        case LowBitSpecifiers::AAA: [[fallthrough]];
-        case LowBitSpecifiers::RAAA: mode = static_cast<AddrMode>(static_cast<u8>(AddrMode::I) + offset); break;
-        default: break;
-        }
-      }
       op = Operation{.opcode = row.behavior, .addr_mode = mode, .target = row.target};
     }
   }

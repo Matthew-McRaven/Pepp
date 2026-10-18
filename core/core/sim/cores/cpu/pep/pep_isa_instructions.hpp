@@ -1,23 +1,23 @@
 #include <tuple>
-#include "core/arch/pep/isa/pep10.hpp"
-#include "core/arch/pep/isa/pep_shared_ops.hpp"
+#include "core/arch/pepx/isa/pep_opcodes.hpp"
+#include "core/arch/pepx/isa/pep_registers.hpp"
 #include "core/integers.h"
 
 class PepISA3CPU;
 
-using Op = isa::SharedOp;
+using Op = pep::Operation;
 
 
 // Read word at Mem[PC] and store to OS, incrementing PC by 2.
 // Return the /address/ of the operand value, which is usable for both load and store instructions.
 // For store-type operands, this is the address you write to. For load-type operands, you will need to read from this
 // address to get the actual operand specifier.
-u16 decode_op_addr(PepISA3CPU *self, isa::SharedAddrMode addr);
+u16 decode_op_addr(PepISA3CPU *self, pep::AddrMode addr);
 // Read word at Mem[PC] and store to OS, incrementing PC by 2. Return the /value/ of the operand, which is usable for
 // load-type instructions. This is an optimization over decode_op_addr, which incurrs an extra memory read for load-type
 // instructions. Must not be used for store-type instructions
-u16 decode_op_value_word(PepISA3CPU *self, isa::SharedAddrMode addr);
-u8 decode_op_value_byte(PepISA3CPU *self, isa::SharedAddrMode addr);
+u16 decode_op_value_word(PepISA3CPU *self, pep::AddrMode addr);
+u8 decode_op_value_byte(PepISA3CPU *self, pep::AddrMode addr);
 
 void unimpl_handler(PepISA3CPU *);
 
@@ -29,12 +29,12 @@ void handle_movspa(PepISA3CPU *self);
 void handle_movasp(PepISA3CPU *self);
 void handle_nop(PepISA3CPU *);
 
-void handle_negr(PepISA3CPU *self, isa::Pep10::Register reg);
-void handle_aslr(PepISA3CPU *self, isa::Pep10::Register reg);
-void handle_asrr(PepISA3CPU *self, isa::Pep10::Register reg);
-void handle_notr(PepISA3CPU *self, isa::Pep10::Register reg);
-void handle_rolr(PepISA3CPU *self, isa::Pep10::Register reg);
-void handle_rorr(PepISA3CPU *self, isa::Pep10::Register reg);
+void handle_negr(PepISA3CPU *self, pep::Register reg);
+void handle_aslr(PepISA3CPU *self, pep::Register reg);
+void handle_asrr(PepISA3CPU *self, pep::Register reg);
+void handle_notr(PepISA3CPU *self, pep::Register reg);
+void handle_rolr(PepISA3CPU *self, pep::Register reg);
+void handle_rorr(PepISA3CPU *self, pep::Register reg);
 
 enum class BranchCondition { UNCONDITIONAL, LE, LT, EQ, NE, GE, GT, V, C };
 

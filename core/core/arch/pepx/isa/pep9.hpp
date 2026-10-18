@@ -87,4 +87,13 @@ constexpr auto instructions = [] {
 
 // Prebuilt at compile time.
 constexpr OpcodePlane opcode_plane = []() consteval { return make_opcode_plane(instructions); }();
+
+enum class MemoryVectors : u16 {
+  UserStackPtr = 0xFFF4,
+  SystemStackPtr = 0xFFF6,
+  CharIn = 0xFFF8,
+  CharOut = 0xFFFA,
+  Loader = 0xFFFC,
+  TrapHandler = 0xFFFE,
+};
 } // namespace pep::pep9

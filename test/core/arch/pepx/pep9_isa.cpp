@@ -37,11 +37,6 @@ TEST_CASE("New Pep/9 architecture definition matches old definitions",
       INFO("opcode " << it);
       const auto &now = pep::pep9::opcode_plane[it];
       const auto &old = Old::opcode_plane[it];
-      // The new plane keeps immediate stores
-      if (pep::is_store(now.opcode) && now.addr_mode == pep::AddrMode::I) {
-        CHECK(old.behavior == B::INVALID);
-        continue;
-      }
       // Non-unary traps fetch their operand specifier as immediate, and the OS rejects modes the trap does not
       // support. The old plane decodes modes, and marks DECI's unsupported ones invalid.
       if (now.opcode == B::NONUNARY_TRAP) {
@@ -50,6 +45,7 @@ TEST_CASE("New Pep/9 architecture definition matches old definitions",
         continue;
       }
       CHECK(now.opcode == old.behavior);
+      if (now.opcode == B::INVALID) continue;
       CHECK(now.addr_mode == old.addr);
       if (now.target != pep::Register::INVALID) CHECK(static_cast<u8>(now.target) == old.target);
     }

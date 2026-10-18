@@ -13,11 +13,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include <array>
 #include <catch.hpp>
+#include <stdexcept>
 #include <vector>
 
-#include "core/arch/pep/isa/pep10.hpp"
-#include "core/arch/pep/isa/pep9.hpp"
+#include "core/arch/pepx/isa/pep_registers.hpp"
 #include "core/sim/cores/cpu/pep/pep_isa.hpp"
 #include "core/sim/cores/cpu/pep/pep_isa_instructions.hpp"
 #include "core/sim/debugger/tvm_interpreter.hpp"
@@ -55,16 +56,6 @@ inline auto make_cpu(PepISA3CPU::ISA isa = PepISA3CPU::ISA::Pep10) {
 
 static const Operation rw{Operation::Type::Standard, Operation::Kind::data};
 
-static inline u16 reg(PepISA3CPU *cpu, isa::Pep10::Register reg) { return cpu->read_register(reg); };
-
-static inline u16 csr(PepISA3CPU *cpu, isa::Pep10::CSR csr) { return cpu->read_csr(csr); };
-
-static inline u16 reg(PepISA3CPU *cpu, isa::Pep9::Register reg) {
-  return cpu->read_register((isa::Pep10::Register)reg);
-};
-
-static inline u16 csr(PepISA3CPU *cpu, isa::Pep9::CSR csr) { return cpu->read_csr((isa::Pep10::CSR)csr); };
-
 } // namespace
 TEST_CASE("Access registers from tvm::Interpreter", "[scope:core][scope:core.dbg][kind:unit][arch:pep10]") {
   using namespace tvm::EncodedOp;
@@ -98,7 +89,7 @@ TEST_CASE("Access registers from tvm::Interpreter", "[scope:core][scope:core.dbg
   SECTION("Compare accumulator (immediate)") {
     auto blaster = sys->make_trace_interpreter();
     auto scan = sys->register_scan();
-    cpu->write_register(isa::Pep10::Register::A, 0xFEED);
+    cpu->write_register(pep::Register::A, 0xFEED);
     auto ref = *scan->find("A");
 
     tb.begin(S);
@@ -117,8 +108,8 @@ TEST_CASE("Access registers from tvm::Interpreter", "[scope:core][scope:core.dbg
   SECTION("Compare accumulator / X (DP)") {
     auto blaster = sys->make_trace_interpreter();
     auto scan = sys->register_scan();
-    cpu->write_register(isa::Pep10::Register::A, 0xFEED);
-    cpu->write_register(isa::Pep10::Register::X, 0xBEEF);
+    cpu->write_register(pep::Register::A, 0xFEED);
+    cpu->write_register(pep::Register::X, 0xBEEF);
     auto a = *scan->find("A");
     auto x = *scan->find("X");
 
