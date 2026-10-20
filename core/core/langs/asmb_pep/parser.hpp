@@ -57,6 +57,8 @@ private:
   using OptionalSymbol = std::optional<std::shared_ptr<pepp::core::symbol::Entry>>;
   std::shared_ptr<pepp::ast::IRValue> argument();
   std::shared_ptr<pepp::ast::IRValue> numeric_argument();
+  // A number, symbol, or character, as .BYTE and .WORD accept.
+  std::shared_ptr<pepp::ast::IRValue> literal_argument();
   std::shared_ptr<pepp::ast::IRValue> hex_argument();
   std::shared_ptr<pepp::ast::Symbolic> identifier_argument();
   std::vector<ExpressionResult> mnemonic_operands();

@@ -79,6 +79,15 @@ std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::PepParser::numeric_argumen
   return std::dynamic_pointer_cast<pepp::ast::Numeric>(argument());
 }
 
+std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::PepParser::literal_argument() {
+  auto arg = argument();
+  using namespace pepp::ast;
+  if (std::dynamic_pointer_cast<Numeric>(arg) || std::dynamic_pointer_cast<Symbolic>(arg) ||
+      std::dynamic_pointer_cast<Character>(arg))
+    return arg;
+  return nullptr;
+}
+
 std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::PepParser::hex_argument() {
   return std::dynamic_pointer_cast<pepp::ast::Hexadecimal>(argument());
 }
@@ -369,12 +378,9 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
     return std::make_shared<DotBlock>(Argument{arg});
   }
   case D::BYTE: {
-    auto arg = argument();
-    if (auto numeric = std::dynamic_pointer_cast<pepp::ast::Numeric>(arg); numeric) {
-      return std::make_shared<DotLiteral>(DotLiteral::Which::Byte1, Argument{numeric});
-    } else if (auto ident = std::dynamic_pointer_cast<pepp::ast::Symbolic>(arg); ident) {
-      return std::make_shared<DotLiteral>(DotLiteral::Which::Byte1, Argument{ident});
-    } else throw PepParserError(PepParserError::NullaryError::Argument_ExpectedInteger, buf->matched_interval());
+    if (auto arg = literal_argument(); !arg)
+      throw PepParserError(PepParserError::NullaryError::Argument_ExpectedInteger, buf->matched_interval());
+    else return std::make_shared<DotLiteral>(DotLiteral::Which::Byte1, Argument{arg});
   }
   case D::EQUATE: {
     auto arg = argument();
@@ -450,12 +456,9 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
     }
   }
   case D::WORD: {
-    auto arg = argument();
-    if (auto numeric = std::dynamic_pointer_cast<pepp::ast::Numeric>(arg); numeric) {
-      return std::make_shared<DotLiteral>(DotLiteral::Which::Byte2, Argument{numeric});
-    } else if (auto ident = std::dynamic_pointer_cast<pepp::ast::Symbolic>(arg); ident) {
-      return std::make_shared<DotLiteral>(DotLiteral::Which::Byte2, Argument{ident});
-    } else throw PepParserError(PepParserError::NullaryError::Argument_ExpectedInteger, buf->matched_interval());
+    if (auto arg = literal_argument(); !arg)
+      throw PepParserError(PepParserError::NullaryError::Argument_ExpectedInteger, buf->matched_interval());
+    else return std::make_shared<DotLiteral>(DotLiteral::Which::Byte2, Argument{arg});
   }
   case D::IF: {
     auto arg = argument();

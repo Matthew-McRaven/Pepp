@@ -183,6 +183,21 @@ CPBA '+',i
   CHECK(std::vector<u8>(bytes.begin(), bytes.end()) == expected);
 }
 
+TEST_CASE("Pepp ASM codegen character literals", "[scope:core][scope:core.langs][kind:unit][arch:*]") {
+  using Parser = pepp::tc::parser::PepParser;
+  using MR = pepp::tc::MacroRegistry;
+  pepp::tc::DiagnosticTable diag;
+  auto p = Parser(data(".BYTE 'U'\n.WORD 'A'\n"), std::make_shared<MR>());
+  auto code = pepp::tc::parser::flatten_macros(p.parse(diag));
+  auto result = pepp::tc::pepp_split_to_sections(diag, code);
+  auto addresses = pepp::tc::pepp_assign_addresses(diag, result.grouped_ir);
+  auto oc = pepp::tc::pepp_to_object_code(diag, addresses, result.grouped_ir);
+  REQUIRE(diag.count() == 0);
+  const auto &slice = oc.section_slices[0];
+  const auto bytes = slice.get(0, slice.size());
+  CHECK(std::vector<u8>(bytes.begin(), bytes.end()) == std::vector<u8>{'U', 0x00, 'A'});
+}
+
 TEST_CASE("Pepp ASM codegen object code size", "[scope:core][scope:core.langs][kind:unit][arch:pep10]") {
   using Parser = pepp::tc::parser::PepParser;
   using MR = pepp::tc::MacroRegistry;
