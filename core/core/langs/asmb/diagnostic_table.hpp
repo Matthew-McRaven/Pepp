@@ -9,9 +9,19 @@ namespace pepp::tc {
 // e.g., parsing can fail because the user entered an invalid program, while assign_addresses cannot because the
 // previous passes caught all possible errors. We chose to ignore system errors (e.g., ran out of memory) to reduce the
 // number of failable functions.
+enum class Severity {
+  Warning, // The output will simulate correctly, but debugging features may be inaccurate.
+  Error,   // The output is wrong, but its layout is intact, so later stages may still run.
+  Fatal,   // Later stages cannot run meaningfully.
+};
+struct Diagnostic {
+  std::string message;
+  Severity severity;
+};
+
 class DiagnosticTable {
 public:
-  void add_message(pepp::tc::support::LocationInterval, std::string);
+  void add_message(pepp::tc::support::LocationInterval, std::string, Severity);
   auto begin() { return _raw.cbegin(); }
   auto end() { return _raw.cend(); }
   auto cbegin() const { return _raw.cbegin(); }
@@ -22,8 +32,9 @@ public:
     return std::pair{lb, ub};
   }
   size_t count() const;
+  size_t fatal_count() const;
 
 private:
-  std::multimap<pepp::tc::support::LocationInterval, std::string> _raw;
+  std::multimap<pepp::tc::support::LocationInterval, Diagnostic> _raw;
 };
 } // namespace pepp::tc

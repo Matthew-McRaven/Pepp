@@ -410,7 +410,7 @@ LDWA 2,i
                     std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
-    for (auto &d : diag) std::cerr << d.second << "\n";
+    for (auto &d : diag) std::cerr << d.second.message << "\n";
     auto code = pepp::tc::parser::flatten_macros(results);
     auto result = pepp::tc::pepp_split_to_sections(diag, code);
     CHECK(diag.count() == 0);
@@ -491,7 +491,7 @@ LDWA 2,i
                     std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
-    for (auto &d : diag) std::cerr << d.second << "\n";
+    for (auto &d : diag) std::cerr << d.second.message << "\n";
     auto code = pepp::tc::parser::flatten_macros(results);
     auto result = pepp::tc::pepp_split_to_sections(diag, code);
     CHECK(diag.count() == 0);

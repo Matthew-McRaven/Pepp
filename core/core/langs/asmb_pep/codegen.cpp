@@ -80,7 +80,8 @@ pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(Diagnostic
   // A symbol which can move must be used in a form which a fixup rule can relocate.
   const auto check_operand = [&diag](const LinearIR &line, pepp::ast::IRValue &arg) {
     if (value_needs_relocation(arg) && !find_fixup(line, arg))
-      diag.add_message(line.source_interval, "Operands referencing symbols must be of the form symbol [+ constant]");
+      diag.add_message(line.source_interval, "Operands referencing symbols must be of the form symbol [+ constant]",
+                       Severity::Error);
   };
   int burn_count = 0;
   // Opening a section takes pending lines as its prefix.
@@ -139,7 +140,7 @@ pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(Diagnostic
     case DotOrg::TYPE: {
       auto as_org = std::static_pointer_cast<pepp::tc::DotOrg>(line);
       if (as_org->behavior == DotOrg::Behavior::ORG) active->first.org_count++;
-      else if (burn_count++ > 0) diag.add_message(line->source_interval, "Only one .BURN is allowed");
+      else if (burn_count++ > 0) diag.add_message(line->source_interval, "Only one .BURN is allowed", Severity::Fatal);
       break;
     }
     case DyadicInstruction::TYPE: check_operand(*line, *static_cast<DyadicInstruction *>(line.get())->argument.value); break;
@@ -352,7 +353,7 @@ ProgramObjectCodeResult pepp_to_object_code(DiagnosticTable &diag, const IRMemor
     // No one line is at fault, so the error covers the whole file.
     using support::Location;
     diag.add_message({Location(0, 0), Location(Location::MAX, Location::MAX)},
-                     fmt::format("Object code must fit within {} bytes.", pep_address_space_size));
+                     fmt::format("Object code must fit within {} bytes.", pep_address_space_size), Severity::Fatal);
     return {};
   }
   return to_object_code<PeppAddress, PeppObjectVistitor>(diag, addresses, prog);

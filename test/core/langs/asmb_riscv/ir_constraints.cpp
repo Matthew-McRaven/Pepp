@@ -76,7 +76,7 @@ TEST_CASE("RISC-V data arguments are validated during codegen", "[scope:core][sc
     CAPTURE(source);
     const auto result = assemble(source);
     REQUIRE(result.diagnostics.count() == 1);
-    CHECK(result.diagnostics.cbegin()->second == E::to_string(error, bits));
+    CHECK(result.diagnostics.cbegin()->second.message == E::to_string(error, bits));
   }
 }
 
@@ -107,9 +107,9 @@ TEST_CASE("RISC-V instruction arguments are validated at codegen",
     CAPTURE(source);
     const auto result = assemble(source);
     REQUIRE(result.diagnostics.count() == 1);
-    CHECK(result.diagnostics.cbegin()->second == E::to_string(error, bits));
+    CHECK(result.diagnostics.cbegin()->second.message == E::to_string(error, bits));
   }
   const auto odd = assemble("beq x1, x2, 3");
   REQUIRE(odd.diagnostics.count() == 1);
-  CHECK(odd.diagnostics.cbegin()->second == E::to_string(E::NullaryError::Argument_OddOffset));
+  CHECK(odd.diagnostics.cbegin()->second.message == E::to_string(E::NullaryError::Argument_OddOffset));
 }

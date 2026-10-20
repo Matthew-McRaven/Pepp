@@ -69,6 +69,7 @@ TEST_CASE("Pep/10 arguments are validated at codegen", "[scope:core][scope:core.
     CAPTURE(source);
     const auto result = assemble(source);
     REQUIRE(result.diagnostics.count() == 1);
-    CHECK(result.diagnostics.cbegin()->second == E::to_string(E::UnaryError::Argument_ValueDoesNotFit, bits));
+    CHECK(result.diagnostics.cbegin()->second.message == E::to_string(E::UnaryError::Argument_ValueDoesNotFit, bits));
+    CHECK(result.diagnostics.cbegin()->second.severity == pepp::tc::Severity::Error);
   }
 }

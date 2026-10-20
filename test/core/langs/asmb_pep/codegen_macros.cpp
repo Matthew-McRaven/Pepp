@@ -70,7 +70,7 @@ TEST_CASE("Pepp macro ASM codegen address assignment",
     auto code = pepp::tc::parser::flatten_macros(results);
     auto result = pepp::tc::pepp_split_to_sections(diag, code);
     CHECK(diag.count() == 0);
-    for (const auto &d : diag) SPDLOG_WARN("Diagnostic:  {}", d.second);
+    for (const auto &d : diag) SPDLOG_WARN("Diagnostic:  {}", d.second.message);
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
     auto oc = pepp::tc::pepp_to_object_code(diag, addresses, result.grouped_ir);

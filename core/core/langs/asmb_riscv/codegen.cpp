@@ -268,7 +268,7 @@ std::optional<u32> pepp::tc::RISCVObjectVistitor::operand_field(const LinearIR &
       const auto hi = target.symbol->is_undefined() ? std::nullopt : pcrel_hi_value(auipc);
       if (!hi) {
         const CodegenError error(CodegenError::NullaryError::Argument_UnpairedPcrelLo, line.source_interval);
-        diag.add_message(error.loc, error.what());
+        diag.add_message(error.loc, error.what(), Severity::Error);
         return std::nullopt;
       } else if (hi->symbol->is_undefined()) return 0;
       // Per standard, we are supposed to compute the relocation as S + A - P
@@ -284,7 +284,7 @@ std::optional<u32> pepp::tc::RISCVObjectVistitor::operand_field(const LinearIR &
   } else if (!fixup && !symbol_offset(value) && value_needs_relocation(value)) {
     // A `symbol [+ constant]` is left to validate_argument
     const CodegenError error(CodegenError::NullaryError::Argument_NotRelocatable, line.source_interval);
-    diag.add_message(error.loc, error.what());
+    diag.add_message(error.loc, error.what(), Severity::Error);
     return std::nullopt;
   }
   if (!validate_argument(diag, line, value, constraint, 32)) return std::nullopt;

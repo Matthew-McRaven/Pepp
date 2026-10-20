@@ -128,7 +128,7 @@ void AsTask::run() {
     std::vector<std::string> diag_lines;
     diag_lines.reserve(result.diagnostics.count() + 1);
     diag_lines.push_back("Assembly failed with " + std::to_string(result.diagnostics.count()) + " error(s):");
-    for (const auto &diag : result.diagnostics) diag_lines.push_back(diag.second);
+    for (const auto &diag : result.diagnostics) diag_lines.push_back(diag.second.message);
     write_lines(_opts.file_errs, diag_lines, std::cerr);
     return emit finished(1);
   } else {

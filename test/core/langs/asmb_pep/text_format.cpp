@@ -77,7 +77,7 @@ TEST_CASE("Pepp ASM source formatting", "[scope:core][scope:core.langs][level:as
     auto p = Parser(data(txt), std::make_shared<MR>());
     auto r = p.parse(diag);
     CHECK(diag.count() == 0);
-    for (const auto &d : diag) SPDLOG_WARN(" {}", d.second);
+    for (const auto &d : diag) SPDLOG_WARN(" {}", d.second.message);
     CHECK(r.size() == 1);
     auto source = format_source(pep::pep10::dialect(), r[0].get());
 

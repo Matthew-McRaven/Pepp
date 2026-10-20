@@ -179,7 +179,7 @@ IRMemoryAddressTable<Address> assign_addresses(DiagnosticTable &diag,
 
   // Report the conflict, then lay out by the .ORGs alone.
   if (burn && first_org_section != -1) {
-    diag.add_message(burn_line->source_interval, ".BURN cannot be combined with .ORG");
+    diag.add_message(burn_line->source_interval, ".BURN cannot be combined with .ORG", Severity::Fatal);
     burn = std::nullopt;
   }
   if (burn) // Copy all sections in reverse order when using burn.
@@ -313,7 +313,8 @@ IRMemoryAddressTable<Address> assign_addresses(DiagnosticTable &diag,
   if (burn) {
     u64 total = 0;
     for (const auto &[desc, ir] : prog) total += desc.byte_count;
-    if (total > u64{*burn} + 1) diag.add_message(burn_line->source_interval, "Object code does not fit below .BURN");
+    if (total > u64{*burn} + 1)
+      diag.add_message(burn_line->source_interval, "Object code does not fit below .BURN", Severity::Fatal);
   }
 
   // Establish flat_map invariant, which is that the container is sorted.

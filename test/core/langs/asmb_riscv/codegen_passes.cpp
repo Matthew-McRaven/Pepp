@@ -370,7 +370,7 @@ data: .word 0)");
       CAPTURE(source);
       const auto rejected = assemble(source);
       REQUIRE(rejected.diag.count() == 1);
-      CHECK(rejected.diag.cbegin()->second == E::to_string(error));
+      CHECK(rejected.diag.cbegin()->second.message == E::to_string(error));
     }
   }
 }

@@ -579,7 +579,7 @@ TEST_CASE("Pepp ASM parser with macros instantiations",
     auto p = Parser(data("@TEST 15"), mr);
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
-    for (const auto &d : diag) SPDLOG_WARN("Diagnostic:  {}", d.second);
+    for (const auto &d : diag) SPDLOG_WARN("Diagnostic:  {}", d.second.message);
     REQUIRE(results.size() == 1);
     auto as_mi = std::dynamic_pointer_cast<MacroInstantiation>(results[0]);
     CHECK(as_mi);
@@ -633,7 +633,7 @@ TEST_CASE("Pepp ASM parser with macros instantiations",
     auto p = Parser(data(source), mr);
     p.parse(diag);
     std::vector<std::string> messages;
-    for (const auto &[_, message] : diag) messages.emplace_back(message);
+    for (const auto &[_, diagnostic] : diag) messages.emplace_back(diagnostic.message);
     CHECK(messages == std::vector<std::string>{PE::to_string(expected)});
   }
   SECTION("a conditional in a macro body may be nested in the caller's conditional") {
@@ -690,7 +690,7 @@ TEST_CASE("Pepp ASM parser with macros definitions",
     auto p = Parser(data("@TEST\n@TEST\n@TEST"), mr);
     auto parsed = p.parse(diag);
     CHECK(diag.count() == 0);
-    for (const auto &d : diag) SPDLOG_WARN("Diagnostic:  {}", d.second);
+    for (const auto &d : diag) SPDLOG_WARN("Diagnostic:  {}", d.second.message);
     REQUIRE(parsed.size() == 3);
     auto flattened = parser::flatten_macros(parsed);
     CHECK(flattened.size() == 3);
@@ -714,7 +714,7 @@ TEST_CASE("Pepp ASM parser with macros definitions",
     auto p = Parser(data("@TEST1\n@TEST2\n@TEST1"), mr);
     auto parsed = p.parse(diag);
     CHECK(diag.count() == 0);
-    for (const auto &d : diag) SPDLOG_WARN("Diagnostic:  {}", d.second);
+    for (const auto &d : diag) SPDLOG_WARN("Diagnostic:  {}", d.second.message);
     REQUIRE(parsed.size() == 3);
     auto flattened = parser::flatten_macros(parsed);
     CHECK(flattened.size() == 3);
