@@ -108,6 +108,7 @@ void pepp::tc::SourceVisitor::visit(const DotLiteral *line) {
   case Which::ASCII: dot = ".ASCII"; break;
   case Which::Byte1: dot = ".BYTE"; break;
   case Which::Byte2: dot = ".WORD"; break;
+  case Which::Address2: dot = ".ADDRSS"; break;
   default: throw std::invalid_argument("Invalid DotLiteral kind");
   }
 

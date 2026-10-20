@@ -52,7 +52,7 @@ std::optional<IRFormat> format_of(const pepp::tc::LinearIR &line) {
   if (line.type() == pepp::tc::DyadicInstruction::TYPE) return IRFormat::OperandSpecifier;
   else if (const auto *literal = dynamic_cast<const pepp::tc::DotLiteral *>(&line)) {
     if (literal->which == Which::Byte1) return IRFormat::Byte;
-    else if (literal->which == Which::Byte2) return IRFormat::Word;
+    else if (literal->which == Which::Byte2 || literal->which == Which::Address2) return IRFormat::Word;
   }
   return std::nullopt;
 }
@@ -331,7 +331,8 @@ std::optional<ArgumentConstraint> pepp_argument_constraint(const LinearIR &line)
     switch (literal->which) {
     case Which::ASCII: return std::nullopt;
     case Which::Byte1: return ArgumentConstraint{8, Bits};
-    case Which::Byte2: return ArgumentConstraint{16, Bits};
+    case Which::Byte2: [[fallthrough]];
+    case Which::Address2: return ArgumentConstraint{16, Bits};
     case Which::Byte4: return ArgumentConstraint{32, Bits};
     }
   } else if (line.type() == DyadicInstruction::TYPE) return ArgumentConstraint{16, Bits};

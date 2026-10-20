@@ -381,7 +381,8 @@ std::optional<pepp::tc::ArgumentConstraint> pepp::tc::riscv_argument_constraint(
     switch (literal->which) {
     case Which::ASCII: return std::nullopt;
     case Which::Byte1: return ArgumentConstraint{8, Bits};
-    case Which::Byte2: return ArgumentConstraint{16, Bits};
+    case Which::Byte2: [[fallthrough]];
+    case Which::Address2: return ArgumentConstraint{16, Bits};
     case Which::Byte4: return ArgumentConstraint{32, Bits};
     }
   } else if (const auto *instruction = dynamic_cast<const IntegerInstruction *>(&line)) {

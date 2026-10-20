@@ -2,6 +2,7 @@
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <vector>
 #include "core/arch/riscv/isa/rv_base.hpp"
@@ -138,6 +139,7 @@ void pepp::tc::RISCVSourceVisitor::visit(const DotLiteral *line) {
   case Which::Byte1: dot = ".byte"; break;
   case Which::Byte2: dot = ".half"; break;
   case Which::Byte4: dot = ".word"; break;
+  case Which::Address2: throw std::invalid_argument("Invalid DotLiteral kind");
   }
   text = riscv_format_as_columns(::symbol_of(line), dot, line->argument.value->string(), ::comment_of(line));
 }

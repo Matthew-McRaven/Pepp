@@ -25,6 +25,7 @@
 #include "core/langs/asmb_pep/codegen.hpp"
 #include "core/langs/asmb_pep/parser.hpp"
 #include "core/langs/asmb_pep/parser_error.hpp"
+#include "core/langs/asmb_pep/text_format.hpp"
 
 namespace {
 auto data = [](std::string str) { return pepp::tc::support::SeekableData{std::move(str)}; };
@@ -73,5 +74,29 @@ NOTA
     std::vector<std::string> messages;
     for (const auto &[_, message] : diag) messages.emplace_back(message);
     CHECK(messages == std::vector<std::string>{expected});
+  }
+  SECTION(".ADDRSS assembles like .WORD") {
+    static const auto src = "x: .ADDRSS y\ny: .BYTE 7\n";
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(src), std::make_shared<MR>(), dialect);
+    auto results = p.parse(diag);
+    REQUIRE(diag.count() == 0);
+    CHECK(pepp::tc::format_source(dialect, results[0].get()) == pepp::tc::format_as_columns("x:", ".ADDRSS", "y", ""));
+    auto code = pepp::tc::parser::flatten_macros(results);
+    auto split = pepp::tc::pepp_split_to_sections(diag, code);
+    auto addresses = pepp::tc::pepp_assign_addresses(split.grouped_ir);
+    auto oc = pepp::tc::pepp_to_object_code(diag, addresses, split.grouped_ir);
+    REQUIRE(diag.count() == 0);
+    const auto &slice = oc.section_slices[0];
+    const auto bytes = slice.get(0, slice.size());
+    CHECK(std::vector<u8>(bytes.begin(), bytes.end()) == std::vector<u8>{0x00, 0x02, 0x07});
+  }
+  SECTION(".ADDRSS requires a symbol") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".ADDRSS 5\n"), std::make_shared<MR>(), dialect);
+    p.parse(diag);
+    std::vector<std::string> messages;
+    for (const auto &[_, message] : diag) messages.emplace_back(message);
+    CHECK(messages == std::vector<std::string>{PE::to_string(PE::NullaryError::Argument_ExpectedIdentifier)});
   }
 }

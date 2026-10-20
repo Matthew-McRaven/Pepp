@@ -506,8 +506,12 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
   case D::ENDM: {
     throw PepParserError(PepParserError::NullaryError::Macro_UnmatchedEndm, buf->matched_interval());
   }
+  case D::ADDRSS: {
+    auto ident = std::dynamic_pointer_cast<pepp::ast::Symbolic>(argument());
+    if (!ident) throw PepParserError(PepParserError::NullaryError::Argument_ExpectedIdentifier, buf->matched_interval());
+    return std::make_shared<DotLiteral>(DotLiteral::Which::Address2, Argument{ident});
+  }
   // Not yet implemented.
-  case D::ADDRSS: [[fallthrough]];
   case D::BURN: throw PepParserError(PepParserError::UnaryError::Dot_Invalid, dot_str, buf->matched_interval());
   }
   PEPP_UNREACHABLE();
