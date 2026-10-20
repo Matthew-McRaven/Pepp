@@ -29,7 +29,8 @@ DriverResult assemble_pep10(const Pep10DriverConfig &cfg, const FormattingConfig
   auto split = pepp_split_to_sections(result.diagnostics, flattened);
   if (result.diagnostics.count() > 0) return result;
 
-  auto addresses = pepp_assign_addresses(split.grouped_ir);
+  auto addresses = pepp_assign_addresses(result.diagnostics, split.grouped_ir);
+  if (result.diagnostics.count() > 0) return result;
   auto object_code = pepp_to_object_code(result.diagnostics, addresses, split.grouped_ir);
   if (result.diagnostics.count() > 0) return result;
   if (fmtcfg.listing_format) {

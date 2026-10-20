@@ -511,8 +511,13 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
     if (!ident) throw PepParserError(PepParserError::NullaryError::Argument_ExpectedIdentifier, buf->matched_interval());
     return std::make_shared<DotLiteral>(DotLiteral::Which::Address2, Argument{ident});
   }
-  // Not yet implemented.
-  case D::BURN: throw PepParserError(PepParserError::UnaryError::Dot_Invalid, dot_str, buf->matched_interval());
+  case D::BURN: {
+    auto arg = hex_argument();
+    if (!arg) throw PepParserError(PepParserError::NullaryError::Argument_ExpectedHex, buf->matched_interval());
+    else if (symbol)
+      throw PepParserError(PepParserError::NullaryError::SymbolDeclaration_Forbidden, buf->matched_interval());
+    return std::make_shared<DotOrg>(DotOrg::Behavior::BURN, Argument{arg});
+  }
   }
   PEPP_UNREACHABLE();
 }

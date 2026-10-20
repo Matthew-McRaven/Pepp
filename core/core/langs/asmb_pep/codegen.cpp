@@ -82,6 +82,7 @@ pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(Diagnostic
     if (value_needs_relocation(arg) && !find_fixup(line, arg))
       diag.add_message(line.source_interval, "Operands referencing symbols must be of the form symbol [+ constant]");
   };
+  int burn_count = 0;
   // Opening a section takes pending lines as its prefix.
   const auto open_section = [&](const SectionDescriptor &desc) {
     grouped_ir.emplace_back(std::make_pair(desc, std::move(pending)));
@@ -97,7 +98,6 @@ pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(Diagnostic
       open_section(initial_section); // Code-generating lines must belong to a section.
 
     // TODO: Check all symbol usages are not undefined
-    // TODO: .BURN for this section.
     using Type = LinearIRType;
 
     // Compile-time visitor pattern where the only virtual call should be type().
@@ -138,7 +138,8 @@ pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(Diagnostic
     }
     case DotOrg::TYPE: {
       auto as_org = std::static_pointer_cast<pepp::tc::DotOrg>(line);
-      active->first.org_count++;
+      if (as_org->behavior == DotOrg::Behavior::ORG) active->first.org_count++;
+      else if (burn_count++ > 0) diag.add_message(line->source_interval, "Only one .BURN is allowed");
       break;
     }
     case DyadicInstruction::TYPE: check_operand(*line, *static_cast<DyadicInstruction *>(line.get())->argument.value); break;
@@ -169,12 +170,13 @@ pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(Diagnostic
 }
 
 pepp::tc::IRMemoryAddressTable<pepp::tc::PeppAddress>
-pepp::tc::pepp_assign_addresses(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog, u16 initial_base_address) {
+pepp::tc::pepp_assign_addresses(DiagnosticTable &diag, std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
+                                u16 initial_base_address) {
   static const auto f = [](const pepp::tc::LinearIR *line) -> pepp::core::symbol::Type {
     auto isCode = dynamic_cast<const DyadicInstruction *>(&*line) || dynamic_cast<const MonadicInstruction *>(&*line);
     return isCode ? pepp::core::symbol::Type::Code : pepp::core::symbol::Type::Object;
   };
-  return assign_addresses<PeppAddress>(prog, f, initial_base_address);
+  return assign_addresses<PeppAddress>(diag, prog, f, initial_base_address);
 }
 
 namespace pepp::tc {

@@ -54,7 +54,7 @@ TEST_CASE("Pepp ASM object code output",
   CHECK(diag.count() == 0);
   auto &sections = sectioned_ir.grouped_ir;
   CHECK(sections.size() == 3);
-  auto addresses = pepp::tc::pepp_assign_addresses(sections);
+  auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
   auto object_code = pepp_to_object_code(diag, addresses, sections);
   CHECK(object_code.section_slices.size() == 3);
   const auto bytes_of = [&](size_t it) {

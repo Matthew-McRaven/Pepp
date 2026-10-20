@@ -43,7 +43,8 @@ RISCVSectionAnalysisResults riscv_split_to_sections(DiagnosticTable &diag, IRPro
 // starting in the .ORG section.
 //
 // When a .BURN <num> is present, grouping occurs as-if an extra section was append to prog which contains a .ORG <num>.
-IRMemoryAddressTable<RISCVAddress> riscv_assign_addresses(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
+IRMemoryAddressTable<RISCVAddress> riscv_assign_addresses(DiagnosticTable &diag,
+                                                          std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
                                                           u32 initial_base_address = 0);
 
 // The constraint for a line's argument.

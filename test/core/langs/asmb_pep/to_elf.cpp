@@ -183,7 +183,7 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
 
     auto symbol_tab = p.symbol_table();
     auto &sections = result.grouped_ir;
-    auto addresses = pepp::tc::pepp_assign_addresses(sections);
+    auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
     auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
     auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
 
@@ -253,7 +253,7 @@ LDWA 2,i
     auto result = pepp::tc::pepp_split_to_sections(diag, code);
     auto &sections = result.grouped_ir;
     REQUIRE(sections.size() == 2);
-    auto addresses = pepp::tc::pepp_assign_addresses(sections);
+    auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
     auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
     REQUIRE(diag.count() == 0);
     // Assembler normally generate ET_EXEC, but force it to become relocatable.
@@ -320,7 +320,7 @@ LDWA 2,i
     CHECK(diag.count() == 0);
     auto symbol_tab = p.symbol_table();
     auto &sections = result.grouped_ir;
-    auto addresses = pepp::tc::pepp_assign_addresses(sections);
+    auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
     auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
     auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
 
@@ -346,7 +346,7 @@ LDWA 2,i
     CHECK(diag.count() == 0);
     auto symbol_tab = p.symbol_table();
     auto &sections = result.grouped_ir;
-    auto addresses = pepp::tc::pepp_assign_addresses(sections);
+    auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
     auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
     auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
 
@@ -378,7 +378,7 @@ LDWA 2,i
     CHECK(diag.count() == 0);
     auto symbol_tab = p.symbol_table();
     auto &sections = result.grouped_ir;
-    auto addresses = pepp::tc::pepp_assign_addresses(sections);
+    auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
     auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
     auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
 
@@ -417,7 +417,7 @@ LDWA 2,i
 
     auto symbol_tab = p.symbol_table();
     auto &sections = result.grouped_ir;
-    auto addresses = pepp::tc::pepp_assign_addresses(sections);
+    auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
     auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
     auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
     auto elf = read_back(elf_result);
@@ -498,7 +498,7 @@ LDWA 2,i
 
     auto symbol_tab = p.symbol_table();
     auto &sections = result.grouped_ir;
-    auto addresses = pepp::tc::pepp_assign_addresses(sections);
+    auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
     auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
     auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
     auto elf = read_back(elf_result);
@@ -543,7 +543,7 @@ LDWA 2,i
 
     auto symbol_tab = p.symbol_table();
     auto &sections = result.grouped_ir;
-    auto addresses = pepp::tc::pepp_assign_addresses(sections);
+    auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
     auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
     auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
     auto elf = read_back(elf_result);
@@ -575,7 +575,7 @@ LDWA 2,i
     CHECK(diag.count() == 0);
     auto symbol_tab = p.symbol_table();
     auto &sections = result.grouped_ir;
-    auto addresses = pepp::tc::pepp_assign_addresses(sections);
+    auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
     auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
     auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
     auto elf = read_back(elf_result);

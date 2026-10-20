@@ -93,7 +93,7 @@ TEST_CASE("Pepp ASM codegen address assignment",
     auto result = pepp::tc::pepp_split_to_sections(diag, code);
     CHECK(diag.count() == 0);
     auto &sections = result.grouped_ir;
-    auto addresses = pepp::tc::pepp_assign_addresses(sections);
+    auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
     CHECK(sections.size() == 3);
 
     CHECK(sections[0].first.name == ".text");
@@ -195,7 +195,7 @@ TEST_CASE("New assembler emits MMIO notes compatible with old simulator",
   auto result = pepp::tc::pepp_split_to_sections(diag, code);
   CHECK(diag.count() == 0);
   auto &sections = result.grouped_ir;
-  auto addresses = pepp::tc::pepp_assign_addresses(sections);
+  auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
   auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
   auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *p.symbol_table(), result.mmios);
 

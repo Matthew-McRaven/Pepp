@@ -92,12 +92,13 @@ pepp::tc::RISCVSectionAnalysisResults pepp::tc::riscv_split_to_sections(Diagnost
   return ret;
 }
 pepp::tc::IRMemoryAddressTable<pepp::tc::RISCVAddress>
-pepp::tc::riscv_assign_addresses(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog, u32 initial_base_address) {
+pepp::tc::riscv_assign_addresses(DiagnosticTable &diag, std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
+                                 u32 initial_base_address) {
   static const auto f = [](const pepp::tc::LinearIR *line) -> pepp::core::symbol::Type {
     auto isCode = dynamic_cast<const IntegerInstruction *>(&*line);
     return isCode ? pepp::core::symbol::Type::Code : pepp::core::symbol::Type::Object;
   };
-  return assign_addresses<RISCVAddress>(prog, f, initial_base_address);
+  return assign_addresses<RISCVAddress>(diag, prog, f, initial_base_address);
 }
 
 namespace pepp::tc {

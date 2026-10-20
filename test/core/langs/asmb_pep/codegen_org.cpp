@@ -17,6 +17,7 @@
 #include <catch.hpp>
 #include <string_view>
 #include "core/arch/pepx/asmb/pep10.hpp"
+#include "core/compile/ir_value/numeric.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/langs/asmb_pep/codegen.hpp"
 #include "core/langs/asmb_pep/parser.hpp"
@@ -63,7 +64,7 @@ TEST_CASE("Pepp ASM codegen .ORG address assignment",
     auto result = pepp::tc::pepp_split_to_sections(diag, code);
     CHECK(diag.count() == 0);
     auto &sections = result.grouped_ir;
-    auto addresses = pepp::tc::pepp_assign_addresses(sections);
+    auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
     CHECK(sections.size() == 1);
 
     CHECK(sections[0].first.name == ".text");
@@ -83,7 +84,7 @@ TEST_CASE("Pepp ASM codegen .ORG address assignment",
     auto result = pepp::tc::pepp_split_to_sections(diag, code);
     CHECK(diag.count() == 0);
     auto &sections = result.grouped_ir;
-    auto addresses = pepp::tc::pepp_assign_addresses(sections);
+    auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
     CHECK(sections.size() == 1);
 
     CHECK(sections[0].first.name == ".text");
@@ -103,7 +104,7 @@ TEST_CASE("Pepp ASM codegen .ORG address assignment",
     auto result = pepp::tc::pepp_split_to_sections(diag, code);
     CHECK(diag.count() == 0);
     auto &sections = result.grouped_ir;
-    auto addresses = pepp::tc::pepp_assign_addresses(sections);
+    auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
     CHECK(sections.size() == 2);
 
     CHECK(sections[0].first.name == ".text");
@@ -134,7 +135,7 @@ TEST_CASE("Pepp ASM codegen .ORG address assignment",
     auto result = pepp::tc::pepp_split_to_sections(diag, code);
     CHECK(diag.count() == 0);
     auto &sections = result.grouped_ir;
-    auto addresses = pepp::tc::pepp_assign_addresses(sections);
+    auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
     CHECK(sections.size() == 2);
 
     CHECK(sections[0].first.name == ".text");
@@ -168,7 +169,7 @@ CPBA '+',i
   auto code = pepp::tc::parser::flatten_macros(results);
   auto result = pepp::tc::pepp_split_to_sections(diag, code);
   REQUIRE(diag.count() == 0);
-  auto addresses = pepp::tc::pepp_assign_addresses(result.grouped_ir);
+  auto addresses = pepp::tc::pepp_assign_addresses(diag, result.grouped_ir);
   auto oc = pepp::tc::pepp_to_object_code(diag, addresses, result.grouped_ir);
   REQUIRE(oc.section_slices.size() == 1);
 
@@ -192,7 +193,7 @@ TEST_CASE("Pepp ASM codegen object code size", "[scope:core][scope:core.langs][k
     auto code = pepp::tc::parser::flatten_macros(results);
     auto result = pepp::tc::pepp_split_to_sections(diag, code);
     REQUIRE(diag.count() == 0);
-    auto addresses = pepp::tc::pepp_assign_addresses(result.grouped_ir);
+    auto addresses = pepp::tc::pepp_assign_addresses(diag, result.grouped_ir);
     (void)pepp::tc::pepp_to_object_code(diag, addresses, result.grouped_ir);
   };
   SECTION("0x1'0000 bytes is illegal") {

@@ -52,7 +52,7 @@ NOTA
     auto code = pepp::tc::parser::flatten_macros(results);
     auto split = pepp::tc::pepp_split_to_sections(diag, code);
     REQUIRE(diag.count() == 0);
-    auto addresses = pepp::tc::pepp_assign_addresses(split.grouped_ir);
+    auto addresses = pepp::tc::pepp_assign_addresses(diag, split.grouped_ir);
     auto oc = pepp::tc::pepp_to_object_code(diag, addresses, split.grouped_ir);
     REQUIRE(oc.section_slices.size() == 1);
     const auto &slice = oc.section_slices[0];
@@ -84,7 +84,7 @@ NOTA
     CHECK(pepp::tc::format_source(dialect, results[0].get()) == pepp::tc::format_as_columns("x:", ".ADDRSS", "y", ""));
     auto code = pepp::tc::parser::flatten_macros(results);
     auto split = pepp::tc::pepp_split_to_sections(diag, code);
-    auto addresses = pepp::tc::pepp_assign_addresses(split.grouped_ir);
+    auto addresses = pepp::tc::pepp_assign_addresses(diag, split.grouped_ir);
     auto oc = pepp::tc::pepp_to_object_code(diag, addresses, split.grouped_ir);
     REQUIRE(diag.count() == 0);
     const auto &slice = oc.section_slices[0];
@@ -98,5 +98,41 @@ NOTA
     std::vector<std::string> messages;
     for (const auto &[_, message] : diag) messages.emplace_back(message);
     CHECK(messages == std::vector<std::string>{PE::to_string(PE::NullaryError::Argument_ExpectedIdentifier)});
+  }
+  SECTION(".BURN acts like .ORG at the end of the program") {
+    static const auto src = "a: .BLOCK 2\n.BURN 0xFFFF\nb: .BYTE 1\nc: .WORD 2\n";
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(src), std::make_shared<MR>(), dialect);
+    auto results = p.parse(diag);
+    REQUIRE(diag.count() == 0);
+    CHECK(pepp::tc::format_source(dialect, results[1].get()) == pepp::tc::format_as_columns("", ".BURN", "0xFFFF", ""));
+    auto code = pepp::tc::parser::flatten_macros(results);
+    auto split = pepp::tc::pepp_split_to_sections(diag, code);
+    REQUIRE(diag.count() == 0);
+    (void)pepp::tc::pepp_assign_addresses(diag, split.grouped_ir);
+    const auto address = [&](const char *name) { return p.symbol_table()->get(name).value()->value->value()(); };
+    CHECK(address("a") == 0xFFFB);
+    CHECK(address("b") == 0xFFFD);
+    CHECK(address("c") == 0xFFFE);
+    const auto &section = split.grouped_ir[0].first;
+    CHECK(section.low_address == 0xFFFB);
+    CHECK(section.high_address == 0x1'0000);
+  }
+  SECTION("At most one .BURN") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".BURN 0xFFFF\n.BURN 0xFFFF\n"), std::make_shared<MR>(), dialect);
+    auto results = p.parse(diag);
+    REQUIRE(diag.count() == 0);
+    auto code = pepp::tc::parser::flatten_macros(results);
+    pepp::tc::pepp_split_to_sections(diag, code);
+    CHECK(diag.count() == 1);
+  }
+  SECTION(".BURN requires a hex argument") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".BURN 65535\n"), std::make_shared<MR>(), dialect);
+    p.parse(diag);
+    std::vector<std::string> messages;
+    for (const auto &[_, message] : diag) messages.emplace_back(message);
+    CHECK(messages == std::vector<std::string>{PE::to_string(PE::NullaryError::Argument_ExpectedHex)});
   }
 }
