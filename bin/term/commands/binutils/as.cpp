@@ -161,3 +161,7 @@ pepp::tc::DriverConfig AsTask::prepare(const PEP10Options &arch) {
   }
   return pepp::tc::Pep10DriverConfig{.symdefs = _opts.symdefs, .macros = macros};
 }
+
+pepp::tc::DriverConfig AsTask::prepare(const PEP9Options &) {
+  return pepp::tc::Pep9DriverConfig{.symdefs = _opts.symdefs};
+}

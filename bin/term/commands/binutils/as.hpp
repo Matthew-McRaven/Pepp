@@ -50,7 +50,8 @@ public:
     // Define the OS's system call numbers (DECI, DECO, ...) for programs assembled without the OS.
     bool os_symbols = false;
   };
-  using ArchOptions = std::variant<RISCVOptions, PEP10Options>;
+  struct PEP9Options {};
+  using ArchOptions = std::variant<RISCVOptions, PEP10Options, PEP9Options>;
 
   AsTask(Options &opts, ArchOptions arch_opts, QObject *parent = nullptr);
   void run() override;
@@ -58,6 +59,7 @@ public:
 private:
   pepp::tc::DriverConfig prepare(const RISCVOptions &);
   pepp::tc::DriverConfig prepare(const PEP10Options &);
+  pepp::tc::DriverConfig prepare(const PEP9Options &);
   Options &_opts;
   ArchOptions _arch_opts;
 };
@@ -66,6 +68,7 @@ void registerAs(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
   static AsTask::Options opts;
   static AsTask::RISCVOptions rv_opts;
   static AsTask::PEP10Options pep_opts;
+  static AsTask::PEP9Options pep9_opts;
   static AsTask::ArchOptions arch_opts;
   static std::string a_text;
   static std::string march_text;
@@ -73,7 +76,7 @@ void registerAs(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
   static auto as_clone = app.add_subcommand("as", "GNU as-compatible assembler")->alias("pas");
   as_clone->allow_non_standard_option_names();
   static const auto march_opt =
-      as_clone->add_option("-march", march_text, "Specify target architecture, e.g. rv32imc or pep10")
+      as_clone->add_option("-march", march_text, "Specify target architecture, e.g. rv32imc, pep10, or pep9")
           ->option_text("<arch>");
   static const auto a_opts = as_clone
                                  ->add_option("-a", a_text,
@@ -142,6 +145,7 @@ void registerAs(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
     else if (march_text.rfind("pep9", 0) == 0) opts.arch = PA::PEP9;
     else if (march_text.rfind("pep8", 0) == 0) opts.arch = PA::PEP8;
     if (opts.arch == PA::RISCV) arch_opts = rv_opts;
+    else if (opts.arch == PA::PEP9) arch_opts = pep9_opts;
     else arch_opts = pep_opts;
 
     flags.kind = detail::SharedFlags::Kind::TERM;
