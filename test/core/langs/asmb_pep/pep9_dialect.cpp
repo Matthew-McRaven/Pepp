@@ -139,6 +139,19 @@ NOTA
     const auto row = fmt::format("{:04X} {:<6} {}", 0xFFFD, "", pepp::tc::format_source(dialect, code[0].get()));
     CHECK(listing == std::vector<std::string>{row});
   }
+  SECTION("Object code must fit below .BURN") {
+    // 0x0003 leaves room for exactly 4 bytes.
+    auto [src, errors] = GENERATE(std::make_tuple(".BURN 0x0003\n.BLOCK 4\n", size_t{0}),
+                                  std::make_tuple(".BURN 0x0003\n.BLOCK 5\n", size_t{1}));
+    CAPTURE(src);
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(src), std::make_shared<MR>(), dialect);
+    auto code = pepp::tc::parser::flatten_macros(p.parse(diag));
+    auto split = pepp::tc::pepp_split_to_sections(diag, code);
+    REQUIRE(diag.count() == 0);
+    (void)pepp::tc::pepp_assign_addresses(diag, split.grouped_ir);
+    CHECK(diag.count() == errors);
+  }
   SECTION("At most one .BURN") {
     pepp::tc::DiagnosticTable diag;
     auto p = Parser(data(".BURN 0xFFFF\n.BURN 0xFFFF\n"), std::make_shared<MR>(), dialect);

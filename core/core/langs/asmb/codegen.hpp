@@ -309,6 +309,13 @@ IRMemoryAddressTable<Address> assign_addresses(DiagnosticTable &diag,
     }
   }
 
+  // Backward placement from .BURN <num> wraps below 0 unless the program fits in [0, num].
+  if (burn) {
+    u64 total = 0;
+    for (const auto &[desc, ir] : prog) total += desc.byte_count;
+    if (total > u64{*burn} + 1) diag.add_message(burn_line->source_interval, "Object code does not fit below .BURN");
+  }
+
   // Establish flat_map invariant, which is that the container is sorted.
   std::sort(ret.container.begin(), ret.container.end(), detail::IRComparator<Address>{});
 
