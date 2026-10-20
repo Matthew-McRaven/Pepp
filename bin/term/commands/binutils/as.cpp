@@ -123,25 +123,30 @@ void AsTask::run() {
   }
 
   auto result = pepp::tc::assemble(cfg, fmt_cfg, std::move(source_contents));
-  if (!result.ok()) {
-    // Write error messages either to the designated error file, which is cerr by default.
+  if (result.diagnostics.count() > 0) {
+    // Write diagnostics either to the designated error file, which is cerr by default.
+    using pepp::tc::Severity;
+    const auto errors = result.diagnostics.count(Severity::Error);
+    const auto warnings = std::to_string(result.diagnostics.count() - errors) + " warning(s):";
     std::vector<std::string> diag_lines;
     diag_lines.reserve(result.diagnostics.count() + 1);
-    diag_lines.push_back("Assembly failed with " + std::to_string(result.diagnostics.count()) + " error(s):");
-    for (const auto &diag : result.diagnostics) diag_lines.push_back(diag.second.message);
+    if (result.ok()) diag_lines.push_back("Assembly succeeded with " + warnings);
+    else diag_lines.push_back("Assembly failed with " + std::to_string(errors) + " error(s) and " + warnings);
+    for (const auto &[_, diag] : result.diagnostics)
+      diag_lines.push_back((diag.severity == Severity::Warning ? "Warning: " : "Error: ") + diag.message);
     write_lines(_opts.file_errs, diag_lines, std::cerr);
+  }
+  if (!result.ok()) return emit finished(1);
+
+  std::ofstream out(_opts.file_elf, std::ios::binary);
+  if (!out) {
+    write_lines(_opts.file_errs, {"Could not open " + _opts.file_elf + " for writing"}, std::cerr);
     return emit finished(1);
-  } else {
-    std::ofstream out(_opts.file_elf, std::ios::binary);
-    if (!out) {
-      write_lines(_opts.file_errs, {"Could not open " + _opts.file_elf + " for writing"}, std::cerr);
-      return emit finished(1);
-    }
-    pepp::tc::write_elf(result.elf, out);
-    if (!out.flush()) {
-      write_lines(_opts.file_errs, {"Could not write " + _opts.file_elf}, std::cerr);
-      return emit finished(1);
-    }
+  }
+  pepp::tc::write_elf(result.elf, out);
+  if (!out.flush()) {
+    write_lines(_opts.file_errs, {"Could not write " + _opts.file_elf}, std::cerr);
+    return emit finished(1);
   }
 
   return emit finished(0);
