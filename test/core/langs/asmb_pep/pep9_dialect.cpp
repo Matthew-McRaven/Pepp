@@ -18,15 +18,19 @@
 #include <memory>
 #include <string>
 #include <tuple>
+#include <variant>
 #include <vector>
 #include "core/arch/pepx/asmb/pep9.hpp"
 #include "core/compile/macro/macro_registry.hpp"
 #include "core/compile/source/seekable.hpp"
+#include "core/formats/elf/enums.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
+#include "core/langs/asmb_driver.hpp"
 #include "core/langs/asmb_pep/codegen.hpp"
 #include "core/langs/asmb_pep/parser.hpp"
 #include "core/langs/asmb_pep/parser_error.hpp"
 #include "core/langs/asmb_pep/text_format.hpp"
+#include "core/math/bitmanip/enums.hpp"
 
 namespace {
 auto data = [](std::string str) { return pepp::tc::support::SeekableData{std::move(str)}; };
@@ -152,4 +156,13 @@ NOTA
     for (const auto &[_, message] : diag) messages.emplace_back(message);
     CHECK(messages == std::vector<std::string>{PE::to_string(PE::NullaryError::Argument_ExpectedHex)});
   }
+}
+
+TEST_CASE("Pep/9 driver", "[scope:core][scope:core.langs][kind:int][arch:pep9]") {
+  static const auto src = "x: .BLOCK 1\n.BURN 0xFFFF\nSTOP\n.ADDRSS x\n.END\n";
+  auto result = pepp::tc::assemble_pep9(pepp::tc::Pep9DriverConfig{}, pepp::tc::FormattingConfig{}, src);
+  for (const auto &[_, message] : result.diagnostics) UNSCOPED_INFO(message);
+  REQUIRE(result.ok());
+  const auto machine = std::visit([](const auto &file) { return u16(file->header.e_machine); }, result.elf.elf);
+  CHECK(machine == bits::to_underlying(pepp::bts::ElfMachineType::EM_PEP9));
 }

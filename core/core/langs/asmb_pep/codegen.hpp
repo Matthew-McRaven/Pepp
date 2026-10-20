@@ -61,5 +61,6 @@ ElfResult pepp_to_elf(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog
                       const IRMemoryAddressTable<PeppAddress> &addrs, const ProgramObjectCodeResult &object_code,
                       const pepp::core::symbol::LeafTable &symbols, const std::vector<IO> &mmios,
                       const DebugLineFiles &files = {},
-                      const std::vector<std::shared_ptr<const InlineMacroDefinition>> &macros = {});
+                      const std::vector<std::shared_ptr<const InlineMacroDefinition>> &macros = {},
+                      pepp::bts::ElfMachineType machine = pepp::bts::ElfMachineType::EM_PEP10);
 } // namespace pepp::tc

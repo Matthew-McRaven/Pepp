@@ -2,6 +2,7 @@
 #include <utility>
 #include "asmb_driver.hpp"
 #include "core/arch/pepx/asmb/pep10.hpp"
+#include "core/arch/pepx/asmb/pep9.hpp"
 #include "core/compile/macro/macro_registry.hpp"
 #include "core/compile/source/seekable.hpp"
 #include "core/langs/asmb_pep/codegen.hpp"
@@ -9,14 +10,17 @@
 #include "core/langs/asmb_pep/text_format.hpp"
 
 namespace pepp::tc {
-
-DriverResult assemble_pep10(const Pep10DriverConfig &cfg, const FormattingConfig &fmtcfg, std::string source) {
+namespace {
+// The pipeline shared by every Pep architecture.
+DriverResult assemble_pep(const pep::Dialect &dialect, bts::ElfMachineType machine,
+                          const std::vector<std::pair<std::string, u32>> &symdefs,
+                          std::shared_ptr<MacroRegistry> macros, const DebugLineFiles &debug_files,
+                          const FormattingConfig &fmtcfg, std::string source) {
   DriverResult result;
-  auto macros = cfg.macros ? cfg.macros : std::make_shared<MacroRegistry>();
-  const auto &dialect = pep::pep10::dialect();
+  if (!macros) macros = std::make_shared<MacroRegistry>();
   auto pep_parser = parser::PepParser(support::SeekableData{std::move(source)}, macros, dialect);
   auto sy = pep_parser.symbol_table();
-  inject_symdefs(cfg.symdefs, *sy, 2);
+  inject_symdefs(symdefs, *sy, 2);
 
   auto program = pep_parser.parse(result.diagnostics);
   if (result.diagnostics.count() > 0) return result;
@@ -39,8 +43,19 @@ DriverResult assemble_pep10(const Pep10DriverConfig &cfg, const FormattingConfig
   }
   // After flattening, so that a definition inside an expansion has its instantiation's line.
   result.elf = pepp_to_elf(split.grouped_ir, flattened, addresses, object_code, *pep_parser.symbol_table(), split.mmios,
-                           cfg.debug_files, parser::defined_macros(program));
+                           debug_files, parser::defined_macros(program), machine);
   return result;
+}
+} // namespace
+
+DriverResult assemble_pep10(const Pep10DriverConfig &cfg, const FormattingConfig &fmtcfg, std::string source) {
+  return assemble_pep(pep::pep10::dialect(), bts::ElfMachineType::EM_PEP10, cfg.symdefs, cfg.macros, cfg.debug_files,
+                      fmtcfg, std::move(source));
+}
+
+DriverResult assemble_pep9(const Pep9DriverConfig &cfg, const FormattingConfig &fmtcfg, std::string source) {
+  return assemble_pep(pep::pep9::dialect(), bts::ElfMachineType::EM_PEP9, cfg.symdefs, nullptr, cfg.debug_files, fmtcfg,
+                      std::move(source));
 }
 
 } // namespace pepp::tc

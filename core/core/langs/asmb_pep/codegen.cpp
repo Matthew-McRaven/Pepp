@@ -381,10 +381,11 @@ pepp::tc::ElfResult pepp::tc::pepp_to_elf(std::vector<std::pair<SectionDescripto
                                           const ProgramObjectCodeResult &object_code,
                                           const pepp::core::symbol::LeafTable &symbols,
                                           const std::vector<IO> &mmios, const DebugLineFiles &files,
-                                          const std::vector<std::shared_ptr<const InlineMacroDefinition>> &macros) {
+                                          const std::vector<std::shared_ptr<const InlineMacroDefinition>> &macros,
+                                          pepp::bts::ElfMachineType machine) {
   using namespace pepp::bts;
-  SPDLOG_INFO("Creating pep/10 ELF");
-  auto ret = sections_to_elf(ElfBits::b32, ElfEndian::be, ElfMachineType::EM_PEP10, prog, object_code, symbols);
+  SPDLOG_INFO("Creating pep ELF");
+  auto ret = sections_to_elf(ElfBits::b32, ElfEndian::be, machine, prog, object_code, symbols);
 
   ret.ir_to_listing = write_line_mapping(ret, prog, addrs, object_code, files, macros, source_order);
 
