@@ -333,30 +333,18 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::mnemonic(Diagno
   return ret;
 }
 
-namespace {
-using DC = pepp::tc::DotCommands;
-using PDC = pepp::tc::PepDotCommands;
-static const auto dot_map = std::map<std::string, int>{
-    {"ALIGN", (int)DC::ALIGN},       {"ASCII", (int)DC::ASCII},     {"BLOCK", (int)DC::BLOCK},
-    {"BYTE", (int)DC::BYTE},         {"END", (int)PDC::END},        {"EQUATE", (int)DC::EQUATE},
-    {"EXPORT", (int)PDC::EXPORT},    {"INPUT", (int)PDC::INPUT},    {"ORG", (int)DC::ORG},
-    {"OUTPUT", (int)PDC::OUTPUT},    {"SCALL", (int)PDC::SCALL},    {"SECTION", (int)DC::SECTION},
-    {"WORD", (int)DC::WORD},         {"IF", (int)DC::IF},           {"ELSEIF", (int)DC::ELSEIF},
-    {"ELSE", (int)DC::ELSE},         {"ENDIF", (int)DC::ENDIF},     {"MACRO", (int)DC::INLINE_MACRO},
-    {"ENDM", (int)DC::END_MACRO}};
-} // namespace
 std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(OptionalSymbol symbol) {
   auto buf = active_buffer();
   auto lexer = active_lexer();
   auto dot = buf->match<lex::DotCommand>();
   if (!dot) return nullptr;
   auto dot_str = bits::to_upper(dot->to_string());
-  auto it = dot_map.find(dot_str);
-  if (it == dot_map.cend())
-    throw PepParserError(PepParserError::UnaryError::Dot_Invalid, dot_str, buf->matched_interval());
+  const auto directive = _dialect->parse_directive(dot_str);
+  if (!directive) throw PepParserError(PepParserError::UnaryError::Dot_Invalid, dot_str, buf->matched_interval());
 
-  switch (it->second) {
-  case (int)DC::ALIGN: {
+  using D = pep::Directive;
+  switch (*directive) {
+  case D::ALIGN: {
     auto arg = numeric_argument();
     if (!arg) throw PepParserError(PepParserError::NullaryError::Argument_ExpectedInteger, buf->matched_interval());
     u16 value;
@@ -366,7 +354,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
       throw PepParserError(PepParserError::NullaryError::Argument_ExpectedPowerOfTwo, buf->matched_interval());
     return std::make_shared<DotAlign>(DotAlign::Which::ByteCount, Argument{arg});
   }
-  case (int)DC::ASCII: {
+  case D::ASCII: {
     if (auto maybeStr = buf->match<lex::StringConstant>(); !maybeStr)
       throw PepParserError(PepParserError::NullaryError::Argument_ExpectedString, buf->matched_interval());
     else {
@@ -375,12 +363,12 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
       return std::make_shared<DotLiteral>(DotLiteral::Which::ASCII, arg);
     }
   }
-  case (int)DC::BLOCK: {
+  case D::BLOCK: {
     auto arg = numeric_argument();
     if (!arg) throw PepParserError(PepParserError::NullaryError::Argument_ExpectedInteger, buf->matched_interval());
     return std::make_shared<DotBlock>(Argument{arg});
   }
-  case (int)DC::BYTE: {
+  case D::BYTE: {
     auto arg = argument();
     if (auto numeric = std::dynamic_pointer_cast<pepp::ast::Numeric>(arg); numeric) {
       return std::make_shared<DotLiteral>(DotLiteral::Which::Byte1, Argument{numeric});
@@ -388,7 +376,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
       return std::make_shared<DotLiteral>(DotLiteral::Which::Byte1, Argument{ident});
     } else throw PepParserError(PepParserError::NullaryError::Argument_ExpectedInteger, buf->matched_interval());
   }
-  case (int)DC::EQUATE: {
+  case D::EQUATE: {
     auto arg = argument();
     if (!arg) throw PepParserError(PepParserError::NullaryError::Argument_ExpectedInteger, buf->matched_interval());
     else if (!symbol)
@@ -405,11 +393,11 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
         bits::MaskedBits{.byteCount = 2, .bitPattern = **value & bits::mask(2), .mask = bits::mask(2)});
     return std::make_shared<DotEquate>(SymbolDeclaration{*symbol}, Argument{arg});
   }
-  case (int)PDC::END: {
+  case D::END: {
     if (symbol) throw PepParserError(PepParserError::NullaryError::SymbolDeclaration_Forbidden, buf->matched_interval());
     return std::make_shared<DotAnnotate>(DotAnnotate::Which::END, Argument{nullptr});
   }
-  case (int)PDC::EXPORT: {
+  case D::EXPORT: {
     auto arg = identifier_argument();
     if (!arg) throw PepParserError(PepParserError::NullaryError::Argument_ExpectedIdentifier, buf->matched_interval());
     else if (symbol)
@@ -417,35 +405,35 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
     arg->symbol()->binding = pepp::core::symbol::Binding::Global;
     return std::make_shared<DotAnnotate>(DotAnnotate::Which::EXPORT, Argument{arg});
   }
-  case (int)PDC::INPUT: {
+  case D::INPUT: {
     auto arg = identifier_argument();
     if (!arg) throw PepParserError(PepParserError::NullaryError::Argument_ExpectedIdentifier, buf->matched_interval());
     else if (symbol)
       throw PepParserError(PepParserError::NullaryError::SymbolDeclaration_Forbidden, buf->matched_interval());
     return std::make_shared<DotAnnotate>(DotAnnotate::Which::INPUT, Argument{arg});
   }
-  case (int)DC::ORG: {
+  case D::ORG: {
     auto arg = hex_argument();
     if (!arg) throw PepParserError(PepParserError::NullaryError::Argument_ExpectedHex, buf->matched_interval());
     else if (symbol)
       throw PepParserError(PepParserError::NullaryError::SymbolDeclaration_Forbidden, buf->matched_interval());
     return std::make_shared<DotOrg>(DotOrg::Behavior::ORG, Argument{arg});
   }
-  case (int)PDC::OUTPUT: {
+  case D::OUTPUT: {
     auto arg = identifier_argument();
     if (!arg) throw PepParserError(PepParserError::NullaryError::Argument_ExpectedIdentifier, buf->matched_interval());
     else if (symbol)
       throw PepParserError(PepParserError::NullaryError::SymbolDeclaration_Forbidden, buf->matched_interval());
     return std::make_shared<DotAnnotate>(DotAnnotate::Which::OUTPUT, Argument{arg});
   }
-  case (int)PDC::SCALL: {
+  case D::SCALL: {
     auto arg = identifier_argument();
     if (!arg) throw PepParserError(PepParserError::NullaryError::Argument_ExpectedIdentifier, buf->matched_interval());
     else if (symbol)
       throw PepParserError(PepParserError::NullaryError::SymbolDeclaration_Forbidden, buf->matched_interval());
     return std::make_shared<DotAnnotate>(DotAnnotate::Which::SCALL, Argument{arg});
   }
-  case (int)DC::SECTION: {
+  case D::SECTION: {
     if (auto maybeSecName = buf->match<lex::StringConstant>(); !maybeSecName)
       throw PepParserError(PepParserError::NullaryError::Section_StringName, buf->matched_interval());
     else if (!buf->match_literal(","))
@@ -461,7 +449,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
       return std::make_shared<DotSection>(Identifier(*maybeSecName->value), SectionFlags(r, w, x, z));
     }
   }
-  case (int)DC::WORD: {
+  case D::WORD: {
     auto arg = argument();
     if (auto numeric = std::dynamic_pointer_cast<pepp::ast::Numeric>(arg); numeric) {
       return std::make_shared<DotLiteral>(DotLiteral::Which::Byte2, Argument{numeric});
@@ -469,7 +457,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
       return std::make_shared<DotLiteral>(DotLiteral::Which::Byte2, Argument{ident});
     } else throw PepParserError(PepParserError::NullaryError::Argument_ExpectedInteger, buf->matched_interval());
   }
-  case (int)DC::IF: {
+  case D::IF: {
     auto arg = argument();
     if (!arg) throw PepParserError(PepParserError::NullaryError::Argument_Missing, buf->matched_interval());
     else if (symbol)
@@ -477,7 +465,7 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
     _conditionals.on_if(condition_holds(*arg, buf->matched_interval()));
     return std::make_shared<DotConditional>(DotConditional::Behavior::IF, Argument{arg});
   }
-  case (int)DC::ELSEIF: {
+  case D::ELSEIF: {
     auto arg = argument();
     if (!arg) throw PepParserError(PepParserError::NullaryError::Argument_Missing, buf->matched_interval());
     else if (symbol)
@@ -487,21 +475,21 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
       throw conditional_error(ok.error(), buf->matched_interval());
     return std::make_shared<DotConditional>(DotConditional::Behavior::ELSEIF, Argument{arg});
   }
-  case (int)DC::ELSE: {
+  case D::ELSE: {
     if (symbol)
       throw PepParserError(PepParserError::NullaryError::SymbolDeclaration_Forbidden, buf->matched_interval());
     else if (const auto ok = _conditionals.on_else(); !ok)
       throw conditional_error(ok.error(), buf->matched_interval());
     return std::make_shared<DotConditional>(DotConditional::Behavior::ELSE);
   }
-  case (int)DC::ENDIF: {
+  case D::ENDIF: {
     if (symbol)
       throw PepParserError(PepParserError::NullaryError::SymbolDeclaration_Forbidden, buf->matched_interval());
     else if (const auto ok = _conditionals.on_endif(); !ok)
       throw conditional_error(ok.error(), buf->matched_interval());
     return std::make_shared<DotConditional>(DotConditional::Behavior::ENDIF);
   }
-  case (int)DC::INLINE_MACRO: {
+  case D::MACRO: {
     // A macro's name is not a symbol, and may use characters which expressions cannot (e.g., @TEST).
     auto name = buf->match<lex::Identifier>();
     if (!name) throw PepParserError(PepParserError::NullaryError::Argument_ExpectedIdentifier, buf->matched_interval());
@@ -515,12 +503,14 @@ std::shared_ptr<pepp::tc::LinearIR> pepp::tc::parser::PepParser::pseudo(Optional
     _macro_capture.begin(definition);
     return definition;
   }
-  case (int)DC::END_MACRO: {
+  case D::ENDM: {
     throw PepParserError(PepParserError::NullaryError::Macro_UnmatchedEndm, buf->matched_interval());
   }
-  default: throw std::logic_error("Unreachable");
+  // Not yet implemented.
+  case D::ADDRSS: [[fallthrough]];
+  case D::BURN: throw PepParserError(PepParserError::UnaryError::Dot_Invalid, dot_str, buf->matched_interval());
   }
-  return nullptr;
+  PEPP_UNREACHABLE();
 }
 
 namespace {

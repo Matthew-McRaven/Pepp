@@ -15,12 +15,14 @@
  */
 #pragma once
 #include <array>
+#include <initializer_list>
 #include <optional>
 #include <span>
 #include <string_view>
 #include "core/arch/pepx/asmb/pep_mnemonics.hpp"
 #include "core/arch/pepx/isa/pep_opcodes.hpp"
 #include "core/arch/pepx/isa/pep_registers.hpp"
+#include "core/integers.h"
 
 namespace pep {
 template <typename E> struct NamedEnum {
@@ -48,9 +50,52 @@ inline constexpr auto register_names = std::to_array<NamedEnum<Register>>({
     {Register::OS, "OS"},
 });
 
+// Dot commands accepted by the assembler
+enum class Directive : u8 {
+  ADDRSS,
+  ALIGN,
+  ASCII,
+  BLOCK,
+  BURN,
+  BYTE,
+  END,
+  EQUATE,
+  EXPORT,
+  INPUT,
+  ORG,
+  OUTPUT,
+  SCALL,
+  SECTION,
+  WORD,
+  IF,
+  ELSEIF,
+  ELSE,
+  ENDIF,
+  MACRO,
+  ENDM,
+};
+using DirectiveMask = u32;
+constexpr DirectiveMask mask_of(Directive d) { return static_cast<DirectiveMask>(1u << static_cast<u8>(d)); }
+constexpr DirectiveMask mask_of(std::initializer_list<Directive> ds) {
+  DirectiveMask ret = 0;
+  for (auto d : ds) ret |= mask_of(d);
+  return ret;
+}
+
+inline constexpr auto directive_names = std::to_array<NamedEnum<Directive>>({
+    {Directive::ADDRSS, "ADDRSS"}, {Directive::ALIGN, "ALIGN"},   {Directive::ASCII, "ASCII"},
+    {Directive::BLOCK, "BLOCK"},   {Directive::BURN, "BURN"},     {Directive::BYTE, "BYTE"},
+    {Directive::END, "END"},       {Directive::EQUATE, "EQUATE"}, {Directive::EXPORT, "EXPORT"},
+    {Directive::INPUT, "INPUT"},   {Directive::ORG, "ORG"},       {Directive::OUTPUT, "OUTPUT"},
+    {Directive::SCALL, "SCALL"},   {Directive::SECTION, "SECTION"}, {Directive::WORD, "WORD"},
+    {Directive::IF, "IF"},         {Directive::ELSEIF, "ELSEIF"}, {Directive::ELSE, "ELSE"},
+    {Directive::ENDIF, "ENDIF"},   {Directive::MACRO, "MACRO"},   {Directive::ENDM, "ENDM"},
+});
+
 // The details about a Pep assembly language needed by the assembler.
 struct Dialect {
   MnemonicMap mnemonics;
+  DirectiveMask directives = 0;
   std::span<const NamedEnum<AddrMode>> addressing_modes = addressing_mode_names;
   std::span<const NamedEnum<Register>> registers = register_names;
 
@@ -61,5 +106,8 @@ struct Dialect {
   std::string_view name(AddrMode mode) const;
   std::optional<Register> parse_register(std::string_view name) const;
   std::string_view name(Register reg) const;
+  // Nullopt if the name is unknown or this dialect does not accept it.
+  std::optional<Directive> parse_directive(std::string_view name) const;
+  std::string_view name(Directive directive) const;
 };
 } // namespace pep
