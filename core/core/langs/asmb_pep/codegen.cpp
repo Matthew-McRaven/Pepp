@@ -13,6 +13,7 @@
 #include "core/compile/symbol/value.hpp"
 #include "core/formats/elf/enums.hpp"
 #include "core/langs/asmb/codegen.hpp"
+#include "core/langs/asmb/codegen_error.hpp"
 #include "core/langs/asmb/debug_line.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/langs/asmb_pep/ir_lines.hpp"
@@ -124,9 +125,15 @@ pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(Diagnostic
         // Compute the index in the ELF file which this section will become.
         desc.section_index = desc.section_base_index + ret.grouped_ir.size();
         open_section(desc);
-      } else if (existing_sec->first.flags != flags) {
-        throw std::logic_error("Modifying flags for an existing section");
-      } else active = &*existing_sec;
+      } else {
+        if (existing_sec->first.flags != flags) {
+          const auto message = CodegenError::to_string(CodegenError::UnaryError::Section_FlagsChanged, name);
+          diag.add_message(line->source_interval, message, Severity::Fatal);
+        }
+        // Always continue processing the current section to maximimize the number of errors that can be reported in one
+        // pass.
+        active = &*existing_sec;
+      }
       break;
     }
     case DotAlign::TYPE: {
@@ -166,8 +173,9 @@ pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(Diagnostic
 
     if (auto symbol_attr = line->typed_attribute<SymbolDeclaration>(); symbol_attr) {
       if (!symbol_attr->entry->is_singly_defined()) {
-        auto formatted = fmt::format("Multiply defined symbol {}", symbol_attr->entry->name);
-        throw std::logic_error(formatted);
+        const auto symbol = std::string(symbol_attr->entry->name);
+        const auto message = CodegenError::to_string(CodegenError::UnaryError::Symbol_MultiplyDefined, symbol);
+        diag.add_message(line->source_interval, message, Severity::Fatal);
       }
       // Symbols need to know their defining section to enable relocations.
       symbol_attr->entry->section_index = active->first.section_index;
