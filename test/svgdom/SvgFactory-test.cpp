@@ -19,7 +19,7 @@ TEST_CASE("SvgFactor tests-createElementAs", "[scope:core][scope:core.svgdom.svg
   for (const auto typePair : SvgType::typeMap) {
 
     //  Create dummy document
-    Document doc{};
+    SvgDocument doc{};
     auto &svg = doc.documentElement();
 
     //  Check that type matches enum

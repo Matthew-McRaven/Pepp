@@ -19,7 +19,7 @@ TEST_CASE("SvgElement tests-getter-setter", "[scope:core][scope:core.svgdom.svge
   CHECK(element.desc() == ""s);
   CHECK(element.metadata() == ""s);
 
-  Document doc("Name"s);
+  SvgDocument doc("Name"s);
   CHECK(doc.fileName() == "Name"s);
   element.setDocument(&doc);
   CHECK(element.document()->fileName() == doc.fileName());

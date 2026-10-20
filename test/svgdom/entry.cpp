@@ -44,7 +44,7 @@ TEST_CASE("Test opened and copy file", "[scope:core][scope:core.svgdom][kind:uni
 
   Timer t;
   t.start();
-  Document doc1{};
+  SvgDocument doc1{};
   doc1.open(original);
   REQUIRE(doc1.fileSize() > 0);
 
@@ -55,7 +55,7 @@ TEST_CASE("Test opened and copy file", "[scope:core][scope:core.svgdom][kind:uni
   CHECK(doc1.fileSize() == copySize);
 
   //  Create second document from XML
-  Document doc2{};
+  SvgDocument doc2{};
   doc2.fromXml(doc1.toXml());
   doc2.saveAs(output);
   t.finish();
@@ -66,7 +66,7 @@ TEST_CASE("Test opened and copy file", "[scope:core][scope:core.svgdom][kind:uni
   CHECK(doc1.fileSize() == doc2.fileSize());
 
   //  Create second document from original
-  Document doc3{};
+  SvgDocument doc3{};
   doc3.copyDocument(doc1);
   doc3.saveAs(copy2);
   t.finish();
@@ -86,7 +86,7 @@ TEST_CASE("Create/add svg elements", "[scope:core][scope:core.svgdom][kind:unit]
 
   Timer t;
   t.start();
-  Document doc1{};
+  SvgDocument doc1{};
 
   auto &svg1 = doc1.documentElement();
   svg1.viewBox().setHeight(4);
@@ -122,7 +122,7 @@ TEST_CASE("Create/add svg elements", "[scope:core][scope:core.svgdom][kind:unit]
   CHECK(fs::exists(file));
   CHECK(doc1.fileSize() > 0);
 
-  Document doc2{};
+  SvgDocument doc2{};
   doc2.open(file);
   SvgUnitValue tempValue;
 
@@ -193,7 +193,7 @@ TEST_CASE("Create library file", "[scope:core][scope:core.svgdom][kind:unit]") {
 
   Timer t;
   t.start();
-  Document doc1{};
+  SvgDocument doc1{};
   auto &svg = doc1.documentElement();
 
   auto *library = doc1.documentElement().createElement(SvgType::Type::SvgDefsElement);
@@ -203,7 +203,7 @@ TEST_CASE("Create library file", "[scope:core][scope:core.svgdom][kind:unit]") {
   REQUIRE(gElement != nullptr);
 
   for (int i = 0; i < srcFiles.size(); ++i) {
-    Document d(srcFiles.at(i));
+    SvgDocument d(srcFiles.at(i));
 
     auto *child = d.getElementById(srcNames.at(i));
     REQUIRE(child != nullptr);

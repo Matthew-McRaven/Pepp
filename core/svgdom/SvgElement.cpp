@@ -89,12 +89,9 @@ void SvgElement::setValue(const std::string &value)
     _value = value;
 }
 
-void SvgElement::setDocument(Document *doc)
-{
-    _doc = doc;
-}
+void SvgElement::setDocument(SvgDocument *doc) { _doc = doc; }
 
-const Document *SvgElement::document() const { return _doc; }
+const SvgDocument *SvgElement::document() const { return _doc; }
 
 //  Svg specific fields
 const std::string &SvgElement::id() const
