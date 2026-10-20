@@ -87,13 +87,25 @@ struct SectionDescriptor {
   u16 section_index = section_base_index;
 };
 
+inline void suppress_object_code(LinearIR &line) {
+  if (!object_code_suppressed(line)) line.insert(std::make_unique<SuppressObjectCode>());
+}
+
 // Hide all "Z" sections object code from the listing.
 inline void suppress_zeroed_object_code(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog) {
-  for (auto &[desc, ir] : prog) {
-    if (!desc.flags.z) continue;
-    for (auto &line : ir)
-      if (!object_code_suppressed(*line)) line->insert(std::make_unique<SuppressObjectCode>());
-  }
+  for (auto &[desc, ir] : prog)
+    if (desc.flags.z)
+      for (auto &line : ir) suppress_object_code(*line);
+}
+
+// Hide the object code of every line before the first .BURN, in program order.
+inline void suppress_object_code_before_burn(IRProgram &prog) {
+  const auto is_burn = [](const auto &line) {
+    return line->type() == DotOrg::TYPE && static_cast<const DotOrg &>(*line).behavior == DotOrg::Behavior::BURN;
+  };
+  const auto burn = std::ranges::find_if(prog, is_burn);
+  if (burn == prog.end()) return;
+  for (auto it = prog.begin(); it != burn; ++it) suppress_object_code(**it);
 }
 
 // assign_addresses iterates over sections from prog, grouping non-ORG sections contiguously with the nearest ORG
