@@ -73,11 +73,11 @@ template <ElfEndian E> void check_round_trip() {
   LineProgramWriter<E> writer(s, pep10_header());
   writer.row(0x10, 2, 0, 5);
   // A special opcode alone.
-  writer.row(0x12, 1, 0, 6);
+  writer.row(0x12, 0x2e, 0, 6);
   // Too far for a special opcode, even after DW_LNS_const_add_pc. DW_LNS_advance_pc first.
   writer.row(0x40, 1, 0, 3);
   // Too many lines for a special opcode. DW_LNS_advance_line first.
-  writer.row(0x41, 1, 0, 200);
+  writer.row(0x41, 0x14, 0, 200);
   // Past a special opcode's reach. DW_LNS_const_add_pc first.
   writer.row(0x55, 1, 0, 200);
   // A lower address must start a new sequence.
@@ -126,6 +126,23 @@ TEST_CASE("DWARF line program", "[scope:dwarf][kind:unit][arch:*][!throws]") {
 
   SECTION("Round-trip a little-endian program") { check_round_trip<ElfEndian::le>(); }
   SECTION("Round-trip a big-endian program") { check_round_trip<ElfEndian::be>(); }
+
+  SECTION("A gap between rows ends the sequence") {
+    BlockStorage s;
+    LineProgramWriter<ElfEndian::be> writer(s, pep10_header());
+    writer.row(0x00, 3, 0, 1);
+    // Zero-length rows share an address with the next row and so does not end the sequence.
+    writer.row(0x03, 0, 0, 2);
+    writer.row(0x03, 1, 0, 3);
+    // Gap, ends previous sequence.
+    writer.row(0x10, 1, 0, 4);
+    writer.finish();
+    const std::vector<Row> expected{
+        {0x00, 0, 1, false}, {0x03, 0, 2, false}, {0x03, 0, 3, false}, {0x04, 0, 0, true},
+        {0x10, 0, 4, false}, {0x11, 0, 0, true},
+    };
+    CHECK(run<ElfEndian::be>(bytes_of(s)) == expected);
+  }
 
   SECTION("Read a hand-written program") {
     const auto header = pep10_header();
