@@ -176,6 +176,6 @@ TEST_CASE("Pep/9 driver", "[scope:core][scope:core.langs][kind:int][arch:pep9]")
   auto result = pepp::tc::assemble_pep9(pepp::tc::Pep9DriverConfig{}, pepp::tc::FormattingConfig{}, src);
   for (const auto &[_, diagnostic] : result.diagnostics) UNSCOPED_INFO(diagnostic.message);
   REQUIRE(result.ok());
-  const auto machine = std::visit([](const auto &file) { return u16(file->header.e_machine); }, result.elf.elf);
+  const auto machine = std::visit([](const auto &file) { return u16(file->header.e_machine); }, result.elf()->elf);
   CHECK(machine == bits::to_underlying(pepp::bts::ElfMachineType::EM_PEP9));
 }

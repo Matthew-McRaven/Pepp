@@ -54,7 +54,7 @@ ByteMap bytes_of_core(const QString &source, const Symdefs &symdefs) {
   for (const auto &[_, diagnostic] : result.diagnostics) UNSCOPED_INFO(diagnostic.message);
   REQUIRE(result.ok());
   std::stringstream stream;
-  pepp::tc::write_elf(result.elf, stream);
+  pepp::tc::write_elf(*result.elf(), stream);
   ELFIO::elfio elf;
   REQUIRE(elf.load(stream));
   ByteMap ret;

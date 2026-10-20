@@ -167,7 +167,7 @@ TEST_CASE("RISCV ASM .debug_macro", "[scope:core][scope:core.langs][kind:unit][a
   const auto source = ".macro inc reg\naddi \\reg, \\reg, 1\n.endm\ninc x5\n";
   auto result = assemble_riscv(RISCVDriverConfig{}, FormattingConfig{}, source);
   REQUIRE(result.ok());
-  const auto input = to_input_elf(result.elf);
+  const auto input = to_input_elf(*result.elf());
   const auto macros = std::visit([](const auto &file) { return read_macros(*file); }, input);
   REQUIRE(macros.has_value());
   // Pseudo-instructions are registry macros, so only inc is exported.

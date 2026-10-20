@@ -143,7 +143,7 @@ void AsTask::run() {
     write_lines(_opts.file_errs, {"Could not open " + _opts.file_elf + " for writing"}, std::cerr);
     return emit finished(1);
   }
-  pepp::tc::write_elf(result.elf, out);
+  pepp::tc::write_elf(*result.elf(), out);
   if (!out.flush()) {
     write_lines(_opts.file_errs, {"Could not write " + _opts.file_elf}, std::cerr);
     return emit finished(1);

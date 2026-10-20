@@ -23,7 +23,7 @@ DriverResult assemble_pep(const pep::Dialect &dialect, bts::ElfMachineType machi
   inject_symdefs(symdefs, *sy, 2);
 
   auto program = pep_parser.parse(result.diagnostics);
-  if (result.diagnostics.count(Severity::Error) > 0) return result;
+  if (result.diagnostics.count(Severity::Fatal) > 0) return result;
   if (fmtcfg.source_format) {
     auto formatted = format_source(dialect, program);
     fmtcfg.source_format(std::move(formatted));
@@ -31,19 +31,19 @@ DriverResult assemble_pep(const pep::Dialect &dialect, bts::ElfMachineType machi
 
   auto flattened = parser::flatten_macros(program, fmtcfg.listing_format != nullptr);
   auto split = pepp_split_to_sections(result.diagnostics, flattened);
-  if (result.diagnostics.count(Severity::Error) > 0) return result;
+  if (result.diagnostics.count(Severity::Fatal) > 0) return result;
 
   auto addresses = pepp_assign_addresses(result.diagnostics, split.grouped_ir);
-  if (result.diagnostics.count(Severity::Error) > 0) return result;
+  if (result.diagnostics.count(Severity::Fatal) > 0) return result;
   auto object_code = pepp_to_object_code(result.diagnostics, addresses, split.grouped_ir);
-  if (result.diagnostics.count(Severity::Error) > 0) return result;
+  if (result.diagnostics.count(Severity::Fatal) > 0) return result;
   if (fmtcfg.listing_format) {
     auto listing = format_listing(dialect, flattened, addresses, object_code);
     fmtcfg.listing_format(std::move(listing));
   }
   // After flattening, so that a definition inside an expansion has its instantiation's line.
-  result.elf = pepp_to_elf(split.grouped_ir, flattened, addresses, object_code, *pep_parser.symbol_table(), split.mmios,
-                           debug_files, parser::defined_macros(program), machine);
+  result.set_elf(pepp_to_elf(split.grouped_ir, flattened, addresses, object_code, *pep_parser.symbol_table(),
+                             split.mmios, debug_files, parser::defined_macros(program), machine));
   return result;
 }
 } // namespace
