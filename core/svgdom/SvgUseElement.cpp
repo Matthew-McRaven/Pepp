@@ -20,17 +20,21 @@ SvgUseElement::SvgUseElement(const std::string &xmlName, const std::string &valu
     : SvgUseElement()
 {
     SvgElement::setXmlName(xmlName);
-    SvgElement::setValue(value);
+    //  Value is not used in SvgSvgElement
 }
 
 //  Derived class accessors
 //  Dimension accessors
 SvgType::Type SvgUseElement::elementType() const { return TYPE; }
 
-auto SvgUseElement::href() const
-{
-    return _href;
-}
+//  Value is not valid for a svg element
+const std::string &SvgUseElement::value() const {
+  static std::string empty{};
+  return empty;
+};
+void SvgUseElement::setValue(const std::string &value) {};
+
+const std::string &SvgUseElement::href() const { return _href; }
 void SvgUseElement::setHref(const std::string &href)
 {
     //  Link must include # sign to be valid.

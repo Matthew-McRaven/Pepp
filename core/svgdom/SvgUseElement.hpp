@@ -21,12 +21,17 @@ public:
   SvgUseElement(SvgUseElement &&) noexcept = default;
   SvgUseElement &operator=(SvgUseElement &&) noexcept = default;
 
+  //  Value does not apply to SvgUseElement
+  const std::string &value() const override;
+  void setValue(const std::string &value) override;
+
   //	User access functions
+  SvgType::Type elementType() const override;
+
   //  Values can be changed, but not units of measure (yet)
-  auto href() const;
+  const std::string &href() const;
   void setHref(const std::string &href);
 
-  SvgType::Type elementType() const override;
   void toXml(SvgRope &output) const override;
   bool setAttribute(const std::string &key, const std::string &value) override;
   bool attributeXml(SvgRope &output) const override;
