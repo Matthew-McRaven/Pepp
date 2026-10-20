@@ -69,6 +69,40 @@ TEST_CASE("Pep/10 arguments are validated at codegen", "[scope:core][scope:core.
     CAPTURE(source);
     const auto result = assemble(source);
     REQUIRE(result.diagnostics.count() == 1);
-    CHECK(result.diagnostics.cbegin()->second == E::to_string(E::UnaryError::Argument_ValueDoesNotFit, bits));
+    CHECK(result.diagnostics.cbegin()->second.message == E::to_string(E::UnaryError::Argument_ValueDoesNotFit, bits));
+    CHECK(result.diagnostics.cbegin()->second.severity == pepp::tc::Severity::Error);
   }
+}
+
+TEST_CASE("Pep/10 warns on non-immediate ADD/SUBSP", "[scope:core][scope:core.langs][kind:unit][arch:pep10]") {
+  using pepp::tc::Severity;
+  const auto assemble = [](const char *source) {
+    return pepp::tc::assemble_pep10(pepp::tc::Pep10DriverConfig{}, pepp::tc::FormattingConfig{}, source);
+  };
+  for (const char *source : {"ADDSP 2,d", "SUBSP 2,s"}) {
+    CAPTURE(source);
+    const auto result = assemble(source);
+    CHECK(result.ok());
+    REQUIRE(result.diagnostics.count() == 1);
+    CHECK(result.diagnostics.cbegin()->second.severity == Severity::Warning);
+  }
+}
+
+TEST_CASE("Pep/10 codegen errors still produce a listing", "[scope:core][scope:core.langs][kind:int][arch:pep10]") {
+  using E = pepp::tc::CodegenError;
+  std::vector<std::string> listing;
+  pepp::tc::FormattingConfig fmt;
+  fmt.listing_format = [&](std::vector<std::string> &&lines) { listing = std::move(lines); };
+  auto result = pepp::tc::assemble_pep10(pepp::tc::Pep10DriverConfig{}, fmt, "LDWA 1,i\n.BYTE 256\nRET\n");
+  REQUIRE(result.diagnostics.count() == 1);
+  CHECK(result.diagnostics.cbegin()->second.message == E::to_string(E::UnaryError::Argument_ValueDoesNotFit, "8 bits"));
+  CHECK(result.diagnostics.cbegin()->second.severity == pepp::tc::Severity::Error);
+  CHECK_FALSE(result.ok());
+  CHECK(result.elf() == nullptr);
+  CHECK(result.unchecked_elf() != nullptr);
+  // The bad value is zeroed and later lines keep their addresses.
+  REQUIRE(listing.size() >= 3);
+  CHECK(listing[0].starts_with("0000 "));
+  CHECK(listing[1].starts_with("0003 00 "));
+  CHECK(listing[2].starts_with("0004 01 "));
 }

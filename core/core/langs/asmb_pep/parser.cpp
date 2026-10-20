@@ -162,7 +162,7 @@ pepp::tc::IRProgram pepp::tc::parser::PepParser::do_parse(DiagnosticTable &diag,
       }
     } catch (PepParserError &e) {
       synchronize();
-      diag.add_message(root_loc.value_or(e.loc), e.what());
+      diag.add_message(root_loc.value_or(e.loc), e.what(), Severity::Fatal);
     }
   }
   // Pop the lexer for this context before returning to caller.

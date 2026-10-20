@@ -410,7 +410,7 @@ LDWA 2,i
                     std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
-    for (auto &d : diag) std::cerr << d.second << "\n";
+    for (auto &d : diag) std::cerr << d.second.message << "\n";
     auto code = pepp::tc::parser::flatten_macros(results);
     auto result = pepp::tc::pepp_split_to_sections(diag, code);
     CHECK(diag.count() == 0);
@@ -491,7 +491,7 @@ LDWA 2,i
                     std::make_shared<MR>());
     auto results = p.parse(diag);
     CHECK(diag.count() == 0);
-    for (auto &d : diag) std::cerr << d.second << "\n";
+    for (auto &d : diag) std::cerr << d.second.message << "\n";
     auto code = pepp::tc::parser::flatten_macros(results);
     auto result = pepp::tc::pepp_split_to_sections(diag, code);
     CHECK(diag.count() == 0);
@@ -707,7 +707,7 @@ x:       .WORD   5
   fmt.listing_format = [&](std::vector<std::string> &&lines) { listing = std::move(lines); };
   auto result = pepp::tc::assemble_pep10(pepp::tc::Pep10DriverConfig{}, fmt, source);
   REQUIRE(result.ok());
-  const auto input = pepp::tc::to_input_elf(result.elf);
+  const auto input = pepp::tc::to_input_elf(*result.elf());
   const auto mappings = std::visit([](const auto &file) { return pepp::tc::read_line_mappings(*file); }, input);
   REQUIRE(mappings.has_value());
   const auto stop = std::ranges::find(*mappings, 6u, &pepp::tc::LineMapping::source_line);

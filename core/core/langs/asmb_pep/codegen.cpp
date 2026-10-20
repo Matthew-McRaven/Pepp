@@ -13,6 +13,7 @@
 #include "core/compile/symbol/value.hpp"
 #include "core/formats/elf/enums.hpp"
 #include "core/langs/asmb/codegen.hpp"
+#include "core/langs/asmb/codegen_error.hpp"
 #include "core/langs/asmb/debug_line.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/langs/asmb_pep/ir_lines.hpp"
@@ -80,7 +81,16 @@ pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(Diagnostic
   // A symbol which can move must be used in a form which a fixup rule can relocate.
   const auto check_operand = [&diag](const LinearIR &line, pepp::ast::IRValue &arg) {
     if (value_needs_relocation(arg) && !find_fixup(line, arg))
-      diag.add_message(line.source_interval, "Operands referencing symbols must be of the form symbol [+ constant]");
+      diag.add_message(line.source_interval, "Operands referencing symbols must be of the form symbol [+ constant]",
+                       Severity::Error);
+  };
+  // Stack adjustments the debugger cannot follow statically.
+  const auto check_sp_increment = [&diag](const DyadicInstruction &line) {
+    const auto name = line.mnemonic.name;
+    if ((name == "ADDSP" || name == "SUBSP") && line.addr_mode.addr_mode != pep::AddrMode::I)
+      diag.add_message(line.source_interval,
+                       fmt::format("Stack trace not possible unless immediate addressing is specified", name),
+                       Severity::Warning);
   };
   int burn_count = 0;
   // Opening a section takes pending lines as its prefix.
@@ -115,9 +125,15 @@ pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(Diagnostic
         // Compute the index in the ELF file which this section will become.
         desc.section_index = desc.section_base_index + ret.grouped_ir.size();
         open_section(desc);
-      } else if (existing_sec->first.flags != flags) {
-        throw std::logic_error("Modifying flags for an existing section");
-      } else active = &*existing_sec;
+      } else {
+        if (existing_sec->first.flags != flags) {
+          const auto message = CodegenError::to_string(CodegenError::UnaryError::Section_FlagsChanged, name);
+          diag.add_message(line->source_interval, message, Severity::Fatal);
+        }
+        // Always continue processing the current section to maximimize the number of errors that can be reported in one
+        // pass.
+        active = &*existing_sec;
+      }
       break;
     }
     case DotAlign::TYPE: {
@@ -139,10 +155,15 @@ pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(Diagnostic
     case DotOrg::TYPE: {
       auto as_org = std::static_pointer_cast<pepp::tc::DotOrg>(line);
       if (as_org->behavior == DotOrg::Behavior::ORG) active->first.org_count++;
-      else if (burn_count++ > 0) diag.add_message(line->source_interval, "Only one .BURN is allowed");
+      else if (burn_count++ > 0) diag.add_message(line->source_interval, "Only one .BURN is allowed", Severity::Fatal);
       break;
     }
-    case DyadicInstruction::TYPE: check_operand(*line, *static_cast<DyadicInstruction *>(line.get())->argument.value); break;
+    case DyadicInstruction::TYPE: {
+      const auto &instr = *static_cast<DyadicInstruction *>(line.get());
+      check_operand(*line, *instr.argument.value);
+      check_sp_increment(instr);
+      break;
+    }
     case DotLiteral::TYPE: check_operand(*line, *static_cast<DotLiteral *>(line.get())->argument.value); break;
     case InlineMacroDefinition::TYPE: [[fallthrough]];
     case MacroInstantiation::TYPE: throw std::logic_error("Cannot perform code generation on macros");
@@ -152,8 +173,9 @@ pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(Diagnostic
 
     if (auto symbol_attr = line->typed_attribute<SymbolDeclaration>(); symbol_attr) {
       if (!symbol_attr->entry->is_singly_defined()) {
-        auto formatted = fmt::format("Multiply defined symbol {}", symbol_attr->entry->name);
-        throw std::logic_error(formatted);
+        const auto symbol = std::string(symbol_attr->entry->name);
+        const auto message = CodegenError::to_string(CodegenError::UnaryError::Symbol_MultiplyDefined, symbol);
+        diag.add_message(line->source_interval, message, Severity::Fatal);
       }
       // Symbols need to know their defining section to enable relocations.
       symbol_attr->entry->section_index = active->first.section_index;
@@ -193,8 +215,8 @@ struct PeppObjectVistitor : public PepIRVisitor {
   // Lines by address are unused, since Pep/10 has no relocation which refers to another line.
   PeppObjectVistitor(DiagnosticTable &, const IRMemoryAddressTable<PeppAddress> &, const LinesByAddress &,
                      const u16 base_address, bits::span<u8>, std::vector<Relocation> &, IR2ObjectCodeMap &);
-  // Emit a relocation for the line's argument, which is at offset into the section.
-  void relocate(const LinearIR &line, pepp::ast::IRValue &arg, u16 offset);
+  // Record a relocation for the argument at offset into the section. False if it can't be relocated.
+  bool relocate(const LinearIR &line, pepp::ast::IRValue &arg, u16 offset);
   void visit(const EmptyLine *) override;
   void visit(const CommentLine *) override;
   void visit(const SymbolLine *) override;
@@ -229,14 +251,14 @@ bool needs_relocation(const pepp::core::symbol::Entry &symbol) {
 }
 } // namespace
 
-void pepp::tc::PeppObjectVistitor::relocate(const LinearIR &line, pepp::ast::IRValue &arg, u16 offset) {
+bool pepp::tc::PeppObjectVistitor::relocate(const LinearIR &line, pepp::ast::IRValue &arg, u16 offset) {
   const auto fixup = find_fixup(line, arg);
-  // pepp_split_to_sections reports this to the user, so reaching it here is a bug.
-  if (!fixup && value_needs_relocation(arg))
-    throw std::logic_error("Operands referencing symbols must be of the form symbol [+ constant]");
-  else if (!fixup || !needs_relocation(*fixup->target.symbol)) return;
+  // This should be a previously-reported error, but allow the object code to be generated without crashing.
+  if (!fixup && value_needs_relocation(arg)) return false;
+  else if (!fixup || !needs_relocation(*fixup->target.symbol)) return true;
   relocations.push_back(
       Relocation{.target = fixup->target, .section_offset = offset, .type = bits::to_underlying(fixup->rule.type)});
+  return true;
 }
 
 void pepp::tc::PeppObjectVistitor::visit(const EmptyLine *) {
@@ -262,10 +284,10 @@ void pepp::tc::PeppObjectVistitor::visit(const DyadicInstruction *line) {
   out_bytes[0] = line->mnemonic.mn.encode(line->addr_mode.addr_mode);
   const u16 offset = addr_info.address - base_address + 1; // Offset by 1 to reach operand specifier.
   auto &value = *line->argument.value;
-  if (validate_argument(diag, *line, value, *pepp_argument_constraint(*line), 16, true)) {
-    relocate(*line, value, offset);
+  if (validate_argument(diag, *line, value, *pepp_argument_constraint(*line), 16, true) &&
+      relocate(*line, value, offset))
     (void)value.serialize(out_bytes.subspan(1).first(2), bits::Order::BigEndian);
-  } else std::ranges::fill(out_bytes.subspan(1).first(2), 0);
+  else std::ranges::fill(out_bytes.subspan(1).first(2), 0);
   ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(3)});
   out_bytes = out_bytes.subspan(3);
 }
@@ -281,13 +303,11 @@ void pepp::tc::PeppObjectVistitor::visit(const DotLiteral *line) {
   auto addr_info = ir_to_address.at(line);
   auto &value = *line->argument.value;
   // R_PEP10_ABS8 truncates an address to a byte, so every Pep argument may hold an address.
-  if (const auto constraint = pepp_argument_constraint(*line);
-      constraint && !validate_argument(diag, *line, value, *constraint, 16, true)) {
-    std::ranges::fill(out_bytes.first(addr_info.size), 0);
-  } else {
-    relocate(*line, value, addr_info.address - base_address);
+  const auto constraint = pepp_argument_constraint(*line);
+  if ((!constraint || validate_argument(diag, *line, value, *constraint, 16, true)) &&
+      relocate(*line, value, addr_info.address - base_address))
     (void)value.serialize(out_bytes.first(addr_info.size), bits::Order::BigEndian);
-  }
+  else std::ranges::fill(out_bytes.first(addr_info.size), 0);
 
   ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(addr_info.size)});
   out_bytes = out_bytes.subspan(addr_info.size);
@@ -352,7 +372,7 @@ ProgramObjectCodeResult pepp_to_object_code(DiagnosticTable &diag, const IRMemor
     // No one line is at fault, so the error covers the whole file.
     using support::Location;
     diag.add_message({Location(0, 0), Location(Location::MAX, Location::MAX)},
-                     fmt::format("Object code must fit within {} bytes.", pep_address_space_size));
+                     fmt::format("Object code must fit within {} bytes.", pep_address_space_size), Severity::Fatal);
     return {};
   }
   return to_object_code<PeppAddress, PeppObjectVistitor>(diag, addresses, prog);

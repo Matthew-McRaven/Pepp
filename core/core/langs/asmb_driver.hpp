@@ -1,4 +1,5 @@
 #pragma once
+#include <optional>
 #include <string>
 #include <variant>
 #include "core/compile/macro/macro_registry.hpp"
@@ -39,10 +40,19 @@ struct Pep9DriverConfig {
 };
 using DriverConfig = std::variant<RISCVDriverConfig, Pep10DriverConfig, Pep9DriverConfig>;
 
-struct DriverResult {
-  ElfResult elf;
+class DriverResult {
+public:
   DiagnosticTable diagnostics;
-  bool ok() const { return diagnostics.count() == 0; }
+  bool ok() const { return diagnostics.count(Severity::Error) == 0; }
+  // An ELF file suitable for linking+loading that is null unless ok().
+  ElfResult *elf() { return ok() ? unchecked_elf() : nullptr; }
+  // An ELF file generated despite errors, for debugging purposes and generating listings.
+  // Always null after a fatal error, but may be non-null after non-fatal errors.
+  ElfResult *unchecked_elf() { return _elf ? &*_elf : nullptr; }
+  void set_elf(ElfResult elf) { _elf = std::move(elf); }
+
+private:
+  std::optional<ElfResult> _elf;
 };
 
 // Dispatch to the assembler based on the target architecture.

@@ -215,6 +215,6 @@ TEST_CASE("Pepp ASM codegen object code size", "[scope:core][scope:core.langs][k
     pepp::tc::DiagnosticTable diag;
     assemble(".BLOCK 0xFFFF\n.WORD 0", diag);
     REQUIRE(diag.count() == 1);
-    CHECK(diag.begin()->second == "Object code must fit within 65536 bytes.");
+    CHECK(diag.begin()->second.message == "Object code must fit within 65536 bytes.");
   }
 }

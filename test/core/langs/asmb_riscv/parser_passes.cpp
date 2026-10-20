@@ -574,14 +574,14 @@ TEST_CASE("RISCV ASM parser dot commands",
       DiagnosticTable diag;
       (void)parse(source, diag);
       REQUIRE(diag.count() == 1);
-      CHECK(diag.cbegin()->second == RVPE::to_string(error));
+      CHECK(diag.cbegin()->second.message == RVPE::to_string(error));
     }
     {
       // .error only triggers on taken branches
       DiagnosticTable diag;
       (void)parse(".if 0\n.error \"skipped\"\n.endif\n.error \"user text\"", diag);
       REQUIRE(diag.count() == 1);
-      CHECK(diag.cbegin()->second == "user text");
+      CHECK(diag.cbegin()->second.message == "user text");
     }
   }
   // Macros are shared with Pep/10, whose tests cover them in depth.
@@ -651,7 +651,7 @@ TEST_CASE("RISCV ASM parser dot commands",
       (void)parse(".macro m a\n.byte \\a\n.endm\nm 1, 2, 3", wrong);
       REQUIRE(wrong.count() == 1);
       std::string name = "m";
-      CHECK(wrong.cbegin()->second ==
+      CHECK(wrong.cbegin()->second.message ==
             RISCVParserError::to_string(RISCVParserError::UnaryError::Macro_WrongArgumentCount, name));
     }
     using RVPE = RISCVParserError;
@@ -664,7 +664,7 @@ TEST_CASE("RISCV ASM parser dot commands",
       DiagnosticTable diag;
       (void)parse(source, diag);
       REQUIRE(diag.count() == 1);
-      CHECK(diag.cbegin()->second == RVPE::to_string(error));
+      CHECK(diag.cbegin()->second.message == RVPE::to_string(error));
     }
   }
 }
@@ -759,7 +759,7 @@ TEST_CASE("RISCV ASM pseudo-instructions",
     DiagnosticTable wrong;
     (void)Parser(data("sw x5, 0(x6), x7")).parse(wrong);
     REQUIRE(wrong.count() == 1);
-    CHECK(wrong.cbegin()->second == RVPE::to_string(RVPE::NullaryError::Token_MissingNewline));
+    CHECK(wrong.cbegin()->second.message == RVPE::to_string(RVPE::NullaryError::Token_MissingNewline));
   }
   SECTION("Pseudo-instructions are case-insensitive, like instructions") {
     for (const char *source : {"LI x5, 1", "SEXT.B x1, x2", "Lw x5, msg"}) {
@@ -815,7 +815,7 @@ TEST_CASE("RISCV ASM pseudo-instructions",
       DiagnosticTable diag;
       (void)Parser(data(source)).parse(diag);
       REQUIRE(diag.count() == 1);
-      CHECK(diag.cbegin()->second == message);
+      CHECK(diag.cbegin()->second.message == message);
     }
   }
   SECTION("Flattened expansions have updates source intervals") {

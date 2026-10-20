@@ -73,7 +73,7 @@ std::expected<pepp::tc::expr::Value, std::string> typed_value(const pepp::ast::I
 bool pepp::tc::validate_argument(DiagnosticTable &diag, const LinearIR &line, pepp::ast::IRValue &value,
                                  ArgumentConstraint constraint, u8 address_bits, bool narrowing_relocation) {
   using E = CodegenError;
-  const auto report = [&](const E &error) { return diag.add_message(error.loc, error.what()), false; };
+  const auto report = [&](const E &error) { return diag.add_message(error.loc, error.what(), Severity::Error), false; };
   // A symbol which can move is address-sized, whatever its current value.
   if (const auto offset = symbol_offset(value); offset && !offset->symbol->is_constant()) {
     if (narrowing_relocation || address_bits <= constraint.bits) return true;
@@ -87,7 +87,7 @@ bool pepp::tc::validate_argument(DiagnosticTable &diag, const LinearIR &line, pe
 bool pepp::tc::validate_value(DiagnosticTable &diag, const LinearIR &line, expr::Value value,
                               ArgumentConstraint constraint) {
   using E = CodegenError;
-  const auto report = [&](const E &error) { return diag.add_message(error.loc, error.what()), false; };
+  const auto report = [&](const E &error) { return diag.add_message(error.loc, error.what(), Severity::Error), false; };
   if (!aligned(value, constraint)) return report(E(E::NullaryError::Argument_OddOffset, line.source_interval));
   else if (!satisfies(value, constraint))
     return report(E(E::UnaryError::Argument_ValueDoesNotFit, to_string(constraint), line.source_interval));

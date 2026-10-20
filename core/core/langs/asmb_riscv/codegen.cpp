@@ -56,9 +56,15 @@ pepp::tc::RISCVSectionAnalysisResults pepp::tc::riscv_split_to_sections(Diagnost
         // Compute the index in the ELF file which this section will become.
         desc.section_index = desc.section_base_index + ret.grouped_ir.size();
         open_section(desc);
-      } else if (existing_sec->first.flags != flags) {
-        throw std::logic_error("Modifying flags for an existing section");
-      } else active = &*existing_sec;
+      } else {
+        if (existing_sec->first.flags != flags) {
+          const auto message = CodegenError::to_string(CodegenError::UnaryError::Section_FlagsChanged, name);
+          diag.add_message(line->source_interval, message, Severity::Fatal);
+        }
+        // Always continue processing the current section to maximimize the number of errors that can be reported in one
+        // pass.
+        active = &*existing_sec;
+      }
       break;
     }
     case DotAlign::TYPE: {
@@ -76,8 +82,9 @@ pepp::tc::RISCVSectionAnalysisResults pepp::tc::riscv_split_to_sections(Diagnost
 
     if (auto symbol_attr = line->typed_attribute<SymbolDeclaration>(); symbol_attr) {
       if (!symbol_attr->entry->is_singly_defined()) {
-        auto formatted = fmt::format("Multiply defined symbol {}", symbol_attr->entry->name);
-        throw std::logic_error(formatted);
+        const auto symbol = std::string(symbol_attr->entry->name);
+        const auto message = CodegenError::to_string(CodegenError::UnaryError::Symbol_MultiplyDefined, symbol);
+        diag.add_message(line->source_interval, message, Severity::Fatal);
       }
       // Symbols need to know their defining section to enable relocations.
       symbol_attr->entry->section_index = active->first.section_index;
@@ -267,8 +274,8 @@ std::optional<u32> pepp::tc::RISCVObjectVistitor::operand_field(const LinearIR &
       const auto auipc = target.symbol->is_undefined() ? 0 : target.symbol->value->value()() + target.addend;
       const auto hi = target.symbol->is_undefined() ? std::nullopt : pcrel_hi_value(auipc);
       if (!hi) {
-        const CodegenError error(CodegenError::NullaryError::Argument_UnpairedPcrelLo, line.source_interval);
-        diag.add_message(error.loc, error.what());
+        const auto message = CodegenError::to_string(CodegenError::NullaryError::Argument_UnpairedPcrelLo);
+        diag.add_message(line.source_interval, message, Severity::Error);
         return std::nullopt;
       } else if (hi->symbol->is_undefined()) return 0;
       // Per standard, we are supposed to compute the relocation as S + A - P
@@ -283,8 +290,8 @@ std::optional<u32> pepp::tc::RISCVObjectVistitor::operand_field(const LinearIR &
     }
   } else if (!fixup && !symbol_offset(value) && value_needs_relocation(value)) {
     // A `symbol [+ constant]` is left to validate_argument
-    const CodegenError error(CodegenError::NullaryError::Argument_NotRelocatable, line.source_interval);
-    diag.add_message(error.loc, error.what());
+    const auto message = CodegenError::to_string(CodegenError::NullaryError::Argument_NotRelocatable);
+    diag.add_message(line.source_interval, message, Severity::Error);
     return std::nullopt;
   }
   if (!validate_argument(diag, line, value, constraint, 32)) return std::nullopt;

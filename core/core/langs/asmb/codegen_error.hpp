@@ -30,6 +30,8 @@ public:
     Argument_ValueDoesNotFit,   // The argument is the constraint, e.g. "signed 12 bits".
     Argument_AddressDoesNotFit, // A relocatable symbol is address-sized whatever its current value.
     Expression_Invalid,
+    Section_FlagsChanged, // The argument is the section's name.
+    Symbol_MultiplyDefined,
   };
 
   static const std::string to_string(NullaryError);

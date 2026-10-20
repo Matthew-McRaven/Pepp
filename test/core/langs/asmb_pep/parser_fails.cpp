@@ -42,7 +42,8 @@ TEST_CASE("Pepp ASM parser errors",
     CHECK(diag.count() == 1);
     auto [start, end] = diag.overlapping_interval(LocationInterval(Location(2, 0), Location(2, Location::MAX)));
     CHECK(start != end);
-    CHECK(start->second == PE::to_string(NullaryError::Argument_Missing));
+    CHECK(start->second.message == PE::to_string(NullaryError::Argument_Missing));
+    CHECK(start->second.severity == Severity::Fatal);
   }
   SECTION("Invalid integer format") {
     // TODO: would like to recognize invalid integers in lexer but reject them in parser.
@@ -53,7 +54,7 @@ TEST_CASE("Pepp ASM parser errors",
       CHECK(diag.count() == 1);
       auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
       CHECK(start != end);
-      // CHECK(start->second == PE::to_string(NullaryError::Argument_InvalidIntegerFormat));
+      // CHECK(start->second.message == PE::to_string(NullaryError::Argument_InvalidIntegerFormat));
     }
     {
       pepp::tc::DiagnosticTable diag;
@@ -62,7 +63,7 @@ TEST_CASE("Pepp ASM parser errors",
       CHECK(diag.count() == 1);
       auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
       CHECK(start != end);
-      // CHECK(start->second == PE::to_string(NullaryError::Argument_InvalidIntegerFormat));
+      // CHECK(start->second.message == PE::to_string(NullaryError::Argument_InvalidIntegerFormat));
     }
   }
   SECTION(".ALIGN expected power-of-two") {
@@ -72,7 +73,7 @@ TEST_CASE("Pepp ASM parser errors",
     CHECK(diag.count() == 1);
     auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
     CHECK(start != end);
-    CHECK(start->second == PE::to_string(NullaryError::Argument_ExpectedPowerOfTwo));
+    CHECK(start->second.message == PE::to_string(NullaryError::Argument_ExpectedPowerOfTwo));
   }
   SECTION(".ASCII expected string") {
     pepp::tc::DiagnosticTable diag;
@@ -81,7 +82,7 @@ TEST_CASE("Pepp ASM parser errors",
     CHECK(diag.count() == 1);
     auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
     CHECK(start != end);
-    CHECK(start->second == PE::to_string(NullaryError::Argument_ExpectedString));
+    CHECK(start->second.message == PE::to_string(NullaryError::Argument_ExpectedString));
   }
   SECTION(".EXPORT expected identifier") {
     pepp::tc::DiagnosticTable diag;
@@ -90,7 +91,7 @@ TEST_CASE("Pepp ASM parser errors",
     CHECK(diag.count() == 1);
     auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
     CHECK(start != end);
-    CHECK(start->second == PE::to_string(NullaryError::Argument_ExpectedIdentifier));
+    CHECK(start->second.message == PE::to_string(NullaryError::Argument_ExpectedIdentifier));
   }
   SECTION(".END forbids a symbol") {
     pepp::tc::DiagnosticTable diag;
@@ -99,7 +100,7 @@ TEST_CASE("Pepp ASM parser errors",
     CHECK(diag.count() == 1);
     auto [start, end] = diag.overlapping_interval(LocationInterval(Location(0, 0), Location(0, Location::MAX)));
     CHECK(start != end);
-    CHECK(start->second == PE::to_string(NullaryError::SymbolDeclaration_Forbidden));
+    CHECK(start->second.message == PE::to_string(NullaryError::SymbolDeclaration_Forbidden));
   }
   SECTION(".ORG expected hex") {
     pepp::tc::DiagnosticTable diag;
@@ -108,7 +109,7 @@ TEST_CASE("Pepp ASM parser errors",
     CHECK(diag.count() == 1);
     auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
     CHECK(start != end);
-    CHECK(start->second == PE::to_string(NullaryError::Argument_ExpectedHex));
+    CHECK(start->second.message == PE::to_string(NullaryError::Argument_ExpectedHex));
   }
   SECTION("Addressing mode required") {
     pepp::tc::DiagnosticTable diag;
@@ -117,7 +118,7 @@ TEST_CASE("Pepp ASM parser errors",
     CHECK(diag.count() == 1);
     auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
     CHECK(start != end);
-    CHECK(start->second == PE::to_string(NullaryError::AddressingMode_Required));
+    CHECK(start->second.message == PE::to_string(NullaryError::AddressingMode_Required));
   }
   SECTION("Addressing mode invalid") {
     pepp::tc::DiagnosticTable diag;
@@ -126,7 +127,7 @@ TEST_CASE("Pepp ASM parser errors",
     CHECK(diag.count() == 1);
     auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
     CHECK(start != end);
-    CHECK(start->second == PE::to_string(NullaryError::AddressingMode_Invalid));
+    CHECK(start->second.message == PE::to_string(NullaryError::AddressingMode_Invalid));
   }
   SECTION("Addressing mode missing") {
     pepp::tc::DiagnosticTable diag;
@@ -135,7 +136,7 @@ TEST_CASE("Pepp ASM parser errors",
     CHECK(diag.count() == 1);
     auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
     CHECK(start != end);
-    CHECK(start->second == PE::to_string(NullaryError::AddressingMode_Missing));
+    CHECK(start->second.message == PE::to_string(NullaryError::AddressingMode_Missing));
   }
   SECTION("Operators, signs, and expressions") {
     struct Case {
@@ -156,7 +157,7 @@ TEST_CASE("Pepp ASM parser errors",
       CHECK(diag.count() == 1);
       auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
       REQUIRE(start != end);
-      CHECK(start->second == c.message);
+      CHECK(start->second.message == c.message);
     }
   }
   SECTION(".EQUATE only references .EQUATEs defined before it") {
@@ -170,7 +171,7 @@ TEST_CASE("Pepp ASM parser errors",
       CHECK(diag.count() == 1);
       auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
       REQUIRE(start != end);
-      CHECK(start->second == PE::to_string(NullaryError::Argument_SymbolicEquate));
+      CHECK(start->second.message == PE::to_string(NullaryError::Argument_SymbolicEquate));
     }
   }
   SECTION(".EQUATE expectes symbol declaration") {
@@ -180,7 +181,7 @@ TEST_CASE("Pepp ASM parser errors",
     CHECK(diag.count() == 1);
     auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
     CHECK(start != end);
-    CHECK(start->second == PE::to_string(NullaryError::SymbolDeclaration_Required));
+    CHECK(start->second.message == PE::to_string(NullaryError::SymbolDeclaration_Required));
   }
   SECTION(".ORG rejects symbols") {
     pepp::tc::DiagnosticTable diag;
@@ -189,7 +190,7 @@ TEST_CASE("Pepp ASM parser errors",
     CHECK(diag.count() == 1);
     auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
     CHECK(start != end);
-    CHECK(start->second == PE::to_string(NullaryError::SymbolDeclaration_Forbidden));
+    CHECK(start->second.message == PE::to_string(NullaryError::SymbolDeclaration_Forbidden));
   }
   SECTION("Symbol too long") {
     pepp::tc::DiagnosticTable diag;
@@ -198,7 +199,7 @@ TEST_CASE("Pepp ASM parser errors",
     CHECK(diag.count() == 1);
     auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
     CHECK(start != end);
-    CHECK(start->second == PE::to_string(NullaryError::SymbolDeclaration_TooLong));
+    CHECK(start->second.message == PE::to_string(NullaryError::SymbolDeclaration_TooLong));
   }
   SECTION(".SECTION expects string name") {
     pepp::tc::DiagnosticTable diag;
@@ -207,7 +208,7 @@ TEST_CASE("Pepp ASM parser errors",
     CHECK(diag.count() == 1);
     auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
     CHECK(start != end);
-    CHECK(start->second == PE::to_string(NullaryError::Section_StringName));
+    CHECK(start->second.message == PE::to_string(NullaryError::Section_StringName));
   }
   SECTION(".SECTION expects two args") {
     {
@@ -217,7 +218,7 @@ TEST_CASE("Pepp ASM parser errors",
       CHECK(diag.count() == 1);
       auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
       CHECK(start != end);
-      CHECK(start->second == PE::to_string(NullaryError::Section_TwoArgs));
+      CHECK(start->second.message == PE::to_string(NullaryError::Section_TwoArgs));
     }
   }
   SECTION(".SECTION expects string flags") {
@@ -228,7 +229,7 @@ TEST_CASE("Pepp ASM parser errors",
       CHECK(diag.count() == 1);
       auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
       CHECK(start != end);
-      CHECK(start->second == PE::to_string(NullaryError::Section_StringFlags));
+      CHECK(start->second.message == PE::to_string(NullaryError::Section_StringFlags));
     }
     {
       pepp::tc::DiagnosticTable diag;
@@ -237,7 +238,7 @@ TEST_CASE("Pepp ASM parser errors",
       CHECK(diag.count() == 1);
       auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
       CHECK(start != end);
-      CHECK(start->second == PE::to_string(NullaryError::Section_StringFlags));
+      CHECK(start->second.message == PE::to_string(NullaryError::Section_StringFlags));
     }
   }
   SECTION("Conditionals require constant expressions") {
@@ -250,7 +251,7 @@ TEST_CASE("Pepp ASM parser errors",
       auto results = p.parse(diag);
       auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
       REQUIRE(start != end);
-      CHECK(start->second == PE::to_string(NullaryError::Conditional_NotConstant));
+      CHECK(start->second.message == PE::to_string(NullaryError::Conditional_NotConstant));
     }
   }
   SECTION("Unterminated .IF") {
@@ -261,7 +262,7 @@ TEST_CASE("Pepp ASM parser errors",
       CHECK(diag.count() == 1);
       auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
       CHECK(start != end);
-      CHECK(start->second == PE::to_string(NullaryError::Conditional_Unterminated));
+      CHECK(start->second.message == PE::to_string(NullaryError::Conditional_Unterminated));
     }
   }
   SECTION("Unmatched .ELSEIF") {
@@ -272,7 +273,7 @@ TEST_CASE("Pepp ASM parser errors",
       CHECK(diag.count() == 1);
       auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
       CHECK(start != end);
-      CHECK(start->second == PE::to_string(NullaryError::Conditional_UnmatchedElseif));
+      CHECK(start->second.message == PE::to_string(NullaryError::Conditional_UnmatchedElseif));
     }
   }
   SECTION("Unmatched .ENDIF") {
@@ -283,7 +284,7 @@ TEST_CASE("Pepp ASM parser errors",
       CHECK(diag.count() == 1);
       auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
       CHECK(start != end);
-      CHECK(start->second == PE::to_string(NullaryError::Conditional_UnmatchedEndif));
+      CHECK(start->second.message == PE::to_string(NullaryError::Conditional_UnmatchedEndif));
     }
   }
   SECTION("Unmatched .ELSE") {
@@ -293,7 +294,7 @@ TEST_CASE("Pepp ASM parser errors",
     CHECK(diag.count() == 1);
     auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
     CHECK(start != end);
-    CHECK(start->second == PE::to_string(NullaryError::Conditional_UnmatchedElse));
+    CHECK(start->second.message == PE::to_string(NullaryError::Conditional_UnmatchedElse));
   }
   // TODO: this test case is not producing the expected error message
   /*SECTION("Multiple .ELSE") {
@@ -303,7 +304,7 @@ TEST_CASE("Pepp ASM parser errors",
     CHECK(diag.count() == 1);
     auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
     CHECK(start != end);
-    CHECK(start->second == PE::to_string(NullaryError::Conditional_MultipleElse));
+    CHECK(start->second.message == PE::to_string(NullaryError::Conditional_MultipleElse));
 
   }*/
   SECTION("Unterminated .macro") {
@@ -313,7 +314,7 @@ TEST_CASE("Pepp ASM parser errors",
     CHECK(diag.count() == 1);
     auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
     CHECK(start != end);
-    CHECK(start->second == PE::to_string(NullaryError::Macro_Unterminated));
+    CHECK(start->second.message == PE::to_string(NullaryError::Macro_Unterminated));
   }
   SECTION("Unmatched .endm") {
     {
@@ -323,7 +324,7 @@ TEST_CASE("Pepp ASM parser errors",
       CHECK(diag.count() == 1);
       auto [start, end] = diag.overlapping_interval(LocationInterval(Location(1, 0), Location(1, Location::MAX)));
       CHECK(start != end);
-      CHECK(start->second == PE::to_string(NullaryError::Macro_UnmatchedEndm));
+      CHECK(start->second.message == PE::to_string(NullaryError::Macro_UnmatchedEndm));
     }
   }
   SECTION("Redefining a macro") {
@@ -334,7 +335,7 @@ TEST_CASE("Pepp ASM parser errors",
     // TODO: IDK why this is sent to the wrong line.
     auto [start, end] = diag.overlapping_interval(LocationInterval(Location(0, 0), Location(1, Location::MAX)));
     CHECK(start != diag.cend());
-    CHECK(start->second == PE::to_string(UnaryError::Macro_Redefinition, "@TEST"));
+    CHECK(start->second.message == PE::to_string(UnaryError::Macro_Redefinition, "@TEST"));
   }
   SECTION("Recursive macro") {
     pepp::tc::DiagnosticTable diag;
@@ -343,6 +344,6 @@ TEST_CASE("Pepp ASM parser errors",
     CHECK(diag.count() == 1);
     auto [start, end] = diag.overlapping_interval(LocationInterval(Location(0, 0), Location(1, Location::MAX)));
     CHECK(start != diag.cend());
-    CHECK(start->second == PE::to_string(NullaryError::Macro_ExcessiveRecursion));
+    CHECK(start->second.message == PE::to_string(NullaryError::Macro_ExcessiveRecursion));
   }
 }

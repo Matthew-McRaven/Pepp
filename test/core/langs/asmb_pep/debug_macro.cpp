@@ -40,7 +40,7 @@ outer
 )";
   auto result = assemble_pep10(Pep10DriverConfig{.macros = registry}, FormattingConfig{}, source);
   REQUIRE(result.ok());
-  const auto input = to_input_elf(result.elf);
+  const auto input = to_input_elf(*result.elf());
 
   auto f = [](const auto &file) {
     constexpr auto E = std::remove_cvref_t<decltype(*file)>::elf_endian;

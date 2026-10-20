@@ -77,7 +77,7 @@ NOTA
     auto p = Parser(data(source), std::make_shared<MR>(), dialect);
     p.parse(diag);
     std::vector<std::string> messages;
-    for (const auto &[_, message] : diag) messages.emplace_back(message);
+    for (const auto &[_, diagnostic] : diag) messages.emplace_back(diagnostic.message);
     CHECK(messages == std::vector<std::string>{expected});
   }
   SECTION(".ADDRSS assembles like .WORD") {
@@ -101,7 +101,7 @@ NOTA
     auto p = Parser(data(".ADDRSS 5\n"), std::make_shared<MR>(), dialect);
     p.parse(diag);
     std::vector<std::string> messages;
-    for (const auto &[_, message] : diag) messages.emplace_back(message);
+    for (const auto &[_, diagnostic] : diag) messages.emplace_back(diagnostic.message);
     CHECK(messages == std::vector<std::string>{PE::to_string(PE::NullaryError::Argument_ExpectedIdentifier)});
   }
   SECTION(".BURN acts like .ORG at the end of the program") {
@@ -166,7 +166,7 @@ NOTA
     auto p = Parser(data(".BURN 65535\n"), std::make_shared<MR>(), dialect);
     p.parse(diag);
     std::vector<std::string> messages;
-    for (const auto &[_, message] : diag) messages.emplace_back(message);
+    for (const auto &[_, diagnostic] : diag) messages.emplace_back(diagnostic.message);
     CHECK(messages == std::vector<std::string>{PE::to_string(PE::NullaryError::Argument_ExpectedHex)});
   }
 }
@@ -174,8 +174,8 @@ NOTA
 TEST_CASE("Pep/9 driver", "[scope:core][scope:core.langs][kind:int][arch:pep9]") {
   static const auto src = "x: .BLOCK 1\n.BURN 0xFFFF\nSTOP\n.ADDRSS x\n.END\n";
   auto result = pepp::tc::assemble_pep9(pepp::tc::Pep9DriverConfig{}, pepp::tc::FormattingConfig{}, src);
-  for (const auto &[_, message] : result.diagnostics) UNSCOPED_INFO(message);
+  for (const auto &[_, diagnostic] : result.diagnostics) UNSCOPED_INFO(diagnostic.message);
   REQUIRE(result.ok());
-  const auto machine = std::visit([](const auto &file) { return u16(file->header.e_machine); }, result.elf.elf);
+  const auto machine = std::visit([](const auto &file) { return u16(file->header.e_machine); }, result.elf()->elf);
   CHECK(machine == bits::to_underlying(pepp::bts::ElfMachineType::EM_PEP9));
 }

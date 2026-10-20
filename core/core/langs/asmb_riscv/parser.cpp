@@ -172,7 +172,7 @@ pepp::tc::IRProgram pepp::tc::parser::RISCVParser::do_parse(DiagnosticTable &dia
       if (auto line = statement(diag); line) lines.emplace_back(line);
     } catch (RISCVParserError &e) {
       synchronize();
-      diag.add_message(root_loc.value_or(e.loc), e.what());
+      diag.add_message(root_loc.value_or(e.loc), e.what(), Severity::Fatal);
     }
   }
   return lines;
