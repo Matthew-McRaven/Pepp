@@ -8,6 +8,6 @@ void pepp::tc::DiagnosticTable::add_message(support::LocationInterval i, std::st
 
 size_t pepp::tc::DiagnosticTable::count() const { return _raw.size(); }
 
-size_t pepp::tc::DiagnosticTable::fatal_count() const {
-  return std::ranges::count(_raw, Severity::Fatal, [](const auto &entry) { return entry.second.severity; });
+size_t pepp::tc::DiagnosticTable::count(Severity minimum) const {
+  return std::ranges::count_if(_raw, [minimum](const auto &entry) { return entry.second.severity >= minimum; });
 }

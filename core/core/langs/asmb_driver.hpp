@@ -42,7 +42,7 @@ using DriverConfig = std::variant<RISCVDriverConfig, Pep10DriverConfig, Pep9Driv
 struct DriverResult {
   ElfResult elf;
   DiagnosticTable diagnostics;
-  bool ok() const { return diagnostics.count() == 0; }
+  bool ok() const { return diagnostics.count(Severity::Error) == 0; }
 };
 
 // Dispatch to the assembler based on the target architecture.
