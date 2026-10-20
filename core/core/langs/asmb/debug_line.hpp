@@ -55,12 +55,22 @@ IR2ListingLineMap number_listing_lines(const IRProgram &program, const ProgramOb
                                        u32 bytes_per_line);
 
 // One address's lines, merged from both units. Lines are 1-based, and 0 means the address has no such line.
-// In a relocatable file, `address` is an offset into `section`. SHN_ABS means `address` is absolute.
+// SHN_ABS means `address` is an absolute address. Otherwise address is the section's sh_addr plus an offset.
 struct LineMapping {
   u16 section = bits::to_underlying(pepp::bts::SectionIndices::SHN_ABS);
   u64 address = 0;
   u32 source_line = 0, listing_line = 0;
   bool operator==(const LineMapping &) const = default;
+};
+
+// One row of the listing line program, covering [start, end): from its address to the next row of its sequence, or to
+// the sequence's end. SHN_ABS means the addresses the (start, end) addresses are absolute, otherwise they are the
+// section's sh_addr plus an offset.
+struct ListingRow {
+  u32 line = 0;
+  u16 section = bits::to_underlying(pepp::bts::SectionIndices::SHN_ABS);
+  u64 start = 0, end = 0;
+  bool operator==(const ListingRow &) const = default;
 };
 
 namespace detail {
@@ -244,33 +254,45 @@ void write_debug_line(pepp::bts::AnyGrowableElf &elf, u8 address_size, u32 addre
   std::visit(f, elf);
 }
 
+namespace detail {
+// Runs every line program unit in the section `name`, calling on_row(row, section) for each row in program order.
+// `section` is the target of the sequence's relocated DW_LNE_set_address; otherwise it is SHN_ABS.
+template <pepp::bts::ElfBits B, pepp::bts::ElfEndian E, typename OnRow>
+std::expected<void, std::string> for_each_line_row(const pepp::bts::PackedElf<B, E> &elf, const char *name,
+                                                   OnRow &&on_row) {
+  const auto line_str = pepp::bts::section_bytes(elf, pepp::bts::find_named_section(elf, debugLineStrSection));
+  const auto index = pepp::bts::find_named_section(elf, name);
+  const auto data = pepp::bts::section_bytes(elf, index);
+  const auto sections = pepp::bts::relocation_symbol_sections(elf, index);
+  for (size_t offset = 0; offset < data.size();) {
+    const auto unit = pepp::bts::parse_line_program_unit<E>(data, offset, line_str);
+    if (!unit) return std::unexpected(unit.error());
+    const auto program_start = static_cast<u64>(unit->program.data() - data.data());
+    const auto visit = [&](const pepp::bts::DebugLineState &row, std::optional<size_t> address_operand) {
+      u16 section = bits::to_underlying(pepp::bts::SectionIndices::SHN_ABS);
+      if (address_operand) {
+        const auto it = sections.find(program_start + *address_operand);
+        if (it != sections.cend()) section = it->second;
+      }
+      on_row(row, section);
+    };
+    if (const auto ran = pepp::bts::run_line_program<E>(*unit, visit); !ran) return std::unexpected(ran.error());
+    offset = unit->next_unit;
+  }
+  return {};
+}
+} // namespace detail
+
 // Decodes line info of elf, into one mapping per (section, address) in ascending order.
 template <pepp::bts::ElfBits B, pepp::bts::ElfEndian E>
 std::expected<std::vector<LineMapping>, std::string> read_line_mappings(const pepp::bts::PackedElf<B, E> &elf) {
-  const auto line_str = pepp::bts::section_bytes(elf, pepp::bts::find_named_section(elf, debugLineStrSection));
   std::map<std::pair<u16, u64>, std::pair<u32, u32>> lines;
-  const auto read_section = [&](const char *name, bool for_listing) -> std::expected<void, std::string> {
-    const auto index = pepp::bts::find_named_section(elf, name);
-    const auto data = pepp::bts::section_bytes(elf, index);
-    const auto sections = pepp::bts::relocation_symbol_sections(elf, index);
-    for (size_t offset = 0; offset < data.size();) {
-      const auto unit = pepp::bts::parse_line_program_unit<E>(data, offset, line_str);
-      if (!unit) return std::unexpected(unit.error());
-      const auto program_start = static_cast<u64>(unit->program.data() - data.data());
-      const auto on_row = [&](const pepp::bts::DebugLineState &row, std::optional<size_t> address_operand) {
-        if (row.end_sequence) return;
-        u16 section = bits::to_underlying(pepp::bts::SectionIndices::SHN_ABS);
-        if (address_operand) {
-          const auto it = sections.find(program_start + *address_operand);
-          if (it != sections.cend()) section = it->second;
-        }
-        auto &[source_line, listing_line] = lines[{section, row.address}];
-        (for_listing ? listing_line : source_line) = static_cast<u32>(row.line);
-      };
-      if (const auto ran = pepp::bts::run_line_program<E>(*unit, on_row); !ran) return std::unexpected(ran.error());
-      offset = unit->next_unit;
-    }
-    return {};
+  const auto read_section = [&](const char *name, bool for_listing) {
+    return detail::for_each_line_row(elf, name, [&](const pepp::bts::DebugLineState &row, u16 section) {
+      if (row.end_sequence) return;
+      auto &[source_line, listing_line] = lines[{section, row.address}];
+      (for_listing ? listing_line : source_line) = static_cast<u32>(row.line);
+    });
   };
   if (const auto read = read_section(debugLineSection, false); !read) return std::unexpected(read.error());
   if (const auto read = read_section(debugListingLineSection, true); !read) return std::unexpected(read.error());
@@ -279,6 +301,23 @@ std::expected<std::vector<LineMapping>, std::string> read_line_mappings(const pe
   for (const auto &[where, line] : lines)
     ret.push_back(
         {.section = where.first, .address = where.second, .source_line = line.first, .listing_line = line.second});
+  return ret;
+}
+
+// Decodes the listing line program of elf into its rows, in program order. Rows sharing an address are all kept.
+template <pepp::bts::ElfBits B, pepp::bts::ElfEndian E>
+std::expected<std::vector<ListingRow>, std::string> read_listing_rows(const pepp::bts::PackedElf<B, E> &elf) {
+  std::vector<ListingRow> ret;
+
+  bool open = false; // Whether ret.back() is in an open sequence.
+  const auto on_row = [&](const pepp::bts::DebugLineState &row, u16 section) {
+    if (open) ret.back().end = row.address;
+    open = !row.end_sequence;
+    if (open)
+      ret.push_back({.line = static_cast<u32>(row.line), .section = section, .start = row.address, .end = row.address});
+  };
+  const auto read = detail::for_each_line_row(elf, debugListingLineSection, on_row);
+  if (!read) return std::unexpected(read.error());
   return ret;
 }
 

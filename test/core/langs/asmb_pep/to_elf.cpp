@@ -307,6 +307,41 @@ LDWA 2,i
     CHECK(tagged == std::set<u16>{static_cast<u16>(elf.sections[".text"]->get_index()),
                                   static_cast<u16>(elf.sections[".data"]->get_index())});
   }
+  SECTION("Generating line number programs for ET_REL") {
+    const auto txt = R"(.SECTION ".text","rx"
+LDWA 1,i
+x:
+LDWA 2,i
+.SECTION ".data","rw"
+.WORD 5
+)";
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(txt), std::make_shared<MR>());
+    auto code = pepp::tc::parser::flatten_macros(p.parse(diag));
+    auto result = pepp::tc::pepp_split_to_sections(diag, code);
+    auto &sections = result.grouped_ir;
+    REQUIRE(sections.size() == 2);
+    auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
+    auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
+    REQUIRE(diag.count() == 0);
+    using namespace pepp::bts;
+    auto elf_result = sections_to_elf(ElfBits::b32, ElfEndian::be, ElfMachineType::EM_PEP10, sections, object_code,
+                                      *p.symbol_table());
+    std::get<std::unique_ptr<PackedGrowableElfBE32>>(elf_result.elf)->header.e_type =
+        bits::to_underlying(ElfFileType::ET_REL);
+    const auto listing = number_listing_lines(code, object_code, pep_listing_bytes_per_line);
+    write_debug_line(elf_result.elf, 2, bits::to_underlying(RelocationsPep::R_PEP10_ABS16),
+                     bits::to_underlying(RelocationsPep::R_PEP10_ABS32), sections, addresses, listing);
+    auto elf = read_back(elf_result);
+    const auto text = static_cast<u16>(elf.sections[".text"]->get_index());
+    const auto data_section = static_cast<u16>(elf.sections[".data"]->get_index());
+
+    const auto input = to_input_elf(elf_result);
+    const auto rows = std::visit([](const auto &file) { return read_listing_rows(*file); }, input);
+    REQUIRE(rows.has_value());
+    // Neither .SECTION nor x: has an address so neither get a row in the LNP.
+    CHECK(*rows == std::vector<ListingRow>{{2, text, 0x0, 0x3}, {4, text, 0x3, 0x6}, {6, data_section, 0x6, 0x8}});
+  }
   SECTION("A leading .SECTION does not create an empty implicit section") {
     pepp::tc::DiagnosticTable diag;
     auto p = Parser(data(R"(
