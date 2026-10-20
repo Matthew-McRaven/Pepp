@@ -235,6 +235,7 @@ void format_listing(const pep::Dialect &dialect, const pepp::tc::LinearIR *line,
   const std::string address_str = address.has_value() ? fmt::format("{:04X}", *address) : "    ";
   auto code_it = object_code.ir_to_object_code.find(line);
   bits::span<u8> code = code_it == object_code.ir_to_object_code.end() ? bits::span<u8>{} : code_it->second;
+  if (pepp::tc::object_code_suppressed(*line)) code = {};
 
   static constexpr int bytes_per_line = pepp::tc::pep_listing_bytes_per_line;
   auto obj = std::vector<char>(2 * bytes_per_line);

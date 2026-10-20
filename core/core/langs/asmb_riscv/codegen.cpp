@@ -89,6 +89,7 @@ pepp::tc::RISCVSectionAnalysisResults pepp::tc::riscv_split_to_sections(Diagnost
   }
   // Whole file was comments, but still create a section to hold our pending lines for the sake of formatting.
   if (!pending.empty()) open_section(initial_section);
+  suppress_zeroed_object_code(ret.grouped_ir);
   return ret;
 }
 pepp::tc::IRMemoryAddressTable<pepp::tc::RISCVAddress>

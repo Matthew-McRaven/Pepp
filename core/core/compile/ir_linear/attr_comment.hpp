@@ -34,4 +34,11 @@ struct Hidden : public AAttribute {
 };
 bool hidden_from_source(const LinearIR &line);
 bool hidden_from_listing(const LinearIR &line);
+
+// Omit a line's object code from the listing, but keep its address and source.
+struct SuppressObjectCode : public AAttribute {
+  static constexpr int TYPE = static_cast<int>(Type::SuppressObjectCode);
+  int type() const override;
+};
+bool object_code_suppressed(const LinearIR &line);
 } // namespace pepp::tc

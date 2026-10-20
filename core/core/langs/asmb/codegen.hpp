@@ -4,12 +4,14 @@
 #include <array>
 #include <list>
 #include <map>
+#include <memory>
 #include <numeric>
 #include <optional>
 #include <ranges>
 #include <span>
 #include <string_view>
 #include <vector>
+#include "core/compile/ir_linear/attr_comment.hpp"
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_symbol.hpp"
 #include "core/compile/ir_value/symbolic.hpp"
@@ -84,6 +86,15 @@ struct SectionDescriptor {
   static constexpr u16 section_base_index = 2; // After the null section and .shstrtab.
   u16 section_index = section_base_index;
 };
+
+// Hide all "Z" sections object code from the listing.
+inline void suppress_zeroed_object_code(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog) {
+  for (auto &[desc, ir] : prog) {
+    if (!desc.flags.z) continue;
+    for (auto &line : ir)
+      if (!object_code_suppressed(*line)) line->insert(std::make_unique<SuppressObjectCode>());
+  }
+}
 
 // assign_addresses iterates over sections from prog, grouping non-ORG sections contiguously with the nearest ORG
 // section to its left. Sections before the first .ORG are an exception, and are grouped with the nearest .ORG to the
@@ -431,6 +442,7 @@ ProgramObjectCodeResult to_object_code(DiagnosticTable &diag, const IRMemoryAddr
     const auto &[sec, ir] = prog[it];
     const auto &offset = offsets[it];
     auto &slice = ret.section_slices.emplace_back(ret.object_code, offset.object_code_offset, offset.object_code_size);
+    if (sec.flags.z) continue;
     LinesByAddress lines_by_address;
     for (const auto &line : ir)
       if (const auto found = addresses.find(line.get()); found != addresses.end() && found->second.size > 0)

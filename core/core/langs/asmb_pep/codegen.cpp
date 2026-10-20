@@ -166,6 +166,7 @@ pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(Diagnostic
 
   // Whole file was comments, but still create a section to hold our pending lines for the sake of formatting.
   if (!pending.empty()) open_section(initial_section);
+  suppress_zeroed_object_code(grouped_ir);
   return ret;
 }
 
