@@ -207,8 +207,8 @@ struct PeppObjectVistitor : public PepIRVisitor {
   // Lines by address are unused, since Pep/10 has no relocation which refers to another line.
   PeppObjectVistitor(DiagnosticTable &, const IRMemoryAddressTable<PeppAddress> &, const LinesByAddress &,
                      const u16 base_address, bits::span<u8>, std::vector<Relocation> &, IR2ObjectCodeMap &);
-  // Emit a relocation for the line's argument, which is at offset into the section.
-  void relocate(const LinearIR &line, pepp::ast::IRValue &arg, u16 offset);
+  // Record a relocation for the argument at offset into the section. False if it can't be relocated.
+  bool relocate(const LinearIR &line, pepp::ast::IRValue &arg, u16 offset);
   void visit(const EmptyLine *) override;
   void visit(const CommentLine *) override;
   void visit(const SymbolLine *) override;
@@ -243,14 +243,14 @@ bool needs_relocation(const pepp::core::symbol::Entry &symbol) {
 }
 } // namespace
 
-void pepp::tc::PeppObjectVistitor::relocate(const LinearIR &line, pepp::ast::IRValue &arg, u16 offset) {
+bool pepp::tc::PeppObjectVistitor::relocate(const LinearIR &line, pepp::ast::IRValue &arg, u16 offset) {
   const auto fixup = find_fixup(line, arg);
-  // pepp_split_to_sections reports this to the user, so reaching it here is a bug.
-  if (!fixup && value_needs_relocation(arg))
-    throw std::logic_error("Operands referencing symbols must be of the form symbol [+ constant]");
-  else if (!fixup || !needs_relocation(*fixup->target.symbol)) return;
+  // This should be a previously-reported error, but allow the object code to be generated without crashing.
+  if (!fixup && value_needs_relocation(arg)) return false;
+  else if (!fixup || !needs_relocation(*fixup->target.symbol)) return true;
   relocations.push_back(
       Relocation{.target = fixup->target, .section_offset = offset, .type = bits::to_underlying(fixup->rule.type)});
+  return true;
 }
 
 void pepp::tc::PeppObjectVistitor::visit(const EmptyLine *) {
@@ -276,10 +276,10 @@ void pepp::tc::PeppObjectVistitor::visit(const DyadicInstruction *line) {
   out_bytes[0] = line->mnemonic.mn.encode(line->addr_mode.addr_mode);
   const u16 offset = addr_info.address - base_address + 1; // Offset by 1 to reach operand specifier.
   auto &value = *line->argument.value;
-  if (validate_argument(diag, *line, value, *pepp_argument_constraint(*line), 16, true)) {
-    relocate(*line, value, offset);
+  if (validate_argument(diag, *line, value, *pepp_argument_constraint(*line), 16, true) &&
+      relocate(*line, value, offset))
     (void)value.serialize(out_bytes.subspan(1).first(2), bits::Order::BigEndian);
-  } else std::ranges::fill(out_bytes.subspan(1).first(2), 0);
+  else std::ranges::fill(out_bytes.subspan(1).first(2), 0);
   ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(3)});
   out_bytes = out_bytes.subspan(3);
 }
@@ -295,13 +295,11 @@ void pepp::tc::PeppObjectVistitor::visit(const DotLiteral *line) {
   auto addr_info = ir_to_address.at(line);
   auto &value = *line->argument.value;
   // R_PEP10_ABS8 truncates an address to a byte, so every Pep argument may hold an address.
-  if (const auto constraint = pepp_argument_constraint(*line);
-      constraint && !validate_argument(diag, *line, value, *constraint, 16, true)) {
-    std::ranges::fill(out_bytes.first(addr_info.size), 0);
-  } else {
-    relocate(*line, value, addr_info.address - base_address);
+  const auto constraint = pepp_argument_constraint(*line);
+  if ((!constraint || validate_argument(diag, *line, value, *constraint, 16, true)) &&
+      relocate(*line, value, addr_info.address - base_address))
     (void)value.serialize(out_bytes.first(addr_info.size), bits::Order::BigEndian);
-  }
+  else std::ranges::fill(out_bytes.first(addr_info.size), 0);
 
   ir_to_object_code.container.emplace_back(IR2ObjectPair{line, out_bytes.first(addr_info.size)});
   out_bytes = out_bytes.subspan(addr_info.size);
