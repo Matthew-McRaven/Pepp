@@ -89,15 +89,17 @@ pepp::tc::RISCVSectionAnalysisResults pepp::tc::riscv_split_to_sections(Diagnost
   }
   // Whole file was comments, but still create a section to hold our pending lines for the sake of formatting.
   if (!pending.empty()) open_section(initial_section);
+  suppress_zeroed_object_code(ret.grouped_ir);
   return ret;
 }
 pepp::tc::IRMemoryAddressTable<pepp::tc::RISCVAddress>
-pepp::tc::riscv_assign_addresses(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog, u32 initial_base_address) {
+pepp::tc::riscv_assign_addresses(DiagnosticTable &diag, std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
+                                 u32 initial_base_address) {
   static const auto f = [](const pepp::tc::LinearIR *line) -> pepp::core::symbol::Type {
     auto isCode = dynamic_cast<const IntegerInstruction *>(&*line);
     return isCode ? pepp::core::symbol::Type::Code : pepp::core::symbol::Type::Object;
   };
-  return assign_addresses<RISCVAddress>(prog, f, initial_base_address);
+  return assign_addresses<RISCVAddress>(diag, prog, f, initial_base_address);
 }
 
 namespace pepp::tc {
@@ -381,7 +383,8 @@ std::optional<pepp::tc::ArgumentConstraint> pepp::tc::riscv_argument_constraint(
     switch (literal->which) {
     case Which::ASCII: return std::nullopt;
     case Which::Byte1: return ArgumentConstraint{8, Bits};
-    case Which::Byte2: return ArgumentConstraint{16, Bits};
+    case Which::Byte2: [[fallthrough]];
+    case Which::Address2: return ArgumentConstraint{16, Bits};
     case Which::Byte4: return ArgumentConstraint{32, Bits};
     }
   } else if (const auto *instruction = dynamic_cast<const IntegerInstruction *>(&line)) {

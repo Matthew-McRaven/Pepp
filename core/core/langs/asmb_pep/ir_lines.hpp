@@ -10,14 +10,6 @@
 namespace pepp::tc {
 enum class PepIRType : int { Monadic = static_cast<int>(LinearIRType::FirstUser), Dyadic, DotAnnotate };
 
-enum class PepDotCommands : int {
-  EXPORT = static_cast<int>(DotCommands::FIRST_USER),
-  END,
-  INPUT,
-  OUTPUT,
-  SCALL,
-};
-
 struct MonadicInstruction : public LinearIR {
   static constexpr int TYPE = static_cast<int>(PepIRType::Monadic);
   explicit MonadicInstruction(PepMnemonic m) : mnemonic(m) {}

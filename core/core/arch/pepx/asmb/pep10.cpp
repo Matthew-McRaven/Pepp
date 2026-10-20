@@ -17,6 +17,9 @@
 #include "core/arch/pepx/isa/pep10.hpp"
 
 const pep::Dialect &pep::pep10::dialect() {
-  static const Dialect ret{.mnemonics = make_mnemonics(instructions)};
+  using enum Directive;
+  static const Dialect ret{.mnemonics = make_mnemonics(instructions),
+                           .directives = mask_of({ALIGN, ASCII, BLOCK, BYTE, END, EQUATE, EXPORT, INPUT, ORG, OUTPUT,
+                                                  SCALL, SECTION, WORD, IF, ELSEIF, ELSE, ENDIF, MACRO, ENDM})};
   return ret;
 }

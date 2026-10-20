@@ -32,7 +32,12 @@ struct Pep10DriverConfig {
   std::shared_ptr<pepp::tc::MacroRegistry> macros = nullptr;
   DebugLineFiles debug_files;
 };
-using DriverConfig = std::variant<RISCVDriverConfig, Pep10DriverConfig>;
+// Pep/9 does not support macros.
+struct Pep9DriverConfig {
+  std::vector<std::pair<std::string, u32>> symdefs;
+  DebugLineFiles debug_files;
+};
+using DriverConfig = std::variant<RISCVDriverConfig, Pep10DriverConfig, Pep9DriverConfig>;
 
 struct DriverResult {
   ElfResult elf;
@@ -46,6 +51,7 @@ DriverResult assemble(const DriverConfig &config, const FormattingConfig &, std:
 // Per-architecture entry points, for callers that already know the target.
 DriverResult assemble_riscv(const RISCVDriverConfig &config, const FormattingConfig &, std::string source);
 DriverResult assemble_pep10(const Pep10DriverConfig &config, const FormattingConfig &, std::string source);
+DriverResult assemble_pep9(const Pep9DriverConfig &config, const FormattingConfig &, std::string source);
 
 // A helper to copy command-line / external symbol definitions into a symtab as weak constants.
 void inject_symdefs(std::vector<std::pair<std::string, u32>> symdefs, core::symbol::LeafTable &symtab, u8 byte_width);

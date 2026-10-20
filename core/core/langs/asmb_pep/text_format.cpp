@@ -108,6 +108,7 @@ void pepp::tc::SourceVisitor::visit(const DotLiteral *line) {
   case Which::ASCII: dot = ".ASCII"; break;
   case Which::Byte1: dot = ".BYTE"; break;
   case Which::Byte2: dot = ".WORD"; break;
+  case Which::Address2: dot = ".ADDRSS"; break;
   default: throw std::invalid_argument("Invalid DotLiteral kind");
   }
 
@@ -234,6 +235,7 @@ void format_listing(const pep::Dialect &dialect, const pepp::tc::LinearIR *line,
   const std::string address_str = address.has_value() ? fmt::format("{:04X}", *address) : "    ";
   auto code_it = object_code.ir_to_object_code.find(line);
   bits::span<u8> code = code_it == object_code.ir_to_object_code.end() ? bits::span<u8>{} : code_it->second;
+  if (pepp::tc::object_code_suppressed(*line)) code = {};
 
   static constexpr int bytes_per_line = pepp::tc::pep_listing_bytes_per_line;
   auto obj = std::vector<char>(2 * bytes_per_line);

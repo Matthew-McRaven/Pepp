@@ -11,6 +11,8 @@ DriverResult assemble(const DriverConfig &config, const FormattingConfig &fmt, s
     if constexpr (std::is_same_v<Config, RISCVDriverConfig>) return assemble_riscv(arch_config, fmt, std::move(source));
     else if constexpr (std::is_same_v<Config, Pep10DriverConfig>)
       return assemble_pep10(arch_config, fmt, std::move(source));
+    else if constexpr (std::is_same_v<Config, Pep9DriverConfig>)
+      return assemble_pep9(arch_config, fmt, std::move(source));
   };
   return std::visit(disp, config);
 }

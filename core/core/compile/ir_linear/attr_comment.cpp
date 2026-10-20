@@ -24,3 +24,7 @@ bool pepp::tc::hidden_from_listing(const LinearIR &line) {
   const auto *hidden = line.typed_attribute<Hidden>();
   return hidden && hidden->listing;
 }
+
+int pepp::tc::SuppressObjectCode::type() const { return TYPE; }
+
+bool pepp::tc::object_code_suppressed(const LinearIR &line) { return line.has_attribute<SuppressObjectCode>(); }

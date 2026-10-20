@@ -13,6 +13,7 @@ enum class Type {
   SymbolDeclaration,
   LocationCounterDeclaration,
   SectionFlags,
+  SuppressObjectCode,
   FirstUser
 };
 

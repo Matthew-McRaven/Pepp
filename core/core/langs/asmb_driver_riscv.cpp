@@ -28,7 +28,8 @@ DriverResult assemble_riscv(const RISCVDriverConfig &cfg, const FormattingConfig
   auto split = riscv_split_to_sections(result.diagnostics, flattened);
   if (result.diagnostics.count() > 0) return result;
 
-  auto addresses = riscv_assign_addresses(split.grouped_ir);
+  auto addresses = riscv_assign_addresses(result.diagnostics, split.grouped_ir);
+  if (result.diagnostics.count() > 0) return result;
   auto object_code = riscv_to_object_code(result.diagnostics, addresses, split.grouped_ir);
   if (result.diagnostics.count() > 0) return result;
   if (fmtcfg.listing_format) {

@@ -124,7 +124,7 @@ TEST_CASE("Pepp ASM listing formatting",
     auto result = pepp::tc::pepp_split_to_sections(diag, code);
     CHECK(diag.count() == 0);
     auto &sections = result.grouped_ir;
-    auto addresses = pepp::tc::pepp_assign_addresses(sections);
+    auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
     auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
     auto listing = format_listing(pep::pep10::dialect(), r[0].get(), addresses, object_code);
     CHECK(listing.size() == 1);
@@ -143,7 +143,7 @@ ADDA 15,d ;hi)";
     auto result = pepp::tc::pepp_split_to_sections(diag, code);
     CHECK(diag.count() == 0);
     auto &sections = result.grouped_ir;
-    auto addresses = pepp::tc::pepp_assign_addresses(sections);
+    auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
     auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
     auto listing = format_listing(pep::pep10::dialect(), r[0].get(), addresses, object_code);
     CHECK(listing.size() == 1);
@@ -162,7 +162,7 @@ ADDA 15,d ;hi)";
     auto result = pepp::tc::pepp_split_to_sections(diag, code);
     CHECK(diag.count() == 0);
     auto &sections = result.grouped_ir;
-    auto addresses = pepp::tc::pepp_assign_addresses(sections);
+    auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
     auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
     auto listing = format_listing(pep::pep10::dialect(), r[0].get(), addresses, object_code);
     CHECK(listing.size() == 3);
@@ -177,7 +177,7 @@ ADDA 15,d ;hi)";
       auto r = p.parse(diag);
       auto code = pepp::tc::parser::flatten_macros(r);
       auto result = pepp::tc::pepp_split_to_sections(diag, code);
-      auto addresses = pepp::tc::pepp_assign_addresses(result.grouped_ir);
+      auto addresses = pepp::tc::pepp_assign_addresses(diag, result.grouped_ir);
       auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, result.grouped_ir);
       CHECK(diag.count() == 0);
       return std::make_tuple(std::move(r), std::move(addresses), std::move(object_code));
@@ -217,7 +217,7 @@ TEST_CASE("Pepp ASM symbol-only line formatting",
   auto result = pepp::tc::pepp_split_to_sections(diag, code);
   CHECK(diag.count() == 0);
   auto &sections = result.grouped_ir;
-  auto addresses = pepp::tc::pepp_assign_addresses(sections);
+  auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
   auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
   const auto bare = [](u16 address, const std::string &text) { return fmt::format("{:04X}{:8}{}", address, "", text); };
   const std::vector<std::string> expected_listing = {bare(0, expected_source[0]), bare(0, expected_source[1]),
@@ -244,7 +244,7 @@ TEST_CASE("Pepp ASM symbol + value operands", "[scope:core][scope:core.langs][le
   auto result = pepp::tc::pepp_split_to_sections(diag, code);
   CHECK(diag.count() == 0);
   auto &sections = result.grouped_ir;
-  auto addresses = pepp::tc::pepp_assign_addresses(sections);
+  auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
   auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
 
   // Expressions format with spaces around the operator, and each row shows the bytes that were generated.

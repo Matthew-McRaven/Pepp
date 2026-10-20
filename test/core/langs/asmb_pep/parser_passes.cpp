@@ -152,7 +152,7 @@ TEST_CASE("Pepp ASM parser", "[scope:core][scope:core.langs][level:asmb3][level:
     REQUIRE(results.size() == 3);
     auto code = pepp::tc::parser::flatten_macros(results);
     auto split = pepp::tc::pepp_split_to_sections(diag, code);
-    (void)pepp::tc::pepp_assign_addresses(split.grouped_ir); // Gives x its address and k its value.
+    (void)pepp::tc::pepp_assign_addresses(diag, split.grouped_ir); // Gives x its address and k its value.
     const auto line = std::dynamic_pointer_cast<DyadicInstruction>(results[2]);
     REQUIRE(line);
     const auto expression = std::dynamic_pointer_cast<pepp::ast::Expression>(line->argument.value);
@@ -789,7 +789,7 @@ TEST_CASE("Pepp ASM symbol-only lines", "[scope:core][scope:core.langs][level:as
   auto split = pepp_split_to_sections(diag, flat);
   CHECK(diag.count() == 0);
   auto &sections = split.grouped_ir;
-  auto addresses = pepp_assign_addresses(sections);
+  auto addresses = pepp_assign_addresses(diag, sections);
   (void)pepp_to_object_code(diag, addresses, sections);
   const std::vector<Expect> expected = {{"a", 3, 3, Type::Code},   {"b", 3, 3, Type::Code},
                                         {"c", 6, 3, Type::Code},   {"d", 6, 3, Type::Code},

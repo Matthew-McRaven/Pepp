@@ -40,7 +40,8 @@ struct DotAlign : public LinearIR {
 
 struct DotLiteral : public LinearIR { // ASCII, byte, word
   static constexpr int TYPE = static_cast<int>(LinearIRType::DotLiteral);
-  enum class Which { ASCII, Byte1, Byte2, Byte4 } which;
+  // Address2 is a 2-byte symbolic address (Pep/9 .ADDRSS).
+  enum class Which { ASCII, Byte1, Byte2, Byte4, Address2 } which;
   DotLiteral(Which kind, Argument arg);
   const AAttribute *attribute(int type) const override;
   void insert(std::unique_ptr<AAttribute> attr) override;

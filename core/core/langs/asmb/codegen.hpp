@@ -4,12 +4,14 @@
 #include <array>
 #include <list>
 #include <map>
+#include <memory>
 #include <numeric>
 #include <optional>
 #include <ranges>
 #include <span>
 #include <string_view>
 #include <vector>
+#include "core/compile/ir_linear/attr_comment.hpp"
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_symbol.hpp"
 #include "core/compile/ir_value/symbolic.hpp"
@@ -31,6 +33,10 @@ struct SectionOffsets {
   size_t object_code_offset = 0, object_code_size = 0;
 };
 } // namespace detail
+
+inline bool is_org(const LinearIR &line) {
+  return line.type() == DotOrg::TYPE && static_cast<const DotOrg &>(line).behavior == DotOrg::Behavior::ORG;
+}
 
 // For all symbol-only lines, find the next line which generates object code and assign it to the SymbolLine's target
 // pointer. If the target declares a symbol, the symbol-only lines will prefer to alias the symbol directly. If the line
@@ -56,7 +62,7 @@ inline void link_symbol_lines(IRProgram &section) {
     using enum LinearIRType;
     if (line->type() == static_cast<int>(Symbol)) waiting.push_back(static_cast<SymbolLine *>(line.get()));
     // Do not target across .ORGs
-    else if (line->type() == static_cast<int>(DotOrg)) resolve(nullptr);
+    else if (is_org(*line)) resolve(nullptr);
     else if (line->object_size(0).has_value()) resolve(line.get());
   }
   resolve(nullptr);
@@ -81,6 +87,27 @@ struct SectionDescriptor {
   u16 section_index = section_base_index;
 };
 
+inline void suppress_object_code(LinearIR &line) {
+  if (!object_code_suppressed(line)) line.insert(std::make_unique<SuppressObjectCode>());
+}
+
+// Hide all "Z" sections object code from the listing.
+inline void suppress_zeroed_object_code(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog) {
+  for (auto &[desc, ir] : prog)
+    if (desc.flags.z)
+      for (auto &line : ir) suppress_object_code(*line);
+}
+
+// Hide the object code of every line before the first .BURN, in program order.
+inline void suppress_object_code_before_burn(IRProgram &prog) {
+  const auto is_burn = [](const auto &line) {
+    return line->type() == DotOrg::TYPE && static_cast<const DotOrg &>(*line).behavior == DotOrg::Behavior::BURN;
+  };
+  const auto burn = std::ranges::find_if(prog, is_burn);
+  if (burn == prog.end()) return;
+  for (auto it = prog.begin(); it != burn; ++it) suppress_object_code(**it);
+}
+
 // assign_addresses iterates over sections from prog, grouping non-ORG sections contiguously with the nearest ORG
 // section to its left. Sections before the first .ORG are an exception, and are grouped with the nearest .ORG to the
 // right. When no .ORG is present, all sections are treated as a single group starting at initial_base_address.
@@ -91,8 +118,11 @@ struct SectionDescriptor {
 // starting in the .ORG section.
 //
 // When a .BURN <num> is present, grouping occurs as-if an extra section was append to prog which contains a .ORG <num>.
+// i.e.,, every section is assigned right-to-left, and the last byte of the last section is at <num>. A .BURN may not
+// be combined with a .ORG.
 template <typename Address>
-IRMemoryAddressTable<Address> assign_addresses(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
+IRMemoryAddressTable<Address> assign_addresses(DiagnosticTable &diag,
+                                               std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
                                                LineToSymbolType line_to_symbol,
                                                typename Address::Type initial_base_address = 0) {
   enum class Direction { Forward, Backward } direction = Direction::Forward;
@@ -123,6 +153,16 @@ IRMemoryAddressTable<Address> assign_addresses(std::vector<std::pair<SectionDesc
   // This is generally left-to-right, unless there are sections before the first .ORG or the program contains a .BURN,
   // in which case some subset of sections is assigned right-to-left.
 
+  // The address of the last byte when the program contains a .BURN.
+  std::optional<addr_t> burn = std::nullopt;
+  const LinearIR *burn_line = nullptr;
+  for (const auto &[desc, ir] : prog)
+    for (const auto &line : ir)
+      if (line->type() == DotOrg::TYPE && static_cast<const DotOrg &>(*line).behavior == DotOrg::Behavior::BURN) {
+        burn = static_cast<const DotOrg &>(*line).argument.value->template value_as<addr_t>();
+        burn_line = line.get();
+      }
+
   // Sections before the first .ORG need to be grouped right rather than left
   i64 first_org_section = -1;
   // Record all sections which contain at least one .ORG
@@ -137,8 +177,15 @@ IRMemoryAddressTable<Address> assign_addresses(std::vector<std::pair<SectionDesc
     } else if (first_org_section != -1) sorted_work.emplace_back(detail::SectionAddrInfo{it, it - 1});
   }
 
+  // Report the conflict, then lay out by the .ORGs alone.
+  if (burn && first_org_section != -1) {
+    diag.add_message(burn_line->source_interval, ".BURN cannot be combined with .ORG");
+    burn = std::nullopt;
+  }
+  if (burn) // Copy all sections in reverse order when using burn.
+    for (int it = prog.size() - 1; it >= 0; it--) sorted_work.emplace_back(detail::SectionAddrInfo{it, it + 1});
   // Program contained no .ORGs. Act as if first section begins with a .ORG <initial_base_address>.
-  if (first_org_section == -1) {
+  else if (first_org_section == -1) {
     sorted_work.insert(sorted_work.begin(), detail::SectionAddrInfo{0, 0});
     for (int it = 1; it < prog.size(); it++) sorted_work.emplace_back(detail::SectionAddrInfo{it, it - 1});
   }
@@ -158,6 +205,7 @@ IRMemoryAddressTable<Address> assign_addresses(std::vector<std::pair<SectionDesc
       using Type = LinearIRType;
       switch (line->type()) {
       case (int)Type::DotOrg:
+        if (!is_org(*line)) break;
         base_address = std::static_pointer_cast<DotOrg>(line)->argument.value->template value_as<u16>();
         symbol_base = next_base = base_address;
         break;
@@ -211,7 +259,7 @@ IRMemoryAddressTable<Address> assign_addresses(std::vector<std::pair<SectionDesc
       // Split the program into two ranges: the region before the ORG and the rest.
       auto it = sec.second.begin();
       for (; it != sec.second.end(); it++)
-        if ((*it)->type() == DotOrg::TYPE) break;
+        if (is_org(**it)) break;
 
       auto org_arg = static_pointer_cast<DotOrg>(*it)->argument.value->value_as<u16>();
       // Find index of first ORG and assign BACKWARD from there, exluding the ORG. Set section's low_address.
@@ -239,7 +287,13 @@ IRMemoryAddressTable<Address> assign_addresses(std::vector<std::pair<SectionDesc
     } else {
       direction = Direction::Backward;
       // Backward placement counts down from the last free address, which is the byte just below the next section.
-      base_address = prog[sec_idx.previous].first.low_address - 1;
+      const auto previous = static_cast<size_t>(sec_idx.previous);
+      const auto prev_addr = prog[previous].first.low_address;
+      // While sec_idx.index == first_org_section should gaurd against the case where there is only one section and it
+      // contains an .ORG, explicitly be defensive around accessing optional's value.
+      const auto burn_or_previous = burn ? *burn + 1 : prev_addr;
+      const u32 next_low = previous == prog.size() ? burn_or_previous : prev_addr;
+      base_address = next_low - 1;
     }
 
     if (direction == Direction::Forward) {
@@ -400,6 +454,7 @@ ProgramObjectCodeResult to_object_code(DiagnosticTable &diag, const IRMemoryAddr
     const auto &[sec, ir] = prog[it];
     const auto &offset = offsets[it];
     auto &slice = ret.section_slices.emplace_back(ret.object_code, offset.object_code_offset, offset.object_code_size);
+    if (sec.flags.z) continue;
     LinesByAddress lines_by_address;
     for (const auto &line : ir)
       if (const auto found = addresses.find(line.get()); found != addresses.end() && found->second.size > 0)

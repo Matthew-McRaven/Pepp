@@ -41,3 +41,11 @@ std::optional<pep::Register> pep::Dialect::parse_register(std::string_view name)
 }
 
 std::string_view pep::Dialect::name(Register reg) const { return name_of(registers, reg); }
+
+std::optional<pep::Directive> pep::Dialect::parse_directive(std::string_view name) const {
+  const auto ret = parse<Directive>(directive_names, name);
+  if (ret && (directives & mask_of(*ret))) return ret;
+  return std::nullopt;
+}
+
+std::string_view pep::Dialect::name(Directive directive) const { return name_of<Directive>(directive_names, directive); }

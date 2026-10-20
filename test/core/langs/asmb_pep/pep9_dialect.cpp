@@ -14,17 +14,23 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include <catch.hpp>
+#include <fmt/format.h>
 #include <memory>
 #include <string>
 #include <tuple>
+#include <variant>
 #include <vector>
 #include "core/arch/pepx/asmb/pep9.hpp"
 #include "core/compile/macro/macro_registry.hpp"
 #include "core/compile/source/seekable.hpp"
+#include "core/formats/elf/enums.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
+#include "core/langs/asmb_driver.hpp"
 #include "core/langs/asmb_pep/codegen.hpp"
 #include "core/langs/asmb_pep/parser.hpp"
 #include "core/langs/asmb_pep/parser_error.hpp"
+#include "core/langs/asmb_pep/text_format.hpp"
+#include "core/math/bitmanip/enums.hpp"
 
 namespace {
 auto data = [](std::string str) { return pepp::tc::support::SeekableData{std::move(str)}; };
@@ -51,7 +57,7 @@ NOTA
     auto code = pepp::tc::parser::flatten_macros(results);
     auto split = pepp::tc::pepp_split_to_sections(diag, code);
     REQUIRE(diag.count() == 0);
-    auto addresses = pepp::tc::pepp_assign_addresses(split.grouped_ir);
+    auto addresses = pepp::tc::pepp_assign_addresses(diag, split.grouped_ir);
     auto oc = pepp::tc::pepp_to_object_code(diag, addresses, split.grouped_ir);
     REQUIRE(oc.section_slices.size() == 1);
     const auto &slice = oc.section_slices[0];
@@ -74,4 +80,89 @@ NOTA
     for (const auto &[_, message] : diag) messages.emplace_back(message);
     CHECK(messages == std::vector<std::string>{expected});
   }
+  SECTION(".ADDRSS assembles like .WORD") {
+    static const auto src = "x: .ADDRSS y\ny: .BYTE 7\n";
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(src), std::make_shared<MR>(), dialect);
+    auto results = p.parse(diag);
+    REQUIRE(diag.count() == 0);
+    CHECK(pepp::tc::format_source(dialect, results[0].get()) == pepp::tc::format_as_columns("x:", ".ADDRSS", "y", ""));
+    auto code = pepp::tc::parser::flatten_macros(results);
+    auto split = pepp::tc::pepp_split_to_sections(diag, code);
+    auto addresses = pepp::tc::pepp_assign_addresses(diag, split.grouped_ir);
+    auto oc = pepp::tc::pepp_to_object_code(diag, addresses, split.grouped_ir);
+    REQUIRE(diag.count() == 0);
+    const auto &slice = oc.section_slices[0];
+    const auto bytes = slice.get(0, slice.size());
+    CHECK(std::vector<u8>(bytes.begin(), bytes.end()) == std::vector<u8>{0x00, 0x02, 0x07});
+  }
+  SECTION(".ADDRSS requires a symbol") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".ADDRSS 5\n"), std::make_shared<MR>(), dialect);
+    p.parse(diag);
+    std::vector<std::string> messages;
+    for (const auto &[_, message] : diag) messages.emplace_back(message);
+    CHECK(messages == std::vector<std::string>{PE::to_string(PE::NullaryError::Argument_ExpectedIdentifier)});
+  }
+  SECTION(".BURN acts like .ORG at the end of the program") {
+    static const auto src = "a: .BLOCK 2\n.BURN 0xFFFF\nb: .BYTE 1\nc: .WORD 2\n";
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(src), std::make_shared<MR>(), dialect);
+    auto results = p.parse(diag);
+    REQUIRE(diag.count() == 0);
+    CHECK(pepp::tc::format_source(dialect, results[1].get()) == pepp::tc::format_as_columns("", ".BURN", "0xFFFF", ""));
+    auto code = pepp::tc::parser::flatten_macros(results);
+    auto split = pepp::tc::pepp_split_to_sections(diag, code);
+    REQUIRE(diag.count() == 0);
+    (void)pepp::tc::pepp_assign_addresses(diag, split.grouped_ir);
+    const auto address = [&](const char *name) { return p.symbol_table()->get(name).value()->value->value()(); };
+    CHECK(address("a") == 0xFFFB);
+    CHECK(address("b") == 0xFFFD);
+    CHECK(address("c") == 0xFFFE);
+    const auto &section = split.grouped_ir[0].first;
+    CHECK(section.low_address == 0xFFFB);
+    CHECK(section.high_address == 0x1'0000);
+  }
+  SECTION("Lines before .BURN show no object code") {
+    static const auto src = "a: .BLOCK 2\n.BURN 0xFFFF\nb: .BYTE 1\n";
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(src), std::make_shared<MR>(), dialect);
+    auto code = pepp::tc::parser::flatten_macros(p.parse(diag));
+    auto split = pepp::tc::pepp_split_to_sections(diag, code);
+    auto addresses = pepp::tc::pepp_assign_addresses(diag, split.grouped_ir);
+    auto oc = pepp::tc::pepp_to_object_code(diag, addresses, split.grouped_ir);
+    REQUIRE(diag.count() == 0);
+    CHECK(pepp::tc::object_code_suppressed(*code[0]));
+    CHECK(!pepp::tc::object_code_suppressed(*code[1]));
+    CHECK(!pepp::tc::object_code_suppressed(*code[2]));
+    const auto listing = pepp::tc::format_listing(dialect, code[0].get(), addresses, oc);
+    const auto row = fmt::format("{:04X} {:<6} {}", 0xFFFD, "", pepp::tc::format_source(dialect, code[0].get()));
+    CHECK(listing == std::vector<std::string>{row});
+  }
+  SECTION("At most one .BURN") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".BURN 0xFFFF\n.BURN 0xFFFF\n"), std::make_shared<MR>(), dialect);
+    auto results = p.parse(diag);
+    REQUIRE(diag.count() == 0);
+    auto code = pepp::tc::parser::flatten_macros(results);
+    pepp::tc::pepp_split_to_sections(diag, code);
+    CHECK(diag.count() == 1);
+  }
+  SECTION(".BURN requires a hex argument") {
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(".BURN 65535\n"), std::make_shared<MR>(), dialect);
+    p.parse(diag);
+    std::vector<std::string> messages;
+    for (const auto &[_, message] : diag) messages.emplace_back(message);
+    CHECK(messages == std::vector<std::string>{PE::to_string(PE::NullaryError::Argument_ExpectedHex)});
+  }
+}
+
+TEST_CASE("Pep/9 driver", "[scope:core][scope:core.langs][kind:int][arch:pep9]") {
+  static const auto src = "x: .BLOCK 1\n.BURN 0xFFFF\nSTOP\n.ADDRSS x\n.END\n";
+  auto result = pepp::tc::assemble_pep9(pepp::tc::Pep9DriverConfig{}, pepp::tc::FormattingConfig{}, src);
+  for (const auto &[_, message] : result.diagnostics) UNSCOPED_INFO(message);
+  REQUIRE(result.ok());
+  const auto machine = std::visit([](const auto &file) { return u16(file->header.e_machine); }, result.elf.elf);
+  CHECK(machine == bits::to_underlying(pepp::bts::ElfMachineType::EM_PEP9));
 }

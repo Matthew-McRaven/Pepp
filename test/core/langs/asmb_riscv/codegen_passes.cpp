@@ -51,7 +51,7 @@ TEST_CASE("RISCV ASM code generator",
     CHECK(diag.count() == 0);
     auto symbol_tab = p.symbol_table();
     auto &sections = result.grouped_ir;
-    auto addresses = pepp::tc::riscv_assign_addresses(sections, 0xfeed);
+    auto addresses = pepp::tc::riscv_assign_addresses(diag, sections, 0xfeed);
     CHECK(addresses.container.size() == 1);
     auto instr = std::dynamic_pointer_cast<RTypeIR>(sections[0].second[0]);
     CHECK(instr != nullptr);
@@ -82,7 +82,7 @@ TEST_CASE("RISCV ASM code generator",
     auto results = p.parse(diag);
     auto result = pepp::tc::riscv_split_to_sections(diag, results);
     auto &sections = result.grouped_ir;
-    auto addresses = pepp::tc::riscv_assign_addresses(sections, 0x1000);
+    auto addresses = pepp::tc::riscv_assign_addresses(diag, sections, 0x1000);
     auto object_code = pepp::tc::riscv_to_object_code(diag, addresses, sections);
     // An empty name keeps its default.
     const pepp::tc::DebugLineFiles files{.source = "prog.s", .listing = "", .directory = "/work"};
@@ -142,7 +142,7 @@ TEST_CASE("RISCV ASM code generator",
       auto results = p.parse(diag);
       auto result = pepp::tc::riscv_split_to_sections(diag, results);
       REQUIRE(diag.count() == 0);
-      auto addresses = pepp::tc::riscv_assign_addresses(result.grouped_ir, 0x100);
+      auto addresses = pepp::tc::riscv_assign_addresses(diag, result.grouped_ir, 0x100);
       const auto code = pepp::tc::riscv_to_object_code(diag, addresses, result.grouped_ir);
       const auto bytes = code.section_slices.at(0).get(4, 4);
       return std::vector<u8>(bytes.begin(), bytes.end());
@@ -191,7 +191,7 @@ TEST_CASE("RISCV ASM code generator symbol-only lines",
     auto split = pepp::tc::riscv_split_to_sections(diag, results);
     REQUIRE(diag.count() == 0);
     auto &sections = split.grouped_ir;
-    auto addresses = pepp::tc::riscv_assign_addresses(sections, 0x100);
+    auto addresses = pepp::tc::riscv_assign_addresses(diag, sections, 0x100);
     total_size = 0;
     for (const auto &pair : addresses.container) total_size += pair.second.size;
     (void)pepp::tc::riscv_to_object_code(diag, addresses, sections);
@@ -272,7 +272,7 @@ TEST_CASE("RISCV ASM code generator relocations",
     ret.program = p.parse(ret.diag);
     REQUIRE(ret.diag.count() == 0);
     ret.split = riscv_split_to_sections(ret.diag, ret.program);
-    ret.addresses = riscv_assign_addresses(ret.split.grouped_ir);
+    ret.addresses = riscv_assign_addresses(ret.diag, ret.split.grouped_ir);
     ret.code = riscv_to_object_code(ret.diag, ret.addresses, ret.split.grouped_ir);
     return ret;
   };

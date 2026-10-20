@@ -44,7 +44,8 @@ PeppSectionAnalysisResults pepp_split_to_sections(DiagnosticTable &diag, IRProgr
 // starting in the .ORG section.
 //
 // When a .BURN <num> is present, grouping occurs as-if an extra section was append to prog which contains a .ORG <num>.
-IRMemoryAddressTable<PeppAddress> pepp_assign_addresses(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
+IRMemoryAddressTable<PeppAddress> pepp_assign_addresses(DiagnosticTable &diag,
+                                                        std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
                                                         u16 initial_base_address = 0);
 
 // The constraint for a line's argument.
@@ -60,5 +61,6 @@ ElfResult pepp_to_elf(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog
                       const IRMemoryAddressTable<PeppAddress> &addrs, const ProgramObjectCodeResult &object_code,
                       const pepp::core::symbol::LeafTable &symbols, const std::vector<IO> &mmios,
                       const DebugLineFiles &files = {},
-                      const std::vector<std::shared_ptr<const InlineMacroDefinition>> &macros = {});
+                      const std::vector<std::shared_ptr<const InlineMacroDefinition>> &macros = {},
+                      pepp::bts::ElfMachineType machine = pepp::bts::ElfMachineType::EM_PEP10);
 } // namespace pepp::tc

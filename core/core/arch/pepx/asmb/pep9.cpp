@@ -30,7 +30,10 @@ const pep::Dialect &pep::pep9::dialect() {
     allow("NOP", mask_of(I));
     allow("DECI", mask_of(D) | mask_of(N) | mask_of(S) | mask_of(SF) | mask_of(X) | mask_of(SX) | mask_of(SFX));
     allow("STRO", mask_of(D) | mask_of(N) | mask_of(S) | mask_of(SF) | mask_of(X));
-    return Dialect{.mnemonics = std::move(mnemonics)};
+    using enum Directive;
+    // The book's set, plus EXPORT/INPUT/OUTPUT so the OS can declare its exports and MMIO.
+    const auto directives = mask_of({ADDRSS, ALIGN, ASCII, BLOCK, BURN, BYTE, END, EQUATE, WORD, EXPORT, INPUT, OUTPUT});
+    return Dialect{.mnemonics = std::move(mnemonics), .directives = directives};
   }();
   return ret;
 }

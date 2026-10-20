@@ -47,7 +47,8 @@ std::optional<u64> pepp::tc::DotLiteral::object_size(u64) const {
   switch (which) {
   case Which::ASCII: return argument.value->serialized_size();
   case Which::Byte1: return 1;
-  case Which::Byte2: return 2;
+  case Which::Byte2: [[fallthrough]];
+  case Which::Address2: return 2;
   case Which::Byte4: return 4;
   }
 

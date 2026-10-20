@@ -52,7 +52,7 @@ std::optional<IRFormat> format_of(const pepp::tc::LinearIR &line) {
   if (line.type() == pepp::tc::DyadicInstruction::TYPE) return IRFormat::OperandSpecifier;
   else if (const auto *literal = dynamic_cast<const pepp::tc::DotLiteral *>(&line)) {
     if (literal->which == Which::Byte1) return IRFormat::Byte;
-    else if (literal->which == Which::Byte2) return IRFormat::Word;
+    else if (literal->which == Which::Byte2 || literal->which == Which::Address2) return IRFormat::Word;
   }
   return std::nullopt;
 }
@@ -82,6 +82,7 @@ pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(Diagnostic
     if (value_needs_relocation(arg) && !find_fixup(line, arg))
       diag.add_message(line.source_interval, "Operands referencing symbols must be of the form symbol [+ constant]");
   };
+  int burn_count = 0;
   // Opening a section takes pending lines as its prefix.
   const auto open_section = [&](const SectionDescriptor &desc) {
     grouped_ir.emplace_back(std::make_pair(desc, std::move(pending)));
@@ -97,7 +98,6 @@ pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(Diagnostic
       open_section(initial_section); // Code-generating lines must belong to a section.
 
     // TODO: Check all symbol usages are not undefined
-    // TODO: .BURN for this section.
     using Type = LinearIRType;
 
     // Compile-time visitor pattern where the only virtual call should be type().
@@ -138,7 +138,8 @@ pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(Diagnostic
     }
     case DotOrg::TYPE: {
       auto as_org = std::static_pointer_cast<pepp::tc::DotOrg>(line);
-      active->first.org_count++;
+      if (as_org->behavior == DotOrg::Behavior::ORG) active->first.org_count++;
+      else if (burn_count++ > 0) diag.add_message(line->source_interval, "Only one .BURN is allowed");
       break;
     }
     case DyadicInstruction::TYPE: check_operand(*line, *static_cast<DyadicInstruction *>(line.get())->argument.value); break;
@@ -165,16 +166,19 @@ pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(Diagnostic
 
   // Whole file was comments, but still create a section to hold our pending lines for the sake of formatting.
   if (!pending.empty()) open_section(initial_section);
+  suppress_zeroed_object_code(grouped_ir);
+  suppress_object_code_before_burn(prog);
   return ret;
 }
 
 pepp::tc::IRMemoryAddressTable<pepp::tc::PeppAddress>
-pepp::tc::pepp_assign_addresses(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog, u16 initial_base_address) {
+pepp::tc::pepp_assign_addresses(DiagnosticTable &diag, std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
+                                u16 initial_base_address) {
   static const auto f = [](const pepp::tc::LinearIR *line) -> pepp::core::symbol::Type {
     auto isCode = dynamic_cast<const DyadicInstruction *>(&*line) || dynamic_cast<const MonadicInstruction *>(&*line);
     return isCode ? pepp::core::symbol::Type::Code : pepp::core::symbol::Type::Object;
   };
-  return assign_addresses<PeppAddress>(prog, f, initial_base_address);
+  return assign_addresses<PeppAddress>(diag, prog, f, initial_base_address);
 }
 
 namespace pepp::tc {
@@ -331,7 +335,8 @@ std::optional<ArgumentConstraint> pepp_argument_constraint(const LinearIR &line)
     switch (literal->which) {
     case Which::ASCII: return std::nullopt;
     case Which::Byte1: return ArgumentConstraint{8, Bits};
-    case Which::Byte2: return ArgumentConstraint{16, Bits};
+    case Which::Byte2: [[fallthrough]];
+    case Which::Address2: return ArgumentConstraint{16, Bits};
     case Which::Byte4: return ArgumentConstraint{32, Bits};
     }
   } else if (line.type() == DyadicInstruction::TYPE) return ArgumentConstraint{16, Bits};
@@ -376,10 +381,11 @@ pepp::tc::ElfResult pepp::tc::pepp_to_elf(std::vector<std::pair<SectionDescripto
                                           const ProgramObjectCodeResult &object_code,
                                           const pepp::core::symbol::LeafTable &symbols,
                                           const std::vector<IO> &mmios, const DebugLineFiles &files,
-                                          const std::vector<std::shared_ptr<const InlineMacroDefinition>> &macros) {
+                                          const std::vector<std::shared_ptr<const InlineMacroDefinition>> &macros,
+                                          pepp::bts::ElfMachineType machine) {
   using namespace pepp::bts;
-  SPDLOG_INFO("Creating pep/10 ELF");
-  auto ret = sections_to_elf(ElfBits::b32, ElfEndian::be, ElfMachineType::EM_PEP10, prog, object_code, symbols);
+  SPDLOG_INFO("Creating pep ELF");
+  auto ret = sections_to_elf(ElfBits::b32, ElfEndian::be, machine, prog, object_code, symbols);
 
   ret.ir_to_listing = write_line_mapping(ret, prog, addrs, object_code, files, macros, source_order);
 
