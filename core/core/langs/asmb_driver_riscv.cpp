@@ -16,7 +16,7 @@ DriverResult assemble_riscv(const RISCVDriverConfig &cfg, const FormattingConfig
   inject_symdefs(cfg.symdefs, *sy, 4);
 
   auto program = rv_parser.parse(result.diagnostics);
-  if (result.diagnostics.count() > 0) return result;
+  if (result.diagnostics.count(Severity::Error) > 0) return result;
   if (fmtcfg.source_format) {
     auto formatted = riscv_format_source(program);
     fmtcfg.source_format(std::move(formatted));
@@ -26,12 +26,12 @@ DriverResult assemble_riscv(const RISCVDriverConfig &cfg, const FormattingConfig
   if (fmtcfg.listing_format) comments = parser::MacroComments{riscv_format_as_columns, '#'};
   auto flattened = parser::flatten_macros(program, comments);
   auto split = riscv_split_to_sections(result.diagnostics, flattened);
-  if (result.diagnostics.count() > 0) return result;
+  if (result.diagnostics.count(Severity::Error) > 0) return result;
 
   auto addresses = riscv_assign_addresses(result.diagnostics, split.grouped_ir);
-  if (result.diagnostics.count() > 0) return result;
+  if (result.diagnostics.count(Severity::Error) > 0) return result;
   auto object_code = riscv_to_object_code(result.diagnostics, addresses, split.grouped_ir);
-  if (result.diagnostics.count() > 0) return result;
+  if (result.diagnostics.count(Severity::Error) > 0) return result;
   if (fmtcfg.listing_format) {
     auto listing = riscv_format_listing(flattened, addresses, object_code);
     fmtcfg.listing_format(std::move(listing));

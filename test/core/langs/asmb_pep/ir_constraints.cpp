@@ -73,3 +73,17 @@ TEST_CASE("Pep/10 arguments are validated at codegen", "[scope:core][scope:core.
     CHECK(result.diagnostics.cbegin()->second.severity == pepp::tc::Severity::Error);
   }
 }
+
+TEST_CASE("Pep/10 warns on non-immediate ADD/SUBSP", "[scope:core][scope:core.langs][kind:unit][arch:pep10]") {
+  using pepp::tc::Severity;
+  const auto assemble = [](const char *source) {
+    return pepp::tc::assemble_pep10(pepp::tc::Pep10DriverConfig{}, pepp::tc::FormattingConfig{}, source);
+  };
+  for (const char *source : {"ADDSP 2,d", "SUBSP 2,s"}) {
+    CAPTURE(source);
+    const auto result = assemble(source);
+    CHECK(result.ok());
+    REQUIRE(result.diagnostics.count() == 1);
+    CHECK(result.diagnostics.cbegin()->second.severity == Severity::Warning);
+  }
+}

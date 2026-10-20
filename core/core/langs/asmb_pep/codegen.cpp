@@ -83,6 +83,14 @@ pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(Diagnostic
       diag.add_message(line.source_interval, "Operands referencing symbols must be of the form symbol [+ constant]",
                        Severity::Error);
   };
+  // Stack adjustments the debugger cannot follow statically.
+  const auto check_sp_increment = [&diag](const DyadicInstruction &line) {
+    const auto name = line.mnemonic.name;
+    if ((name == "ADDSP" || name == "SUBSP") && line.addr_mode.addr_mode != pep::AddrMode::I)
+      diag.add_message(line.source_interval,
+                       fmt::format("Stack trace not possible unless immediate addressing is specified", name),
+                       Severity::Warning);
+  };
   int burn_count = 0;
   // Opening a section takes pending lines as its prefix.
   const auto open_section = [&](const SectionDescriptor &desc) {
@@ -143,7 +151,12 @@ pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(Diagnostic
       else if (burn_count++ > 0) diag.add_message(line->source_interval, "Only one .BURN is allowed", Severity::Fatal);
       break;
     }
-    case DyadicInstruction::TYPE: check_operand(*line, *static_cast<DyadicInstruction *>(line.get())->argument.value); break;
+    case DyadicInstruction::TYPE: {
+      const auto &instr = *static_cast<DyadicInstruction *>(line.get());
+      check_operand(*line, *instr.argument.value);
+      check_sp_increment(instr);
+      break;
+    }
     case DotLiteral::TYPE: check_operand(*line, *static_cast<DotLiteral *>(line.get())->argument.value); break;
     case InlineMacroDefinition::TYPE: [[fallthrough]];
     case MacroInstantiation::TYPE: throw std::logic_error("Cannot perform code generation on macros");
