@@ -1,5 +1,6 @@
 #pragma once
 #include "core/langs/asmb/ir_program.hpp"
+#include "core/langs/asmb/listing.hpp"
 #include "core/langs/asmb_riscv/codegen.hpp"
 #include "core/math/bitmanip/span.hpp"
 #include "ir_attributes.hpp"
@@ -29,11 +30,5 @@ std::vector<std::string> riscv_format_source(const IRProgram &program);
 
 // Bytes of object code per listing row. Directives that generate more bytes continue onto extra rows.
 static constexpr int riscv_listing_bytes_per_line = 4;
-// Format a line as a listing (address + object bytes + source code), riscv_listing_bytes_per_line bytes per row.
-std::vector<std::string> riscv_format_listing(const LinearIR *line,
-                                              const IRMemoryAddressTable<RISCVAddress> &addresses,
-                                              const ProgramObjectCodeResult &object_code);
-std::vector<std::string> riscv_format_listing(const IRProgram &program,
-                                              const IRMemoryAddressTable<RISCVAddress> &addresses,
-                                              const ProgramObjectCodeResult &object_code);
+inline constexpr ListingStyle riscv_listing_style{.address_width = 8, .bytes_per_row = riscv_listing_bytes_per_line};
 } // namespace pepp::tc

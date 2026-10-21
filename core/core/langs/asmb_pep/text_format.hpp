@@ -1,6 +1,7 @@
 #pragma once
 #include "core/arch/pepx/asmb/pep_dialect.hpp"
 #include "core/langs/asmb/ir_program.hpp"
+#include "core/langs/asmb/listing.hpp"
 #include "core/math/bitmanip/span.hpp"
 #include "ir_attributes.hpp"
 
@@ -28,11 +29,5 @@ std::vector<std::string> format_source(const pep::Dialect &dialect, const IRProg
 
 // Bytes of object code per listing row. Longer lines continue onto extra rows.
 static constexpr int pep_listing_bytes_per_line = 3;
-// Format a single line
-std::vector<std::string> format_listing(const pep::Dialect &dialect, const LinearIR *line,
-                                        const IRMemoryAddressTable<PeppAddress> &addresses,
-                                        const ProgramObjectCodeResult &object_code);
-std::vector<std::string> format_listing(const pep::Dialect &dialect, const IRProgram &program,
-                                        const IRMemoryAddressTable<PeppAddress> &addresses,
-                                        const ProgramObjectCodeResult &object_code);
+inline constexpr ListingStyle pep_listing_style{.address_width = 4, .bytes_per_row = pep_listing_bytes_per_line};
 } // namespace pepp::tc

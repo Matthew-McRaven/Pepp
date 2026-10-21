@@ -1,5 +1,6 @@
 #include <memory>
 #include <optional>
+#include <stdexcept>
 #include <utility>
 #include "asmb_driver.hpp"
 #include "core/arch/pepx/asmb/pep10.hpp"
@@ -43,12 +44,16 @@ DriverResult assemble_pep(const pep::Dialect &dialect, bts::ElfMachineType machi
   if (fmtcfg.listing_format) {
     const auto format = [&](const LinearIR &line) { return format_source(dialect, &line); };
     layout = layout_listing(flattened, addresses, pep_listing_bytes_per_line, format);
-    auto listing = format_listing(dialect, flattened, addresses, object_code);
-    fmtcfg.listing_format(std::move(listing));
   }
   // After flattening, so that a definition inside an expansion has its instantiation's line.
   result.set_elf(pepp_to_elf(split.grouped_ir, addresses, object_code, *pep_parser.symbol_table(), split.mmios,
                              debug_files, parser::defined_macros(program), machine, layout ? &layout->rows : nullptr));
+  if (layout) {
+    auto listing = format_listing(to_input_elf(*result.unchecked_elf()), layout->text, pep_listing_style);
+    // The ELF was written from this layout, so a mismatch is a bug in the assembler.
+    if (!listing) throw std::logic_error("listing: " + listing.error());
+    fmtcfg.listing_format(std::move(*listing));
+  }
   return result;
 }
 } // namespace

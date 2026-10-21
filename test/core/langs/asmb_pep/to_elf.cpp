@@ -170,6 +170,7 @@ struct Assembled {
   pepp::tc::PeppSectionAnalysisResults split;
   pepp::tc::IRMemoryAddressTable<pepp::tc::PeppAddress> addresses;
   pepp::tc::ProgramObjectCodeResult object_code;
+  pepp::tc::ListingLayout layout; // Rows have no source text.
   pepp::tc::ElfResult elf;
 };
 struct Options {
@@ -191,8 +192,8 @@ Assembled assemble(const char *source, Options options = {}) {
   INFO(messages);
   REQUIRE(diag.count() == 0);
 
-  const auto layout = layout_listing(ret.code, ret.addresses, pep_listing_bytes_per_line, no_text);
-  const auto *listing = options.listing ? &layout.rows : nullptr;
+  ret.layout = layout_listing(ret.code, ret.addresses, pep_listing_bytes_per_line, no_text);
+  const auto *listing = options.listing ? &ret.layout.rows : nullptr;
   auto &sections = ret.split.grouped_ir;
   if (!options.relocatable) {
     ret.elf = pepp_to_elf(sections, ret.addresses, ret.object_code, *ret.symbols, ret.split.mmios, {}, {},
@@ -695,4 +696,44 @@ RET
         std::vector<ListingRow>{{1, abs, 0xFFF6, 0xFFF6}, {2, abs, 0xFFF9, 0xFFF9}, {4, abs, 0xFFFF, 0x10000}});
   REQUIRE(listing.size() >= 4);
   CHECK(listing[3].find("RET") != std::string::npos);
+}
+
+TEST_CASE("Listings are dervied from ELF", "[scope:core][scope:core.langs][kind:int][arch:pep10]") {
+  using namespace pepp::tc;
+  using namespace pepp::bts;
+  auto a = assemble("LDWA 1,i\nRET\n", {.listing = true});
+  auto &file = *std::get<std::unique_ptr<PackedGrowableElfBE32>>(a.elf.elf);
+  const auto data_of = [&](const char *name) { return file.section_data[find_named_section(file, name)]; };
+  const auto listing = [&] {
+    auto ret = format_listing(to_input_elf(a.elf), a.layout.text, pep_listing_style);
+    REQUIRE(ret.has_value());
+    return *ret;
+  };
+  CHECK(listing() == std::vector<std::string>{"0000 C00001 ", "0003 01     "});
+
+  SECTION("Object code comes from section data") {
+    auto text = data_of(".text");
+    text->get(0, text->size())[1] = 0xAB;
+  }
+
+  SECTION("Addresses come from the listing line program") {
+    // Move .text and its listing rows together, as a linker would.
+    auto &header = file.section_headers[find_named_section(file, ".text")];
+    header.sh_addr = static_cast<u32>(header.sh_addr) + 0x100;
+    auto lines = data_of(debugListingLineSection);
+    const auto bytes = lines->get(0, lines->size());
+    const auto unit = parse_line_program_unit<ElfEndian::be>(bytes, 0);
+    REQUIRE(unit.has_value());
+    const auto program_start = static_cast<size_t>(unit->program.data() - bytes.data());
+    std::set<size_t> operands;
+    const auto ran = run_line_program<ElfEndian::be>(*unit, [&](const DebugLineState &, std::optional<size_t> operand) {
+      if (operand) operands.insert(program_start + *operand);
+    });
+    REQUIRE(ran.has_value());
+    REQUIRE(!operands.empty());
+    for (const auto offset : operands) {
+      const u16 address = (bytes[offset] << 8 | bytes[offset + 1]) + 0x100;
+      bytes[offset] = address >> 8, bytes[offset + 1] = address & 0xFF;
+    }
+  }
 }

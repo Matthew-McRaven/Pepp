@@ -1,4 +1,5 @@
 #include <optional>
+#include <stdexcept>
 #include <utility>
 #include "asmb_driver.hpp"
 #include "core/compile/source/seekable.hpp"
@@ -37,12 +38,16 @@ DriverResult assemble_riscv(const RISCVDriverConfig &cfg, const FormattingConfig
   if (fmtcfg.listing_format) {
     const auto format = [](const LinearIR &line) { return riscv_format_source(&line); };
     layout = layout_listing(flattened, addresses, riscv_listing_bytes_per_line, format);
-    auto listing = riscv_format_listing(flattened, addresses, object_code);
-    fmtcfg.listing_format(std::move(listing));
   }
   // After flattening, so that a definition inside an expansion has its instantiation's line.
   result.set_elf(riscv_to_elf(split.grouped_ir, addresses, object_code, *rv_parser.symbol_table(), cfg.debug_files,
                               parser::defined_macros(program), layout ? &layout->rows : nullptr));
+  if (layout) {
+    auto listing = format_listing(to_input_elf(*result.unchecked_elf()), layout->text, riscv_listing_style);
+    // The ELF was written from this layout, so a mismatch is a bug in the assembler.
+    if (!listing) throw std::logic_error("listing: " + listing.error());
+    fmtcfg.listing_format(std::move(*listing));
+  }
   return result;
 }
 
