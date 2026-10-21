@@ -1,42 +1,98 @@
 #include <catch.hpp>
 
-#include <iostream>
+#include <QDirIterator>
+#include <QFile>
+#include <QTemporaryDir>
+
+#include <filesystem>
+#include <string>
+// #include <iostream>
 using namespace std::string_literals;
+namespace fs = std::filesystem;
 
 #include "svgdom/SvgDocument.hpp"
+#include "svgdom/SvgElement.hpp"
 
-TEST_CASE("SvgDocument tests", "[scope:core][scope:core.svgdom.svgdocument][kind:unit]") {
+TEST_CASE("SvgDocument tests-file operations", "[scope:core][scope:core.svgdom.svgdocument1][kind:unit]") {
   //  Test that SvgDocument class perform correctly
 
   // std::cout << "From SvgDocument" << std::endl;
-  SvgDocument e;
+  //  Must use QT to copy files from resources.
+  //  All files in temp directory are deleted on completion of test.
+  QTemporaryDir dir;
+  REQUIRE(QDir(dir.path()).mkdir("svgs"));
+  auto source = ":/svgs/sample.svg";
+  auto target = dir.filePath("svgs/sample.svg");
+  // std::cout << "Source: "s << source << " Target: "s << target.toStdString() << std::endl;
+  REQUIRE(QFile::copy(source, target));
+  REQUIRE(fs::exists(target.toStdString()));
 
-  /*  e.setXmlName("Name1"s);
-    CHECK(e.xmlName() == "Name1"s);
+  //  Rest of testing uses C++ 23 standard
+  auto path = dir.path().toStdString() + "/svgs/"s;
+  auto original = target.toStdString();
+  auto copy = path + "copy.svg"s;
+  auto copy2 = path + "copy2.svg"s;
+  auto output = path + "output.svg"s;
 
-    //  SvgUseElement does not use value
-    e.setValue("Value1"s);
-    CHECK(e.value() == ""s);
+  //  Make sure file exists
+  REQUIRE(fs::exists(original));
 
-    SvgUseElement e2("Name2"s, "Value2"s);
-    CHECK(e2.elementType() == SvgType::Type::SvgUseElement);
-    CHECK(e2.xmlName() == "Name2"s);
-    CHECK(e2.value() == ""s);
+  SvgDocument doc1{};
+  REQUIRE(!doc1.exists());
+  doc1.open(original);
+  REQUIRE(doc1.fileSize() > 0);
+  REQUIRE(doc1.exists());
 
-    e2.setHref("#ref1");
-    CHECK(e2.href() == "#ref1"s);
-    e2.setHref("ref2");
-    CHECK(e2.href() == "#ref2"s);
+  //  First just copy existing document
+  doc1.saveAs(copy);
+  REQUIRE(fs::exists(copy));
+  auto copySize = fs::file_size(copy);
+  CHECK(doc1.fileSize() == copySize);
 
-    SvgRope data;
-    e2.toXml(data);
-    CHECK(data.toString() == "<use href=\"#ref2\" />"s);
+  //  Create second document from XML
+  SvgDocument doc2{};
+  doc2.fromXml(doc1.toXml());
+  doc2.saveAs(output);
 
-    e.setAttribute("K1"s, "V1"s);
-    e.setAttribute("K2"s, "V2"s);
-    CHECK(e.attributes().size() == 2);
+  REQUIRE(fs::exists(output));
+  CHECK(doc1.fileSize() == doc2.fileSize());
 
-    data.clear();
-    e.toXml(data);
-    CHECK(data.toString() == "<use K1=\"V1\" K2=\"V2\" />"s);*/
+  //  Create second document from original
+  SvgDocument doc3{};
+  doc3.copyDocument(doc1);
+  doc3.saveAs(copy2);
+
+  REQUIRE(fs::exists(copy2));
+  CHECK(doc1.fileSize() == doc3.fileSize());
+}
+
+TEST_CASE("SvgDocument tests-element operations", "[scope:core][scope:core.svgdom.svgdocument2][kind:unit]") {
+  //  Test that SvgDocument class perform correctly
+
+  // std::cout << "From SvgDocument" << std::endl;
+  //  Must use QT to copy files from resources.
+  //  All files in temp directory are deleted on completion of test.
+  QTemporaryDir dir;
+  REQUIRE(QDir(dir.path()).mkdir("svgs"));
+  auto source = ":/svgs/sample.svg";
+  auto target = dir.filePath("svgs/sample.svg");
+
+  REQUIRE(QFile::copy(source, target));
+  REQUIRE(fs::exists(target.toStdString()));
+
+  //  Rest of testing uses C++ 23 standard
+  auto path = dir.path().toStdString() + "/svgs/"s;
+  auto original = target.toStdString();
+
+  SvgDocument doc1{};
+  CHECK(doc1.documentElement().elementType() == SvgType::Type::SvgSvgElement);
+  auto *e = doc1.documentElement().createElementAs<SvgElement>(SvgType::Type::SvgGElement);
+  REQUIRE(e != nullptr);
+  e->setId("id1"s);
+  doc1.addElementId(e->id(), e);
+  auto e2 = doc1.getElementById("id1"s);
+  CHECK(e2 != nullptr);
+  CHECK(e == e2);
+  auto e3 = doc1.getElementById("bad"s);
+  CHECK(e3 == nullptr);
 }

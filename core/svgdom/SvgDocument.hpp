@@ -18,7 +18,7 @@ class SvgDocument {
   std::string _fileName{};
   std::unique_ptr<SvgSvgElement> _svgDocument;
 
-  //  Temporaries from reading xml file
+  //  Temporaries for reading and parsing xml file
   std::list<SvgInterface *> _parents; //  Temporary list for parsing
   std::string _streamInput{};
   mutable size_t _fileSize{};
@@ -58,7 +58,7 @@ public:
   void addFromParser(const std::string &key, const std::string &value, const XmlNode::Type type);
 
   bool open(const std::string &fileName, bool readOnly = false);
-  bool exists(const std::string &fileName);
+  bool exists() const noexcept;
   bool saveAs(const std::string &fileName);
 
   size_t fileSize() const;

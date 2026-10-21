@@ -48,6 +48,8 @@ const SvgSvgElement &SvgDocument::documentElement() const { return *_svgDocument
 size_t SvgDocument::fileSize() const { return _fileSize; }
 const std::string &SvgDocument::fileName() const { return _fileName; }
 
+bool SvgDocument::exists() const noexcept { return _exists; }
+
 //  File operations
 bool SvgDocument::saveAs(const std::string &fileName) {
   _fileName = fileName;
