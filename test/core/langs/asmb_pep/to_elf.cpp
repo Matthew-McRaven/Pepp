@@ -28,6 +28,7 @@
 #include "core/formats/elf/enums.hpp"
 #include "core/langs/asmb/debug_line.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
+#include "core/langs/asmb/listing.hpp"
 #include "core/langs/asmb_driver.hpp"
 #include "core/langs/asmb_pep/codegen.hpp"
 #include "core/langs/asmb_pep/ir_visitor.hpp"
@@ -36,6 +37,9 @@
 #include "core/math/bitmanip/enums.hpp"
 
 namespace {
+// Numbering a listing needs no source text.
+std::string no_text(const pepp::tc::LinearIR &) { return {}; }
+
 // Read what would actually be written, rather than the in-memory model of it.
 ELFIO::elfio read_back(pepp::tc::ElfResult &result) {
   const auto bytes = pepp::tc::elf_bytes(result);
@@ -185,7 +189,9 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
     auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
-    auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
+    const auto layout = layout_listing(code, addresses, pep_listing_bytes_per_line, no_text);
+    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios, {}, {},
+                                            pepp::bts::ElfMachineType::EM_PEP10, &layout.rows);
 
     REQUIRE(sections.size() == 3);
     auto elf = read_back(elf_result);
@@ -234,7 +240,6 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     CHECK(address_of(3) == text);     // bye:LDWA 10,d
     CHECK(address_of(8) == text + 3); // cruel:BR 0, after bye in the same .text
     CHECK(address_of(10) == elf.sections["memvec"]->get_address()); // World:.BYTE 0
-    CHECK_FALSE(elf_result.ir_to_listing.container.empty());
     // Executables keep absolute addresses.
     CHECK(elf.sections[".rela.debug_line"] == nullptr);
     CHECK(elf.sections[std::string(".rela") + pepp::tc::debugListingLineSection] == nullptr);
@@ -263,9 +268,9 @@ LDWA 2,i
     std::get<std::unique_ptr<PackedGrowableElfBE32>>(elf_result.elf)->header.e_type =
         bits::to_underlying(ElfFileType::ET_REL);
     const auto abs16 = bits::to_underlying(RelocationsPep::R_PEP10_ABS16);
-    const auto listing = number_listing_lines(code, object_code, pep_listing_bytes_per_line);
+    const auto listing = layout_listing(code, addresses, pep_listing_bytes_per_line, no_text);
     const auto abs32 = bits::to_underlying(RelocationsPep::R_PEP10_ABS32);
-    write_debug_line(elf_result.elf, 2, abs16, abs32, sections, addresses, listing);
+    write_debug_line(elf_result.elf, 2, abs16, abs32, sections, addresses, &listing.rows);
     auto elf = read_back(elf_result);
     const auto symbols = symbols_of(elf);
     // The source and listing units each have one sequence per section, and each DW_LNE_set_address is relocated.
@@ -329,9 +334,9 @@ LDWA 2,i
                                       *p.symbol_table());
     std::get<std::unique_ptr<PackedGrowableElfBE32>>(elf_result.elf)->header.e_type =
         bits::to_underlying(ElfFileType::ET_REL);
-    const auto listing = number_listing_lines(code, object_code, pep_listing_bytes_per_line);
+    const auto listing = layout_listing(code, addresses, pep_listing_bytes_per_line, no_text);
     write_debug_line(elf_result.elf, 2, bits::to_underlying(RelocationsPep::R_PEP10_ABS16),
-                     bits::to_underlying(RelocationsPep::R_PEP10_ABS32), sections, addresses, listing);
+                     bits::to_underlying(RelocationsPep::R_PEP10_ABS32), sections, addresses, &listing.rows);
     auto elf = read_back(elf_result);
     const auto text = static_cast<u16>(elf.sections[".text"]->get_index());
     const auto data_section = static_cast<u16>(elf.sections[".data"]->get_index());
@@ -339,8 +344,11 @@ LDWA 2,i
     const auto input = to_input_elf(elf_result);
     const auto rows = std::visit([](const auto &file) { return read_listing_rows(*file); }, input);
     REQUIRE(rows.has_value());
-    // Neither .SECTION nor x: has an address so neither get a row in the LNP.
-    CHECK(*rows == std::vector<ListingRow>{{2, text, 0x0, 0x3}, {4, text, 0x3, 0x6}, {6, data_section, 0x6, 0x8}});
+    // .SECTION has no address, so no row. x: has an address, but it is 0-sized.
+    CHECK(*rows == std::vector<ListingRow>{{2, text, 0x0, 0x3},
+                                           {3, text, 0x3, 0x3},
+                                           {4, text, 0x3, 0x6},
+                                           {6, data_section, 0x6, 0x8}});
   }
   SECTION("A leading .SECTION does not create an empty implicit section") {
     pepp::tc::DiagnosticTable diag;
@@ -357,7 +365,7 @@ LDWA 2,i
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
     auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
-    auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
+    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
 
     // The blank first line joins .data instead of forcing an empty .text into existence.
     REQUIRE(sections.size() == 1);
@@ -383,7 +391,7 @@ LDWA 2,i
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
     auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
-    auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
+    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
 
     auto elf = read_back(elf_result);
     REQUIRE(elf.sections[mmioNoteSection] != nullptr);
@@ -415,7 +423,7 @@ LDWA 2,i
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
     auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
-    auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
+    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
 
     REQUIRE(sections.size() == 3);
     auto elf = read_back(elf_result);
@@ -454,7 +462,7 @@ LDWA 2,i
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
     auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
-    auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
+    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
     auto elf = read_back(elf_result);
     const auto symbols = symbols_of(elf);
     // The null symbol and a section symbol per section, then per reserved DWARF section, are local. a is global via
@@ -535,7 +543,7 @@ LDWA 2,i
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
     auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
-    auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
+    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
     auto elf = read_back(elf_result);
     const auto symbols = symbols_of(elf);
     // Section symbols hold their section's address
@@ -580,7 +588,7 @@ LDWA 2,i
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
     auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
-    auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
+    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
     auto elf = read_back(elf_result);
     const auto symbols = symbols_of(elf);
 
@@ -612,7 +620,7 @@ LDWA 2,i
     auto &sections = result.grouped_ir;
     auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
     auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
-    auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
+    auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *symbol_tab, result.mmios);
     auto elf = read_back(elf_result);
     const auto symbols = symbols_of(elf);
 
@@ -750,4 +758,26 @@ x:       .WORD   5
   REQUIRE(stop->listing_line != 0);
   REQUIRE(stop->listing_line <= listing.size());
   CHECK(listing[stop->listing_line - 1].find("RET") != std::string::npos);
+}
+
+TEST_CASE("Listing line program rows match printout", "[scope:core][scope:core.langs][kind:int][arch:pep9]") {
+  using namespace pepp::tc;
+  std::vector<std::string> listing;
+  FormattingConfig fmt;
+  fmt.listing_format = [&](std::vector<std::string> &&lines) { listing = std::move(lines); };
+  auto result = assemble_pep9(Pep9DriverConfig{}, fmt, R"(LDWA 1,i
+.BLOCK 6
+.BURN 0xFFFF
+RET
+)");
+  REQUIRE(result.ok());
+  const auto input = to_input_elf(*result.elf());
+  const auto rows = std::visit([](const auto &file) { return read_listing_rows(*file); }, input);
+  REQUIRE(rows.has_value());
+  // Lines before .BURN keep their addresses but do not print object code, so they have no length or continuation rows.
+  const auto abs = bits::to_underlying(pepp::bts::SectionIndices::SHN_ABS);
+  CHECK(*rows ==
+        std::vector<ListingRow>{{1, abs, 0xFFF6, 0xFFF6}, {2, abs, 0xFFF9, 0xFFF9}, {4, abs, 0xFFFF, 0x10000}});
+  REQUIRE(listing.size() >= 4);
+  CHECK(listing[3].find("RET") != std::string::npos);
 }

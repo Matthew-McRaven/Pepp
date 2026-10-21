@@ -197,7 +197,7 @@ TEST_CASE("New assembler emits MMIO notes compatible with old simulator",
   auto &sections = result.grouped_ir;
   auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
   auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
-  auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *p.symbol_table(), result.mmios);
+  auto elf_result = pepp::tc::pepp_to_elf(sections, addresses, object_code, *p.symbol_table(), result.mmios);
 
   const auto input = to_input_elf(elf_result);
   const auto ours = std::visit([](const auto &file) { return MMIONoteReader(*file).declarations(); }, input);

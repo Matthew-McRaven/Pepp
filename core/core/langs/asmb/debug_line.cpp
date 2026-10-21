@@ -50,20 +50,3 @@ pepp::tc::detail::parse_define_string(std::string_view string) {
   ret->body = parsed->definition;
   return ret;
 }
-
-pepp::tc::IR2ListingLineMap pepp::tc::number_listing_lines(const IRProgram &program,
-                                                           const ProgramObjectCodeResult &object_code,
-                                                           u32 bytes_per_line) {
-  IR2ListingLineMap ret;
-  u32 listing_number = 0;
-  for (const auto &line : program) {
-    if (hidden_from_listing(*line)) continue;
-    const auto oc_it = object_code.ir_to_object_code.find(line.get());
-    const size_t size = oc_it == object_code.ir_to_object_code.cend() ? 0 : oc_it->second.size();
-    ret.container.emplace_back(IR2ListingLinePair{line.get(), listing_number});
-    // The first row always prints, even without object code. Each further row continues the object code.
-    listing_number += std::max<u32>(1, static_cast<u32>((size + bytes_per_line - 1) / bytes_per_line));
-  }
-  std::sort(ret.container.begin(), ret.container.end(), IR2ListingLineComparator{});
-  return ret;
-}

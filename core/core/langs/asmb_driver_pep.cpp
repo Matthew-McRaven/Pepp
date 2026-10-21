@@ -1,10 +1,12 @@
 #include <memory>
+#include <optional>
 #include <utility>
 #include "asmb_driver.hpp"
 #include "core/arch/pepx/asmb/pep10.hpp"
 #include "core/arch/pepx/asmb/pep9.hpp"
 #include "core/compile/macro/macro_registry.hpp"
 #include "core/compile/source/seekable.hpp"
+#include "core/langs/asmb/listing.hpp"
 #include "core/langs/asmb_pep/codegen.hpp"
 #include "core/langs/asmb_pep/parser.hpp"
 #include "core/langs/asmb_pep/text_format.hpp"
@@ -37,13 +39,16 @@ DriverResult assemble_pep(const pep::Dialect &dialect, bts::ElfMachineType machi
   if (result.diagnostics.count(Severity::Fatal) > 0) return result;
   auto object_code = pepp_to_object_code(result.diagnostics, addresses, split.grouped_ir);
   if (result.diagnostics.count(Severity::Fatal) > 0) return result;
+  std::optional<ListingLayout> layout;
   if (fmtcfg.listing_format) {
+    const auto format = [&](const LinearIR &line) { return format_source(dialect, &line); };
+    layout = layout_listing(flattened, addresses, pep_listing_bytes_per_line, format);
     auto listing = format_listing(dialect, flattened, addresses, object_code);
     fmtcfg.listing_format(std::move(listing));
   }
   // After flattening, so that a definition inside an expansion has its instantiation's line.
-  result.set_elf(pepp_to_elf(split.grouped_ir, flattened, addresses, object_code, *pep_parser.symbol_table(),
-                             split.mmios, debug_files, parser::defined_macros(program), machine));
+  result.set_elf(pepp_to_elf(split.grouped_ir, addresses, object_code, *pep_parser.symbol_table(), split.mmios,
+                             debug_files, parser::defined_macros(program), machine, layout ? &layout->rows : nullptr));
   return result;
 }
 } // namespace

@@ -37,7 +37,6 @@ struct ElfResult {
   pepp::bts::AnyGrowableElf elf;
   // Paired with elf's program headers: the [i]th constraint places the [i]th segment.
   std::vector<pepp::bts::SegmentLayoutConstraint> segments;
-  IR2ListingLineMap ir_to_listing;
 };
 
 // One section per entry of `prog`, written straight into a packed file, then the symbol table once every section a

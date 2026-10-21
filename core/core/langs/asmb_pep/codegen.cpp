@@ -380,34 +380,21 @@ ProgramObjectCodeResult pepp_to_object_code(DiagnosticTable &diag, const IRMemor
 
 } // namespace pepp::tc
 
-pepp::tc::IR2ListingLineMap
-write_line_mapping(pepp::tc::ElfResult &result,
-                   const std::vector<std::pair<pepp::tc::SectionDescriptor, pepp::tc::IRProgram>> &prog,
-                   const pepp::tc::IRMemoryAddressTable<pepp::tc::PeppAddress> &addrs,
-                   const pepp::tc::ProgramObjectCodeResult &object_code, const pepp::tc::DebugLineFiles &files,
-                   const std::vector<std::shared_ptr<const pepp::tc::InlineMacroDefinition>> &macros,
-                   const pepp::tc::IRProgram &source_order) {
-  auto ret = pepp::tc::number_listing_lines(source_order, object_code, pepp::tc::pep_listing_bytes_per_line);
-  // Pep/10 addresses are 2 bytes.
-  const auto abs16 = bits::to_underlying(pepp::bts::RelocationsPep::R_PEP10_ABS16);
-  const auto abs32 = bits::to_underlying(pepp::bts::RelocationsPep::R_PEP10_ABS32);
-  pepp::tc::write_debug_line(result.elf, 2, abs16, abs32, prog, addrs, ret, files, macros);
-  return ret;
-}
-
 pepp::tc::ElfResult pepp::tc::pepp_to_elf(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
-                                          const IRProgram &source_order,
                                           const IRMemoryAddressTable<PeppAddress> &addrs,
                                           const ProgramObjectCodeResult &object_code,
                                           const pepp::core::symbol::LeafTable &symbols,
                                           const std::vector<IO> &mmios, const DebugLineFiles &files,
                                           const std::vector<std::shared_ptr<const InlineMacroDefinition>> &macros,
-                                          pepp::bts::ElfMachineType machine) {
+                                          pepp::bts::ElfMachineType machine, const IR2ListingLineMap *listing) {
   using namespace pepp::bts;
   SPDLOG_INFO("Creating pep ELF");
   auto ret = sections_to_elf(ElfBits::b32, ElfEndian::be, machine, prog, object_code, symbols);
 
-  ret.ir_to_listing = write_line_mapping(ret, prog, addrs, object_code, files, macros, source_order);
+  // Pep/10 addresses are 2 bytes.
+  const auto abs16 = bits::to_underlying(RelocationsPep::R_PEP10_ABS16);
+  const auto abs32 = bits::to_underlying(RelocationsPep::R_PEP10_ABS32);
+  write_debug_line(ret.elf, 2, abs16, abs32, prog, addrs, listing, files, macros);
 
   if (!mmios.empty()) {
     auto f = [&](auto &file) {

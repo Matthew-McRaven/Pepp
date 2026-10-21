@@ -2,6 +2,7 @@
 #include <utility>
 #include "asmb_driver.hpp"
 #include "core/compile/source/seekable.hpp"
+#include "core/langs/asmb/listing.hpp"
 #include "core/langs/asmb/macros.hpp"
 #include "core/langs/asmb_riscv/codegen.hpp"
 #include "core/langs/asmb_riscv/parser.hpp"
@@ -32,13 +33,16 @@ DriverResult assemble_riscv(const RISCVDriverConfig &cfg, const FormattingConfig
   if (result.diagnostics.count(Severity::Fatal) > 0) return result;
   auto object_code = riscv_to_object_code(result.diagnostics, addresses, split.grouped_ir);
   if (result.diagnostics.count(Severity::Fatal) > 0) return result;
+  std::optional<ListingLayout> layout;
   if (fmtcfg.listing_format) {
+    const auto format = [](const LinearIR &line) { return riscv_format_source(&line); };
+    layout = layout_listing(flattened, addresses, riscv_listing_bytes_per_line, format);
     auto listing = riscv_format_listing(flattened, addresses, object_code);
     fmtcfg.listing_format(std::move(listing));
   }
   // After flattening, so that a definition inside an expansion has its instantiation's line.
-  result.set_elf(riscv_to_elf(split.grouped_ir, flattened, addresses, object_code, *rv_parser.symbol_table(),
-                              cfg.debug_files, parser::defined_macros(program)));
+  result.set_elf(riscv_to_elf(split.grouped_ir, addresses, object_code, *rv_parser.symbol_table(), cfg.debug_files,
+                              parser::defined_macros(program), layout ? &layout->rows : nullptr));
   return result;
 }
 

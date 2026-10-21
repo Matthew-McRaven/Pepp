@@ -10,7 +10,9 @@
 #include <variant>
 #include <vector>
 #include "core/formats/dwarf/info.hpp"
+#include "core/compile/ir_linear/attr_comment.hpp"
 #include "core/compile/ir_linear/line_macro.hpp"
+#include "core/compile/ir_linear/line_symbol.hpp"
 #include "core/compile/macro/macro_registry.hpp"
 #include "core/formats/dwarf/line_program.hpp"
 #include "core/formats/dwarf/macro.hpp"
@@ -49,11 +51,6 @@ static inline const auto debugProducer = "Pepp";
 static inline const auto debugLineSourceFile = "source";
 static inline const auto debugLineListingFile = "listing";
 
-// Numbers listing lines in source order, as a listing with `bytes_per_line` bytes of object code per row prints them.
-// Lines hidden from the listing get no number.
-IR2ListingLineMap number_listing_lines(const IRProgram &program, const ProgramObjectCodeResult &object_code,
-                                       u32 bytes_per_line);
-
 // One address's lines, merged from both units. Lines are 1-based, and 0 means the address has no such line.
 // SHN_ABS means `address` is an absolute address. Otherwise address is the section's sh_addr plus an offset.
 struct LineMapping {
@@ -83,6 +80,18 @@ inline u32 source_line(const LinearIR &line) {
 inline u32 listing_line(const IR2ListingLineMap &listing, const LinearIR &line) {
   const auto it = listing.find(&line);
   return it != listing.cend() ? 1 + it->second : 0;
+}
+// The [address, address + length) of a line's row or nullopt if the line is not addressable. For listings, symbol-only
+// lines and lines with suppressed object code have length 0.
+template <typename Address>
+std::optional<std::pair<u64, u64>> row_extent(const IRMemoryAddressTable<Address> &addrs, const LinearIR &line,
+                                              bool for_listing) {
+  const auto *symbol = dynamic_cast<const SymbolLine *>(&line);
+  if (for_listing && symbol && symbol->symbol.entry->value)
+    return std::pair<u64, u64>{symbol->symbol.entry->value->value().bitPattern, 0};
+  const auto it = addrs.find(&line);
+  if (it == addrs.cend()) return std::nullopt;
+  return std::pair<u64, u64>{it->second.address, for_listing && object_code_suppressed(line) ? 0 : it->second.size};
 }
 // An address or offset at `offset` in a DWARF section, relocated against the STT_SECTION symbol of `section`.
 struct SectionRelocation {
@@ -141,14 +150,14 @@ std::string define_string(const MacroDefinition &definition);
 std::expected<std::shared_ptr<MacroDefinition>, std::string> parse_define_string(std::string_view string);
 } // namespace detail
 
-// Fills the sections of debugSections. Writes the source line program to .debug_line and the listing line program to a
-// separate section. A compile unit is written so that address-to-line tools work as expected. Sections are emitted as
-// independent sequences. For ET_REL files, the initial addresses are relocated against the STT_SECTION symbol of the
-// section they came from. Advances assume the linker does not apply relaxations.
+// Fills the sections of debugSections. Writes the source line program to .debug_line and, if `listing` is non-null, the
+// listing line program to a separate section. A compile unit is written so that address-to-line tools work as
+// expected. Sections are emitted as independent sequences. For ET_REL files, the initial addresses are relocated against
+// the STT_SECTION symbol of the section they came from. Advances assume the linker does not apply relaxations.
 template <typename Address>
 void write_debug_line(pepp::bts::AnyGrowableElf &elf, u8 address_size, u32 address_relocation, u32 offset_relocation,
                       const std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
-                      const IRMemoryAddressTable<Address> &addrs, const IR2ListingLineMap &listing,
+                      const IRMemoryAddressTable<Address> &addrs, const IR2ListingLineMap *listing,
                       const DebugLineFiles &files = {},
                       const std::vector<std::shared_ptr<const InlineMacroDefinition>> &macros = {}) {
   const auto name_or = [](const std::optional<std::string> &name, const char *fallback) -> std::string_view {
@@ -177,10 +186,10 @@ void write_debug_line(pepp::bts::AnyGrowableElf &elf, u8 address_size, u32 addre
       for (const auto &[desc, lines] : prog) {
         const auto first_operand = writer.address_operands().size();
         for (const auto &line : lines) {
-          const auto addr_it = addrs.find(line.get());
-          if (addr_it == addrs.cend()) continue;
-          const u32 number = for_listing ? detail::listing_line(listing, *line) : detail::source_line(*line);
-          if (number != 0) writer.row(addr_it->second.address, addr_it->second.size, 1, number);
+          const auto extent = detail::row_extent(addrs, *line, for_listing);
+          if (!extent) continue;
+          const u32 number = for_listing ? detail::listing_line(*listing, *line) : detail::source_line(*line);
+          if (number != 0) writer.row(extent->first, extent->second, 1, number);
         }
         // A linker places each section on its own, so a sequence must not continue into the next one.
         writer.end_sequence();
@@ -191,7 +200,7 @@ void write_debug_line(pepp::bts::AnyGrowableElf &elf, u8 address_size, u32 addre
       return writer.finish();
     };
     const auto source_unit = write_unit(line_index, line_relocations, source_name, false);
-    write_unit(listing_index, listing_relocations, listing_name, true);
+    if (listing) write_unit(listing_index, listing_relocations, listing_name, true);
 
     // Extract the spanned ranges of the source program and emit to a range list.
     std::vector<detail::SectionRelocation> range_relocations;

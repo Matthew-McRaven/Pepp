@@ -56,11 +56,12 @@ std::optional<ArgumentConstraint> pepp_argument_constraint(const LinearIR &line)
 ProgramObjectCodeResult pepp_to_object_code(DiagnosticTable &diag, const IRMemoryAddressTable<PeppAddress> &,
                                             std::vector<std::pair<SectionDescriptor, IRProgram>> &prog);
 
-// `source_order` holds the lines of `prog` in source order, which is the order the listing prints them.
-ElfResult pepp_to_elf(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog, const IRProgram &source_order,
+// The listing line program is written only if `listing` is non-null.
+ElfResult pepp_to_elf(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
                       const IRMemoryAddressTable<PeppAddress> &addrs, const ProgramObjectCodeResult &object_code,
                       const pepp::core::symbol::LeafTable &symbols, const std::vector<IO> &mmios,
                       const DebugLineFiles &files = {},
                       const std::vector<std::shared_ptr<const InlineMacroDefinition>> &macros = {},
-                      pepp::bts::ElfMachineType machine = pepp::bts::ElfMachineType::EM_PEP10);
+                      pepp::bts::ElfMachineType machine = pepp::bts::ElfMachineType::EM_PEP10,
+                      const IR2ListingLineMap *listing = nullptr);
 } // namespace pepp::tc
