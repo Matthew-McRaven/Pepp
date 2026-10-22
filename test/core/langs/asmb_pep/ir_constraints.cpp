@@ -90,16 +90,17 @@ TEST_CASE("Pep/10 warns on non-immediate ADD/SUBSP", "[scope:core][scope:core.la
 
 TEST_CASE("Pep/10 codegen errors still produce a listing", "[scope:core][scope:core.langs][kind:int][arch:pep10]") {
   using E = pepp::tc::CodegenError;
-  std::vector<std::string> listing;
-  pepp::tc::FormattingConfig fmt;
-  fmt.listing_format = [&](std::vector<std::string> &&lines) { listing = std::move(lines); };
-  auto result = pepp::tc::assemble_pep10(pepp::tc::Pep10DriverConfig{}, fmt, "LDWA 1,i\n.BYTE 256\nRET\n");
+  const auto source = "LDWA 1,i\n.BYTE 256\nRET\n";
+  auto result = pepp::tc::assemble_pep10(pepp::tc::Pep10DriverConfig{}, {.listing = true}, source);
   REQUIRE(result.diagnostics.count() == 1);
   CHECK(result.diagnostics.cbegin()->second.message == E::to_string(E::UnaryError::Argument_ValueDoesNotFit, "8 bits"));
   CHECK(result.diagnostics.cbegin()->second.severity == pepp::tc::Severity::Error);
   CHECK_FALSE(result.ok());
   CHECK(result.elf() == nullptr);
   CHECK(result.unchecked_elf() != nullptr);
+  const auto formatted = result.listing();
+  REQUIRE(formatted.has_value());
+  const auto &listing = *formatted;
   // The bad value is zeroed and later lines keep their addresses.
   REQUIRE(listing.size() >= 3);
   CHECK(listing[0].starts_with("0000 "));

@@ -1,3 +1,20 @@
+/*
+ * Copyright (c) 2026 J. Stanley Warford, Matthew McRaven
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #pragma once
 #include <algorithm>
 #include <array>
@@ -10,7 +27,9 @@
 #include <variant>
 #include <vector>
 #include "core/formats/dwarf/info.hpp"
+#include "core/compile/ir_linear/attr_comment.hpp"
 #include "core/compile/ir_linear/line_macro.hpp"
+#include "core/compile/ir_linear/line_symbol.hpp"
 #include "core/compile/macro/macro_registry.hpp"
 #include "core/formats/dwarf/line_program.hpp"
 #include "core/formats/dwarf/macro.hpp"
@@ -49,18 +68,23 @@ static inline const auto debugProducer = "Pepp";
 static inline const auto debugLineSourceFile = "source";
 static inline const auto debugLineListingFile = "listing";
 
-// Numbers listing lines in source order, as a listing with `bytes_per_line` bytes of object code per row prints them.
-// Lines hidden from the listing get no number.
-IR2ListingLineMap number_listing_lines(const IRProgram &program, const ProgramObjectCodeResult &object_code,
-                                       u32 bytes_per_line);
-
 // One address's lines, merged from both units. Lines are 1-based, and 0 means the address has no such line.
-// In a relocatable file, `address` is an offset into `section`. SHN_ABS means `address` is absolute.
+// SHN_ABS means `address` is an absolute address. Otherwise address is the section's sh_addr plus an offset.
 struct LineMapping {
   u16 section = bits::to_underlying(pepp::bts::SectionIndices::SHN_ABS);
   u64 address = 0;
   u32 source_line = 0, listing_line = 0;
   bool operator==(const LineMapping &) const = default;
+};
+
+// One row of the listing line program, covering [start, end): from its address to the next row of its sequence, or to
+// the sequence's end. SHN_ABS means the addresses the (start, end) addresses are absolute, otherwise they are the
+// section's sh_addr plus an offset.
+struct ListingRow {
+  u32 line = 0;
+  u16 section = bits::to_underlying(pepp::bts::SectionIndices::SHN_ABS);
+  u64 start = 0, end = 0;
+  bool operator==(const ListingRow &) const = default;
 };
 
 namespace detail {
@@ -73,6 +97,18 @@ inline u32 source_line(const LinearIR &line) {
 inline u32 listing_line(const IR2ListingLineMap &listing, const LinearIR &line) {
   const auto it = listing.find(&line);
   return it != listing.cend() ? 1 + it->second : 0;
+}
+// The [address, address + length) of a line's row or nullopt if the line is not addressable. For listings, symbol-only
+// lines and lines with suppressed object code have length 0.
+template <typename Address>
+std::optional<std::pair<u64, u64>> row_extent(const IRMemoryAddressTable<Address> &addrs, const LinearIR &line,
+                                              bool for_listing) {
+  const auto *symbol = dynamic_cast<const SymbolLine *>(&line);
+  if (for_listing && symbol && symbol->symbol.entry->value)
+    return std::pair<u64, u64>{symbol->symbol.entry->value->value().bitPattern, 0};
+  const auto it = addrs.find(&line);
+  if (it == addrs.cend()) return std::nullopt;
+  return std::pair<u64, u64>{it->second.address, for_listing && object_code_suppressed(line) ? 0 : it->second.size};
 }
 // An address or offset at `offset` in a DWARF section, relocated against the STT_SECTION symbol of `section`.
 struct SectionRelocation {
@@ -131,14 +167,14 @@ std::string define_string(const MacroDefinition &definition);
 std::expected<std::shared_ptr<MacroDefinition>, std::string> parse_define_string(std::string_view string);
 } // namespace detail
 
-// Fills the sections of debugSections. Writes the source line program to .debug_line and the listing line program to a
-// separate section. A compile unit is written so that address-to-line tools work as expected. Sections are emitted as
-// independent sequences. For ET_REL files, the initial addresses are relocated against the STT_SECTION symbol of the
-// section they came from. Advances assume the linker does not apply relaxations.
+// Fills the sections of debugSections. Writes the source line program to .debug_line and, if `listing` is non-null, the
+// listing line program to a separate section. A compile unit is written so that address-to-line tools work as
+// expected. Sections are emitted as independent sequences. For ET_REL files, the initial addresses are relocated against
+// the STT_SECTION symbol of the section they came from. Advances assume the linker does not apply relaxations.
 template <typename Address>
 void write_debug_line(pepp::bts::AnyGrowableElf &elf, u8 address_size, u32 address_relocation, u32 offset_relocation,
                       const std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
-                      const IRMemoryAddressTable<Address> &addrs, const IR2ListingLineMap &listing,
+                      const IRMemoryAddressTable<Address> &addrs, const IR2ListingLineMap *listing,
                       const DebugLineFiles &files = {},
                       const std::vector<std::shared_ptr<const InlineMacroDefinition>> &macros = {}) {
   const auto name_or = [](const std::optional<std::string> &name, const char *fallback) -> std::string_view {
@@ -167,10 +203,10 @@ void write_debug_line(pepp::bts::AnyGrowableElf &elf, u8 address_size, u32 addre
       for (const auto &[desc, lines] : prog) {
         const auto first_operand = writer.address_operands().size();
         for (const auto &line : lines) {
-          const auto addr_it = addrs.find(line.get());
-          if (addr_it == addrs.cend()) continue;
-          const u32 number = for_listing ? detail::listing_line(listing, *line) : detail::source_line(*line);
-          if (number != 0) writer.row(addr_it->second.address, addr_it->second.size, 1, number);
+          const auto extent = detail::row_extent(addrs, *line, for_listing);
+          if (!extent) continue;
+          const u32 number = for_listing ? detail::listing_line(*listing, *line) : detail::source_line(*line);
+          if (number != 0) writer.row(extent->first, extent->second, 1, number);
         }
         // A linker places each section on its own, so a sequence must not continue into the next one.
         writer.end_sequence();
@@ -181,7 +217,7 @@ void write_debug_line(pepp::bts::AnyGrowableElf &elf, u8 address_size, u32 addre
       return writer.finish();
     };
     const auto source_unit = write_unit(line_index, line_relocations, source_name, false);
-    write_unit(listing_index, listing_relocations, listing_name, true);
+    if (listing) write_unit(listing_index, listing_relocations, listing_name, true);
 
     // Extract the spanned ranges of the source program and emit to a range list.
     std::vector<detail::SectionRelocation> range_relocations;
@@ -244,33 +280,45 @@ void write_debug_line(pepp::bts::AnyGrowableElf &elf, u8 address_size, u32 addre
   std::visit(f, elf);
 }
 
+namespace detail {
+// Runs every line program unit in the section `name`, calling on_row(row, section) for each row in program order.
+// `section` is the target of the sequence's relocated DW_LNE_set_address; otherwise it is SHN_ABS.
+template <pepp::bts::ElfBits B, pepp::bts::ElfEndian E, typename OnRow>
+std::expected<void, std::string> for_each_line_row(const pepp::bts::PackedElf<B, E> &elf, const char *name,
+                                                   OnRow &&on_row) {
+  const auto line_str = pepp::bts::section_bytes(elf, pepp::bts::find_named_section(elf, debugLineStrSection));
+  const auto index = pepp::bts::find_named_section(elf, name);
+  const auto data = pepp::bts::section_bytes(elf, index);
+  const auto sections = pepp::bts::relocation_symbol_sections(elf, index);
+  for (size_t offset = 0; offset < data.size();) {
+    const auto unit = pepp::bts::parse_line_program_unit<E>(data, offset, line_str);
+    if (!unit) return std::unexpected(unit.error());
+    const auto program_start = static_cast<u64>(unit->program.data() - data.data());
+    const auto visit = [&](const pepp::bts::DebugLineState &row, std::optional<size_t> address_operand) {
+      u16 section = bits::to_underlying(pepp::bts::SectionIndices::SHN_ABS);
+      if (address_operand) {
+        const auto it = sections.find(program_start + *address_operand);
+        if (it != sections.cend()) section = it->second;
+      }
+      on_row(row, section);
+    };
+    if (const auto ran = pepp::bts::run_line_program<E>(*unit, visit); !ran) return std::unexpected(ran.error());
+    offset = unit->next_unit;
+  }
+  return {};
+}
+} // namespace detail
+
 // Decodes line info of elf, into one mapping per (section, address) in ascending order.
 template <pepp::bts::ElfBits B, pepp::bts::ElfEndian E>
 std::expected<std::vector<LineMapping>, std::string> read_line_mappings(const pepp::bts::PackedElf<B, E> &elf) {
-  const auto line_str = pepp::bts::section_bytes(elf, pepp::bts::find_named_section(elf, debugLineStrSection));
   std::map<std::pair<u16, u64>, std::pair<u32, u32>> lines;
-  const auto read_section = [&](const char *name, bool for_listing) -> std::expected<void, std::string> {
-    const auto index = pepp::bts::find_named_section(elf, name);
-    const auto data = pepp::bts::section_bytes(elf, index);
-    const auto sections = pepp::bts::relocation_symbol_sections(elf, index);
-    for (size_t offset = 0; offset < data.size();) {
-      const auto unit = pepp::bts::parse_line_program_unit<E>(data, offset, line_str);
-      if (!unit) return std::unexpected(unit.error());
-      const auto program_start = static_cast<u64>(unit->program.data() - data.data());
-      const auto on_row = [&](const pepp::bts::DebugLineState &row, std::optional<size_t> address_operand) {
-        if (row.end_sequence) return;
-        u16 section = bits::to_underlying(pepp::bts::SectionIndices::SHN_ABS);
-        if (address_operand) {
-          const auto it = sections.find(program_start + *address_operand);
-          if (it != sections.cend()) section = it->second;
-        }
-        auto &[source_line, listing_line] = lines[{section, row.address}];
-        (for_listing ? listing_line : source_line) = static_cast<u32>(row.line);
-      };
-      if (const auto ran = pepp::bts::run_line_program<E>(*unit, on_row); !ran) return std::unexpected(ran.error());
-      offset = unit->next_unit;
-    }
-    return {};
+  const auto read_section = [&](const char *name, bool for_listing) {
+    return detail::for_each_line_row(elf, name, [&](const pepp::bts::DebugLineState &row, u16 section) {
+      if (row.end_sequence) return;
+      auto &[source_line, listing_line] = lines[{section, row.address}];
+      (for_listing ? listing_line : source_line) = static_cast<u32>(row.line);
+    });
   };
   if (const auto read = read_section(debugLineSection, false); !read) return std::unexpected(read.error());
   if (const auto read = read_section(debugListingLineSection, true); !read) return std::unexpected(read.error());
@@ -279,6 +327,23 @@ std::expected<std::vector<LineMapping>, std::string> read_line_mappings(const pe
   for (const auto &[where, line] : lines)
     ret.push_back(
         {.section = where.first, .address = where.second, .source_line = line.first, .listing_line = line.second});
+  return ret;
+}
+
+// Decodes the listing line program of elf into its rows, in program order. Rows sharing an address are all kept.
+template <pepp::bts::ElfBits B, pepp::bts::ElfEndian E>
+std::expected<std::vector<ListingRow>, std::string> read_listing_rows(const pepp::bts::PackedElf<B, E> &elf) {
+  std::vector<ListingRow> ret;
+
+  bool open = false; // Whether ret.back() is in an open sequence.
+  const auto on_row = [&](const pepp::bts::DebugLineState &row, u16 section) {
+    if (open) ret.back().end = row.address;
+    open = !row.end_sequence;
+    if (open)
+      ret.push_back({.line = static_cast<u32>(row.line), .section = section, .start = row.address, .end = row.address});
+  };
+  const auto read = detail::for_each_line_row(elf, debugListingLineSection, on_row);
+  if (!read) return std::unexpected(read.error());
   return ret;
 }
 

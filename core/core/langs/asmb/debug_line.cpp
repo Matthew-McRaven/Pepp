@@ -1,3 +1,20 @@
+/*
+ * Copyright (c) 2026 J. Stanley Warford, Matthew McRaven
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include "core/langs/asmb/debug_line.hpp"
 #include "core/compile/ir_linear/attr_comment.hpp"
 
@@ -48,22 +65,5 @@ pepp::tc::detail::parse_define_string(std::string_view string) {
                                 .default_value = std::string(parameter.substr(equals + 1))});
   }
   ret->body = parsed->definition;
-  return ret;
-}
-
-pepp::tc::IR2ListingLineMap pepp::tc::number_listing_lines(const IRProgram &program,
-                                                           const ProgramObjectCodeResult &object_code,
-                                                           u32 bytes_per_line) {
-  IR2ListingLineMap ret;
-  u32 listing_number = 0;
-  for (const auto &line : program) {
-    if (hidden_from_listing(*line)) continue;
-    const auto oc_it = object_code.ir_to_object_code.find(line.get());
-    const size_t size = oc_it == object_code.ir_to_object_code.cend() ? 0 : oc_it->second.size();
-    ret.container.emplace_back(IR2ListingLinePair{line.get(), listing_number});
-    // The first row always prints, even without object code. Each further row continues the object code.
-    listing_number += std::max<u32>(1, static_cast<u32>((size + bytes_per_line - 1) / bytes_per_line));
-  }
-  std::sort(ret.container.begin(), ret.container.end(), IR2ListingLineComparator{});
   return ret;
 }

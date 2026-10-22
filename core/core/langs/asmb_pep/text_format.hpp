@@ -1,6 +1,24 @@
+/*
+ * Copyright (c) 2025-2026 J. Stanley Warford, Matthew McRaven
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #pragma once
 #include "core/arch/pepx/asmb/pep_dialect.hpp"
 #include "core/langs/asmb/ir_program.hpp"
+#include "core/langs/asmb/listing.hpp"
 #include "core/math/bitmanip/span.hpp"
 #include "ir_attributes.hpp"
 
@@ -28,11 +46,5 @@ std::vector<std::string> format_source(const pep::Dialect &dialect, const IRProg
 
 // Bytes of object code per listing row. Longer lines continue onto extra rows.
 static constexpr int pep_listing_bytes_per_line = 3;
-// Format a single line
-std::vector<std::string> format_listing(const pep::Dialect &dialect, const LinearIR *line,
-                                        const IRMemoryAddressTable<PeppAddress> &addresses,
-                                        const ProgramObjectCodeResult &object_code);
-std::vector<std::string> format_listing(const pep::Dialect &dialect, const IRProgram &program,
-                                        const IRMemoryAddressTable<PeppAddress> &addresses,
-                                        const ProgramObjectCodeResult &object_code);
+inline constexpr ListingStyle pep_listing_style{.address_width = 4, .bytes_per_row = pep_listing_bytes_per_line};
 } // namespace pepp::tc

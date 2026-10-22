@@ -1,3 +1,20 @@
+/*
+ * Copyright (c) 2025-2026 J. Stanley Warford, Matthew McRaven
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #pragma once
 #include "core/compile/ir_linear/line_macro.hpp"
 #include "core/integers.h"
@@ -56,11 +73,12 @@ std::optional<ArgumentConstraint> pepp_argument_constraint(const LinearIR &line)
 ProgramObjectCodeResult pepp_to_object_code(DiagnosticTable &diag, const IRMemoryAddressTable<PeppAddress> &,
                                             std::vector<std::pair<SectionDescriptor, IRProgram>> &prog);
 
-// `source_order` holds the lines of `prog` in source order, which is the order the listing prints them.
-ElfResult pepp_to_elf(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog, const IRProgram &source_order,
+// The listing line program is written only if `listing` is non-null.
+ElfResult pepp_to_elf(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
                       const IRMemoryAddressTable<PeppAddress> &addrs, const ProgramObjectCodeResult &object_code,
                       const pepp::core::symbol::LeafTable &symbols, const std::vector<IO> &mmios,
                       const DebugLineFiles &files = {},
                       const std::vector<std::shared_ptr<const InlineMacroDefinition>> &macros = {},
-                      pepp::bts::ElfMachineType machine = pepp::bts::ElfMachineType::EM_PEP10);
+                      pepp::bts::ElfMachineType machine = pepp::bts::ElfMachineType::EM_PEP10,
+                      const IR2ListingLineMap *listing = nullptr);
 } // namespace pepp::tc

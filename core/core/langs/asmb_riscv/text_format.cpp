@@ -1,3 +1,20 @@
+/*
+ * Copyright (c) 2026 J. Stanley Warford, Matthew McRaven
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include "core/langs/asmb_riscv/text_format.hpp"
 #include <fmt/format.h>
 #include <fmt/ranges.h>
@@ -197,54 +214,5 @@ std::vector<std::string> pepp::tc::riscv_format_source(const IRProgram &program)
   std::vector<std::string> ret;
   for (const auto &line : program)
     if (!hidden_from_source(*line)) ret.emplace_back(riscv_format_source(&*line));
-  return ret;
-}
-
-namespace {
-void riscv_format_listing(const LinearIR *line, const IRMemoryAddressTable<RISCVAddress> &addresses,
-                          const ProgramObjectCodeResult &object_code, std::vector<std::string> &out) {
-  const auto source_line = pepp::tc::riscv_format_source(line);
-  const auto address_it = addresses.find(line);
-  auto address = address_it == addresses.cend() ? std::nullopt : std::optional<u32>(address_it->second.address);
-  if (const auto *symbol = dynamic_cast<const SymbolLine *>(line); symbol && symbol->symbol.entry->value)
-    address = static_cast<u32>(symbol->symbol.entry->value->value().bitPattern);
-
-  const std::string address_str = address.has_value() ? fmt::format("{:08X}", *address) : std::string(8, ' ');
-
-  const auto code_it = object_code.ir_to_object_code.find(line);
-  bits::span<u8> code = code_it == object_code.ir_to_object_code.end() ? bits::span<u8>{} : code_it->second;
-  if (pepp::tc::object_code_suppressed(*line)) code = {};
-
-  static constexpr int bytes_per_line = pepp::tc::riscv_listing_bytes_per_line;
-  auto obj = std::vector<char>(2 * bytes_per_line);
-  auto n = std::min<size_t>(bytes_per_line, code.size());
-  auto end = bits::bytesToAsciiHex(obj, code.first(n), {});
-  code = code.subspan(n);
-
-  const auto initial_line = fmt::format("{:<8} {:<8} {}", address_str, std::string_view(obj.data(), end), source_line);
-  out.emplace_back(initial_line);
-  while (!code.empty()) {
-    n = std::min<size_t>(bytes_per_line, code.size());
-    end = bits::bytesToAsciiHex(obj, code.first(n), {});
-    out.emplace_back(fmt::format("{:<8} {}", "", std::string_view(obj.data(), end)));
-    code = code.subspan(n);
-  }
-}
-} // namespace
-
-std::vector<std::string> pepp::tc::riscv_format_listing(const LinearIR *line,
-                                                  const IRMemoryAddressTable<RISCVAddress> &addresses,
-                                                  const ProgramObjectCodeResult &object_code) {
-  std::vector<std::string> ret;
-  ::riscv_format_listing(line, addresses, object_code, ret);
-  return ret;
-}
-
-std::vector<std::string> pepp::tc::riscv_format_listing(const IRProgram &program,
-                                                  const IRMemoryAddressTable<RISCVAddress> &addresses,
-                                                  const ProgramObjectCodeResult &object_code) {
-  std::vector<std::string> ret;
-  for (const auto &line : program)
-    if (!hidden_from_listing(*line)) ::riscv_format_listing(&*line, addresses, object_code, ret);
   return ret;
 }

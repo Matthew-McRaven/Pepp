@@ -22,6 +22,7 @@
 #include "core/formats/elf/packed_storage.hpp"
 #include "core/formats/elf/packed_types.hpp"
 #include <iosfwd>
+#include <optional>
 #include <stdexcept>
 #include "core/math/bitmanip/log2.hpp"
 
@@ -43,8 +44,15 @@ template <ElfBits B, ElfEndian E>
 u16 add_named_rela(PackedGrowableElfFile<B, E> &, std::string_view name, u16 symtab_idx, u16 section_idx);
 // Index of the first section named `name`, or 0 if there is none.
 template <ElfBits B, ElfEndian E> u16 find_named_section(const PackedElf<B, E> &, std::string_view name);
-// All of section `index`'s bytes, or none for index 0, so it composes with find_named_section.
+// All of section `index`'s bytes. Empty for index 0 or if section's bytes are non-contiguous in memory.
 template <ElfBits B, ElfEndian E> bits::span<const u8> section_bytes(const PackedElf<B, E> &, u16 index);
+// Return a subspan of the sections bytes, or nullopt if the (offset, length) would overflow the span of if the
+// section_bytes(index) returns nullopt.
+template <ElfBits B, ElfEndian E>
+std::optional<bits::span<const u8>> section_bytes(const PackedElf<B, E> &, u16 index, u64 offset, u64 length);
+// Index of the first SHF_ALLOC section whose memory holds `address`, or 0 if there is none. NOBITS sections count.
+// For ET_REL files, this is essentially meaningless, since sections in relocatable files tend to start at 0.
+template <ElfBits B, ElfEndian E> u16 section_at_address(const PackedElf<B, E> &, u64 address);
 
 template <ElfBits B, ElfEndian E> u32 symbol_count(const PackedElfShdr<B, E> &shdr) {
   if (shdr.sh_entsize == 0 || shdr.sh_size == 0) return 0;
@@ -205,6 +213,29 @@ template <ElfBits B, ElfEndian E> bits::span<const u8> section_bytes(const Packe
   if (index == 0 || index >= elf.section_data.size()) return {};
   const auto &data = elf.section_data[index];
   return data->get(0, data->size());
+}
+
+template <ElfBits B, ElfEndian E>
+std::optional<bits::span<const u8>> section_bytes(const PackedElf<B, E> &elf, u16 index, u64 offset, u64 length) {
+  // Do not call the non-optional overload. Not all AStorage are gaurenteed to be contiguous over the entire section.
+  // By extracting only the subspan of interest via get(), there is a higher likelihood that all storage types can
+  // support this operation.
+  if (index == 0 || index >= elf.section_data.size()) return std::nullopt;
+  else if (const AStorage &data = *elf.section_data[index]; offset > data.size() || length > data.size() - offset)
+    return std::nullopt;
+  else if (length == 0) return bits::span<const u8>{};
+  // get() is empty when the range spans storage which is not contiguous.
+  else if (const auto ret = data.get(offset, length); ret.size() != length) return std::nullopt;
+  else return ret;
+}
+
+template <ElfBits B, ElfEndian E> u16 section_at_address(const PackedElf<B, E> &elf, u64 address) {
+  for (u16 it = 1; it < elf.section_headers.size(); ++it) {
+    const auto &header = elf.section_headers[it];
+    const u64 flags = header.sh_flags, low = header.sh_addr, size = header.sh_size;
+    if (flags & bits::to_underlying(SectionFlags::SHF_ALLOC) && low <= address && address - low < size) return it;
+  }
+  return 0;
 }
 
 // Place the section header followed by the program header table at the given offset

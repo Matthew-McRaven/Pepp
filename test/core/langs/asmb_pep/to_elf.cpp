@@ -28,6 +28,7 @@
 #include "core/formats/elf/enums.hpp"
 #include "core/langs/asmb/debug_line.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
+#include "core/langs/asmb/listing.hpp"
 #include "core/langs/asmb_driver.hpp"
 #include "core/langs/asmb_pep/codegen.hpp"
 #include "core/langs/asmb_pep/ir_visitor.hpp"
@@ -36,6 +37,9 @@
 #include "core/math/bitmanip/enums.hpp"
 
 namespace {
+// Numbering a listing needs no source text.
+std::string no_text(const pepp::tc::LinearIR &) { return {}; }
+
 // Read what would actually be written, rather than the in-memory model of it.
 ELFIO::elfio read_back(pepp::tc::ElfResult &result) {
   const auto bytes = pepp::tc::elf_bytes(result);
@@ -158,6 +162,53 @@ std::vector<Rela> relocations_of(ELFIO::elfio &elf, const std::string &name, con
   }
   return ret;
 }
+
+// Every stage of assembling a Pep/10 `source`, for tests which inspect more than the ELF.
+struct Assembled {
+  std::shared_ptr<pepp::core::symbol::LeafTable> symbols;
+  pepp::tc::IRProgram code; // Flattened, in source order.
+  pepp::tc::PeppSectionAnalysisResults split;
+  pepp::tc::IRMemoryAddressTable<pepp::tc::PeppAddress> addresses;
+  pepp::tc::ProgramObjectCodeResult object_code;
+  pepp::tc::ListingLayout layout; // Rows have no source text.
+  pepp::tc::ElfResult elf;
+};
+struct Options {
+  bool listing = false;     // Write the listing line program.
+  bool relocatable = false; // Write ET_REL, so the debug sections carry relocations.
+};
+
+Assembled assemble(const char *source, Options options = {}) {
+  using namespace pepp::tc;
+  using namespace pepp::bts;
+  DiagnosticTable diag;
+  auto p = parser::PepParser(support::SeekableData{source}, std::make_shared<MacroRegistry>());
+  Assembled ret{.symbols = p.symbol_table(), .code = parser::flatten_macros(p.parse(diag))};
+  ret.split = pepp_split_to_sections(diag, ret.code);
+  ret.addresses = pepp_assign_addresses(diag, ret.split.grouped_ir);
+  ret.object_code = pepp_to_object_code(diag, ret.addresses, ret.split.grouped_ir);
+  std::string messages;
+  for (const auto &[_, diagnostic] : diag) messages += diagnostic.message + "\n";
+  INFO(messages);
+  REQUIRE(diag.count() == 0);
+
+  ret.layout = layout_listing(ret.code, ret.addresses, pep_listing_bytes_per_line, no_text);
+  const auto *listing = options.listing ? &ret.layout.rows : nullptr;
+  auto &sections = ret.split.grouped_ir;
+  if (!options.relocatable) {
+    ret.elf = pepp_to_elf(sections, ret.addresses, ret.object_code, *ret.symbols, ret.split.mmios, {}, {},
+                          ElfMachineType::EM_PEP10, listing);
+    return ret;
+  }
+  // pepp_to_elf writes ET_EXEC, and write_debug_line only adds relocations to an ET_REL.
+  ret.elf = sections_to_elf(ElfBits::b32, ElfEndian::be, ElfMachineType::EM_PEP10, sections, ret.object_code,
+                            *ret.symbols);
+  std::get<std::unique_ptr<PackedGrowableElfBE32>>(ret.elf.elf)->header.e_type =
+      bits::to_underlying(ElfFileType::ET_REL);
+  write_debug_line(ret.elf.elf, 2, bits::to_underlying(RelocationsPep::R_PEP10_ABS16),
+                   bits::to_underlying(RelocationsPep::R_PEP10_ABS32), sections, ret.addresses, listing);
+  return ret;
+}
 } // namespace
 
 TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:*]") {
@@ -167,31 +218,19 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
   using MR = pepp::tc::MacroRegistry;
   using namespace pepp::tc;
   SECTION("No ORG") {
-    pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(ex1), std::make_shared<MR>());
-    auto results = p.parse(diag);
-    CHECK(diag.count() == 0);
-    REQUIRE(results.size() == 11);
-    CHECK(std::dynamic_pointer_cast<EmptyLine>(results[0]));
-    CHECK(std::dynamic_pointer_cast<DotSection>(results[1]));
-    CHECK(std::dynamic_pointer_cast<DotSection>(results[3]));
-    CHECK(std::dynamic_pointer_cast<DotSection>(results[6]));
-    CHECK(std::dynamic_pointer_cast<DotSection>(results[8]));
-    auto code = pepp::tc::parser::flatten_macros(results);
-    auto result = pepp::tc::pepp_split_to_sections(diag, code);
-    CHECK(diag.count() == 0);
-
-    auto symbol_tab = p.symbol_table();
-    auto &sections = result.grouped_ir;
-    auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
-    auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
-    auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
-
+    auto a = assemble(ex1, {.listing = true});
+    REQUIRE(a.code.size() == 11);
+    CHECK(std::dynamic_pointer_cast<EmptyLine>(a.code[0]));
+    CHECK(std::dynamic_pointer_cast<DotSection>(a.code[1]));
+    CHECK(std::dynamic_pointer_cast<DotSection>(a.code[3]));
+    CHECK(std::dynamic_pointer_cast<DotSection>(a.code[6]));
+    CHECK(std::dynamic_pointer_cast<DotSection>(a.code[8]));
+    const auto &sections = a.split.grouped_ir;
     REQUIRE(sections.size() == 3);
-    auto elf = read_back(elf_result);
+    auto elf = read_back(a.elf);
     std::ostringstream streamed;
-    pepp::tc::write_elf(elf_result, streamed);
-    const auto bytes = pepp::tc::elf_bytes(elf_result);
+    pepp::tc::write_elf(a.elf, streamed);
+    const auto bytes = pepp::tc::elf_bytes(a.elf);
     CHECK(streamed.str() == std::string(reinterpret_cast<const char *>(bytes.data()), bytes.size()));
     // .text is rwx; .data and memvec are both rw and contiguous, so they share one segment.
     CHECK(elf.segments.size() == 2);
@@ -220,7 +259,7 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     REQUIRE(listing_unit.has_value());
     CHECK(listing_unit->header.files[0].path == pepp::tc::debugLineListingFile);
     CHECK(listing_unit->next_unit == listing_encoded.size());
-    const auto input = pepp::tc::to_input_elf(elf_result);
+    const auto input = pepp::tc::to_input_elf(a.elf);
     const auto mappings = std::visit([](const auto &file) { return pepp::tc::read_line_mappings(*file); }, input);
     REQUIRE(mappings.has_value());
     const auto abs = bits::to_underlying(pepp::bts::SectionIndices::SHN_ABS);
@@ -234,7 +273,6 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     CHECK(address_of(3) == text);     // bye:LDWA 10,d
     CHECK(address_of(8) == text + 3); // cruel:BR 0, after bye in the same .text
     CHECK(address_of(10) == elf.sections["memvec"]->get_address()); // World:.BYTE 0
-    CHECK_FALSE(elf_result.ir_to_listing.container.empty());
     // Executables keep absolute addresses.
     CHECK(elf.sections[".rela.debug_line"] == nullptr);
     CHECK(elf.sections[std::string(".rela") + pepp::tc::debugListingLineSection] == nullptr);
@@ -247,26 +285,12 @@ LDWA 2,i
 .SECTION ".data","rw"
 .WORD 5
 )";
-    pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(txt), std::make_shared<MR>());
-    auto code = pepp::tc::parser::flatten_macros(p.parse(diag));
-    auto result = pepp::tc::pepp_split_to_sections(diag, code);
-    auto &sections = result.grouped_ir;
-    REQUIRE(sections.size() == 2);
-    auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
-    auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
-    REQUIRE(diag.count() == 0);
-    // Assembler normally generate ET_EXEC, but force it to become relocatable.
+    auto a = assemble(txt, {.listing = true, .relocatable = true});
+    REQUIRE(a.split.grouped_ir.size() == 2);
     using namespace pepp::bts;
-    auto elf_result = sections_to_elf(ElfBits::b32, ElfEndian::be, ElfMachineType::EM_PEP10, sections, object_code,
-                                      *p.symbol_table());
-    std::get<std::unique_ptr<PackedGrowableElfBE32>>(elf_result.elf)->header.e_type =
-        bits::to_underlying(ElfFileType::ET_REL);
     const auto abs16 = bits::to_underlying(RelocationsPep::R_PEP10_ABS16);
-    const auto listing = number_listing_lines(code, object_code, pep_listing_bytes_per_line);
     const auto abs32 = bits::to_underlying(RelocationsPep::R_PEP10_ABS32);
-    write_debug_line(elf_result.elf, 2, abs16, abs32, sections, addresses, listing);
-    auto elf = read_back(elf_result);
+    auto elf = read_back(a.elf);
     const auto symbols = symbols_of(elf);
     // The source and listing units each have one sequence per section, and each DW_LNE_set_address is relocated.
     for (const auto *name : {debugLineSection, debugListingLineSection}) {
@@ -299,7 +323,7 @@ LDWA 2,i
     CHECK(relocations_of(elf, ".rela.debug_macro", symbols) == std::vector<Rela>{{3, debugLineSection, abs32, 0}});
 
     // Reading the relocations back tags each row with its section.
-    const auto input = to_input_elf(elf_result);
+    const auto input = to_input_elf(a.elf);
     const auto mappings = std::visit([](const auto &file) { return read_line_mappings(*file); }, input);
     REQUIRE(mappings.has_value());
     std::set<u16> tagged;
@@ -307,53 +331,51 @@ LDWA 2,i
     CHECK(tagged == std::set<u16>{static_cast<u16>(elf.sections[".text"]->get_index()),
                                   static_cast<u16>(elf.sections[".data"]->get_index())});
   }
-  SECTION("A leading .SECTION does not create an empty implicit section") {
-    pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(R"(
-      .SECTION ".data","rwx"
-      test:BR 10,i)"),
-                    std::make_shared<MR>());
-    auto results = p.parse(diag);
-    CHECK(diag.count() == 0);
-    auto code = pepp::tc::parser::flatten_macros(results);
-    auto result = pepp::tc::pepp_split_to_sections(diag, code);
-    CHECK(diag.count() == 0);
-    auto symbol_tab = p.symbol_table();
-    auto &sections = result.grouped_ir;
-    auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
-    auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
-    auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
+  SECTION("Generating line number programs for ET_REL") {
+    const auto txt = R"(.SECTION ".text","rx"
+LDWA 1,i
+x:
+LDWA 2,i
+.SECTION ".data","rw"
+.WORD 5
+)";
+    auto a = assemble(txt, {.listing = true, .relocatable = true});
+    REQUIRE(a.split.grouped_ir.size() == 2);
+    auto elf = read_back(a.elf);
+    const auto text = static_cast<u16>(elf.sections[".text"]->get_index());
+    const auto data_section = static_cast<u16>(elf.sections[".data"]->get_index());
 
+    const auto input = to_input_elf(a.elf);
+    const auto rows = std::visit([](const auto &file) { return read_listing_rows(*file); }, input);
+    REQUIRE(rows.has_value());
+    // .SECTION has no address, so no row. x: has an address, but it is 0-sized.
+    CHECK(*rows == std::vector<ListingRow>{{2, text, 0x0, 0x3},
+                                           {3, text, 0x3, 0x3},
+                                           {4, text, 0x3, 0x6},
+                                           {6, data_section, 0x6, 0x8}});
+  }
+  SECTION("A leading .SECTION does not create an empty implicit section") {
+    auto a = assemble(R"(
+      .SECTION ".data","rwx"
+      test:BR 10,i)");
+    const auto &sections = a.split.grouped_ir;
     // The blank first line joins .data instead of forcing an empty .text into existence.
     REQUIRE(sections.size() == 1);
     CHECK(sections[0].first.name == ".data");
-    auto elf = read_back(elf_result);
+    auto elf = read_back(a.elf);
     CHECK(elf.sections[".data"] != nullptr);
     CHECK(elf.sections[".text"] == nullptr);
   }
   SECTION("Generate NOTE sections for MMIOs") {
-    pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(R"(
+    auto a = assemble(R"(
       .INPUT charIn
       .OUTPUT charOut
       charIn: .BLOCK 1
-      charOut: .BLOCK 1)"),
-                    std::make_shared<MR>());
-    auto results = p.parse(diag);
-    CHECK(diag.count() == 0);
-    auto code = pepp::tc::parser::flatten_macros(results);
-    auto result = pepp::tc::pepp_split_to_sections(diag, code);
-    CHECK(diag.count() == 0);
-    auto symbol_tab = p.symbol_table();
-    auto &sections = result.grouped_ir;
-    auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
-    auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
-    auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
-
-    auto elf = read_back(elf_result);
+      charOut: .BLOCK 1)");
+    auto elf = read_back(a.elf);
     REQUIRE(elf.sections[mmioNoteSection] != nullptr);
     CHECK(elf.sections[mmioNoteSection]->get_type() == ELFIO::SHT_NOTE);
-    const auto input = to_input_elf(elf_result);
+    const auto input = to_input_elf(a.elf);
     const auto ios = std::visit([](const auto &file) { return MMIONoteReader(*file).declarations(); }, input);
     REQUIRE(ios.size() == 2);
     CHECK(ios[0].name == "charIn");
@@ -364,26 +386,14 @@ LDWA 2,i
     CHECK(ios[1].minOffset == 1);
   }
   SECTION("An explicitly empty section is still emitted") {
-    pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(R"(
+    auto a = assemble(R"(
       main:LDWA 5,i
       .SECTION "scratch","rw"
       .SECTION ".data","rw"
-      val:.BLOCK 2)"),
-                    std::make_shared<MR>());
-    auto results = p.parse(diag);
-    CHECK(diag.count() == 0);
-    auto code = pepp::tc::parser::flatten_macros(results);
-    auto result = pepp::tc::pepp_split_to_sections(diag, code);
-    CHECK(diag.count() == 0);
-    auto symbol_tab = p.symbol_table();
-    auto &sections = result.grouped_ir;
-    auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
-    auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
-    auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
-
+      val:.BLOCK 2)");
+    const auto &sections = a.split.grouped_ir;
     REQUIRE(sections.size() == 3);
-    auto elf = read_back(elf_result);
+    auto elf = read_back(a.elf);
     const auto *scratch = elf.sections["scratch"];
     REQUIRE(scratch != nullptr);
     CHECK(scratch->get_size() == 0);
@@ -396,8 +406,7 @@ LDWA 2,i
     CHECK(val->shndx == data->get_index());
   }
   SECTION("relocations with undefined symbols") {
-    pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(R"(
+    auto a = assemble(R"(
 			a:.BLOCK 2
 			.EXPORT a
 			LDWA i,i
@@ -406,21 +415,9 @@ LDWA 2,i
 		  .SECTION ".data","rwx"
 			LDWA a,i
 			LDWA d,d
-)"),
-                    std::make_shared<MR>());
-    auto results = p.parse(diag);
-    CHECK(diag.count() == 0);
-    for (auto &d : diag) std::cerr << d.second.message << "\n";
-    auto code = pepp::tc::parser::flatten_macros(results);
-    auto result = pepp::tc::pepp_split_to_sections(diag, code);
-    CHECK(diag.count() == 0);
-
-    auto symbol_tab = p.symbol_table();
-    auto &sections = result.grouped_ir;
-    auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
-    auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
-    auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
-    auto elf = read_back(elf_result);
+)");
+    const auto &sections = a.split.grouped_ir;
+    auto elf = read_back(a.elf);
     const auto symbols = symbols_of(elf);
     // The null symbol and a section symbol per section, then per reserved DWARF section, are local. a is global via
     // .EXPORT, while d and i are global because they are undefined.
@@ -472,8 +469,7 @@ LDWA 2,i
     CHECK(elf.sections[".rela.data"]->get_info() == elf.sections[".data"]->get_index());
   }
   SECTION("relocations with defined symbols") {
-    pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(R"(
+    auto a = assemble(R"(
 			c:.EQUATE 5
 			.BLOCK 1
 			l:.WORD 0
@@ -487,21 +483,8 @@ LDWA 2,i
 			.BYTE l
 			.WORD c
 			.WORD m
-)"),
-                    std::make_shared<MR>());
-    auto results = p.parse(diag);
-    CHECK(diag.count() == 0);
-    for (auto &d : diag) std::cerr << d.second.message << "\n";
-    auto code = pepp::tc::parser::flatten_macros(results);
-    auto result = pepp::tc::pepp_split_to_sections(diag, code);
-    CHECK(diag.count() == 0);
-
-    auto symbol_tab = p.symbol_table();
-    auto &sections = result.grouped_ir;
-    auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
-    auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
-    auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
-    auto elf = read_back(elf_result);
+)");
+    auto elf = read_back(a.elf);
     const auto symbols = symbols_of(elf);
     // Section symbols hold their section's address
     for (const auto &sym : symbols) {
@@ -521,8 +504,7 @@ LDWA 2,i
                             {9, ".data", bits::to_underlying(R_PEP10_ABS16), 2}});
   }
   SECTION("relocations with symbol + constant") {
-    pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(R"(
+    auto a = assemble(R"(
 			c:.EQUATE 5
 			.BLOCK 1
 			l:.WORD 0
@@ -533,20 +515,8 @@ LDWA 2,i
 			LDWA l - 1,d
 			LDWA u - 2,d
 			LDWA 1 + l - 4,d
-)"),
-                    std::make_shared<MR>());
-    auto results = p.parse(diag);
-    CHECK(diag.count() == 0);
-    auto code = pepp::tc::parser::flatten_macros(results);
-    auto result = pepp::tc::pepp_split_to_sections(diag, code);
-    CHECK(diag.count() == 0);
-
-    auto symbol_tab = p.symbol_table();
-    auto &sections = result.grouped_ir;
-    auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
-    auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
-    auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
-    auto elf = read_back(elf_result);
+)");
+    auto elf = read_back(a.elf);
     const auto symbols = symbols_of(elf);
 
     using enum pepp::bts::RelocationsPep;
@@ -565,20 +535,9 @@ LDWA 2,i
     CHECK(static_cast<u8>(text[11]) == 0x06);
   }
   SECTION("location counters") {
-    pepp::tc::DiagnosticTable diag;
     // The second . aliases the label on its line.
-    auto p = Parser(data("LDWA 0,i\nBR .\nl: BR . + 3"), std::make_shared<MR>());
-    auto results = p.parse(diag);
-    CHECK(diag.count() == 0);
-    auto code = pepp::tc::parser::flatten_macros(results);
-    auto result = pepp::tc::pepp_split_to_sections(diag, code);
-    CHECK(diag.count() == 0);
-    auto symbol_tab = p.symbol_table();
-    auto &sections = result.grouped_ir;
-    auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
-    auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
-    auto elf_result = pepp::tc::pepp_to_elf(sections, code, addresses, object_code, *symbol_tab, result.mmios);
-    auto elf = read_back(elf_result);
+    auto a = assemble("LDWA 0,i\nBR .\nl: BR . + 3");
+    auto elf = read_back(a.elf);
     const auto symbols = symbols_of(elf);
 
     const auto *text = elf.sections[".text"]->get_data();
@@ -702,17 +661,77 @@ x:       .WORD   5
          .SECTION "text", "rx"
          RET
 )";
-  std::vector<std::string> listing;
-  pepp::tc::FormattingConfig fmt;
-  fmt.listing_format = [&](std::vector<std::string> &&lines) { listing = std::move(lines); };
-  auto result = pepp::tc::assemble_pep10(pepp::tc::Pep10DriverConfig{}, fmt, source);
+  auto result = pepp::tc::assemble_pep10(pepp::tc::Pep10DriverConfig{}, {.listing = true}, source);
   REQUIRE(result.ok());
+  const auto listing = result.listing();
+  REQUIRE(listing.has_value());
   const auto input = pepp::tc::to_input_elf(*result.elf());
   const auto mappings = std::visit([](const auto &file) { return pepp::tc::read_line_mappings(*file); }, input);
   REQUIRE(mappings.has_value());
   const auto stop = std::ranges::find(*mappings, 6u, &pepp::tc::LineMapping::source_line);
   REQUIRE(stop != mappings->end());
   REQUIRE(stop->listing_line != 0);
-  REQUIRE(stop->listing_line <= listing.size());
-  CHECK(listing[stop->listing_line - 1].find("RET") != std::string::npos);
+  REQUIRE(stop->listing_line <= listing->size());
+  CHECK((*listing)[stop->listing_line - 1].find("RET") != std::string::npos);
+}
+
+TEST_CASE("Listing line program rows match printout", "[scope:core][scope:core.langs][kind:int][arch:pep9]") {
+  using namespace pepp::tc;
+  auto result = assemble_pep9(Pep9DriverConfig{}, {.listing = true}, R"(LDWA 1,i
+.BLOCK 6
+.BURN 0xFFFF
+RET
+)");
+  REQUIRE(result.ok());
+  const auto input = to_input_elf(*result.elf());
+  const auto rows = std::visit([](const auto &file) { return read_listing_rows(*file); }, input);
+  REQUIRE(rows.has_value());
+  // Lines before .BURN keep their addresses but do not print object code, so they have no length or continuation rows.
+  const auto abs = bits::to_underlying(pepp::bts::SectionIndices::SHN_ABS);
+  CHECK(*rows ==
+        std::vector<ListingRow>{{1, abs, 0xFFF6, 0xFFF6}, {2, abs, 0xFFF9, 0xFFF9}, {4, abs, 0xFFFF, 0x10000}});
+  const auto listing = result.listing();
+  REQUIRE(listing.has_value());
+  REQUIRE(listing->size() >= 4);
+  CHECK((*listing)[3].find("RET") != std::string::npos);
+}
+
+TEST_CASE("Listings are dervied from ELF", "[scope:core][scope:core.langs][kind:int][arch:pep10]") {
+  using namespace pepp::tc;
+  using namespace pepp::bts;
+  auto a = assemble("LDWA 1,i\nRET\n", {.listing = true});
+  auto &file = *std::get<std::unique_ptr<PackedGrowableElfBE32>>(a.elf.elf);
+  const auto data_of = [&](const char *name) { return file.section_data[find_named_section(file, name)]; };
+  const auto listing = [&] {
+    auto ret = format_listing(to_input_elf(a.elf), a.layout.text, pep_listing_style);
+    REQUIRE(ret.has_value());
+    return *ret;
+  };
+  CHECK(listing() == std::vector<std::string>{"0000 C00001 ", "0003 01     "});
+
+  SECTION("Object code comes from section data") {
+    auto text = data_of(".text");
+    text->get(0, text->size())[1] = 0xAB;
+  }
+
+  SECTION("Addresses come from the listing line program") {
+    // Move .text and its listing rows together, as a linker would.
+    auto &header = file.section_headers[find_named_section(file, ".text")];
+    header.sh_addr = static_cast<u32>(header.sh_addr) + 0x100;
+    auto lines = data_of(debugListingLineSection);
+    const auto bytes = lines->get(0, lines->size());
+    const auto unit = parse_line_program_unit<ElfEndian::be>(bytes, 0);
+    REQUIRE(unit.has_value());
+    const auto program_start = static_cast<size_t>(unit->program.data() - bytes.data());
+    std::set<size_t> operands;
+    const auto ran = run_line_program<ElfEndian::be>(*unit, [&](const DebugLineState &, std::optional<size_t> operand) {
+      if (operand) operands.insert(program_start + *operand);
+    });
+    REQUIRE(ran.has_value());
+    REQUIRE(!operands.empty());
+    for (const auto offset : operands) {
+      const u16 address = (bytes[offset] << 8 | bytes[offset + 1]) + 0x100;
+      bytes[offset] = address >> 8, bytes[offset + 1] = address & 0xFF;
+    }
+  }
 }

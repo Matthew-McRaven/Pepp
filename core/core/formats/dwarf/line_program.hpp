@@ -88,6 +88,8 @@ public:
 
   // Appends a row for the instructions occupying [address, address + length).
   // Section 6.2.5 only lets addresses increase within a sequence, so a lower address first ends the open sequence.
+  // A row starting beyond the current sequence's end also ends the previous sequence to avoid attributing address-space
+  // gaps to the prior row.
   void row(u64 address, u64 length, u64 file, u64 line);
   // Ends the open sequence, if any, at the end of its highest row.
   void end_sequence();
@@ -151,7 +153,7 @@ LineProgramWriter<E>::LineProgramWriter(AStorage &out, const LineProgramHeader &
 
 template <ElfEndian E> void LineProgramWriter<E>::row(u64 address, u64 length, u64 file, u64 line) {
   using enum StandardOpcodes;
-  if (_open && address < _state.address) end_sequence();
+  if (_open && (address < _state.address || address > _sequence_end)) end_sequence();
   if (!_open) {
     set_address(address);
     _open = true, _sequence_end = address;

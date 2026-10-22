@@ -1,3 +1,20 @@
+/*
+ * Copyright (c) 2026 J. Stanley Warford, Matthew McRaven
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include "core/langs/asmb_riscv/codegen.hpp"
 #include <fmt/format.h>
 #include "core/compile/ir_linear/attr_symbol.hpp"
@@ -73,8 +90,8 @@ pepp::tc::RISCVSectionAnalysisResults pepp::tc::riscv_split_to_sections(Diagnost
       break;
     }
     case DotOrg::TYPE: {
-      auto as_org = std::static_pointer_cast<pepp::tc::DotOrg>(line);
-      active->first.org_count++;
+      if (active->first.org_count++ > 0)
+        diag.add_message(line->source_interval, "Only one .ORG is allowed per section", Severity::Fatal);
       break;
     }
     default: break;
@@ -415,18 +432,17 @@ pepp::tc::riscv_to_object_code(DiagnosticTable &diag, const IRMemoryAddressTable
 }
 
 pepp::tc::ElfResult pepp::tc::riscv_to_elf(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
-                                           const IRProgram &source_order,
                                            const IRMemoryAddressTable<RISCVAddress> &addrs,
                                            const ProgramObjectCodeResult &object_code,
                                            const pepp::core::symbol::LeafTable &symbols, const DebugLineFiles &files,
-                                           const std::vector<std::shared_ptr<const InlineMacroDefinition>> &macros) {
+                                           const std::vector<std::shared_ptr<const InlineMacroDefinition>> &macros,
+                                           const IR2ListingLineMap *listing) {
   using namespace pepp::bts;
   SPDLOG_INFO("Creating RISC-V ELF");
   auto ret = sections_to_elf(ElfBits::b32, ElfEndian::le, ElfMachineType::EM_RISCV, prog, object_code, symbols);
 
-  ret.ir_to_listing = number_listing_lines(source_order, object_code, riscv_listing_bytes_per_line);
   // RV32 addresses are 4 bytes.
   const auto r_riscv_32 = bits::to_underlying(RelocationsRISCV::R_RISCV_32);
-  write_debug_line(ret.elf, 4, r_riscv_32, r_riscv_32, prog, addrs, ret.ir_to_listing, files, macros);
+  write_debug_line(ret.elf, 4, r_riscv_32, r_riscv_32, prog, addrs, listing, files, macros);
   return ret;
 }

@@ -128,16 +128,18 @@ NOTA
     pepp::tc::DiagnosticTable diag;
     auto p = Parser(data(src), std::make_shared<MR>(), dialect);
     auto code = pepp::tc::parser::flatten_macros(p.parse(diag));
-    auto split = pepp::tc::pepp_split_to_sections(diag, code);
-    auto addresses = pepp::tc::pepp_assign_addresses(diag, split.grouped_ir);
-    auto oc = pepp::tc::pepp_to_object_code(diag, addresses, split.grouped_ir);
+    (void)pepp::tc::pepp_split_to_sections(diag, code);
     REQUIRE(diag.count() == 0);
     CHECK(pepp::tc::object_code_suppressed(*code[0]));
     CHECK(!pepp::tc::object_code_suppressed(*code[1]));
     CHECK(!pepp::tc::object_code_suppressed(*code[2]));
-    const auto listing = pepp::tc::format_listing(dialect, code[0].get(), addresses, oc);
+    auto result = pepp::tc::assemble_pep9(pepp::tc::Pep9DriverConfig{}, {.listing = true}, src);
+    REQUIRE(result.ok());
+    const auto listing = result.listing();
+    REQUIRE(listing.has_value());
+    REQUIRE(!listing->empty());
     const auto row = fmt::format("{:04X} {:<6} {}", 0xFFFD, "", pepp::tc::format_source(dialect, code[0].get()));
-    CHECK(listing == std::vector<std::string>{row});
+    CHECK((*listing)[0] == row);
   }
   SECTION("Object code must fit below .BURN") {
     // 0x0003 leaves room for exactly 4 bytes.

@@ -23,6 +23,7 @@
 #include "core/compile/source/seekable.hpp"
 #include "core/langs/asmb/asmb_tokens.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
+#include "core/langs/asmb_driver.hpp"
 #include "core/langs/asmb_pep/codegen.hpp"
 #include "core/langs/asmb_pep/lexer.hpp"
 #include "core/langs/asmb_pep/parser.hpp"
@@ -30,6 +31,15 @@
 
 namespace {
 static auto data = [](std::string str) { return pepp::tc::support::SeekableData{std::move(str)}; };
+
+// The listing of a Pep/10 `source`, which must assemble without errors.
+std::vector<std::string> listing_of(std::string source) {
+  auto result = pepp::tc::assemble_pep10(pepp::tc::Pep10DriverConfig{}, {.listing = true}, std::move(source));
+  REQUIRE(result.ok());
+  auto listing = result.listing();
+  REQUIRE(listing.has_value());
+  return std::move(*listing);
+}
 } // namespace
 
 TEST_CASE("Pepp ASM source formatting", "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:*]") {
@@ -111,60 +121,22 @@ TEST_CASE("Pepp ASM listing formatting",
   using Parser = pepp::tc::parser::PepParser;
   using MR = pepp::tc::MacroRegistry;
   using namespace pepp::tc::lex;
-  using pepp::tc::format_listing;
   using pepp::tc::format_source;
   SECTION("Comment-only") {
-    static const auto txt = R"(;******* STRO)";
-    pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(txt), std::make_shared<MR>());
-    auto r = p.parse(diag);
-    CHECK(diag.count() == 0);
-    CHECK(r.size() == 1);
-    auto code = pepp::tc::parser::flatten_macros(r);
-    auto result = pepp::tc::pepp_split_to_sections(diag, code);
-    CHECK(diag.count() == 0);
-    auto &sections = result.grouped_ir;
-    auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
-    auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
-    auto listing = format_listing(pep::pep10::dialect(), r[0].get(), addresses, object_code);
+    const auto listing = listing_of(R"(;******* STRO)");
     CHECK(listing.size() == 1);
     CHECK(listing[0] == "            ;******* STRO");
   }
   SECTION("Monadic and Dyadic Instructions") {
     // Shows that addresses aren't always 0!
-    static const auto txt = R"(this: NOTA ;hi
-ADDA 15,d ;hi)";
-    pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(txt), std::make_shared<MR>());
-    auto r = p.parse(diag);
-    CHECK(diag.count() == 0);
-    CHECK(r.size() == 2);
-    auto code = pepp::tc::parser::flatten_macros(r);
-    auto result = pepp::tc::pepp_split_to_sections(diag, code);
-    CHECK(diag.count() == 0);
-    auto &sections = result.grouped_ir;
-    auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
-    auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
-    auto listing = format_listing(pep::pep10::dialect(), r[0].get(), addresses, object_code);
-    CHECK(listing.size() == 1);
+    const auto listing = listing_of(R"(this: NOTA ;hi
+ADDA 15,d ;hi)");
+    CHECK(listing.size() == 2);
     CHECK(listing[0] == "0000 1E     this:    NOTA                ;hi");
-    listing = format_listing(pep::pep10::dialect(), r[1].get(), addresses, object_code);
-    CHECK(listing[0] == "0001 51000F          ADDA    15,d        ;hi");
+    CHECK(listing[1] == "0001 51000F          ADDA    15,d        ;hi");
   }
   SECTION(".BLOCK") {
-    static const auto txt = R"(execErr:   .BLOCK     7  )";
-    pepp::tc::DiagnosticTable diag;
-    auto p = Parser(data(txt), std::make_shared<MR>());
-    auto r = p.parse(diag);
-    CHECK(diag.count() == 0);
-    CHECK(r.size() == 1);
-    auto code = pepp::tc::parser::flatten_macros(r);
-    auto result = pepp::tc::pepp_split_to_sections(diag, code);
-    CHECK(diag.count() == 0);
-    auto &sections = result.grouped_ir;
-    auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
-    auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
-    auto listing = format_listing(pep::pep10::dialect(), r[0].get(), addresses, object_code);
+    const auto listing = listing_of(R"(execErr:   .BLOCK     7  )");
     CHECK(listing.size() == 3);
     CHECK(listing[0] == "0000 000000 execErr: .BLOCK  7");
     CHECK(listing[1] == "     000000");
@@ -190,9 +162,9 @@ ADDA 15,d ;hi)";
     };
     CHECK(bytes(with_oc) == bytes(without_oc));
     REQUIRE(with_r.size() == 3);
-    auto listing = format_listing(pep::pep10::dialect(), with_r[2].get(), with_addresses, with_oc);
-    REQUIRE(listing.size() == 1);
-    CHECK(listing[0] == "                     .END                ;done");
+    const auto listing = listing_of("LDWA 5,i\nRET\n.END ;done");
+    REQUIRE(listing.size() == 3);
+    CHECK(listing[2] == "                     .END                ;done");
   }
 }
 
@@ -213,40 +185,19 @@ TEST_CASE("Pepp ASM symbol-only line formatting",
                                                     "end:"};
   CHECK(source == expected_source);
 
-  auto code = pepp::tc::parser::flatten_macros(r);
-  auto result = pepp::tc::pepp_split_to_sections(diag, code);
-  CHECK(diag.count() == 0);
-  auto &sections = result.grouped_ir;
-  auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
-  auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
   const auto bare = [](u16 address, const std::string &text) { return fmt::format("{:04X}{:8}{}", address, "", text); };
   const std::vector<std::string> expected_listing = {bare(0, expected_source[0]), bare(0, expected_source[1]),
                                                      "0000 C1000A " + expected_source[2], bare(3, expected_source[3])};
-  const auto listing = pepp::tc::format_listing(pep::pep10::dialect(), sections[0].second, addresses, object_code);
-  CHECK(listing == expected_listing);
+  CHECK(listing_of(txt) == expected_listing);
 }
 
 TEST_CASE("Pepp ASM symbol + value operands", "[scope:core][scope:core.langs][level:asmb3][level:asmb5][kind:unit][arch:*]") {
-  using Parser = pepp::tc::parser::PepParser;
-  using MR = pepp::tc::MacroRegistry;
   // Expressions naming labels need relocations, which are not supported yet; constants are.
   static const auto txt = "ADDA 0x0F + 1,i\n"   // 0x0000, hex + decimal
                           "BR end\n"            // 0x0003, plain symbol operands still work
                           "val: .EQUATE 10 + 5\n"
                           "LDWA val+1,i\n"      // 0x0006, constant symbol + value
                           "end: NOTA";           // 0x0009
-  pepp::tc::DiagnosticTable diag;
-  auto p = Parser(data(txt), std::make_shared<MR>());
-  auto r = p.parse(diag);
-  CHECK(diag.count() == 0);
-  REQUIRE(r.size() == 5);
-  auto code = pepp::tc::parser::flatten_macros(r);
-  auto result = pepp::tc::pepp_split_to_sections(diag, code);
-  CHECK(diag.count() == 0);
-  auto &sections = result.grouped_ir;
-  auto addresses = pepp::tc::pepp_assign_addresses(diag, sections);
-  auto object_code = pepp::tc::pepp_to_object_code(diag, addresses, sections);
-
   // Expressions format with spaces around the operator, and each row shows the bytes that were generated.
   const auto row = [](u16 address, const char *bytes, const char *source) {
     return fmt::format("{:04X} {:<6} {}", address, bytes, source);
@@ -258,6 +209,6 @@ TEST_CASE("Pepp ASM symbol + value operands", "[scope:core][scope:core.langs][le
       row(0x6, "C00010", "         LDWA    val + 1,i"),
       row(0x9, "1E", "end:     NOTA"),
   };
-  CHECK(pepp::tc::format_listing(pep::pep10::dialect(), sections[0].second, addresses, object_code) == expected);
+  CHECK(listing_of(txt) == expected);
 }
 

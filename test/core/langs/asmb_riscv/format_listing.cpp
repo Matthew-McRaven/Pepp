@@ -29,7 +29,7 @@
 namespace {
 static auto data = [](auto str) { return pepp::tc::support::SeekableData{std::string(str)}; };
 
-// Assemble a program at a known base address and then format as a listing.
+// Assemble a program at a known base address, then list it from its ELF.
 // Failure to assemble terminates test.
 std::vector<std::string> listing_of(const std::string &source, u32 base,
                                     std::shared_ptr<pepp::tc::MacroRegistry> macros = nullptr) {
@@ -44,7 +44,13 @@ std::vector<std::string> listing_of(const std::string &source, u32 base,
   REQUIRE(sections.size() == 1);
   const auto addresses = pepp::tc::riscv_assign_addresses(diag, sections, base);
   const auto object_code = pepp::tc::riscv_to_object_code(diag, addresses, sections);
-  return pepp::tc::riscv_format_listing(sections[0].second, addresses, object_code);
+  REQUIRE(diag.count() == 0);
+  const auto format = [](const pepp::tc::LinearIR &line) { return pepp::tc::riscv_format_source(&line); };
+  const auto layout = pepp::tc::layout_listing(lines, addresses, pepp::tc::riscv_listing_bytes_per_line, format);
+  auto elf = pepp::tc::riscv_to_elf(sections, addresses, object_code, *parser.symbol_table(), {}, {}, &layout.rows);
+  auto listing = pepp::tc::format_listing(pepp::tc::to_input_elf(elf), layout.text, pepp::tc::riscv_listing_style);
+  REQUIRE(listing.has_value());
+  return *listing;
 }
 
 // {:08X} would print out MSB first rather than LSB, so prefer individual byte access.

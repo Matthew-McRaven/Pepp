@@ -27,9 +27,11 @@
 #include "core/langs/asmb/codegen_error.hpp"
 #include "core/langs/asmb/debug_line.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
+#include "core/langs/asmb/listing.hpp"
 #include "core/langs/asmb_driver.hpp"
 #include "core/langs/asmb_riscv/codegen.hpp"
 #include "core/langs/asmb_riscv/parser.hpp"
+#include "core/langs/asmb_riscv/text_format.hpp"
 #include "elfio/elfio.hpp"
 
 namespace {
@@ -60,7 +62,7 @@ TEST_CASE("RISCV ASM code generator",
     CHECK(addresses.at(&*instr).address == 0xfeed);
     CHECK(addresses.at(&*instr).size == 4);
     auto object_code = pepp::tc::riscv_to_object_code(diag, addresses, sections);
-    auto elf_result = pepp::tc::riscv_to_elf(sections, results, addresses, object_code, *symbol_tab);
+    auto elf_result = pepp::tc::riscv_to_elf(sections, addresses, object_code, *symbol_tab);
     // Read what would actually be written, rather than the in-memory model of it.
     const auto bytes = pepp::tc::elf_bytes(elf_result);
     std::istringstream in(std::string(reinterpret_cast<const char *>(bytes.data()), bytes.size()));
@@ -86,7 +88,10 @@ TEST_CASE("RISCV ASM code generator",
     auto object_code = pepp::tc::riscv_to_object_code(diag, addresses, sections);
     // An empty name keeps its default.
     const pepp::tc::DebugLineFiles files{.source = "prog.s", .listing = "", .directory = "/work"};
-    auto elf_result = pepp::tc::riscv_to_elf(sections, results, addresses, object_code, *p.symbol_table(), files);
+    const auto no_text = [](const pepp::tc::LinearIR &) { return std::string(); };
+    const auto layout = pepp::tc::layout_listing(results, addresses, pepp::tc::riscv_listing_bytes_per_line, no_text);
+    auto elf_result =
+        pepp::tc::riscv_to_elf(sections, addresses, object_code, *p.symbol_table(), files, {}, &layout.rows);
     REQUIRE(diag.count() == 0);
     const auto bytes = pepp::tc::elf_bytes(elf_result);
     std::istringstream in(std::string(reinterpret_cast<const char *>(bytes.data()), bytes.size()));
@@ -244,11 +249,6 @@ TEST_CASE("RISCV ASM code generator symbol-only lines",
     CHECK(!dynamic_cast<pepp::core::symbol::AliasValue *>(symbols.at("d")->value.get()));
     CHECK(size == 20); // Symbol-only lines occupy no space.
   }
-  SECTION("symbols before .ORG") {
-    u32 size = 0;
-    auto symbols = assemble("add x1, x2, x3\n.ORG 0x200\nsub x1, x2, x3\nfoo:\n.ORG 0x400\nadd x1, x2, x3", size);
-    check(symbols, {{"foo", 0x204, 0, Type::Object}});
-  }
 }
 
 TEST_CASE("RISCV ASM code generator relocations",
@@ -327,7 +327,7 @@ data: .word 0)");
     CHECK((word(28) >> 25 == 0x40 && ((word(28) >> 7) & 0x1F) == 0)); // S-type imm[11:5], imm[4:0]
   }
   SECTION("Local labels are removed unless they are a target of a relocation") {
-    auto written = riscv_to_elf(result.split.grouped_ir, result.program, result.addresses, result.code, *result.symbols);
+    auto written = riscv_to_elf(result.split.grouped_ir, result.addresses, result.code, *result.symbols);
     const auto bytes = elf_bytes(written);
     std::istringstream in(std::string(reinterpret_cast<const char *>(bytes.data()), bytes.size()));
     ELFIO::elfio elf;

@@ -1,10 +1,29 @@
+/*
+ * Copyright (c) 2026 J. Stanley Warford, Matthew McRaven
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include <memory>
+#include <optional>
 #include <utility>
 #include "asmb_driver.hpp"
 #include "core/arch/pepx/asmb/pep10.hpp"
 #include "core/arch/pepx/asmb/pep9.hpp"
 #include "core/compile/macro/macro_registry.hpp"
 #include "core/compile/source/seekable.hpp"
+#include "core/langs/asmb/listing.hpp"
 #include "core/langs/asmb_pep/codegen.hpp"
 #include "core/langs/asmb_pep/parser.hpp"
 #include "core/langs/asmb_pep/text_format.hpp"
@@ -24,12 +43,9 @@ DriverResult assemble_pep(const pep::Dialect &dialect, bts::ElfMachineType machi
 
   auto program = pep_parser.parse(result.diagnostics);
   if (result.diagnostics.count(Severity::Fatal) > 0) return result;
-  if (fmtcfg.source_format) {
-    auto formatted = format_source(dialect, program);
-    fmtcfg.source_format(std::move(formatted));
-  }
+  if (fmtcfg.source) result.formatted_source = format_source(dialect, program);
 
-  auto flattened = parser::flatten_macros(program, fmtcfg.listing_format != nullptr);
+  auto flattened = parser::flatten_macros(program, fmtcfg.listing);
   auto split = pepp_split_to_sections(result.diagnostics, flattened);
   if (result.diagnostics.count(Severity::Fatal) > 0) return result;
 
@@ -37,13 +53,15 @@ DriverResult assemble_pep(const pep::Dialect &dialect, bts::ElfMachineType machi
   if (result.diagnostics.count(Severity::Fatal) > 0) return result;
   auto object_code = pepp_to_object_code(result.diagnostics, addresses, split.grouped_ir);
   if (result.diagnostics.count(Severity::Fatal) > 0) return result;
-  if (fmtcfg.listing_format) {
-    auto listing = format_listing(dialect, flattened, addresses, object_code);
-    fmtcfg.listing_format(std::move(listing));
+  std::optional<ListingLayout> layout;
+  if (fmtcfg.listing) {
+    const auto format = [&](const LinearIR &line) { return format_source(dialect, &line); };
+    layout = layout_listing(flattened, addresses, pep_listing_bytes_per_line, format);
   }
   // After flattening, so that a definition inside an expansion has its instantiation's line.
-  result.set_elf(pepp_to_elf(split.grouped_ir, flattened, addresses, object_code, *pep_parser.symbol_table(),
-                             split.mmios, debug_files, parser::defined_macros(program), machine));
+  result.set_elf(pepp_to_elf(split.grouped_ir, addresses, object_code, *pep_parser.symbol_table(), split.mmios,
+                             debug_files, parser::defined_macros(program), machine, layout ? &layout->rows : nullptr));
+  if (layout) result.unformatted_listing = DriverResult::UnformattedListing{std::move(layout->text), pep_listing_style};
   return result;
 }
 } // namespace
