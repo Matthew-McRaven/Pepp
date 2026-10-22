@@ -73,8 +73,8 @@ pepp::tc::RISCVSectionAnalysisResults pepp::tc::riscv_split_to_sections(Diagnost
       break;
     }
     case DotOrg::TYPE: {
-      auto as_org = std::static_pointer_cast<pepp::tc::DotOrg>(line);
-      active->first.org_count++;
+      if (active->first.org_count++ > 0)
+        diag.add_message(line->source_interval, "Only one .ORG is allowed per section", Severity::Fatal);
       break;
     }
     default: break;

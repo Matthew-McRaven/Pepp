@@ -16,6 +16,7 @@
 
 #include <catch.hpp>
 #include <string_view>
+#include <tuple>
 #include "core/arch/pepx/asmb/pep10.hpp"
 #include "core/compile/ir_value/numeric.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
@@ -151,6 +152,20 @@ TEST_CASE("Pepp ASM codegen .ORG address assignment",
     CHECK(addresses.at(&*s1[1]).address == 0xfeed - 15);
     CHECK(addresses.find(&*s1[2]) == addresses.end());
     CHECK(addresses.at(&*s1[3]).address == 0xfeed);
+  }
+  SECTION("A section may have only one .ORG") {
+    const auto [src, errors] = GENERATE(
+        std::make_tuple(".ORG 0x0010\n.WORD 1\n.ORG 0x0020\n.WORD 2\n", size_t{1}),
+        // Re-opening a section continues the same section.
+        std::make_tuple(".ORG 0x0010\n.SECTION \"b\", \"rw\"\n.SECTION \".text\", \"rwx\"\n.ORG 0x0020\n", size_t{1}),
+        std::make_tuple(".ORG 0x0010\n.WORD 1\n.SECTION \"b\", \"rw\"\n.ORG 0x0020\n.WORD 2\n", size_t{0}));
+    CAPTURE(src);
+    pepp::tc::DiagnosticTable diag;
+    auto p = Parser(data(src), std::make_shared<MR>());
+    auto code = pepp::tc::parser::flatten_macros(p.parse(diag));
+    REQUIRE(diag.count() == 0);
+    (void)pepp::tc::pepp_split_to_sections(diag, code);
+    CHECK(diag.count(pepp::tc::Severity::Fatal) == errors);
   }
 }
 

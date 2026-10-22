@@ -249,11 +249,6 @@ TEST_CASE("RISCV ASM code generator symbol-only lines",
     CHECK(!dynamic_cast<pepp::core::symbol::AliasValue *>(symbols.at("d")->value.get()));
     CHECK(size == 20); // Symbol-only lines occupy no space.
   }
-  SECTION("symbols before .ORG") {
-    u32 size = 0;
-    auto symbols = assemble("add x1, x2, x3\n.ORG 0x200\nsub x1, x2, x3\nfoo:\n.ORG 0x400\nadd x1, x2, x3", size);
-    check(symbols, {{"foo", 0x204, 0, Type::Object}});
-  }
 }
 
 TEST_CASE("RISCV ASM code generator relocations",

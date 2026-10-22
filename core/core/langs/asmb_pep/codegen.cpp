@@ -154,8 +154,12 @@ pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(Diagnostic
     }
     case DotOrg::TYPE: {
       auto as_org = std::static_pointer_cast<pepp::tc::DotOrg>(line);
-      if (as_org->behavior == DotOrg::Behavior::ORG) active->first.org_count++;
-      else if (burn_count++ > 0) diag.add_message(line->source_interval, "Only one .BURN is allowed", Severity::Fatal);
+      if (as_org->behavior == DotOrg::Behavior::ORG) {
+        if (active->first.org_count++ > 0)
+          diag.add_message(line->source_interval, "Only one .ORG is allowed per section", Severity::Fatal);
+      } else if (burn_count++ > 0) {
+        diag.add_message(line->source_interval, "Only one .BURN is allowed", Severity::Fatal);
+      }
       break;
     }
     case DyadicInstruction::TYPE: {
