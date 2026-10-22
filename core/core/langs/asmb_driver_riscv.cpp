@@ -1,5 +1,4 @@
 #include <optional>
-#include <stdexcept>
 #include <utility>
 #include "asmb_driver.hpp"
 #include "core/compile/source/seekable.hpp"
@@ -19,13 +18,10 @@ DriverResult assemble_riscv(const RISCVDriverConfig &cfg, const FormattingConfig
 
   auto program = rv_parser.parse(result.diagnostics);
   if (result.diagnostics.count(Severity::Fatal) > 0) return result;
-  if (fmtcfg.source_format) {
-    auto formatted = riscv_format_source(program);
-    fmtcfg.source_format(std::move(formatted));
-  }
+  if (fmtcfg.source) result.formatted_source = riscv_format_source(program);
 
   std::optional<parser::MacroComments> comments;
-  if (fmtcfg.listing_format) comments = parser::MacroComments{riscv_format_as_columns, '#'};
+  if (fmtcfg.listing) comments = parser::MacroComments{riscv_format_as_columns, '#'};
   auto flattened = parser::flatten_macros(program, comments);
   auto split = riscv_split_to_sections(result.diagnostics, flattened);
   if (result.diagnostics.count(Severity::Fatal) > 0) return result;
@@ -35,19 +31,15 @@ DriverResult assemble_riscv(const RISCVDriverConfig &cfg, const FormattingConfig
   auto object_code = riscv_to_object_code(result.diagnostics, addresses, split.grouped_ir);
   if (result.diagnostics.count(Severity::Fatal) > 0) return result;
   std::optional<ListingLayout> layout;
-  if (fmtcfg.listing_format) {
+  if (fmtcfg.listing) {
     const auto format = [](const LinearIR &line) { return riscv_format_source(&line); };
     layout = layout_listing(flattened, addresses, riscv_listing_bytes_per_line, format);
   }
   // After flattening, so that a definition inside an expansion has its instantiation's line.
   result.set_elf(riscv_to_elf(split.grouped_ir, addresses, object_code, *rv_parser.symbol_table(), cfg.debug_files,
                               parser::defined_macros(program), layout ? &layout->rows : nullptr));
-  if (layout) {
-    auto listing = format_listing(to_input_elf(*result.unchecked_elf()), layout->text, riscv_listing_style);
-    // The ELF was written from this layout, so a mismatch is a bug in the assembler.
-    if (!listing) throw std::logic_error("listing: " + listing.error());
-    fmtcfg.listing_format(std::move(*listing));
-  }
+  if (layout)
+    result.unformatted_listing = DriverResult::UnformattedListing{std::move(layout->text), riscv_listing_style};
   return result;
 }
 

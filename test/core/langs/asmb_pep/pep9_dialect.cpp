@@ -133,13 +133,13 @@ NOTA
     CHECK(pepp::tc::object_code_suppressed(*code[0]));
     CHECK(!pepp::tc::object_code_suppressed(*code[1]));
     CHECK(!pepp::tc::object_code_suppressed(*code[2]));
-    std::vector<std::string> listing;
-    pepp::tc::FormattingConfig formatting;
-    formatting.listing_format = [&](std::vector<std::string> &&lines) { listing = std::move(lines); };
-    REQUIRE(pepp::tc::assemble_pep9(pepp::tc::Pep9DriverConfig{}, formatting, src).ok());
-    REQUIRE(!listing.empty());
+    auto result = pepp::tc::assemble_pep9(pepp::tc::Pep9DriverConfig{}, {.listing = true}, src);
+    REQUIRE(result.ok());
+    const auto listing = result.listing();
+    REQUIRE(listing.has_value());
+    REQUIRE(!listing->empty());
     const auto row = fmt::format("{:04X} {:<6} {}", 0xFFFD, "", pepp::tc::format_source(dialect, code[0].get()));
-    CHECK(listing[0] == row);
+    CHECK((*listing)[0] == row);
   }
   SECTION("Object code must fit below .BURN") {
     // 0x0003 leaves room for exactly 4 bytes.

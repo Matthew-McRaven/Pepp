@@ -34,12 +34,11 @@ static auto data = [](std::string str) { return pepp::tc::support::SeekableData{
 
 // The listing of a Pep/10 `source`, which must assemble without errors.
 std::vector<std::string> listing_of(std::string source) {
-  std::vector<std::string> listing;
-  pepp::tc::FormattingConfig fmt;
-  fmt.listing_format = [&](std::vector<std::string> &&lines) { listing = std::move(lines); };
-  const auto result = pepp::tc::assemble_pep10(pepp::tc::Pep10DriverConfig{}, fmt, std::move(source));
+  auto result = pepp::tc::assemble_pep10(pepp::tc::Pep10DriverConfig{}, {.listing = true}, std::move(source));
   REQUIRE(result.ok());
-  return listing;
+  auto listing = result.listing();
+  REQUIRE(listing.has_value());
+  return std::move(*listing);
 }
 } // namespace
 

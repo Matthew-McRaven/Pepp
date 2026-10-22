@@ -78,14 +78,8 @@ void AsTask::run() {
   if (_opts.file_sources.size() == 1 && _opts.file_sources[0] != "-") debug_files.source = _opts.file_sources[0];
   if (_opts.listing_enable && _opts.file_listing != "-") debug_files.listing = _opts.file_listing;
   std::visit([&](auto &arch_cfg) { arch_cfg.debug_files = debug_files; }, cfg);
-  pepp::tc::FormattingConfig fmt_cfg;
-  if (_opts.listing_enable) {
-    fmt_cfg.listing_format = [&](std::vector<std::string> &&lines) { write_lines(_opts.file_listing, lines); };
-    fmt_cfg.listing_config = _opts.listing_config;
-  }
-  if (_opts.format_source_enable) {
-    fmt_cfg.source_format = [&](std::vector<std::string> &&lines) { write_lines(_opts.file_fmt_source, lines); };
-  }
+  const pepp::tc::FormattingConfig fmt_cfg{
+      .listing_config = _opts.listing_config, .source = _opts.format_source_enable, .listing = _opts.listing_enable};
 
   // Extract text for all input files...
   std::vector<std::string> sources;
@@ -123,6 +117,15 @@ void AsTask::run() {
   }
 
   auto result = pepp::tc::assemble(cfg, fmt_cfg, std::move(source_contents));
+  if (result.formatted_source) write_lines(_opts.file_fmt_source, *result.formatted_source);
+  if (result.unformatted_listing) {
+    const auto listing = result.listing();
+    if (!listing) {
+      write_lines(_opts.file_errs, {"Could not list the program: " + listing.error()}, std::cerr);
+      return emit finished(1);
+    }
+    write_lines(_opts.file_listing, *listing);
+  }
   if (result.diagnostics.count() > 0) {
     // Write diagnostics either to the designated error file, which is cerr by default.
     using pepp::tc::Severity;

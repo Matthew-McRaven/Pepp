@@ -661,27 +661,23 @@ x:       .WORD   5
          .SECTION "text", "rx"
          RET
 )";
-  std::vector<std::string> listing;
-  pepp::tc::FormattingConfig fmt;
-  fmt.listing_format = [&](std::vector<std::string> &&lines) { listing = std::move(lines); };
-  auto result = pepp::tc::assemble_pep10(pepp::tc::Pep10DriverConfig{}, fmt, source);
+  auto result = pepp::tc::assemble_pep10(pepp::tc::Pep10DriverConfig{}, {.listing = true}, source);
   REQUIRE(result.ok());
+  const auto listing = result.listing();
+  REQUIRE(listing.has_value());
   const auto input = pepp::tc::to_input_elf(*result.elf());
   const auto mappings = std::visit([](const auto &file) { return pepp::tc::read_line_mappings(*file); }, input);
   REQUIRE(mappings.has_value());
   const auto stop = std::ranges::find(*mappings, 6u, &pepp::tc::LineMapping::source_line);
   REQUIRE(stop != mappings->end());
   REQUIRE(stop->listing_line != 0);
-  REQUIRE(stop->listing_line <= listing.size());
-  CHECK(listing[stop->listing_line - 1].find("RET") != std::string::npos);
+  REQUIRE(stop->listing_line <= listing->size());
+  CHECK((*listing)[stop->listing_line - 1].find("RET") != std::string::npos);
 }
 
 TEST_CASE("Listing line program rows match printout", "[scope:core][scope:core.langs][kind:int][arch:pep9]") {
   using namespace pepp::tc;
-  std::vector<std::string> listing;
-  FormattingConfig fmt;
-  fmt.listing_format = [&](std::vector<std::string> &&lines) { listing = std::move(lines); };
-  auto result = assemble_pep9(Pep9DriverConfig{}, fmt, R"(LDWA 1,i
+  auto result = assemble_pep9(Pep9DriverConfig{}, {.listing = true}, R"(LDWA 1,i
 .BLOCK 6
 .BURN 0xFFFF
 RET
@@ -694,8 +690,10 @@ RET
   const auto abs = bits::to_underlying(pepp::bts::SectionIndices::SHN_ABS);
   CHECK(*rows ==
         std::vector<ListingRow>{{1, abs, 0xFFF6, 0xFFF6}, {2, abs, 0xFFF9, 0xFFF9}, {4, abs, 0xFFFF, 0x10000}});
-  REQUIRE(listing.size() >= 4);
-  CHECK(listing[3].find("RET") != std::string::npos);
+  const auto listing = result.listing();
+  REQUIRE(listing.has_value());
+  REQUIRE(listing->size() >= 4);
+  CHECK((*listing)[3].find("RET") != std::string::npos);
 }
 
 TEST_CASE("Listings are dervied from ELF", "[scope:core][scope:core.langs][kind:int][arch:pep10]") {

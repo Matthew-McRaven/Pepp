@@ -17,6 +17,12 @@ DriverResult assemble(const DriverConfig &config, const FormattingConfig &fmt, s
   return std::visit(disp, config);
 }
 
+std::expected<std::vector<std::string>, std::string> DriverResult::listing() {
+  if (!unformatted_listing) return std::unexpected("no listing was requested, or assembly failed before codegen");
+  const auto &[text, style] = *unformatted_listing;
+  return format_listing(to_input_elf(*_elf), text, style);
+}
+
 void inject_symdefs(std::vector<std::pair<std::string, u32>> symdefs, core::symbol::LeafTable &symtab, u8 byte_width) {
   for (const auto &[name, value] : symdefs) {
     auto s = symtab.define(name);

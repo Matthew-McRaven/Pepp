@@ -1,6 +1,5 @@
 #include <memory>
 #include <optional>
-#include <stdexcept>
 #include <utility>
 #include "asmb_driver.hpp"
 #include "core/arch/pepx/asmb/pep10.hpp"
@@ -27,12 +26,9 @@ DriverResult assemble_pep(const pep::Dialect &dialect, bts::ElfMachineType machi
 
   auto program = pep_parser.parse(result.diagnostics);
   if (result.diagnostics.count(Severity::Fatal) > 0) return result;
-  if (fmtcfg.source_format) {
-    auto formatted = format_source(dialect, program);
-    fmtcfg.source_format(std::move(formatted));
-  }
+  if (fmtcfg.source) result.formatted_source = format_source(dialect, program);
 
-  auto flattened = parser::flatten_macros(program, fmtcfg.listing_format != nullptr);
+  auto flattened = parser::flatten_macros(program, fmtcfg.listing);
   auto split = pepp_split_to_sections(result.diagnostics, flattened);
   if (result.diagnostics.count(Severity::Fatal) > 0) return result;
 
@@ -41,19 +37,14 @@ DriverResult assemble_pep(const pep::Dialect &dialect, bts::ElfMachineType machi
   auto object_code = pepp_to_object_code(result.diagnostics, addresses, split.grouped_ir);
   if (result.diagnostics.count(Severity::Fatal) > 0) return result;
   std::optional<ListingLayout> layout;
-  if (fmtcfg.listing_format) {
+  if (fmtcfg.listing) {
     const auto format = [&](const LinearIR &line) { return format_source(dialect, &line); };
     layout = layout_listing(flattened, addresses, pep_listing_bytes_per_line, format);
   }
   // After flattening, so that a definition inside an expansion has its instantiation's line.
   result.set_elf(pepp_to_elf(split.grouped_ir, addresses, object_code, *pep_parser.symbol_table(), split.mmios,
                              debug_files, parser::defined_macros(program), machine, layout ? &layout->rows : nullptr));
-  if (layout) {
-    auto listing = format_listing(to_input_elf(*result.unchecked_elf()), layout->text, pep_listing_style);
-    // The ELF was written from this layout, so a mismatch is a bug in the assembler.
-    if (!listing) throw std::logic_error("listing: " + listing.error());
-    fmtcfg.listing_format(std::move(*listing));
-  }
+  if (layout) result.unformatted_listing = DriverResult::UnformattedListing{std::move(layout->text), pep_listing_style};
   return result;
 }
 } // namespace
