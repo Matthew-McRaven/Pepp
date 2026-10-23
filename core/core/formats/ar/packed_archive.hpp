@@ -19,6 +19,7 @@
 #include <cstddef>
 #include <expected>
 #include <filesystem>
+#include <iosfwd>
 #include <iterator>
 #include <memory>
 #include <optional>
@@ -26,10 +27,13 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 #include "core/formats/byte_cursor.hpp"
 #include "core/formats/elf/packed_access_headers.hpp"
+#include "core/formats/elf/packed_storage.hpp"
 #include "core/formats/layout_item.hpp"
 #include "core/integers.h"
+#include "core/math/bitmanip/log2.hpp"
 #include "core/math/bitmanip/span.hpp"
 
 namespace pepp::bts {
@@ -45,15 +49,21 @@ struct AStorage;
 struct PackedArHeader {
   // Required value of the last two bytes of each header.
   inline static constexpr std::string_view FMAG = "`\n";
-  // If the real value of ar_name is longer than 15 bytes, it is actually stored in the // table.
+  // If the real value of ar_name is longer than 15 bytes or contains a / it is actually stored in the // table.
   // In that case, name contains /<decimal>. Once parsed, that decimal is a byte offset into the name table.
   char ar_name[16];
   char ar_date[12];
   char ar_uid[6];
   char ar_gid[6];
   char ar_mode[8];
-  char ar_size[10]; // Data size excluding header/padding
+  char ar_size[10]; // Data size excluding header. For non-special members, also excludes padding.
   char ar_fmag[2];
+
+  PackedArHeader() = default;
+  // Caller is responsible for ensuring name and size fit in 16 and 10 byte fields, respectively.
+  // If mode is non-nullopt, uid/gid/date are set to 0, like the deterministic mode of `ar D`.
+  // If mode is set to nullopt, then date...mode will be only spaces.
+  PackedArHeader(std::string_view raw_name, u64 size, std::optional<u32> mode = 0644) noexcept;
 
   bool has_valid_fmag() const noexcept;
   // ar_name without its space padding, such as "a.o/", "/0", or "//".
@@ -104,6 +114,10 @@ struct ArchiveError {
     // From open_member_elf.
     ThinMember,
     NotElf,
+    // From PackedGrowableArchive.
+    NameHasNewline,
+    MemberTooLarge,
+    NeedsSymbolIndex64,
   };
   // A short, lower-case description, such as "truncated member header".
   static std::string_view to_string(Code code);
@@ -136,7 +150,7 @@ struct ArSymbol {
   u64 entry_offset = 0;
 };
 
-class PackedArchive;
+class PackedInputArchive;
 
 // Walks the regular members in file order. An error is yielded once, after which the iterator is at its end.
 class ArMemberIterator {
@@ -152,10 +166,10 @@ public:
   bool operator==(std::default_sentinel_t) const noexcept { return _archive == nullptr; }
 
 private:
-  friend class PackedArchive;
+  friend class PackedInputArchive;
   // The cursor starts at the first regular member's header.
-  ArMemberIterator(const PackedArchive &archive, ByteCursor cursor);
-  const PackedArchive *_archive = nullptr;
+  ArMemberIterator(const PackedInputArchive &archive, ByteCursor cursor);
+  const PackedInputArchive *_archive = nullptr;
   ByteCursor _cursor;
   value_type _current;
 };
@@ -176,10 +190,10 @@ public:
   bool operator==(std::default_sentinel_t) const noexcept { return _archive == nullptr; }
 
 private:
-  friend class PackedArchive;
+  friend class PackedInputArchive;
   // Throws if archive does not contain a member named /
-  explicit ArSymbolIterator(const PackedArchive &archive);
-  const PackedArchive *_archive = nullptr;
+  explicit ArSymbolIterator(const PackedInputArchive &archive);
+  const PackedInputArchive *_archive = nullptr;
   // One reads the header offsets, the other the names that follow them.
   ByteCursor _offsets, _names;
   u64 _remaining = 0;
@@ -191,14 +205,14 @@ private:
 // only ELF files will be registered in the symbol index /. Typically mapped into memory eagerly, pages are loaded in on
 // first use. Very little data is cached inside thise cache, iterators always read and parse the archive on each
 // iteration. Errors are returned via expected.
-class PackedArchive {
+class PackedInputArchive {
 public:
   inline static constexpr std::string_view REGULAR_MAGIC = "!<arch>\n";
   inline static constexpr std::string_view THIN_MAGIC = "!<thin>\n";
 
   // Checks the magic and the leading `/` and `//`. Throws is source is nullptr.
-  static std::expected<PackedArchive, ArchiveError> open(std::shared_ptr<const AElfSource> source);
-  static std::expected<PackedArchive, ArchiveError> open(const std::string &path);
+  static std::expected<PackedInputArchive, ArchiveError> open(std::shared_ptr<const AElfSource> source);
+  static std::expected<PackedInputArchive, ArchiveError> open(const std::string &path);
 
   bool thin() const noexcept { return _thin; }
   u64 size() const noexcept { return _bytes.size(); }
@@ -219,10 +233,10 @@ public:
 
 private:
   friend class ArMemberIterator;
-  friend std::expected<AnyInputElf, ArchiveError> open_member_elf(const PackedArchive &, const PackedArMember &);
+  friend std::expected<AnyInputElf, ArchiveError> open_member_elf(const PackedInputArchive &, const PackedArMember &);
   // The member's bytes as a source for open_input_elf. A thin member has none.
   std::expected<std::shared_ptr<const AElfSource>, ArchiveError> member_source(const PackedArMember &member) const;
-  PackedArchive() = default;
+  PackedInputArchive() = default;
   // The member whose header is at the cursor, leaving the cursor at the next header.
   std::expected<PackedArMember, ArchiveError> read_member(ByteCursor &cursor) const;
   std::shared_ptr<const AElfSource> _source;
@@ -238,7 +252,68 @@ static_assert(std::input_iterator<ArSymbolIterator>);
 
 // Coerce a member to an ELF file if the archive is not thin. That ELF file will share the same memory-mapped backing as
 // the archive.
-std::expected<AnyInputElf, ArchiveError> open_member_elf(const PackedArchive &archive, const PackedArMember &member);
+std::expected<AnyInputElf, ArchiveError> open_member_elf(const PackedInputArchive &archive,
+                                                         const PackedArMember &member);
+
+// An incrementally-constructible archive. The symbol index and name tables are inserted as needed, but will be the
+// first members of the serialized result if present. Member's data is shared with the callers.
+// data is shared, not copied. Layouts point into this object and its member data, so they are valid until either
+// changes.
+class PackedGrowableArchive {
+public:
+  explicit PackedGrowableArchive(bool thin = false) : _thin(thin) {}
+
+  bool thin() const noexcept { return _thin; }
+  // For thin archives, names are always sent to //. Otherwise, try to fit the name in the header.
+  // Data must be non-null. Use NullStorage if you a zero-length member. symbols are the globals of this new member that
+  // should be contributed to the symbol index. `symbols` are the names this member defines, in symbol-table order.
+  // Returns the newly-added member's index. The archive is unchanged on failure.
+  std::expected<u32, ArchiveError> add_member(std::string_view name, std::shared_ptr<const AStorage> data,
+                                              bits::span<const std::string_view> symbols = {});
+
+  u32 member_count() const noexcept { return _members.size(); }
+
+  // Return the the file locations for the file magic value, special headers (if present), and member headers + data.
+  std::expected<std::vector<LayoutItem>, ArchiveError> calculate_layout();
+
+private:
+  struct Member {
+    std::string raw_name; // As written in ar_name, such as "a.o/" or "/0".
+    std::shared_ptr<const AStorage> data;
+    PackedArHeader header; // Rebuilt by calculate_layout.
+  };
+  // The / member
+  struct SymbolIndex {
+    // NUL-terminated strings, inserted in the order of add_member(symbols).
+    // TODO: could pool these strings to avoid duplicates.
+    BlockStorage names;
+    ub32 count;                // Number of entries in index, computed in calculate_layout
+    std::vector<u32> members;  // The *index* of the member that defines each name.
+    std::vector<ub32> offsets; // Relative offset into names for the [i]th symbol of members.
+    PackedArHeader header;     // Rebuilt by calculate_layout
+    u64 size() const noexcept; // The table's size, including its pad byte.
+  };
+  // The // member
+  struct LongNames {
+    BlockStorage entries;  // "name/\n" for each long name.
+    PackedArHeader header; // Rebuilt by calculate_layout.
+    // The table's size, including its pad byte, as GNU counts it.
+    u64 size() const noexcept { return bits::align_up<u64>(entries.size(), 2); }
+  };
+  u64 first_regular_member_offset() const noexcept;
+  // Header plus stored bytes, padded to an even length.
+  u64 member_size(const Member &member) const noexcept;
+
+  bool _thin = false;
+  std::vector<Member> _members; // Regular members, in file order.
+  SymbolIndex _symbols;
+  LongNames _long_names;
+};
+
+std::expected<std::vector<u8>, ArchiveError> archive_bytes(PackedGrowableArchive &archive);
+std::expected<void, ArchiveError> write_archive(PackedGrowableArchive &archive, std::ostream &out);
+// Serializes into memory and reads the result back.
+std::expected<PackedInputArchive, ArchiveError> to_input_archive(PackedGrowableArchive &archive);
 
 // Combine the archive's path with the member's name to resolve the actual filename of a thin member.
 std::filesystem::path thin_member_path(const std::filesystem::path &archive_path, std::string_view member_name);

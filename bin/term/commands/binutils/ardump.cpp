@@ -34,7 +34,7 @@ void report(const ArchiveError &error) {
 ArDumpTask::ArDumpTask(Options &opts, QObject *parent) : Task(parent), _opts(opts) {}
 
 void ArDumpTask::run() {
-  const auto archive = PackedArchive::open(_opts.arfile);
+  const auto archive = PackedInputArchive::open(_opts.arfile);
   if (!archive) {
     report(archive.error());
     return emit finished(1);

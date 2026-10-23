@@ -16,6 +16,8 @@
  */
 
 #include "core/formats/ar/packed_archive.hpp"
+#include <algorithm>
+#include <charconv>
 #include <filesystem>
 #include <stdexcept>
 #include <system_error>
@@ -135,8 +137,37 @@ std::string_view pepp::bts::ArchiveError::to_string(Code code) {
   case UnterminatedSymbolName: return "symbol index names are truncated";
   case ThinMember: return "thin archive members are not stored in the archive";
   case NotElf: return "member is not an ELF file";
+  case NameHasNewline: return "member name contains a newline";
+  case MemberTooLarge: return "member is too large for its 10-digit size field";
+  case NeedsSymbolIndex64: return "member offsets need a 64-bit symbol index (/SYM64/), which is not supported";
   }
   return "unknown archive error";
+}
+
+namespace {
+// Left-aligned and space-padded
+template <size_t N> void put_field(char (&field)[N], std::string_view text) noexcept {
+  std::ranges::fill(field, ' ');
+  std::ranges::copy(text.substr(0, N), field);
+}
+
+template <size_t N> void put_number(char (&field)[N], u64 value, int base) noexcept {
+  char digits[20];
+  const auto end = std::to_chars(std::begin(digits), std::end(digits), value, base).ptr;
+  put_field(field, std::string_view(digits, end));
+}
+} // namespace
+
+pepp::bts::PackedArHeader::PackedArHeader(std::string_view raw_name, u64 size, std::optional<u32> mode) noexcept {
+  const std::string_view fill = mode ? "0" : "";
+  put_field(ar_name, raw_name);
+  put_field(ar_date, fill);
+  put_field(ar_uid, fill);
+  put_field(ar_gid, fill);
+  if (mode) put_number(ar_mode, *mode, 8);
+  else put_field(ar_mode, "");
+  put_number(ar_size, size, 10);
+  put_field(ar_fmag, FMAG);
 }
 
 std::string_view pepp::bts::PackedArHeader::raw_name() const noexcept { return trim_spaces(as_string_view(ar_name)); }
@@ -157,7 +188,7 @@ std::optional<u64> pepp::bts::PackedArHeader::size() const noexcept {
   return parse_number<u64>(as_string_view(ar_size), 10);
 }
 
-pepp::bts::ArMemberIterator::ArMemberIterator(const PackedArchive &archive, ByteCursor cursor)
+pepp::bts::ArMemberIterator::ArMemberIterator(const PackedInputArchive &archive, ByteCursor cursor)
     : _archive(&archive), _cursor(cursor) {
   // Does not initially point to a member, so we must advance so that begin() can point to the first element.
   ++*this;
@@ -174,7 +205,7 @@ pepp::bts::ArMemberIterator &pepp::bts::ArMemberIterator::operator++() {
   }
 }
 
-pepp::bts::ArSymbolIterator::ArSymbolIterator(const PackedArchive &archive) : _archive(&archive) {
+pepp::bts::ArSymbolIterator::ArSymbolIterator(const PackedInputArchive &archive) : _archive(&archive) {
   // Big-endian count, followed by "count" big-endian header offsets, then "count" NUL-terminated names.
   const auto index = *archive.symbol_index();
   ByteCursor c(index);
@@ -210,10 +241,10 @@ pepp::bts::ArSymbolIterator &pepp::bts::ArSymbolIterator::operator++() {
   }
 }
 
-std::expected<pepp::bts::PackedArchive, pepp::bts::ArchiveError>
-pepp::bts::PackedArchive::open(std::shared_ptr<const AElfSource> source) {
-  if (!source) throw std::invalid_argument("PackedArchive: source must be non-null");
-  PackedArchive ret;
+std::expected<pepp::bts::PackedInputArchive, pepp::bts::ArchiveError>
+pepp::bts::PackedInputArchive::open(std::shared_ptr<const AElfSource> source) {
+  if (!source) throw std::invalid_argument("PackedInputArchive: source must be non-null");
+  PackedInputArchive ret;
   ret._source = std::move(source);
   ret._contents = ret._source->slice(0, ret._source->size());
   // Archive's bytes are lazily paged in on first access for MemoryMapped source.
@@ -246,7 +277,8 @@ pepp::bts::PackedArchive::open(std::shared_ptr<const AElfSource> source) {
   return ret;
 }
 
-std::expected<pepp::bts::PackedArchive, pepp::bts::ArchiveError> pepp::bts::PackedArchive::open(const std::string &path) {
+std::expected<pepp::bts::PackedInputArchive, pepp::bts::ArchiveError>
+pepp::bts::PackedInputArchive::open(const std::string &path) {
   // MappedFileSource throws if it cannot size the file, so check first.
   std::error_code ec;
   std::filesystem::file_size(path, ec);
@@ -254,38 +286,40 @@ std::expected<pepp::bts::PackedArchive, pepp::bts::ArchiveError> pepp::bts::Pack
   return open(std::make_shared<MappedFileSource>(MappedFile::open_readonly(path)));
 }
 
-bits::span<const u8> pepp::bts::PackedArchive::bytes(u64 offset, u64 length) const noexcept {
+bits::span<const u8> pepp::bts::PackedInputArchive::bytes(u64 offset, u64 length) const noexcept {
   if (offset > _bytes.size() || length > _bytes.size() - offset) return {};
   return _bytes.subspan(offset, length);
 }
 
-std::ranges::subrange<pepp::bts::ArMemberIterator, std::default_sentinel_t> pepp::bts::PackedArchive::members() const {
+std::ranges::subrange<pepp::bts::ArMemberIterator, std::default_sentinel_t>
+pepp::bts::PackedInputArchive::members() const {
   ByteCursor cursor(LayoutItem{0, _bytes});
   cursor.offset = _first_member;
   return {ArMemberIterator(*this, cursor), std::default_sentinel};
 }
 
-std::ranges::subrange<pepp::bts::ArSymbolIterator, std::default_sentinel_t> pepp::bts::PackedArchive::symbols() const {
+std::ranges::subrange<pepp::bts::ArSymbolIterator, std::default_sentinel_t>
+pepp::bts::PackedInputArchive::symbols() const {
   if (!_symbol_index) return {ArSymbolIterator(), std::default_sentinel};
   return {ArSymbolIterator(*this), std::default_sentinel};
 }
 
-std::string_view pepp::bts::PackedArchive::name(const PackedArMember &member) const {
+std::string_view pepp::bts::PackedInputArchive::name(const PackedArMember &member) const {
   return as_string_view(bytes(member.name_offset, member.name_length));
 }
 
-bits::span<const u8> pepp::bts::PackedArchive::data(const PackedArMember &member) const noexcept {
+bits::span<const u8> pepp::bts::PackedInputArchive::data(const PackedArMember &member) const noexcept {
   return bytes(member.data_offset(), _thin ? 0 : member.size);
 }
 
 std::expected<std::shared_ptr<const pepp::bts::AElfSource>, pepp::bts::ArchiveError>
-pepp::bts::PackedArchive::member_source(const PackedArMember &member) const {
+pepp::bts::PackedInputArchive::member_source(const PackedArMember &member) const {
   if (_thin) return fail(ThinMember, member.header_offset);
   return std::make_shared<SliceSource>(_source, member.data_offset(), member.size);
 }
 
 std::expected<pepp::bts::PackedArMember, pepp::bts::ArchiveError>
-pepp::bts::PackedArchive::read_member(ByteCursor &cursor) const {
+pepp::bts::PackedInputArchive::read_member(ByteCursor &cursor) const {
   const u64 offset = cursor.position();
   auto ret = read_raw(cursor, _thin, _long_names);
   if (!ret) return ret;
@@ -300,7 +334,7 @@ pepp::bts::PackedArchive::read_member(ByteCursor &cursor) const {
 }
 
 std::expected<pepp::bts::AnyInputElf, pepp::bts::ArchiveError>
-pepp::bts::open_member_elf(const PackedArchive &archive, const PackedArMember &member) {
+pepp::bts::open_member_elf(const PackedInputArchive &archive, const PackedArMember &member) {
   const auto source = archive.member_source(member);
   if (!source) return std::unexpected(source.error());
   // The ELF reader still reports errors by throwing.

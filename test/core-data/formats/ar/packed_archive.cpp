@@ -22,10 +22,12 @@
 #include <fstream>
 #include <memory>
 #include <optional>
+#include <sstream>
 #include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
+#include "core/formats/ar/extract_symbols.hpp"
 #include "core/formats/elf/packed_elf.hpp"
 #include "core/math/bitmanip/strings.hpp"
 
@@ -41,8 +43,8 @@ std::string reference(const QString &name) {
   return {bytes.constData(), static_cast<size_t>(bytes.size())};
 }
 
-std::expected<PackedArchive, ArchiveError> open_bytes(std::string_view bytes) {
-  return PackedArchive::open(std::make_shared<BufferSource>(std::vector<char>(bytes.begin(), bytes.end())));
+std::expected<PackedInputArchive, ArchiveError> open_bytes(std::string_view bytes) {
+  return PackedInputArchive::open(std::make_shared<BufferSource>(std::vector<char>(bytes.begin(), bytes.end())));
 }
 
 std::string pad(std::string_view text, size_t width) {
@@ -68,23 +70,25 @@ std::string be32(u32 value) {
   return {bytes.begin(), bytes.end()};
 }
 
-std::string arch(std::string_view members) { return std::string(PackedArchive::REGULAR_MAGIC) + std::string(members); }
+std::string arch(std::string_view members) {
+  return std::string(PackedInputArchive::REGULAR_MAGIC) + std::string(members);
+}
 
-std::vector<PackedArMember> members_of(const PackedArchive &archive) {
+std::vector<PackedArMember> members_of(const PackedInputArchive &archive) {
   std::vector<PackedArMember> ret;
   for (const auto &member : archive.members()) ret.push_back(member.value());
   return ret;
 }
 
-std::vector<std::string_view> names_of(const PackedArchive &archive, const std::vector<PackedArMember> &members) {
+std::vector<std::string_view> names_of(const PackedInputArchive &archive, const std::vector<PackedArMember> &members) {
   std::vector<std::string_view> ret;
   for (const auto &member : members) ret.push_back(archive.name(member));
   return ret;
 }
 
 // Each symbol with the index of the member whose header it names, or -1 for none.
-std::vector<std::pair<std::string_view, i64>> symbols_of(const PackedArchive &archive,
-                                                          const std::vector<PackedArMember> &members) {
+std::vector<std::pair<std::string_view, i64>> symbols_of(const PackedInputArchive &archive,
+                                                         const std::vector<PackedArMember> &members) {
   std::vector<std::pair<std::string_view, i64>> ret;
   for (const auto &symbol : archive.symbols()) {
     const auto member = std::ranges::find(members, symbol.value().header_offset, &PackedArMember::header_offset);
@@ -110,7 +114,7 @@ const std::vector<std::string_view> gnu_names{"a.o", "odd.txt", "a_member_with_a
 const std::vector<std::pair<std::string_view, i64>> gnu_symbols{{"alpha", 0}, {"beta", 0}, {"delta", 2}, {"beta", 2}};
 } // namespace
 
-TEST_CASE("PackedArchive on GNU ar inputs", "[scope:core][scope:core.formats][kind:unit][arch:*]") {
+TEST_CASE("PackedInputArchive on GNU ar inputs", "[scope:core][scope:core.formats][kind:unit][arch:*]") {
   const auto bytes = reference("regular.a");
   const auto archive = open_bytes(bytes);
   REQUIRE(archive.has_value());
@@ -161,10 +165,10 @@ TEST_CASE("PackedArchive on GNU ar inputs", "[scope:core][scope:core.formats][ki
   SECTION("Open archive from file") {
     const std::string path = "packed_archive_regular.a";
     std::ofstream(path, std::ios::binary).write(bytes.data(), bytes.size());
-    const auto file = PackedArchive::open(path);
+    const auto file = PackedInputArchive::open(path);
     REQUIRE(file.has_value());
     CHECK(members_of(*file).size() == members.size());
-    const auto missing = PackedArchive::open(std::string("packed_archive_missing.a"));
+    const auto missing = PackedInputArchive::open(std::string("packed_archive_missing.a"));
     REQUIRE_FALSE(missing.has_value());
     CHECK(missing.error().code == CannotOpen);
   }
@@ -194,11 +198,11 @@ TEST_CASE("PackedArchive on GNU ar inputs", "[scope:core][scope:core.formats][ki
 
 TEST_CASE("Unusual, hand-built archives", "[scope:core][scope:core.formats][kind:unit][arch:*]") {
   SECTION("Empty") {
-    for (const auto magic : {PackedArchive::REGULAR_MAGIC, PackedArchive::THIN_MAGIC}) {
+    for (const auto magic : {PackedInputArchive::REGULAR_MAGIC, PackedInputArchive::THIN_MAGIC}) {
       INFO(magic);
       const auto archive = open_bytes(magic);
       REQUIRE(archive.has_value());
-      CHECK(archive->thin() == (magic == PackedArchive::THIN_MAGIC));
+      CHECK(archive->thin() == (magic == PackedInputArchive::THIN_MAGIC));
       CHECK(archive->members().begin() == std::default_sentinel);
       CHECK(archive->symbols().begin() == std::default_sentinel);
       CHECK_FALSE(archive->symbol_index().has_value());
@@ -236,9 +240,9 @@ TEST_CASE("Unusual, hand-built archives", "[scope:core][scope:core.formats][kind
 }
 
 // Scenarios from LLVM's test/Object/archive-* malformed-input tests, rebuilt by hand.
-TEST_CASE("Reject malformed archives", "[scope:core][scope:core.formats][kind:unit][arch:*]") {
+TEST_CASE("Reject reading malformed archives", "[scope:core][scope:core.formats][kind:unit][arch:*]") {
   // Offsets of the first member header and its data.
-  constexpr u64 first = PackedArchive::REGULAR_MAGIC.size(), first_data = first + ar_header_size;
+  constexpr u64 first = PackedInputArchive::REGULAR_MAGIC.size(), first_data = first + ar_header_size;
   const auto foo = member("foo.o/", "xy");
   // A one-symbol index; its 12-byte body puts foo.o at foo_at.
   const std::string sym("sym\0", 4);
@@ -292,6 +296,87 @@ TEST_CASE("Reject malformed archives", "[scope:core][scope:core.formats][kind:un
     REQUIRE(error.has_value());
     CHECK(error->code == c.code);
     CHECK(error->offset == c.offset);
+  }
+}
+
+TEST_CASE("PackedGrowableArchive outputs", "[scope:core][scope:core.formats][kind:unit][arch:*]") {
+  const auto regular = reference("regular.a");
+  const auto source = open_bytes(regular);
+  REQUIRE(source.has_value());
+  const auto members = members_of(*source);
+  // defined_globals views each ELF's string table, so keep them open.
+  std::vector<AnyInputElf> elves;
+  const auto build = [&](bool thin) {
+    PackedGrowableArchive ret(thin);
+    for (const auto &member : members) {
+      const auto bytes = source->data(member);
+      std::vector<std::string_view> symbols;
+      if (auto elf = open_member_elf(*source, member)) {
+        symbols = defined_globals(*elf);
+        elves.push_back(std::move(*elf));
+      }
+      auto data = std::make_shared<BlockStorage>(std::vector<char>(bytes.begin(), bytes.end()));
+      REQUIRE(ret.add_member(source->name(member), std::move(data), symbols).has_value());
+    }
+    return ret;
+  };
+  // Rebuilds data/regular.a from its members
+  SECTION("Bytewise identical to GNU ar output") {
+    for (const bool thin : {false, true}) {
+      INFO("thin: " << thin);
+      auto archive = build(thin);
+      const auto expected = reference(thin ? "thin.a" : "regular.a");
+      const auto bytes = archive_bytes(archive);
+      REQUIRE(bytes.has_value());
+      CHECK(bits::as_string_view(*bytes) == expected);
+      std::ostringstream out;
+      REQUIRE(write_archive(archive, out).has_value());
+      CHECK(out.str() == expected);
+    }
+  }
+  SECTION("Serialization round-trips") {
+    auto archive = build(true);
+    const auto input = to_input_archive(archive);
+    REQUIRE(input.has_value());
+    CHECK(input->thin());
+    const auto read = members_of(*input);
+    CHECK(names_of(*input, read) == gnu_names);
+    CHECK(symbols_of(*input, read) == gnu_symbols);
+  }
+
+  SECTION("Serialize empty archives") {
+    for (const bool thin : {false, true}) {
+      INFO("thin: " << thin);
+      PackedGrowableArchive archive(thin);
+      const auto bytes = archive_bytes(archive);
+      REQUIRE(bytes.has_value());
+      CHECK(bits::as_string_view(*bytes) ==
+            (thin ? PackedInputArchive::THIN_MAGIC : PackedInputArchive::REGULAR_MAGIC));
+    }
+  }
+  SECTION("Reject unstorable members") {
+    const auto data = std::make_shared<BlockStorage>(std::vector<char>{'x', 'y'});
+    // The second member's header follows the first member's header and 2 bytes of data.
+    constexpr u64 second = PackedInputArchive::REGULAR_MAGIC.size() + ar_header_size + 2;
+    struct Case {
+      std::string name, member;
+      ArchiveError::Code code;
+    };
+    const std::vector<Case> cases{
+        {"empty name", "", EmptyName},
+        {"newline in name", "a\nb.o", NameHasNewline},
+    };
+    for (const auto &c : cases) {
+      INFO(c.name);
+      PackedGrowableArchive archive;
+      REQUIRE(archive.add_member("ok.o", data).has_value());
+      const auto index = archive.add_member(c.member, data);
+      REQUIRE_FALSE(index.has_value());
+      CHECK(index.error().code == c.code);
+      CHECK(index.error().offset == second);
+      // Nothing was added.
+      CHECK(archive.member_count() == 1);
+    }
   }
 }
 

@@ -16,6 +16,7 @@
  */
 
 #pragma once
+#include <concepts>
 #include "../../integers.h"
 
 namespace bits {
@@ -45,11 +46,11 @@ u8 ceil_log2(u64 value);
 u64 nearest_power_of_two(u64 value);
 
 static constexpr u64 ceil_div(u64 a, size_t b) noexcept { return (a + b - 1) / b; }
-// Both assum power-of-two aligns
-static constexpr std::uintptr_t align_down(std::uintptr_t x, std::size_t a) { return x & ~(std::uintptr_t(a) - 1); }
-static constexpr std::uintptr_t align_up(std::uintptr_t x, std::size_t a) {
+// Both assume power-of-two aligns.
+template <std::unsigned_integral T> constexpr T align_down(T x, std::size_t a) noexcept { return x & ~(T(a) - 1); }
+template <std::unsigned_integral T> constexpr T align_up(T x, std::size_t a) noexcept {
   if (a <= 1) return x;
-  else return (x + (a - 1)) & ~(std::uintptr_t(a) - 1);
+  else return (x + (a - 1)) & ~(T(a) - 1);
 }
 static constexpr bool is_aligned(u64 x, std::size_t a) { return a <= 1 || (x & (u64(a) - 1)) == 0; }
 
