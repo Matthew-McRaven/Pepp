@@ -19,16 +19,23 @@ pepp::bts::AElfSource::~AElfSource() = default;
 
 pepp::bts::MappedFileSource::MappedFileSource(std::shared_ptr<MappedFile> file) : _file(std::move(file)) {
   if (!_file) throw std::invalid_argument("MappedFileSource: file must be non-null");
+  _size = _file->size();
 }
 
+u64 pepp::bts::MappedFileSource::size() const noexcept { return _size; }
+
 std::shared_ptr<pepp::bts::AStorage> pepp::bts::MappedFileSource::slice(u64 offset, u64 length) const {
+  // Clamp the requested slice according to the file's size to avoid exceptions.
+  const u64 from = std::min<u64>(offset, _size), count = std::min<u64>(length, _size - from);
   // Mapping an empty region fails on every platform we support, so do not ask for one.
-  if (length == 0) return std::make_shared<NullStorage>();
-  return std::make_shared<MemoryMapped>(_file->slice(offset, length));
+  if (count == 0) return std::make_shared<NullStorage>();
+  return std::make_shared<MemoryMapped>(_file->slice(from, count));
 }
 
 pepp::bts::BufferSource::BufferSource(std::vector<char> &&bytes)
     : _bytes(std::make_shared<BlockStorage>(std::move(bytes))) {}
+
+u64 pepp::bts::BufferSource::size() const noexcept { return _bytes->size(); }
 
 std::shared_ptr<pepp::bts::AStorage> pepp::bts::BufferSource::slice(u64 offset, u64 length) const {
   const u64 total = _bytes->size(), from = std::min<u64>(offset, total);

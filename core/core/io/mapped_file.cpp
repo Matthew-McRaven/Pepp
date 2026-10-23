@@ -17,6 +17,7 @@
 #include "mapped_file.hpp"
 #include <spdlog/spdlog.h>
 #include <algorithm>
+#include <filesystem>
 #include <system_error>
 #include "core/math/bitmanip/log2.hpp"
 #if defined(_WIN32)
@@ -120,6 +121,8 @@ std::shared_ptr<pepp::bts::MappedFile> pepp::bts::MappedFile::open_readonly(std:
 std::shared_ptr<pepp::bts::MappedFile> pepp::bts::MappedFile::open_readwrite(std::string path) {
   return std::make_shared<MappedFile>(private_ctor_tag{}, path, false);
 }
+
+u64 pepp::bts::MappedFile::size() const { return std::filesystem::file_size(_path); }
 
 std::shared_ptr<pepp::bts::MappedFile::Slice> pepp::bts::MappedFile::slice(size_t file_offset,
                                                                            size_t file_len) noexcept {

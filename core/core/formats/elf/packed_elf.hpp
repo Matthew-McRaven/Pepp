@@ -43,22 +43,27 @@ public:
 // Helper classes to delegate between a lazy MappedFile and eagerly-loaded contiguous buffer.
 struct AElfSource {
   virtual ~AElfSource() = 0;
-  // Storage covering [offset, offset + length) of the image.
+  // Bytes in the image.
+  virtual u64 size() const noexcept = 0;
+  // Storage covering [offset, offset + length) of the image that is clamped to size().
   virtual std::shared_ptr<AStorage> slice(u64 offset, u64 length) const = 0;
 };
 
 // Reads through a memory-mapped file, mapping each region on first access.
 struct MappedFileSource final : public AElfSource {
   explicit MappedFileSource(std::shared_ptr<MappedFile> file);
+  u64 size() const noexcept override;
   std::shared_ptr<AStorage> slice(u64 offset, u64 length) const override;
 
 private:
   std::shared_ptr<MappedFile> _file;
+  u64 _size = 0;
 };
 
 // Re-use the serialized bytes of an ELF file that is already in memory.
 struct BufferSource final : public AElfSource {
   explicit BufferSource(std::vector<char> &&bytes);
+  u64 size() const noexcept override;
   std::shared_ptr<AStorage> slice(u64 offset, u64 length) const override;
 
 private:
