@@ -15,16 +15,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "core/formats/dwarf/cursor.hpp"
+#include "core/formats/byte_cursor.hpp"
 #include <algorithm>
 #include "core/math/bitmanip/leb128.hpp"
 
-void pepp::bts::DwarfCursor::fail(const char *why) noexcept {
+void pepp::bts::ByteCursor::fail(const char *why) noexcept {
   if (error == nullptr) error = why;
   offset = data.size();
 }
 
-bits::span<const u8> pepp::bts::DwarfCursor::bytes(size_t length) noexcept {
+bits::span<const u8> pepp::bts::ByteCursor::bytes(size_t length) noexcept {
   if (!ok()) return {};
   if (remaining() < length) {
     fail("unexpected end of data");
@@ -35,7 +35,7 @@ bits::span<const u8> pepp::bts::DwarfCursor::bytes(size_t length) noexcept {
   return ret;
 }
 
-u64 pepp::bts::DwarfCursor::uleb() noexcept {
+u64 pepp::bts::ByteCursor::uleb() noexcept {
   if (!ok()) return 0;
   unsigned length = 0;
   const char *why = nullptr;
@@ -48,7 +48,7 @@ u64 pepp::bts::DwarfCursor::uleb() noexcept {
   return ret;
 }
 
-i64 pepp::bts::DwarfCursor::sleb() noexcept {
+i64 pepp::bts::ByteCursor::sleb() noexcept {
   if (!ok()) return 0;
   unsigned length = 0;
   const char *why = nullptr;
@@ -61,7 +61,7 @@ i64 pepp::bts::DwarfCursor::sleb() noexcept {
   return ret;
 }
 
-std::string_view pepp::bts::DwarfCursor::cstr() noexcept {
+std::string_view pepp::bts::ByteCursor::cstr() noexcept {
   if (!ok()) return {};
   const auto rest = data.subspan(offset);
   const auto nul = std::find(rest.begin(), rest.end(), u8{0});

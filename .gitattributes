@@ -6,3 +6,5 @@
 *.ico filter=lfs diff=lfs merge=lfs -text
 *.icns filter=lfs diff=lfs merge=lfs -text
 test/riscv/*/*.elf filter=lfs diff=lfs merge=lfs -text
+# GNU ar golden outputs for the archive tests
+test/core-data/formats/ar/data/*.a binary

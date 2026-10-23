@@ -24,6 +24,7 @@
 #include "commands/about.hpp"
 #include "commands/asm.hpp"
 #include "commands/binutils/addr2line.hpp"
+#include "commands/binutils/ardump.hpp"
 #include "commands/binutils/as.hpp"
 #include "commands/binutils/emu.hpp"
 #include "commands/binutils/readelf.hpp"
@@ -91,6 +92,7 @@ int main(int argc, char **argv) {
   registerMicroRun(app, task, shared_flags);
   // binutils-like programs
   registerAddr2Line(app, task, shared_flags);
+  registerArDump(app, task, shared_flags);
   registerAs(app, task, shared_flags);
   registerReadelf(app, task, shared_flags);
   registerEmu(app, task, shared_flags);

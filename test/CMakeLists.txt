@@ -1,5 +1,6 @@
 add_subdirectory(builtin-data)
 add_subdirectory(core)
+add_subdirectory(core-data)
 add_subdirectory(riscv)
 add_subdirectory(svgdom)
 add_subdirectory(pepp-lib)

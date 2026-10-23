@@ -21,6 +21,7 @@
 #include "core/formats/elf/packed_elf.hpp"
 #include "core/formats/elf/packed_storage.hpp"
 #include "core/formats/elf/packed_types.hpp"
+#include "core/formats/layout_item.hpp"
 #include <iosfwd>
 #include <optional>
 #include <stdexcept>
@@ -59,12 +60,6 @@ template <ElfBits B, ElfEndian E> u32 symbol_count(const PackedElfShdr<B, E> &sh
   const u32 size = shdr.sh_size, entsize = shdr.sh_entsize;
   return size / entsize;
 }
-
-// Represents a chunk of data to be placed at a specific offset in the final ELF file; it does not own data.
-struct LayoutItem {
-  u64 offset;
-  std::span<const u8> data;
-};
 
 // Lay out the ELF header and program header table at a given offset, returning the next available offset.
 // Inserts corresponding LayoutItems into the layout vector.

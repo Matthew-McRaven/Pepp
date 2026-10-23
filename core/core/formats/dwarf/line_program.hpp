@@ -24,7 +24,7 @@
 #include <utility>
 #include <vector>
 #include "../../integers.h"
-#include "core/formats/dwarf/cursor.hpp"
+#include "core/formats/byte_cursor.hpp"
 #include "core/formats/dwarf/enums.hpp"
 #include "core/formats/dwarf/forms.hpp"
 #include "core/formats/dwarf/line_info.hpp"
@@ -272,7 +272,7 @@ std::expected<void, std::string> run_line_program(const LineProgramUnit &unit, O
     state.basic_block = state.prologue_end = state.epilogue_begin = false;
   };
 
-  DwarfCursor c{unit.program};
+  ByteCursor c{unit.program};
   while (c.ok() && c.remaining() > 0) {
     const u8 opcode = c.fixed<u8>();
     if (opcode >= opcode_base) {
@@ -283,7 +283,7 @@ std::expected<void, std::string> run_line_program(const LineProgramUnit &unit, O
       append_row();
     } else if (opcode == 0) {
       // Section 6.2.3: a ULEB128 length covers the extended opcode and its operands. Unknown opcodes are skipped.
-      DwarfCursor body{c.bytes(c.uleb())};
+      ByteCursor body{c.bytes(c.uleb())};
       if (!c.ok()) break;
       const auto extended = ExtendedOpcodes(body.fixed<u8>());
       if (!body.ok()) return std::unexpected("extended opcode has no opcode byte");

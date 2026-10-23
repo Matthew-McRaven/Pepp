@@ -19,7 +19,7 @@
 #include <stdexcept>
 #include <string_view>
 #include "../../integers.h"
-#include "core/formats/dwarf/cursor.hpp"
+#include "core/formats/byte_cursor.hpp"
 #include "core/formats/dwarf/enums_forms.hpp"
 #include "core/formats/elf/packed_storage.hpp"
 #include "core/formats/elf/packed_types.hpp"
@@ -34,7 +34,7 @@ struct FormValue {
 
 // Decodes one value of the given form. Fixed-size data is in the ELF's byte order.
 // Only forms that are self-contained are supported. Others report an error on the cursor.
-template <ElfEndian E> FormValue read_form(DwarfCursor &c, AttributeForms form) {
+template <ElfEndian E> FormValue read_form(ByteCursor &c, AttributeForms form) {
   using enum AttributeForms;
   FormValue ret;
   switch (form) {
@@ -108,7 +108,7 @@ template <ElfEndian E> void write_address(AStorage &out, u8 size, u64 address) {
   }
 }
 
-template <ElfEndian E> u64 read_address(DwarfCursor &c, u8 size) {
+template <ElfEndian E> u64 read_address(ByteCursor &c, u8 size) {
   switch (size) {
   case 1: return c.fixed<u8>();
   case 2: return c.fixed<U16<E>>();
