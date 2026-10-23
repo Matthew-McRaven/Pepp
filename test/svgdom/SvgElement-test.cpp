@@ -42,6 +42,17 @@ TEST_CASE("SvgElement tests-getter-setter", "[scope:core][scope:core.svgdom.svge
   element.setMetadata("Metadata"s);
   CHECK(element.metadata() == "Metadata"s);
 
+  CHECK(element.fill() == SvgColor::Color::Unknown);
+  element.setFill(SvgColor::Color::AntiqueWhite);
+  CHECK(element.fill() == SvgColor::Color::AntiqueWhite);
+  CHECK(element.opacity() == 1.0);
+  element.setOpacity(0.4);
+  CHECK(element.opacity() == 0.4);
+  element.setOpacity(50);
+  CHECK(element.opacity() == 1.0);
+  element.setOpacity(-5.5);
+  CHECK(element.opacity() == 0.0);
+
   element.setX(1);
   CHECK(element.x().toString() == SvgUnitValue(1).toString());
   element.setX("10%"s);

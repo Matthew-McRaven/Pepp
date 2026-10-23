@@ -4,6 +4,7 @@
 #include <algorithm> //  std::transform
 #include <iostream>  //  std::cout
 #include <memory>    //  std::make_unique
+#include <string>    //  std::stod
 using namespace std::string_literals;
 
 #include "SvgCDataElement.hpp"
@@ -44,6 +45,9 @@ SvgElement::SvgElement(const SvgElement &original)
     _y = original._y;
     _width = original._width;
     _height = original._height;
+
+    _fill = original._fill;
+    _opacity = original._opacity;
 
     //  Use class logic for attributes
     _attributes = original._attributes;
@@ -133,6 +137,15 @@ void SvgElement::setDesc(const std::string &desc)
         createElement("desc"s);
     }
     _desc->setValue(desc);
+}
+
+//  Global attributes
+const SvgColor::Color SvgElement::fill() const { return _fill; }
+void SvgElement::setFill(const SvgColor::Color color) { _fill = color; }
+const double &SvgElement::opacity() const { return _opacity; }
+void SvgElement::setOpacity(const double &opacity) {
+  //  Clamp opacity between 0 and 1
+  _opacity = std::max(std::min(opacity, 0.0), 1.0);
 }
 
 //  Dimension accessors
@@ -269,8 +282,21 @@ bool SvgElement::setAttribute(const std::string &key, const std::string &value)
         setId(value);
         return true;
     }
+    if (key == "fill"s) {
+      _fill = SvgColor::fromName(value);
+      return true;
+    }
+    if (key == "opacity"s) {
+      try {
+        _opacity = std::stod(value);
+        return true;
+      } catch (const std::exception &e) {
+        _opacity = 1.0;
+      }
+      return false;
+    }
     if (key == "x"s) {
-        return _x.fromString(value);
+      return _x.fromString(value);
     }
     if (key == "y"s) {
         return _y.fromString(value);
@@ -322,6 +348,16 @@ bool SvgElement::attributeXml(SvgRope &output) const
     if (!_classList.empty()) {
       hasAttributes = true;
       buffer = fmt::format(" class=\"{}\"", _classList.toString());
+      output.push_back(std::move(buffer));
+    }
+    if (_fill != SvgColor::Color::Unknown) {
+      hasAttributes = true;
+      buffer = fmt::format(" fill=\"{}\"", SvgColor::fromRgb(_fill));
+      output.push_back(std::move(buffer));
+    }
+    if (1.0 - _opacity > 0.000001) {
+      hasAttributes = true;
+      buffer = fmt::format(" opacity=\"{}\"", _opacity);
       output.push_back(std::move(buffer));
     }
 

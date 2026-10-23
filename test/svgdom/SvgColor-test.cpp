@@ -20,6 +20,9 @@ TEST_CASE("SvgColor tests", "[scope:core][scope:core.svgdom.svgcolor][kind:unit]
       //  Fuchsia and Magenta have the same color value
       //  Fuchsia is returned for Magenta
       CHECK("Fuchsia" == SvgColor::fromRgb(colorPair.first));
+    } else if (colorPair.first == SvgColor::Color::Unknown) {
+      //  Value for unknown color. Not output; cannot be looked up.
+      CHECK("" == SvgColor::fromRgb(colorPair.first));
     } else CHECK(colorPair.second == SvgColor::fromRgb(colorPair.first));
   }
 
@@ -30,5 +33,5 @@ TEST_CASE("SvgColor tests", "[scope:core][scope:core.svgdom.svgcolor][kind:unit]
   //  Test invalid values
   CHECK(SvgColor::fromRgb(somecolor) == "#123456"s);
   CHECK(SvgColor::fromRgb(SvgColor::Color(somecolor)) == ""s);
-  CHECK(SvgColor::fromName("Invalid Color") == SvgColor::Color::Black);
+  CHECK(SvgColor::fromName("Invalid Color") == SvgColor::Color::Unknown);
 }

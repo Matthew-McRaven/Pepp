@@ -4,6 +4,7 @@
 #include <string>
 using namespace std::string_literals;
 
+#include "SvgColor.hpp"
 #include "SvgType.hpp"
 
 class SvgRope;
@@ -24,9 +25,7 @@ public:
     }
 
     //  Get pointer to leaf class
-    Derived *derived() { return static_cast<Derived *>(this); }
-    //Derived &derived() { return static_cast<Derived &>(*this); }
-    //const Derived &derived() const { return static_cast<const Derived &>(*this); }
+    // Derived *derived() { return static_cast<Derived *>(this); }
 };
 
 class SvgInterface
@@ -54,6 +53,12 @@ class SvgInterface
     virtual void setDocument(SvgDocument *doc) = 0;
     virtual bool setAttribute(const std::string &key, const std::string &value) = 0;
     virtual void appendChild(SvgInterface *child) = 0;
+
+    //  Attributes
+    virtual const SvgColor::Color fill() const = 0;
+    virtual void setFill(const SvgColor::Color color) = 0;
+    virtual const double &opacity() const = 0;
+    virtual void setOpacity(const double &opacity) = 0;
 
     static void setCurrentDocument(SvgDocument *doc = nullptr) { _docs = doc; }
     static SvgDocument *currentDocument() { return _docs; }
