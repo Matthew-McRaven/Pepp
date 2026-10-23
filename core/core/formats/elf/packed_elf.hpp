@@ -69,6 +69,19 @@ struct BufferSource final : public AElfSource {
 private:
   std::shared_ptr<BlockStorage> _bytes;
 };
+
+// A subspan [offset, offset + length) of another source, such as the member of an archive.
+struct SliceSource final : public AElfSource {
+  // Throws if the span does not fit within the parent.
+  SliceSource(std::shared_ptr<const AElfSource> parent, u64 offset, u64 length);
+  u64 size() const noexcept override;
+  std::shared_ptr<AStorage> slice(u64 offset, u64 length) const override;
+
+private:
+  std::shared_ptr<const AElfSource> _parent;
+  u64 _offset = 0, _length = 0;
+};
+
 // A packed ELF file that is read-only and backed by a lazily memory-mapped file or eager contiguous buffer.
 // While its elf header, section headers, and program headers are always eagerly loaded into memory,
 // section data will be lazily loaded on first use.

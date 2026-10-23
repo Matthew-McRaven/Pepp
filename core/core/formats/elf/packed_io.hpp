@@ -69,4 +69,6 @@ AnyInputElf to_input_elf(AnyGrowableElf &elf, const std::vector<SegmentLayoutCon
 // Map the given file into memory, and check to see if it is a valid ELF file. If so, construct the appropriate
 // PackedInputElf. Throws if the input is not an ELF file.
 AnyInputElf open_input_elf(const std::string &path);
+// As above, but reads through an existing source, such as an archive member.
+AnyInputElf open_input_elf(std::shared_ptr<const AElfSource> source);
 } // namespace pepp::bts

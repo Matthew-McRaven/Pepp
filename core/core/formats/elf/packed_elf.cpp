@@ -43,3 +43,18 @@ std::shared_ptr<pepp::bts::AStorage> pepp::bts::BufferSource::slice(u64 offset, 
   if (count == 0) return std::make_shared<NullStorage>();
   return std::make_shared<BlockStorage::BlockStorageSlice>(_bytes, from, count);
 }
+
+pepp::bts::SliceSource::SliceSource(std::shared_ptr<const AElfSource> parent, u64 offset, u64 length)
+    : _parent(std::move(parent)), _offset(offset), _length(length) {
+  if (!_parent) throw std::invalid_argument("SliceSource: parent must be non-null");
+  else if (_offset > _parent->size() || _length > _parent->size() - _offset)
+    throw std::invalid_argument("SliceSource exceeds its parent");
+}
+
+u64 pepp::bts::SliceSource::size() const noexcept { return _length; }
+
+std::shared_ptr<pepp::bts::AStorage> pepp::bts::SliceSource::slice(u64 offset, u64 length) const {
+  const u64 from = std::min<u64>(offset, _length), count = std::min<u64>(length, _length - from);
+  if (count == 0) return std::make_shared<NullStorage>();
+  return _parent->slice(_offset + from, count);
+}
