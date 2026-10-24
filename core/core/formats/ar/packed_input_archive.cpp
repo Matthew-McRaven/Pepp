@@ -312,6 +312,11 @@ bits::span<const u8> pepp::bts::PackedInputArchive::data(const PackedArMember &m
   return bytes(member.data_offset(), _thin ? 0 : member.size);
 }
 
+std::shared_ptr<const pepp::bts::AStorage>
+pepp::bts::PackedInputArchive::member_storage(const PackedArMember &member) const {
+  return _source->slice(member.data_offset(), _thin ? 0 : member.size);
+}
+
 std::expected<std::shared_ptr<const pepp::bts::AElfSource>, pepp::bts::ArchiveError>
 pepp::bts::PackedInputArchive::member_source(const PackedArMember &member) const {
   if (_thin) return fail(ThinMember, member.header_offset);

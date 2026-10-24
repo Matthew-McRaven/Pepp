@@ -230,6 +230,8 @@ public:
   std::string_view name(const PackedArMember &member) const;
   // Empty for a thin member.
   bits::span<const u8> data(const PackedArMember &member) const noexcept;
+  // Access the underlying storage for a member
+  std::shared_ptr<const AStorage> member_storage(const PackedArMember &member) const;
 
 private:
   friend class ArMemberIterator;
