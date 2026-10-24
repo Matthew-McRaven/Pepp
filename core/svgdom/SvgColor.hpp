@@ -1,8 +1,13 @@
 #pragma once
 
-#include <algorithm> //  std::tolower
+#include <algorithm> //  std::find_if, std::equal
+#include <array>
+#include <cctype>  //  std::toupper
+#include <cstdint> //  uint32_t
 #include <fmt/format.h>
+#include <string>
 #include <string_view>
+#include <utility> //  std::pair
 
 class SvgColor {
 public:
