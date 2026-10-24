@@ -66,6 +66,16 @@ pepp::bts::AnyInputElf pepp::bts::open_input_elf(std::shared_ptr<const AElfSourc
   throw std::runtime_error("unsupported ELF class or byte order");
 }
 
+std::optional<pepp::bts::AnyInputElf> pepp::bts::try_open_input_elf(std::shared_ptr<const AElfSource> source) {
+  try {
+    return open_input_elf(std::move(source));
+  } catch (const std::runtime_error &) {
+    return std::nullopt;
+  } catch (const std::logic_error &) {
+    return std::nullopt;
+  }
+}
+
 pepp::bts::AnyInputElf pepp::bts::open_input_elf(const std::string &path) {
   try {
     return open_input_elf(std::make_shared<MappedFileSource>(MappedFile::open_readonly(path)));

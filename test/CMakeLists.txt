@@ -1,3 +1,4 @@
+add_subdirectory(binutils)
 add_subdirectory(builtin-data)
 add_subdirectory(core)
 add_subdirectory(core-data)

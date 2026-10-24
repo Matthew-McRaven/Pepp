@@ -342,12 +342,9 @@ std::expected<pepp::bts::AnyInputElf, pepp::bts::ArchiveError>
 pepp::bts::open_member_elf(const PackedInputArchive &archive, const PackedArMember &member) {
   const auto source = archive.member_source(member);
   if (!source) return std::unexpected(source.error());
-  // The ELF reader still reports errors by throwing.
-  try {
-    return open_input_elf(*source);
-  } catch (const std::runtime_error &) {
-    return fail(NotElf, member.header_offset);
-  }
+  auto elf = try_open_input_elf(*source);
+  if (!elf) return fail(NotElf, member.header_offset);
+  return std::move(*elf);
 }
 
 std::filesystem::path pepp::bts::thin_member_path(const std::filesystem::path &archive_path,

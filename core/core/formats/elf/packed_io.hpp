@@ -71,4 +71,6 @@ AnyInputElf to_input_elf(AnyGrowableElf &elf, const std::vector<SegmentLayoutCon
 AnyInputElf open_input_elf(const std::string &path);
 // As above, but reads through an existing source, such as an archive member.
 AnyInputElf open_input_elf(std::shared_ptr<const AElfSource> source);
+// As above, but nullopt if the source is not a readable ELF file rather than throwing.
+std::optional<AnyInputElf> try_open_input_elf(std::shared_ptr<const AElfSource> source);
 } // namespace pepp::bts
