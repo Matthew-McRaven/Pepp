@@ -35,8 +35,8 @@ public:
   void setXmlName(const std::string &xmlName) override;
   const std::string &value() const override;
   void setValue(const std::string &value) override;
-  void setDocument(Document *doc) override;
-  const Document *document() const;
+  void setDocument(SvgDocument *doc) override;
+  const SvgDocument *document() const;
 
   //  Svg specific functions
   const std::string &id() const;
@@ -50,7 +50,13 @@ public:
   const std::string &desc() const;
   void setDesc(const std::string &desc);
 
-  //	User access functions
+  //  Global attributes
+  const SvgColor::Color fill() const override;
+  void setFill(const SvgColor::Color color) override;
+  const double &opacity() const override;
+  void setOpacity(const double &opacity) override;
+
+  //  User access functions
   //  Values can be changed, but not units of measure (yet)
   SvgUnitValue x() const;
   void setX(double x = 0);
@@ -97,12 +103,15 @@ private:
   SvgElement *_metadata{};
   SvgElement *_desc{};
 
+  SvgColor::Color _fill = SvgColor::Color::Unknown;
+  double _opacity = 1.0;
+
   SvgUnitValue _x;
   SvgUnitValue _y;
   SvgUnitValue _width;
   SvgUnitValue _height;
 
-  Document *_doc{};
+  SvgDocument *_doc{};
 
   // SVGElement ownerSVGElement
 

@@ -1,11 +1,19 @@
 #pragma once
 
-#include <format>
+#include <algorithm> //  std::find_if, std::equal
+#include <array>
+#include <cctype>  //  std::toupper
+#include <cstdint> //  uint32_t
+#include <fmt/format.h>
+#include <string>
 #include <string_view>
+#include <utility> //  std::pair
 
 class SvgColor {
 public:
   enum class Color {
+    Unknown = 0xFFFFFF0,
+    None = 0xFFFFFF1,
     AliceBlue = 0xF0F8FF,
     AntiqueWhite = 0xFAEBD7,
     Aqua = 0x00FFFF,
@@ -160,7 +168,7 @@ public:
   SvgColor(Color c) : _color(c) {}
   SvgColor(uint32_t c) : _color(static_cast<Color>(c)) {}
 
-  static constexpr std::array<std::pair<Color, std::string_view>, 148> colorMap{{
+  static constexpr std::array<std::pair<Color, std::string_view>, 149> colorMap{{
       {Color::AliceBlue, "AliceBlue"},
       {Color::AntiqueWhite, "AntiqueWhite"},
       {Color::Aqua, "Aqua"},
@@ -263,6 +271,7 @@ public:
       {Color::Moccasin, "Moccasin"},
       {Color::NavajoWhite, "NavajoWhite"},
       {Color::Navy, "Navy"},
+      {Color::None, "none"},
       {Color::OldLace, "OldLace"},
       {Color::Olive, "Olive"},
       {Color::OliveDrab, "OliveDrab"},
@@ -331,17 +340,25 @@ public:
     return "";
   }
   constexpr static Color fromName(std::string_view key) {
-    auto it = std::find_if(colorMap.begin(), colorMap.end(), [key](const auto &pair) { return pair.second == key; });
+    auto it = std::find_if(colorMap.begin(), colorMap.end(), [key](const auto &pair) {
+      return isEqual(pair.second, key); /*pair.second == key;*/
+    });
 
     if (it != colorMap.end()) {
       return it->first;
     }
 
     //  Return black
-    return Color::Black;
+    return Color::Unknown;
   }
-  static std::string formatRgb(uint32_t key) { return std::format("#{:X}", key); }
+  static std::string formatRgb(uint32_t key) { return fmt::format("#{:06X}", key); }
 
 private:
+  constexpr static bool isEqual(const std::string_view a, const std::string_view b) {
+    return std::equal(a.begin(), a.end(), b.begin(), b.end(),
+                      [](unsigned char c1, unsigned char c2) { // Use unsigned char to avoid UB with std::lower
+                        return std::toupper(c1) == std::toupper(c2);
+                      });
+  }
   Color _color{}; //  Default to black
 };

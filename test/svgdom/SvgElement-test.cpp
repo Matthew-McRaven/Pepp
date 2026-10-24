@@ -19,7 +19,7 @@ TEST_CASE("SvgElement tests-getter-setter", "[scope:core][scope:core.svgdom.svge
   CHECK(element.desc() == ""s);
   CHECK(element.metadata() == ""s);
 
-  Document doc("Name"s);
+  SvgDocument doc("Name"s);
   CHECK(doc.fileName() == "Name"s);
   element.setDocument(&doc);
   CHECK(element.document()->fileName() == doc.fileName());
@@ -41,6 +41,17 @@ TEST_CASE("SvgElement tests-getter-setter", "[scope:core][scope:core.svgdom.svge
   CHECK(element.desc() == "Desc"s);
   element.setMetadata("Metadata"s);
   CHECK(element.metadata() == "Metadata"s);
+
+  CHECK(element.fill() == SvgColor::Color::Unknown);
+  element.setFill(SvgColor::Color::AntiqueWhite);
+  CHECK(element.fill() == SvgColor::Color::AntiqueWhite);
+  CHECK(element.opacity() == Catch::Approx(1.0));
+  element.setOpacity(0.4);
+  CHECK(element.opacity() == Catch::Approx(0.4));
+  element.setOpacity(50);
+  CHECK(element.opacity() == Catch::Approx(1.0));
+  element.setOpacity(-5.5);
+  CHECK(element.opacity() == Catch::Approx(0.0));
 
   element.setX(1);
   CHECK(element.x().toString() == SvgUnitValue(1).toString());

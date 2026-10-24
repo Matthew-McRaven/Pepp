@@ -36,5 +36,5 @@ TEST_CASE("SvgSvgElement tests", "[scope:core][scope:core.svgdom.svgsvgelement][
   data.clear();
   e.toXml(data);
   CHECK(data.toString() ==
-        "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100% 100%\" K1=\"V1\" K2=\"V2\" />");
+        "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100% 100%\" K1=\"V1\" K2=\"V2\" />"s);
 }
