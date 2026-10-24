@@ -94,6 +94,9 @@ public:
   static std::shared_ptr<MappedFile> open_readonly(std::string path);
   static std::shared_ptr<MappedFile> open_readwrite(std::string path);
 
+  // Byte size of the backing file or throws a std::filesystem::filesystem_error if the file's size cannot be
+  // determined.
+  u64 size() const;
   std::shared_ptr<Slice> slice(size_t off, size_t len) noexcept;
   std::shared_ptr<const Slice> slice(size_t off, size_t len) const noexcept;
 

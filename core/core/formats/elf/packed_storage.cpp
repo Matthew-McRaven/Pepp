@@ -246,11 +246,13 @@ void pepp::bts::MemoryMapped::set(size_t offset, bits::span<const u8> data) {
 
 bits::span<u8> pepp::bts::MemoryMapped::get(size_t offset, size_t length) noexcept {
   auto sp = _slice->get();
+  if (offset > sp.size() || length > sp.size() - offset) return {};
   return sp.subspan(offset, length);
 }
 
 bits::span<const u8> pepp::bts::MemoryMapped::get(size_t offset, size_t length) const noexcept {
   auto sp = _slice->get();
+  if (offset > sp.size() || length > sp.size() - offset) return {};
   return sp.subspan(offset, length);
 }
 
@@ -275,6 +277,7 @@ size_t pepp::bts::MemoryMapped::find(bits::span<const u8> data) const noexcept {
 
 size_t pepp::bts::MemoryMapped::strlen(size_t offset) const noexcept {
   auto sp = _slice->get();
+  if (offset >= sp.size()) return 0;
   const char *start = reinterpret_cast<const char *>(sp.data() + offset), *end = start;
   while (end < reinterpret_cast<const char *>(sp.data() + sp.size()) && *end != '\0') ++end;
   return end - start;

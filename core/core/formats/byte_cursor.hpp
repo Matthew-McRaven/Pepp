@@ -19,19 +19,27 @@
 #include <cstring>
 #include <string_view>
 #include <type_traits>
-#include "../../integers.h"
+#include "core/formats/layout_item.hpp"
+#include "core/integers.h"
 #include "core/math/bitmanip/span.hpp"
 
 namespace pepp::bts {
 
-// Sequential reader over DWARF bytes. A failed read yields zeros / empty values and latches an `error`.
+// Sequential reader over bytes. A failed read yields zeros / empty values and latches an error.
 // Callers can check error state once after reading a group of values rather than after each field.
-struct DwarfCursor {
+struct ByteCursor {
+  ByteCursor() = default;
+  ByteCursor(bits::span<const u8> data) noexcept : data(data) {}
+  // data[0] sits at source.offset in its file.
+  explicit ByteCursor(LayoutItem source) noexcept : data(source.data), base(source.offset) {}
+
   bits::span<const u8> data;
+  u64 base = 0;
   size_t offset = 0;
   const char *error = nullptr;
 
   bool ok() const noexcept { return error == nullptr; }
+  u64 position() const noexcept { return base + offset; }
   size_t remaining() const noexcept { return offset < data.size() ? data.size() - offset : 0; }
   // Latch an error (keeping the first one) and stop all further reads.
   void fail(const char *why) noexcept;

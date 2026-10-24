@@ -43,27 +43,45 @@ public:
 // Helper classes to delegate between a lazy MappedFile and eagerly-loaded contiguous buffer.
 struct AElfSource {
   virtual ~AElfSource() = 0;
-  // Storage covering [offset, offset + length) of the image.
+  // Bytes in the image.
+  virtual u64 size() const noexcept = 0;
+  // Storage covering [offset, offset + length) of the image that is clamped to size().
   virtual std::shared_ptr<AStorage> slice(u64 offset, u64 length) const = 0;
 };
 
 // Reads through a memory-mapped file, mapping each region on first access.
 struct MappedFileSource final : public AElfSource {
   explicit MappedFileSource(std::shared_ptr<MappedFile> file);
+  u64 size() const noexcept override;
   std::shared_ptr<AStorage> slice(u64 offset, u64 length) const override;
 
 private:
   std::shared_ptr<MappedFile> _file;
+  u64 _size = 0;
 };
 
 // Re-use the serialized bytes of an ELF file that is already in memory.
 struct BufferSource final : public AElfSource {
   explicit BufferSource(std::vector<char> &&bytes);
+  u64 size() const noexcept override;
   std::shared_ptr<AStorage> slice(u64 offset, u64 length) const override;
 
 private:
   std::shared_ptr<BlockStorage> _bytes;
 };
+
+// A subspan [offset, offset + length) of another source, such as the member of an archive.
+struct SliceSource final : public AElfSource {
+  // Throws if the span does not fit within the parent.
+  SliceSource(std::shared_ptr<const AElfSource> parent, u64 offset, u64 length);
+  u64 size() const noexcept override;
+  std::shared_ptr<AStorage> slice(u64 offset, u64 length) const override;
+
+private:
+  std::shared_ptr<const AElfSource> _parent;
+  u64 _offset = 0, _length = 0;
+};
+
 // A packed ELF file that is read-only and backed by a lazily memory-mapped file or eager contiguous buffer.
 // While its elf header, section headers, and program headers are always eagerly loaded into memory,
 // section data will be lazily loaded on first use.

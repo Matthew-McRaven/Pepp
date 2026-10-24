@@ -17,6 +17,8 @@
 
 #pragma once
 #include <algorithm>
+#include <charconv>
+#include <concepts>
 #include <iostream>
 #include <optional>
 #include <string_view>
@@ -165,5 +167,31 @@ inline std::string_view rtrimmed_view(const std::string &str) {
 }
 
 inline std::string rtrimmed(const std::string &str) { return std::string{rtrimmed_view(str)}; }
+
+// Right-strip every trailing byte matching c.
+inline std::string_view rtrimmed_view(std::string_view str, char c) {
+  while (!str.empty() && str.back() == c) str.remove_suffix(1);
+  return str;
+}
+
+// View bytes as characters without copying them.
+inline std::string_view as_string_view(span<const u8> bytes) {
+  return {reinterpret_cast<const char *>(bytes.data()), bytes.size()};
+}
+inline std::string_view as_string_view(span<const char> chars) { return {chars.data(), chars.size()}; }
+// View characters as bytes without copying them
+inline span<const u8> as_u8_span(std::string_view text) {
+  return {reinterpret_cast<const u8 *>(text.data()), text.size()};
+}
+
+// If parsing text as an integer of the specified base does not consume every character, return nullopt. Otherwise the
+// value as T.
+template <std::integral T> std::optional<T> from_chars_exact(std::string_view text, int base = 10) {
+  T value{};
+  const auto *end = text.data() + text.size();
+  const auto [ptr, ec] = std::from_chars(text.data(), end, value, base);
+  if (text.empty() || ec != std::errc{} || ptr != end) return std::nullopt;
+  return value;
+}
 
 } // namespace bits

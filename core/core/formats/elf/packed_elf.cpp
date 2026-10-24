@@ -19,20 +19,42 @@ pepp::bts::AElfSource::~AElfSource() = default;
 
 pepp::bts::MappedFileSource::MappedFileSource(std::shared_ptr<MappedFile> file) : _file(std::move(file)) {
   if (!_file) throw std::invalid_argument("MappedFileSource: file must be non-null");
+  _size = _file->size();
 }
 
+u64 pepp::bts::MappedFileSource::size() const noexcept { return _size; }
+
 std::shared_ptr<pepp::bts::AStorage> pepp::bts::MappedFileSource::slice(u64 offset, u64 length) const {
+  // Clamp the requested slice according to the file's size to avoid exceptions.
+  const u64 from = std::min<u64>(offset, _size), count = std::min<u64>(length, _size - from);
   // Mapping an empty region fails on every platform we support, so do not ask for one.
-  if (length == 0) return std::make_shared<NullStorage>();
-  return std::make_shared<MemoryMapped>(_file->slice(offset, length));
+  if (count == 0) return std::make_shared<NullStorage>();
+  return std::make_shared<MemoryMapped>(_file->slice(from, count));
 }
 
 pepp::bts::BufferSource::BufferSource(std::vector<char> &&bytes)
     : _bytes(std::make_shared<BlockStorage>(std::move(bytes))) {}
+
+u64 pepp::bts::BufferSource::size() const noexcept { return _bytes->size(); }
 
 std::shared_ptr<pepp::bts::AStorage> pepp::bts::BufferSource::slice(u64 offset, u64 length) const {
   const u64 total = _bytes->size(), from = std::min<u64>(offset, total);
   const u64 count = std::min<u64>(length, total - from);
   if (count == 0) return std::make_shared<NullStorage>();
   return std::make_shared<BlockStorage::BlockStorageSlice>(_bytes, from, count);
+}
+
+pepp::bts::SliceSource::SliceSource(std::shared_ptr<const AElfSource> parent, u64 offset, u64 length)
+    : _parent(std::move(parent)), _offset(offset), _length(length) {
+  if (!_parent) throw std::invalid_argument("SliceSource: parent must be non-null");
+  else if (_offset > _parent->size() || _length > _parent->size() - _offset)
+    throw std::invalid_argument("SliceSource exceeds its parent");
+}
+
+u64 pepp::bts::SliceSource::size() const noexcept { return _length; }
+
+std::shared_ptr<pepp::bts::AStorage> pepp::bts::SliceSource::slice(u64 offset, u64 length) const {
+  const u64 from = std::min<u64>(offset, _length), count = std::min<u64>(length, _length - from);
+  if (count == 0) return std::make_shared<NullStorage>();
+  return _parent->slice(_offset + from, count);
 }

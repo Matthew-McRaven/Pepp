@@ -48,7 +48,8 @@ outer
     REQUIRE(macro_index != 0);
     // The compile unit's only entry is its abbreviation code, then DW_AT_stmt_list, DW_AT_ranges, DW_AT_macros.
     const auto info = section_bytes(*file, find_named_section(*file, debugInfoSection));
-    DwarfCursor c{info, sizeof(PackedCompileUnitHeader<E>) + 1 + 4 + 4};
+    ByteCursor c{info};
+    c.offset = sizeof(PackedCompileUnitHeader<E>) + 1 + 4 + 4;
     const u32 macros = c.fixed<U32<E>>();
     REQUIRE(c.ok());
     const auto unit = parse_macro_unit<E>(section_bytes(*file, macro_index), macros);

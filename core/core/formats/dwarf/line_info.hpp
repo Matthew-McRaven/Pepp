@@ -23,7 +23,7 @@
 #include <string>
 #include <vector>
 #include "../../integers.h"
-#include "core/formats/dwarf/cursor.hpp"
+#include "core/formats/byte_cursor.hpp"
 #include "core/formats/dwarf/enums.hpp"
 #include "core/formats/dwarf/forms.hpp"
 #include "core/formats/elf/packed_types.hpp"
@@ -207,7 +207,7 @@ template <ElfEndian E> size_t write_line_program_unit(AStorage &out, const LineP
 namespace detail {
 // Reads a directory count+entries, followed by File count+entries.
 // Per: DWARF 5 Section 6.2.4 items 13-16 (directories) and 17-20 (files).
-template <ElfEndian E> std::vector<LineFileEntry> read_entries(DwarfCursor &c, bits::span<const u8> line_str) {
+template <ElfEndian E> std::vector<LineFileEntry> read_entries(ByteCursor &c, bits::span<const u8> line_str) {
   using enum LineContentTypes;
   // Section 6.2.4.1: a DW_FORM_line_strp path is an offset to a null-terminated string in .debug_line_str.
   const auto line_string = [&](u64 offset) -> std::string_view {
@@ -215,7 +215,7 @@ template <ElfEndian E> std::vector<LineFileEntry> read_entries(DwarfCursor &c, b
       c.fail("DW_FORM_line_strp offset is past the end of .debug_line_str");
       return {};
     }
-    DwarfCursor strings{line_str.subspan(offset)};
+    ByteCursor strings{line_str.subspan(offset)};
     const auto ret = strings.cstr();
     if (!strings.ok()) c.fail(strings.error);
     return ret;
@@ -255,7 +255,7 @@ std::expected<LineProgramUnit, std::string> parse_line_program_unit(bits::span<c
                                                                     bits::span<const u8> line_str = {}) {
   using Packed = PackedLineProgramHeader<E>;
   if (offset >= section.size()) return std::unexpected("unit offset is past the end of the section");
-  DwarfCursor c{section.subspan(offset)};
+  ByteCursor c{section.subspan(offset)};
   const auto packed = c.fixed<Packed>();
   if (!c.ok()) return std::unexpected("section too small for a line program header");
   // Section 7.2.2 reserves 0xfffffff0 through 0xffffffff. Section 7.4 item 1 uses 0xffffffff to introduce a 64-bit

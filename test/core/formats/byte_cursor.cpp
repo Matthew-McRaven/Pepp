@@ -15,14 +15,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "core/formats/dwarf/cursor.hpp"
+#include "core/formats/byte_cursor.hpp"
 #include <catch.hpp>
 #include "core/formats/elf/packed_storage.hpp"
 #include "core/formats/elf/packed_types.hpp"
 
 using namespace pepp::bts;
 
-TEST_CASE("DWARF Cursor", "[scope:dwarf][kind:unit][arch:*]") {
+TEST_CASE("Byte cursor", "[scope:dwarf][kind:unit][arch:*]") {
   SECTION("Round-trip serialization tests") {
     BlockStorage storage;
     storage.append(U16<ElfEndian::be>(0x1234));
@@ -39,7 +39,7 @@ TEST_CASE("DWARF Cursor", "[scope:dwarf][kind:unit][arch:*]") {
     CHECK(out[4] == 0xFF);
     CHECK(out[5] == 0x7E);
 
-    DwarfCursor c{out};
+    ByteCursor c{out};
     CHECK(c.fixed<U16<ElfEndian::be>>() == 0x1234);
     CHECK(c.uleb() == 12857);
     CHECK(c.sleb() == -129);
@@ -51,7 +51,7 @@ TEST_CASE("DWARF Cursor", "[scope:dwarf][kind:unit][arch:*]") {
 
   SECTION("Stop on underflow for fixed-size values") {
     const std::vector<u8> in{0x01, 0x02, 0x03};
-    DwarfCursor c{in};
+    ByteCursor c{in};
     CHECK(c.fixed<U32<ElfEndian::le>>() == 0);
     CHECK_FALSE(c.ok());
     // Later reads that would otherwise succeed still fail.
@@ -60,13 +60,13 @@ TEST_CASE("DWARF Cursor", "[scope:dwarf][kind:unit][arch:*]") {
   }
   SECTION("Stop on underflow for LEB128 decoding") {
     const std::vector<u8> in{0x80, 0x80};
-    DwarfCursor c{in};
+    ByteCursor c{in};
     CHECK(c.uleb() == 0);
     CHECK_FALSE(c.ok());
   }
   SECTION("Stop on underflow for null-terminated strings") {
     const std::vector<u8> in{'a', 'b'};
-    DwarfCursor c{in};
+    ByteCursor c{in};
     CHECK(c.cstr().empty());
     CHECK_FALSE(c.ok());
   }

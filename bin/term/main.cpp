@@ -24,6 +24,8 @@
 #include "commands/about.hpp"
 #include "commands/asm.hpp"
 #include "commands/binutils/addr2line.hpp"
+#include "commands/binutils/ar.hpp"
+#include "commands/binutils/ardump.hpp"
 #include "commands/binutils/as.hpp"
 #include "commands/binutils/emu.hpp"
 #include "commands/binutils/readelf.hpp"
@@ -91,6 +93,8 @@ int main(int argc, char **argv) {
   registerMicroRun(app, task, shared_flags);
   // binutils-like programs
   registerAddr2Line(app, task, shared_flags);
+  registerAr(app, task, shared_flags);
+  registerArDump(app, task, shared_flags);
   registerAs(app, task, shared_flags);
   registerReadelf(app, task, shared_flags);
   registerEmu(app, task, shared_flags);
@@ -108,6 +112,7 @@ int main(int argc, char **argv) {
   for (int it = 0; it < argc; ++it) modified_args.push_back(argv[it]);
   // If being called via symlink, use the symlink name as the command name
   if (!is_pepp_term) modified_args.insert(modified_args.cbegin() + 1, name_as_stdstr.c_str());
+  dash_ar_keys(modified_args);
 
   try {
     app.parse(modified_args.size(), modified_args.data());

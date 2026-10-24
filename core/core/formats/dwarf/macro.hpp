@@ -24,7 +24,7 @@
 #include <string_view>
 #include <vector>
 #include "../../integers.h"
-#include "core/formats/dwarf/cursor.hpp"
+#include "core/formats/byte_cursor.hpp"
 #include "core/formats/dwarf/enums.hpp"
 #include "core/formats/dwarf/forms.hpp"
 #include "core/formats/elf/packed_storage.hpp"
@@ -136,7 +136,7 @@ std::expected<MacroUnit, std::string> parse_macro_unit(bits::span<const u8> sect
   using enum MacroOpcodes;
   using enum MacroHeaderFlags;
   if (offset >= section.size()) return std::unexpected("unit offset is past the end of the section");
-  DwarfCursor c{section.subspan(offset)};
+  ByteCursor c{section.subspan(offset)};
   // Section 6.3.1 items 1 and 2.
   if (const u16 version = c.fixed<U16<E>>(); c.ok() && version != MacroUnitWriter<E>::version())
     return std::unexpected("unsupported macro information version " + std::to_string(version));
