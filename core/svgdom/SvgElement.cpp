@@ -145,7 +145,7 @@ void SvgElement::setFill(const SvgColor::Color color) { _fill = color; }
 const double &SvgElement::opacity() const { return _opacity; }
 void SvgElement::setOpacity(const double &opacity) {
   //  Clamp opacity between 0 and 1
-  _opacity = std::max(std::min(opacity, 0.0), 1.0);
+  _opacity = std::clamp(opacity, 0.0, 1.0);
 }
 
 //  Dimension accessors
@@ -288,7 +288,7 @@ bool SvgElement::setAttribute(const std::string &key, const std::string &value)
     }
     if (key == "opacity"s) {
       try {
-        _opacity = std::stod(value);
+        setOpacity(std::stod(value));
         return true;
       } catch (const std::exception &e) {
         _opacity = 1.0;
