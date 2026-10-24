@@ -54,7 +54,10 @@ bool SvgDocument::exists() const noexcept { return _exists; }
 bool SvgDocument::saveAs(const std::string &fileName) {
   _fileName = fileName;
 
-  return save();
+  const bool saved = save();
+  std::error_code ec;
+  _exists = saved || fs::exists(_fileName, ec);
+  return saved;
 }
 
 bool SvgDocument::save() const {

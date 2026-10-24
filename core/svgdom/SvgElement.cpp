@@ -283,16 +283,23 @@ bool SvgElement::setAttribute(const std::string &key, const std::string &value)
         return true;
     }
     if (key == "fill"s) {
-      _fill = SvgColor::fromName(value);
-      return true;
+      //  Fills other than a named color use the fallback attribute path.
+      if (const auto color = SvgColor::fromName(value); color != SvgColor::Color::Unknown) {
+        _fill = color;
+        return true;
+      }
     }
     if (key == "opacity"s) {
       try {
-        setOpacity(std::stod(value));
-        return true;
-      } catch (const std::exception &e) {
-        _opacity = 1.0;
+        std::size_t consumed = 0;
+        const double opacity = std::stod(value, &consumed);
+        if (consumed == value.size()) {
+          setOpacity(opacity);
+          return true;
+        }
+      } catch (const std::exception &) {
       }
+      _opacity = 1.0;
       return false;
     }
     if (key == "x"s) {
