@@ -1,7 +1,7 @@
 #pragma once
 
 #include <algorithm> //  std::tolower
-#include <format>
+#include <fmt/format.h>
 #include <string_view>
 
 class SvgColor {
@@ -346,7 +346,7 @@ public:
     //  Return black
     return Color::Unknown;
   }
-  static std::string formatRgb(uint32_t key) { return std::format("#{:X}", key); }
+  static std::string formatRgb(uint32_t key) { return fmt::format("#{:06X}", key); }
 
 private:
   constexpr static bool isEqual(const std::string_view a, const std::string_view b) {
