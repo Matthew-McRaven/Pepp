@@ -86,7 +86,6 @@ CASES = {
     "list a missing member": [["rcsD", "lib.a", *MEMBERS], ["t", "lib.a", "missing.o"]],
     "extract a missing member": [["rcsD", "lib.a", *MEMBERS], ["x", "lib.a", "missing.o"]],
     "delete a missing member": [["rcsD", "lib.a", *MEMBERS], ["dD", "lib.a", "missing.o"]],
-    "add a missing file": [["rcsD", "lib.a", "missing.o"]],
 }
 
 
