@@ -135,7 +135,7 @@ std::string_view pepp::bts::ArchiveError::to_string(Code code) {
   case SymbolIndexTruncated: return "symbol index is too small to hold its count";
   case SymbolIndexCountTooLarge: return "symbol index offsets extend past its end";
   case UnterminatedSymbolName: return "symbol index names are truncated";
-  case ThinMember: return "thin archive members are not stored in the archive";
+  case ThinMember: return "thin archive member without an archive path";
   case NotElf: return "member is not an ELF file";
   case NameHasNewline: return "member name contains a newline";
   case MemberTooLarge: return "member is too large for its 10-digit size field";
@@ -242,10 +242,12 @@ pepp::bts::ArSymbolIterator &pepp::bts::ArSymbolIterator::operator++() {
 }
 
 std::expected<pepp::bts::PackedInputArchive, pepp::bts::ArchiveError>
-pepp::bts::PackedInputArchive::open(std::shared_ptr<const AElfSource> source) {
+pepp::bts::PackedInputArchive::open(std::shared_ptr<const AElfSource> source,
+                                    std::optional<std::filesystem::path> path) {
   if (!source) throw std::invalid_argument("PackedInputArchive: source must be non-null");
   PackedInputArchive ret;
   ret._source = std::move(source);
+  ret._path = std::move(path);
   ret._contents = ret._source->slice(0, ret._source->size());
   // Archive's bytes are lazily paged in on first access for MemoryMapped source.
   ret._bytes = ret._contents->get(0, ret._contents->size());
@@ -283,7 +285,7 @@ pepp::bts::PackedInputArchive::open(const std::string &path) {
   std::error_code ec;
   std::filesystem::file_size(path, ec);
   if (ec) return fail(CannotOpen, 0);
-  return open(std::make_shared<MappedFileSource>(MappedFile::open_readonly(path)));
+  return open(std::make_shared<MappedFileSource>(MappedFile::open_readonly(path)), path);
 }
 
 bits::span<const u8> pepp::bts::PackedInputArchive::bytes(u64 offset, u64 length) const noexcept {
@@ -319,7 +321,14 @@ pepp::bts::PackedInputArchive::member_storage(const PackedArMember &member) cons
 
 std::expected<std::shared_ptr<const pepp::bts::AElfSource>, pepp::bts::ArchiveError>
 pepp::bts::PackedInputArchive::member_source(const PackedArMember &member) const {
-  if (_thin) return fail(ThinMember, member.header_offset);
+  if (_thin && !_path) return fail(ThinMember, member.header_offset);
+  else if (_thin) {
+    const auto path = thin_member_path(*_path, name(member));
+    std::error_code ec;
+    std::filesystem::file_size(path, ec);
+    if (ec) return fail(CannotOpen, member.header_offset);
+    return std::make_shared<MappedFileSource>(MappedFile::open_readonly(path.string()));
+  }
   return std::make_shared<SliceSource>(_source, member.data_offset(), member.size);
 }
 

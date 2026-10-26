@@ -211,10 +211,13 @@ public:
   inline static constexpr std::string_view THIN_MAGIC = "!<thin>\n";
 
   // Checks the magic and the leading `/` and `//`. Throws is source is nullptr.
-  static std::expected<PackedInputArchive, ArchiveError> open(std::shared_ptr<const AElfSource> source);
+  static std::expected<PackedInputArchive, ArchiveError> open(std::shared_ptr<const AElfSource> source,
+                                                              std::optional<std::filesystem::path> path = std::nullopt);
   static std::expected<PackedInputArchive, ArchiveError> open(const std::string &path);
 
   bool thin() const noexcept { return _thin; }
+  // The filesystem path from which the archive was opened, if any. Thin members are relative to this path.
+  const std::optional<std::filesystem::path> &path() const noexcept { return _path; }
   u64 size() const noexcept { return _bytes.size(); }
   // Access a subspan of the archive, or empty if out-of-bounds.
   bits::span<const u8> bytes(u64 offset, u64 length) const noexcept;
@@ -236,12 +239,13 @@ public:
 private:
   friend class ArMemberIterator;
   friend std::expected<AnyInputElf, ArchiveError> open_member_elf(const PackedInputArchive &, const PackedArMember &);
-  // The member's bytes as a source for open_input_elf. A thin member has none.
+  // The member's bytes as a source for open_input_elf. Thin members are opened relative to path().
   std::expected<std::shared_ptr<const AElfSource>, ArchiveError> member_source(const PackedArMember &member) const;
   PackedInputArchive() = default;
   // The member whose header is at the cursor, leaving the cursor at the next header.
   std::expected<PackedArMember, ArchiveError> read_member(ByteCursor &cursor) const;
   std::shared_ptr<const AElfSource> _source;
+  std::optional<std::filesystem::path> _path;
   // Keeps the mapping behind _bytes alive.
   std::shared_ptr<const AStorage> _contents;
   bits::span<const u8> _bytes;
@@ -252,8 +256,8 @@ private:
 static_assert(std::input_iterator<ArMemberIterator>);
 static_assert(std::input_iterator<ArSymbolIterator>);
 
-// Coerce a member to an ELF file if the archive is not thin. That ELF file will share the same memory-mapped backing as
-// the archive.
+// Coerce a member to an ELF file. A regular member shares the archive's memory-mapped backing. A thin member is read
+// relative to the archive's path(), failing if path is unset.
 std::expected<AnyInputElf, ArchiveError> open_member_elf(const PackedInputArchive &archive,
                                                          const PackedArMember &member);
 
