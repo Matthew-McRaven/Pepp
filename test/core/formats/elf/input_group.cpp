@@ -70,7 +70,7 @@ std::vector<u8> bytes_of(const std::shared_ptr<const AStorage> &data) {
 }
 } // namespace
 
-TEST_CASE("PackedInputElfGroup", "[scope:elf][kind:unit][arch:*]") {
+TEST_CASE("PackedInputElfGroup", "[scope:core][scope:core.formats][kind:unit][arch:*]") {
   write_single_section<ElfBits::b32, ElfEndian::le>("group_a.elf", ".text", {0x01, 0x02, 0x03}, 0x100);
   write_single_section<ElfBits::b32, ElfEndian::le>("group_b.elf", ".data", {0x04, 0x05}, 0x200);
   PackedInputElfGroupLE32 group;
@@ -81,7 +81,7 @@ TEST_CASE("PackedInputElfGroup", "[scope:elf][kind:unit][arch:*]") {
     for (const auto handle : group.sections(id))
       if (group.header(handle).sh_type == bits::to_underlying(SectionTypes::SHT_PROGBITS)) return handle;
     FAIL("No PROGBITS section");
-    return ElfSectionHandle{};
+    return InputElfSectionHandle{};
   };
 
   SECTION("Files get distinct IDs") {
@@ -97,10 +97,13 @@ TEST_CASE("PackedInputElfGroup", "[scope:elf][kind:unit][arch:*]") {
     CHECK(group.header(data).sh_size == 2);
     CHECK(bytes_of(group.data(data)) == std::vector<u8>{0x04, 0x05});
     // Both files have the same layout, so only the file ID tells these handles apart.
-    CHECK(elf_index_of(text) == elf_index_of(data));
-    CHECK(elf_file_of(text) == a);
-    CHECK(elf_file_of(data) == b);
+    CHECK(text.index == data.index);
+    CHECK(text.file == a);
+    CHECK(data.file == b);
     CHECK(text != data);
+    // Handles order by file, then by index.
+    CHECK(text < data);
+    CHECK(InputElfSectionHandle{a, 0} < text);
   }
   SECTION("Translate segment handles to their headers") {
     const auto segs = group.segments(a);
@@ -141,10 +144,14 @@ TEST_CASE("PackedInputElfGroup", "[scope:elf][kind:unit][arch:*]") {
     CHECK_THROWS_AS(group.file(a).segment_data(1), std::out_of_range);
     CHECK_THROWS_AS(group.file(ElfFileID{}), std::out_of_range);
     CHECK_THROWS_AS(group.file(ElfFileID{3}), std::out_of_range);
-    const auto count = static_cast<u16>(group.sections(a).size());
-    CHECK_THROWS_AS(group.header(make_elf_handle<ElfSectionHandle>(a, count)), std::out_of_range);
-    CHECK_THROWS_AS(group.header(make_elf_handle<ElfSegmentHandle>(a, 1)), std::out_of_range);
-    CHECK_THROWS_AS(group.header(ElfSectionHandle{}), std::out_of_range);
+    const auto count = static_cast<u32>(group.sections(a).size());
+    CHECK_THROWS_AS(group.header(InputElfSectionHandle{a, count}), std::out_of_range);
+    CHECK_THROWS_AS(group.header(InputElfSegmentHandle{a, 1}), std::out_of_range);
+    CHECK_THROWS_AS(group.header(InputElfSectionHandle{}), std::out_of_range);
+    CHECK_FALSE(InputElfSectionHandle{});
+    // A packed 16-bit index would have wrapped this to the null section.
+    CHECK_THROWS_AS(group.header(InputElfSectionHandle{a, 0x1'0000}), std::out_of_range);
+    CHECK_THROWS_AS(group.data(InputElfSectionHandle{a, 0x1'0000}), std::out_of_range);
   }
   SECTION("Disallow opening a file with a different endianness or size") {
     write_single_section<ElfBits::b32, ElfEndian::be>("group_be.elf", ".text", {0x01});
