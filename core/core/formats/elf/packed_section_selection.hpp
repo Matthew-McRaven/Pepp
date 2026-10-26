@@ -23,7 +23,9 @@
 #include <span>
 #include <stdexcept>
 #include <vector>
+#include "core/ds/glob/glob.hpp"
 #include "core/formats/elf/packed_input_group.hpp"
+#include "core/formats/elf/packed_ops.hpp"
 
 namespace pepp::bts {
 // One section of a PackedInputElfGroup as an argument to the selection predicate.
@@ -106,5 +108,13 @@ std::span<const InputElfSectionHandle> PackedSectionSelection<B, E>::handles(Elf
   if (!id || id.value >= _file_begin.size()) throw std::out_of_range("PackedSectionSelection: no file with this ID");
   const u32 first = _file_begin[id.value - 1];
   return std::span(_handles).subspan(first, _file_begin[id.value] - first);
+}
+
+// Extract the sections whose name matches a glob pattern. The glob is mutable because it compiles itself on first use.
+template <ElfBits B, ElfEndian E>
+PackedSectionSelection<B, E> select_by_name(const PackedInputElfGroup<B, E> &group, Glob &glob) {
+  return PackedSectionSelection<B, E>(group, [&glob](const InputElfSectionRef<B, E> &ref) {
+    return ref.handle.index != 0 && glob.find(section_name(ref.file, ref.handle.index)) >= 0;
+  });
 }
 } // namespace pepp::bts
