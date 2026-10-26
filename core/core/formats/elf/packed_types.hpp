@@ -52,6 +52,16 @@ template <ElfBits B> using sword = std::conditional_t<B == ElfBits::b64, i64, i3
 
 template <bool Const, class T> using maybe_const_t = std::conditional_t<Const, T const, T>;
 
+// True if bytes starts with the magic number in e_ident[EI_MAG0..EI_MAG3].
+constexpr bool has_elf_magic(std::span<const u8> bytes) noexcept {
+  using enum ElfIdentifierIndices;
+  using enum ElfMagic;
+  const auto at = [&](ElfIdentifierIndices index) { return bytes[bits::to_underlying(index)]; };
+  return bytes.size() > bits::to_underlying(EI_MAG3) && at(EI_MAG0) == bits::to_underlying(ELFMAG0) &&
+         at(EI_MAG1) == bits::to_underlying(ELFMAG1) && at(EI_MAG2) == bits::to_underlying(ELFMAG2) &&
+         at(EI_MAG3) == bits::to_underlying(ELFMAG3);
+}
+
 #pragma pack(push, 1)
 // Per: ELF TIS Figure 1-3
 template <ElfBits B, ElfEndian E> struct PackedElfEhdr {
@@ -61,12 +71,7 @@ template <ElfBits B, ElfEndian E> struct PackedElfEhdr {
 
   using enum ElfIdentifierIndices;
   // Helpers to get speciifc fields within e_ident.
-  constexpr bool has_valid_magic() const noexcept {
-    return e_ident[bits::to_underlying(EI_MAG0)] == bits::to_underlying(ElfMagic::ELFMAG0) &&
-           e_ident[bits::to_underlying(EI_MAG1)] == bits::to_underlying(ElfMagic::ELFMAG1) &&
-           e_ident[bits::to_underlying(EI_MAG2)] == bits::to_underlying(ElfMagic::ELFMAG2) &&
-           e_ident[bits::to_underlying(EI_MAG3)] == bits::to_underlying(ElfMagic::ELFMAG3);
-  }
+  constexpr bool has_valid_magic() const noexcept { return has_elf_magic(e_ident); }
   constexpr ElfClass ei_class() const noexcept { return ElfClass(e_ident[bits::to_underlying(EI_CLASS)]); }
   constexpr ElfEncoding ei_data() const noexcept { return ElfEncoding(e_ident[bits::to_underlying(EI_DATA)]); }
   constexpr ElfVersion ei_version() const noexcept { return ElfVersion(e_ident[bits::to_underlying(EI_VERSION)]); }

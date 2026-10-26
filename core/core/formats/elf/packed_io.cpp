@@ -51,11 +51,8 @@ pepp::bts::AnyInputElf pepp::bts::open_input_elf(std::shared_ptr<const AElfSourc
   if (!source) throw std::invalid_argument("open_input_elf: source must be non-null");
   const auto ident_slice = source->slice(0, ident_size);
   const auto ident = ident_slice->get(0, ident_slice->size());
-  if (ident.size() < ident_size) throw std::runtime_error("not an ELF file");
+  if (ident.size() < ident_size || !has_elf_magic(ident)) throw std::runtime_error("not an ELF file");
   const auto at = [&](ElfIdentifierIndices index) { return ident[bits::to_underlying(index)]; };
-  if (at(EI_MAG0) != bits::to_underlying(ElfMagic::ELFMAG0) || at(EI_MAG1) != bits::to_underlying(ElfMagic::ELFMAG1) ||
-      at(EI_MAG2) != bits::to_underlying(ElfMagic::ELFMAG2) || at(EI_MAG3) != bits::to_underlying(ElfMagic::ELFMAG3))
-    throw std::runtime_error("not an ELF file");
 
   const auto cls = ElfClass(at(EI_CLASS));
   const auto enc = ElfEncoding(at(EI_DATA));
