@@ -44,4 +44,4 @@ Number,GitRef,Date,Blurb
 0.16.1,,2026-09-15,"This version fixes a bug in Pep/10's SUBr/CPWr instructions and extends the command-line assembler to support macros for Pep/10 and RISC-V programs"
 0.16.2,,2026-09-24,"This version extends the command-line assembler and simulator to execute rv32i and pep10 programs"
 0.16.3,,2026-10-13,"This version extends the command-line RISC-V assembler to cover the sample programs of Chapter 12 of Computer Systems, sixth edition"
-0.16.4,,????-??-??,"This WIP version fixes various bugs in the watch expression pane"
+0.16.4,,2026-10-27,"This version updates figures in the help system to match Chapter 6 of Computer Systems, 6th edition."

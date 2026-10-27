@@ -520,10 +520,11 @@ void pepp::settings::FavoriteFigureCategory::sync() { _settings.sync(); }
 
 void pepp::settings::FavoriteFigureCategory::resetToDefault() {
   _favoritesCache.clear();
-  _favoritesCache.push_back(FavoriteFigure(6, "05", "03"));
-  _favoritesCache.push_back(FavoriteFigure(6, "05", "06"));
-  _favoritesCache.push_back(FavoriteFigure(6, "05", "07"));
   _favoritesCache.push_back(FavoriteFigure(6, "05", "10"));
+  _favoritesCache.push_back(FavoriteFigure(6, "05", "28"));
+  _favoritesCache.push_back(FavoriteFigure(6, "06", "32"));
+  _favoritesCache.push_back(FavoriteFigure(6, "06", "36"));
+  _favoritesCache.push_back(FavoriteFigure(6, "06", "60"));
   QVariantList out;
   for (const auto &item : std::as_const(_favoritesCache)) out.emplaceBack(QVariant::fromValue(item));
   _settings.setValue(favoriteFiguresKey, out);

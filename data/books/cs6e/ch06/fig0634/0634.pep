@@ -1,33 +1,41 @@
-;File: fig0634.pep
-;Computer Systems, Fifth edition
-;Figure 6.34
-;
          BR      main
-vector:  .BLOCK  8           ;global variable #2d4a
-j:       .BLOCK  2           ;global variable #2d
+;******* void printBar(int n)
+n:       .EQUATE 4           ;formal parameter #2d
+k:       .EQUATE 0           ;local variable #2d
+printBar:SUBSP   2,i         ;push #k
+         LDWA    1,i         ;for (k = 1
+         STWA    k,s
+for1:    CPWA    n,s         ;k <= n
+         BRGT    endFor1
+         @CHARO  '*', i      ;printf("*")
+         LDWA    k,s         ;k++)
+         ADDA    1,i
+         STWA    k,s
+         BR      for1
+endFor1: @CHARO  '\n', i     ;printf("\n")
+         ADDSP   2,i         ;pop #k
+         RET
 ;
 ;******* main()
-main:    LDWX    0,i         ;for (j = 0
-         STWX    j,d
-for1:    CPWX    4,i         ;j < 4
-         BRGE    endFor1
-         ASLX                ;two bytes per integer
-         @DECI   vector,x    ;scanf("%d", &vector[j])
-         LDWX    j,d         ;j++)
-         ADDX    1,i
-         STWX    j,d
-         BR      for1
-endFor1: LDWX    3,i         ;for (j = 3
-         STWX    j,d
-for2:    CPWX    0,i         ;j >= 0
-         BRLT    endFor2
-         @DECO   j,d         ;printf("%d %d\n", j, vector[j])
-         @CHARO  ' ',i
-         ASLX                ;two bytes per integer
-         @DECO   vector,x
-         @CHARO  '\n',i
-         LDWX    j,d         ;j--)
-         SUBX    1,i
-         STWX    j,d
+numPts:  .EQUATE 4           ;local variable #2d
+value:   .EQUATE 2           ;local variable #2d
+j:       .EQUATE 0           ;local variable #2d
+main:    SUBSP   6,i         ;push #numPts #value #j
+         @DECI   numPts, s   ;scanf("%d", &numPts)
+         LDWA    1,i         ;for (j = 1
+         STWA    j,s
+for2:    CPWA    numPts,s    ;j <= numPts
+         BRGT    endFor2
+         @DECI   value, s    ;scanf("%d", &value)
+         LDWA    value,s     ;move value
+         STWA    -2,s
+         SUBSP   2,i         ;push #n
+         CALL    printBar    ;printBar(value)
+         ADDSP   2,i         ;pop #n
+         LDWA    j,s         ;j++)
+         ADDA    1,i
+         STWA    j,s
          BR      for2
-endFor2: RET
+endFor2: ADDSP   6,i         ;pop #j #value #numPts
+         RET
+

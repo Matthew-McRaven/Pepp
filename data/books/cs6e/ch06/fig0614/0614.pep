@@ -1,22 +1,21 @@
-;File: fig0614.pep
-;Computer Systems, Fifth edition
-;Figure 6.14
-;
          BR      main
-j:       .EQUATE 0           ;local variable #2d
+bonus:   .EQUATE 10          ;constant
+exam1:   .EQUATE 4           ;local variable #2d
+exam2:   .EQUATE 2           ;local variable #2d
+score:   .EQUATE 0           ;local variable #2d
 ;
-main:    SUBSP   2,i         ;push #j
-         LDWA    0,i         ;for (j = 0
-         STWA    j,s
-for:     CPWA    3,i         ;j < 3
-         BRGE    endFor
-         @STRO   msg,d       ;printf("j = %d\n", j)
-         @DECO   j,s
-         @CHARO  '\n',i
-         LDWA    j,s         ;j++)
-         ADDA    1,i
-         STWA    j,s
-         BR      for
-endFor:  ADDSP   2,i         ;pop #j
+main:    SUBSP   6,i         ;push #exam1 #exam2 #score
+         @DECI   exam1, s    ;scanf("%d %d", &exam1, &exam2)
+         @DECI   exam2, s
+         LDWA    exam1,s     ;score = (exam1 + exam2) / 2 + bonus
+         ADDA    exam2,s
+         ASRA
+         ADDA    bonus,i
+         STWA    score,s
+         @STRO   msg, d      ;printf("score = %d\n", score)
+         @DECO   score, s
+         @CHARO  '\n', i
+         ADDSP   6,i         ;pop #score #exam2 #exam1
          RET
-msg:     .ASCII  "j = \0"
+msg:     .ASCII  "score = \0"
+

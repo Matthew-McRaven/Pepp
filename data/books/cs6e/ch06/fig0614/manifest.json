@@ -5,7 +5,7 @@
   "arch": "pep10",
   "abstraction": "ASMB5",
   "default_os": "os:pep10os",
-  "description": "The <code>for</code> statement.",
+  "description": "A program with local variables.",
   "tests": [
     "io0"
   ],
