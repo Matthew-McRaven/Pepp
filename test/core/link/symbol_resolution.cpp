@@ -151,3 +151,146 @@ TEST_CASE("Collect globals / undefineds", "[scope:core][scope:core.link][kind:un
     CHECK(table->file_of(*table->find(*c, 3)) == *c);
   }
 }
+
+namespace {
+struct TestSymbol {
+  std::string_view name;
+  bool defined;
+  SymbolBinding bind = SymbolBinding::STB_GLOBAL;
+  SymbolType type = SymbolType::STT_NOTYPE;
+  SymbolVisibility visibility = SymbolVisibility::STV_DEFAULT;
+  // Defined in SHN_COMMON rather than .text.
+  bool common = false;
+};
+
+// An object with pre-defined symbols.
+AnyInputElf object_of(std::initializer_list<TestSymbol> symbols) {
+  PackedGrowableElfFile<ElfBits::b32, ElfEndian::le> elf(ElfFileType::ET_REL, ElfMachineType::EM_PEP10,
+                                                         ElfABI::ELFOSABI_NONE);
+  ensure_section_header_table(elf);
+  const auto text = add_named_section(elf, ".text", SectionTypes::SHT_PROGBITS);
+  const auto symtab = add_named_symtab(elf, ".symtab", add_named_section(elf, ".strtab", SectionTypes::SHT_STRTAB));
+  PackedSymbolWriter<ElfBits::b32, ElfEndian::le> writer(elf, symtab);
+  for (const auto &symbol : symbols) {
+    PackedElfSymbol<ElfBits::b32, ElfEndian::le> sym;
+    sym.set_bind(symbol.bind);
+    sym.set_type(symbol.type);
+    sym.set_visibility(symbol.visibility);
+    const u16 section = symbol.common ? bits::to_underlying(SectionIndices::SHN_COMMON) : symbol.defined ? text : 0;
+    writer.add_symbol(std::move(sym), symbol.name, section);
+  }
+  writer.arrange_local_symbols();
+  return to_input_elf(elf);
+}
+} // namespace
+
+TEST_CASE("Resolve symbols between files", "[scope:core][scope:core.link][kind:unit][arch:*]") {
+  PackedInputElfGroupLE32 group;
+  // First object file's foo@V2 is explicitly versioned here, and will become the default when linked with B and become
+  // foo.
+  const auto a = group.add(object_of({{"foo@V2", false},
+                                   {"foo", false},
+                                   {"foo@V1", false},
+                                   {"bar", false},
+                                   {"baz@V3", false},
+                                   {"qux@", false}}))
+                     .value();
+  const auto b = group.add(object_of({{"foo@@V2", true}, {"foo@V1", true}, {"bar", true}, {"foo@V4"}})).value();
+  const auto table = gather_symbols(group);
+  REQUIRE(table);
+  const auto symbols = resolve_symbols(*table);
+  // The global symbol of file's symbol index.
+  const auto of = [&](ElfFileID file, u32 index) {
+    const auto id = table->find(file, index);
+    REQUIRE(id);
+    return symbols.of(*id);
+  };
+
+  SECTION("Symbols numbered by order of first appearance") {
+    // STN_UNDEF, then foo@V2(1), ending with qux@ (6). Only unique def in b is foo@V4.
+    CHECK(symbols.size() == 8);
+    CHECK(symbols.of(InputSymbolID{0}) == SymbolID{0});
+    CHECK(of(a, 1) == SymbolID{2});
+    // foo@V1 occurs in both A and B
+    CHECK(of(b, 2) == SymbolID{3});
+    CHECK(of(b, 4).value == SymbolID{7}.value);
+  }
+  SECTION("Default versions forward to the base name") {
+    CHECK(symbols.name(of(b, 1)) == "foo");
+    CHECK(of(a, 1) == of(b, 1));
+    CHECK(of(a, 2) == of(b, 1));
+  }
+  SECTION("Non-default versions do not forward") {
+    CHECK(symbols.name(of(a, 3)) == "foo@V1");
+    CHECK(of(a, 3) == of(b, 2));
+    CHECK(of(a, 3) != of(a, 2));
+    // No default version of baz is defined.
+    CHECK(symbols.name(of(a, 5)) == "baz@V3");
+    // A bare trailing @ is part of the name, not an empty version.
+    CHECK(symbols.name(of(a, 6)) == "qux@");
+  }
+  SECTION("Unversioned matches by name") {
+    CHECK(of(a, 4) == of(b, 3));
+    CHECK(symbols.name(of(a, 4)) == "bar");
+  }
+  SECTION("Invalid IDs") {
+    CHECK_THROWS_AS(symbols.of(InputSymbolID{table->size()}), std::out_of_range);
+    CHECK_THROWS_AS(symbols.name(SymbolID{symbols.size()}), std::out_of_range);
+  }
+}
+
+TEST_CASE("Symbol ranking and selection", "[scope:core][scope:core.link][kind:unit][arch:*]") {
+  using enum SymbolBinding;
+  constexpr auto weak = STB_WEAK;
+  PackedInputElfGroupLE32 group;
+  // Each symbol index names the same symbol in both files.
+  const auto a = group
+                     .add(object_of({{.name = "weak_then_strong", .defined = true, .bind = weak},   // 1
+                                     {.name = "common_then_weak", .defined = true, .common = true}, // 2
+                                     {.name = "common_twice", .defined = true, .common = true},     // 3
+                                     {.name = "strong_twice", .defined = true},                     // 4
+                                     {.name = "weak_refs", .defined = false, .bind = weak},         // 5
+                                     {.name = "mixed_refs", .defined = false, .bind = weak},        // 6
+                                     {.name = "tls", .defined = true, .type = SymbolType::STT_TLS}, // 7
+                                     {.name = "hidden", .defined = true}}))                         // 8
+                     .value();
+  const auto b = group.add(object_of({{.name = "weak_then_strong", .defined = true},
+                                   {.name = "common_then_weak", .defined = true, .bind = weak},
+                                   {.name = "common_twice", .defined = true, .common = true},
+                                   {.name = "strong_twice", .defined = true},
+                                   {.name = "weak_refs", .defined = false, .bind = weak},
+                                   {.name = "mixed_refs", .defined = false},
+                                   {.name = "tls", .defined = false, .type = SymbolType::STT_OBJECT},
+                                   {.name = "hidden", .defined = false, .visibility = SymbolVisibility::STV_HIDDEN}}))
+                     .value();
+  const auto table = gather_symbols(group);
+  REQUIRE(table);
+  const auto symbols = resolve_symbols(*table);
+  const auto entry = [&](ElfFileID file, u32 index) {
+    const auto id = table->find(file, index);
+    REQUIRE(id);
+    return *id;
+  };
+  const auto symbol = [&](u32 index) { return symbols.symbol(symbols.of(entry(a, index))); };
+
+  SECTION("Strongest definition is selected as owner") {
+    CHECK(symbol(1).owner == entry(b, 1));
+    CHECK(symbol(2).owner == entry(b, 2));
+    CHECK(symbol(3).owner == entry(a, 3));
+    CHECK(symbol(4).owner == entry(a, 4));
+    // Neither object actual defines 5 or 6.
+    CHECK_FALSE(symbol(5).owner);
+    CHECK_FALSE(symbol(6).owner);
+  }
+  SECTION("Most restrictive visibility is propagated") {
+    CHECK(symbol(8).owner == entry(a, 8));
+    CHECK(symbol(8).visibility == bits::to_underlying(SymbolVisibility::STV_HIDDEN));
+  }
+  SECTION("Conflicts reported in input order") {
+    using enum ResolveError::Code;
+    const std::vector<ResolveError> expected{
+        {MultipleDefinition, symbols.of(entry(a, 4)), entry(a, 4), entry(b, 4)},
+        {TlsMismatch, symbols.of(entry(a, 7)), entry(a, 7), entry(b, 7)}};
+    CHECK(std::vector(symbols.errors().begin(), symbols.errors().end()) == expected);
+  }
+}

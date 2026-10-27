@@ -152,4 +152,68 @@ std::expected<InputSymbols, GatherError> gather_symbols(const bts::PackedInputEl
   }
   return ret;
 }
+
+// Identifies one symbol of the link after mergin InputSymbols. 0 remains STN_UNDEF
+using SymbolID = pepp::OpaqueHandle<struct SymbolTag, u32>;
+
+// Resolved definition of a single symbol.
+struct Symbol {
+  // The strongest definition. Refer to the owner's attributes for information other than visibility.
+  InputSymbolID owner;
+  // Record the most constraining visibility for any InputSymbol which maps to this instance.
+  u8 visibility = 0;
+};
+
+struct ResolveError {
+  enum class Code : u8 {
+    MultipleDefinition, // Two strong definitions.
+    TlsMismatch,        // A symbol is defined as TLS in one file and not in another.
+  };
+  // A short, lower-case description, such as "multiple definition".
+  static std::string_view to_string(Code code);
+
+  Code code;
+  // Output symbol associated with the conflict.
+  SymbolID symbol;
+  InputSymbolID original, conflicting;
+  bool operator==(const ResolveError &) const = default;
+};
+
+// Merge all InputSymbols into a single set of all non-local symbols usable for the linker. Where multiple definitions
+// conflict, the highest ranked definition wins. Symbol versions are recorded so that foo@@V defines the default version
+// of foo, so it becomes the canonical value foor foo and foo@V. Otherwise, foo@V is a different symbol from foo.
+class ResolvedSymbols {
+public:
+  // IDs are [0, size()), with 0 as STN_UNDEF.
+  u32 size() const noexcept { return static_cast<u32>(_names.size()); }
+  // The symbol entry id refers to, after following any forwards. Throws std::out_of_range if no entry has this ID.
+  SymbolID of(InputSymbolID id) const;
+  // The name of the matching symbol entry, or throws std::out_of_range if no entry has this ID.
+  std::string_view name(SymbolID id) const;
+  // Throws std::out_of_range if no symbol has this ID.
+  const Symbol &symbol(SymbolID id) const;
+  // Conflicts found while resolving, in input order. The link must fail if this is non-empty.
+  std::span<const ResolveError> errors() const noexcept { return _errors; }
+
+private:
+  friend ResolvedSymbols resolve_symbols(const InputSymbols &table);
+  // Indexed by InputSymbolID.
+  std::vector<SymbolID> _of;
+  // Both are indexed by SymbolID. Entry 0 is STN_UNDEF.
+  std::vector<std::string_view> _names = std::vector<std::string_view>(1);
+  std::vector<Symbol> _symbols = std::vector<Symbol>(1);
+  // Indexed by SymbolID. If the symbol collapsed into another (e.g., foo@V into foo), this points to the best ranking
+  // symbol matching the same name. Otherwise points to 0 / STN_UNDEF.
+  std::vector<SymbolID> _forward;
+  // Errors generated during resolve_symbols.
+  std::vector<ResolveError> _errors;
+};
+
+// Decide which symbol of the link each entry of table refers to, and which definition owns each symbol. Follows Ian
+// Lance Taylor's rules for symbol resolution as mold implements them (get_rank and merge_visibility in mold's
+// input-files.cc): a strong definition beats a weak one, which beats a common one; between equals, the earliest in
+// input order wins.
+// TODO: merge common sizes
+// TODO: separate ranking for archive members and shared libraries
+ResolvedSymbols resolve_symbols(const InputSymbols &table);
 } // namespace pepp::link
