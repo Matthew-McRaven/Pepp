@@ -3,6 +3,7 @@
 #include <cassert>   //  For std::assert
 #include <charconv>  //  For std::from_chars
 #include <cstdlib>   //  For std::strtod
+#include <expected>  //  For std::expected
 #include <fmt/format.h> //  For fmt::format
 #include <limits>    //  For std::numeric_limits
 #include <list>      //  For std::list
@@ -62,60 +63,71 @@ struct SvgUnits
     }
 };
 
-struct SvgUnitValue
-{
-    double value = std::numeric_limits<double>::denorm_min();
-    SvgUnits::SvgUnit unit = SvgUnits::SvgUnit::None;
+struct Conversion {
 
-    SvgUnitValue() {}
-    explicit SvgUnitValue(const double v, const SvgUnits::SvgUnit u = SvgUnits::SvgUnit::None) : value(v), unit(u) {}
-
-    void set(const double v, const SvgUnits::SvgUnit u = SvgUnits::SvgUnit::None) {
-      value = v;
-      unit = u;
-    }
-
-    bool empty() const { return value == std::numeric_limits<double>::denorm_min(); }
-    bool fromString(const std::string_view sv) {
-      double result;
+  static auto parseToNumber(std::string_view &sv) -> std::expected<double, bool> {
+    double result;
 #if PEPP_HAS_DOUBLE_FROM_CHARS
-      // macOS 10.15 (Catalina) or later
-      auto [ptr, ec] = std::from_chars(sv.data(), sv.data() + sv.size(), result);
+    // macOS 10.15 (Catalina) or later
+    auto [ptr, ec] = std::from_chars(sv.data(), sv.data() + sv.size(), result);
 #else
-      char *endptr;
-      result = std::strtod(sv.data(), &endptr);
-      std::errc ec = (endptr == sv.data()) ? std::errc::invalid_argument : std::errc();
-      const char *ptr = endptr;
+    char *endptr;
+    result = std::strtod(sv.data(), &endptr);
+    std::errc ec = (endptr == sv.data()) ? std::errc::invalid_argument : std::errc();
+    const char *ptr = endptr;
 #endif
 
-      //  Check for parsing error, return if error
-      if (ec != std::errc()) return false;
+    //  Check for parsing error, return if error
+    if (ec != std::errc()) return std::unexpected(false);
 
-      SvgUnits::SvgUnit u = SvgUnits::SvgUnit::None;
-      if (ptr < sv.data() + sv.size()) {
-        // ptr not a pointer to a terminated string. If std::string_view is
-        // middle of string (e.g., value 2 of 3), ptr will show remainder of
-        // string. Eg "30% 40in" should just be "%". Ptr shows "% 40in"
-        auto offset = sv.size() - (ptr - sv.data());
-        std::string remainder(sv.substr(sv.size() - offset));
-        u = SvgUnits::fromString(remainder);
-      }
+    //  Update string for consumed input
+    sv.remove_prefix(ptr - sv.data());
 
-      value = result;
-      unit = u;
+    return result;
+  }
+};
 
-      return true;
+struct SvgUnitValue {
+  double value = std::numeric_limits<double>::denorm_min();
+  SvgUnits::SvgUnit unit = SvgUnits::SvgUnit::None;
+
+  SvgUnitValue() {}
+  explicit SvgUnitValue(const double v, const SvgUnits::SvgUnit u = SvgUnits::SvgUnit::None) : value(v), unit(u) {}
+
+  void set(const double v, const SvgUnits::SvgUnit u = SvgUnits::SvgUnit::None) {
+    value = v;
+    unit = u;
+  }
+
+  bool empty() const { return value == std::numeric_limits<double>::denorm_min(); }
+  bool fromString(const std::string_view sv) {
+    double result{};
+    std::string_view data = sv;
+    if (const auto num = Conversion::parseToNumber(data); num.has_value()) {
+      value = *num;
+    } else {
+      //  Parsing error
+      return false;
     }
 
-    const std::string toString() const
-    {
-        std::string buffer;
-
-        //  If value was never set, do not output value
-        if (value != std::numeric_limits<double>::denorm_min())
-            buffer = fmt::format("{}{}", value, SvgUnits::toString(unit));
-        return std::move(buffer);
+    SvgUnits::SvgUnit u = SvgUnits::SvgUnit::None;
+    if (data.size() > 0) {
+      u = SvgUnits::fromString(std::string(data));
     }
+    // value = result;
+    unit = u;
+
+    return true;
+  }
+
+  const std::string toString() const {
+    std::string buffer;
+
+    //  If value was never set, do not output value
+    if (value != std::numeric_limits<double>::denorm_min())
+      buffer = fmt::format("{}{}", value, SvgUnits::toString(unit));
+    return std::move(buffer);
+  }
 };
 
 class SvgRect
