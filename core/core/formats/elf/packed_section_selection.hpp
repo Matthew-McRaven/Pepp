@@ -48,8 +48,9 @@ public:
       : PackedSectionSelection(group, [](const Ref &) { return true; }) {}
   // Defined in the class because MSVC cannot match an out-of-class constrained template to its declaration.
   template <std::predicate<const Ref &> Pred> PackedSectionSelection(const Group &group, Pred &&select) {
-    _file_begin.reserve(group.size() + 1);
-    _file_begin.push_back(0); // File 0 is reserved as an invalid/sentinel value.
+    // Slot 0 is unused since ID 0 is invalid. Needs N+1 slots to prevent buffer overrun when accessing the maximum ID.
+    _offsets.reserve(group.size() + 2);
+    _offsets.assign(2, 0);
     for (u32 id = 1; id <= group.size(); ++id) {
       const auto &file = group.file(ElfFileID(id));
       for (const auto handle : group.sections(ElfFileID(id))) {
@@ -58,12 +59,13 @@ public:
           throw std::length_error("PackedSectionSelection: too many sections");
         _handles.push_back(handle);
       }
-      _file_begin.push_back(static_cast<u32>(_handles.size()));
+      // This file's end, which is also where the next one starts.
+      _offsets.push_back(static_cast<u32>(_handles.size()));
     }
   }
 
   // The number of files the group had when this selection was made.
-  u32 files() const noexcept { return static_cast<u32>(_file_begin.size() - 1); }
+  u32 files() const noexcept { return static_cast<u32>(_offsets.size() - 2); }
   u32 size() const noexcept { return static_cast<u32>(_handles.size()); }
   bool empty() const noexcept { return _handles.empty(); }
 
@@ -78,8 +80,8 @@ public:
 
 private:
   std::vector<InputElfSectionHandle> _handles;
-  // _handles[_file_begin[id - 1], _file_begin[id]) are the selected sections of a particulat file.
-  std::vector<u32> _file_begin;
+  // _handles[_offsets[id], _offsets[id + 1]) are the selected sections of file id. Index 0 is unused.
+  std::vector<u32> _offsets;
 };
 
 template <ElfBits B, ElfEndian E> InputElfSectionHandle PackedSectionSelection<B, E>::handle(u32 position) const {
@@ -89,10 +91,10 @@ template <ElfBits B, ElfEndian E> InputElfSectionHandle PackedSectionSelection<B
 
 template <ElfBits B, ElfEndian E>
 std::optional<u32> PackedSectionSelection<B, E>::position(InputElfSectionHandle handle) const {
-  if (!handle || handle.file.value >= _file_begin.size()) return std::nullopt;
+  if (!handle || handle.file.value >= _offsets.size() - 1) return std::nullopt;
   // Handles are sorted by file then by section index. Limit search to the target file.
-  const auto first = _handles.begin() + _file_begin[handle.file.value - 1];
-  const auto last = _handles.begin() + _file_begin[handle.file.value];
+  const auto first = _handles.begin() + _offsets[handle.file.value];
+  const auto last = _handles.begin() + _offsets[handle.file.value + 1];
   const auto it = std::lower_bound(first, last, handle);
   if (it == last || *it != handle) return std::nullopt;
   return static_cast<u32>(it - _handles.begin());
@@ -105,9 +107,9 @@ std::span<const InputElfSectionHandle> PackedSectionSelection<B, E>::handles() c
 
 template <ElfBits B, ElfEndian E>
 std::span<const InputElfSectionHandle> PackedSectionSelection<B, E>::handles(ElfFileID id) const {
-  if (!id || id.value >= _file_begin.size()) throw std::out_of_range("PackedSectionSelection: no file with this ID");
-  const u32 first = _file_begin[id.value - 1];
-  return std::span(_handles).subspan(first, _file_begin[id.value] - first);
+  if (!id || id.value >= _offsets.size() - 1) throw std::out_of_range("PackedSectionSelection: no file with this ID");
+  const u32 first = _offsets[id.value];
+  return std::span(_handles).subspan(first, _offsets[id.value + 1] - first);
 }
 
 // Extract the sections whose name matches a glob pattern. The glob is mutable because it compiles itself on first use.

@@ -118,8 +118,8 @@ public:
   // Adds one member of an archive in this group as an ELF file.
   Result<ElfFileID> add_member(ElfArchiveID id, const PackedArMember &member);
 
-  std::size_t size() const noexcept { return _files.size(); }
-  std::size_t archive_count() const noexcept { return _archives.size(); }
+  std::size_t size() const noexcept { return _files.size() - 1; }
+  std::size_t archive_count() const noexcept { return _archives.size() - 1; }
   const File &file(ElfFileID id) const;
   const ElfProvenance &provenance(ElfFileID id) const;
   // Throws std::out_of_range if no archive has this ID.
@@ -146,9 +146,10 @@ private:
     return std::unexpected(InputGroupError{code});
   }
 
-  std::vector<Entry> _files;
+  // Both are indexed by ID. ID 0 is invalid, so index 0 is reserved.
+  std::vector<Entry> _files = std::vector<Entry>(1);
   // Must ensure pointer stability for archives on insert to the vector.
-  std::vector<std::unique_ptr<PackedInputArchive>> _archives;
+  std::vector<std::unique_ptr<PackedInputArchive>> _archives = std::vector<std::unique_ptr<PackedInputArchive>>(1);
 };
 
 // Helper to wrap wrap one file in a group of the same type
@@ -179,8 +180,8 @@ auto PackedInputElfGroup<B, E>::add(const std::filesystem::path &path) -> Result
 
 template <ElfBits B, ElfEndian E>
 auto PackedInputElfGroup<B, E>::add_member(ElfArchiveID id, const PackedArMember &member) -> Result<ElfFileID> {
-  if (!id || id.value > _archives.size()) return fail(InputGroupError::Code::NoSuchArchive);
-  auto elf = detail::open_member(*_archives[id.value - 1], member);
+  if (!id || id.value >= _archives.size()) return fail(InputGroupError::Code::NoSuchArchive);
+  auto elf = detail::open_member(*_archives[id.value], member);
   if (!elf) return std::unexpected(elf.error());
   return insert(std::move(*elf), ElfFromArchive{id, member});
 }
@@ -191,11 +192,11 @@ auto PackedInputElfGroup<B, E>::insert(AnyInputElf elf, ElfProvenance provenance
   auto *held = std::get_if<std::unique_ptr<File>>(&elf);
   if (held == nullptr) return fail(WrongClassOrByteOrder);
   else if (*held == nullptr) throw std::invalid_argument("PackedInputElfGroup::add: file must be non-null");
-  else if (!_files.empty() && u16((*held)->header.e_machine) != u16(_files.front().file->header.e_machine))
+  else if (size() != 0 && u16((*held)->header.e_machine) != u16(_files[1].file->header.e_machine))
     return fail(WrongMachine);
   else if (_files.size() >= std::numeric_limits<ElfFileID::underlying_type>::max()) return fail(TooManyInputs);
   _files.push_back({std::move(*held), std::move(provenance)});
-  return ElfFileID(static_cast<ElfFileID::underlying_type>(_files.size()));
+  return ElfFileID(static_cast<ElfFileID::underlying_type>(_files.size() - 1));
 }
 
 template <ElfBits B, ElfEndian E>
@@ -203,24 +204,24 @@ auto PackedInputElfGroup<B, E>::insert(PackedInputArchive archive) -> Result<Elf
   if (_archives.size() >= std::numeric_limits<ElfArchiveID::underlying_type>::max())
     return fail(InputGroupError::Code::TooManyInputs);
   _archives.push_back(std::make_unique<PackedInputArchive>(std::move(archive)));
-  return ElfArchiveID(static_cast<ElfArchiveID::underlying_type>(_archives.size()));
+  return ElfArchiveID(static_cast<ElfArchiveID::underlying_type>(_archives.size() - 1));
 }
 
 template <ElfBits B, ElfEndian E> auto PackedInputElfGroup<B, E>::file(ElfFileID id) const -> const File & {
-  if (!id || id.value > _files.size()) throw std::out_of_range("PackedInputElfGroup: no file with this ID");
-  return *_files[id.value - 1].file;
+  if (!id || id.value >= _files.size()) throw std::out_of_range("PackedInputElfGroup: no file with this ID");
+  return *_files[id.value].file;
 }
 
 template <ElfBits B, ElfEndian E>
 auto PackedInputElfGroup<B, E>::provenance(ElfFileID id) const -> const ElfProvenance & {
-  if (!id || id.value > _files.size()) throw std::out_of_range("PackedInputElfGroup: no file with this ID");
-  return _files[id.value - 1].provenance;
+  if (!id || id.value >= _files.size()) throw std::out_of_range("PackedInputElfGroup: no file with this ID");
+  return _files[id.value].provenance;
 }
 
 template <ElfBits B, ElfEndian E>
 auto PackedInputElfGroup<B, E>::archive(ElfArchiveID id) const -> const PackedInputArchive & {
-  if (!id || id.value > _archives.size()) throw std::out_of_range("PackedInputElfGroup: no archive with this ID");
-  return *_archives[id.value - 1];
+  if (!id || id.value >= _archives.size()) throw std::out_of_range("PackedInputElfGroup: no archive with this ID");
+  return *_archives[id.value];
 }
 
 template <ElfBits B, ElfEndian E>
