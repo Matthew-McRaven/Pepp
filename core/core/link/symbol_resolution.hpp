@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <expected>
 #include <optional>
+#include <span>
 #include <string_view>
 #include <vector>
 #include "core/ds/opaque_handle.hpp"
@@ -26,11 +27,11 @@
 #include "core/formats/elf/packed_input_group.hpp"
 
 namespace pepp::link {
-// Index of a symbol in a FileSymbolTable. 0 is STN_UNDEF.
-using FileSymbolID = pepp::OpaqueHandle<struct FileSymbolTag, u32>;
-consteval void allow_opaque_handle_add(FileSymbolID);
+// Index of a symbol in InputSymbols. 0 is STN_UNDEF.
+using InputSymbolID = pepp::OpaqueHandle<struct InputSymbolTag, u32>;
+consteval void allow_opaque_handle_add(InputSymbolID);
 
-struct SymbolTableError {
+struct GatherError {
   enum class Code : u8 {
     // sh_link does not point to a valid string table.
     BadStringTable,
@@ -49,34 +50,46 @@ struct SymbolTableError {
   u32 index = 0;
 };
 
+// What resolution needs to know about one non-local symbol, read once while gathering. One byte.
+struct SymbolAttributes {
+  u8 undefined : 1 = 0;
+  u8 weak : 1 = 0;
+  u8 common : 1 = 0;
+  u8 tls : 1 = 0;
+  // STT_NOTYPE, which says nothing about whether the symbol is thread-local.
+  u8 untyped : 1 = 0;
+  // An STV_* value.
+  u8 visibility : 2 = 0;
+};
+static_assert(sizeof(SymbolAttributes) == 1);
+
 // The non-local symbols of every file in a group, stored as a flat vector sorted by file then symtab order.
 // Index 0 is reserved for the undefined symbol.
-class FileSymbolTable {
+class InputSymbols {
 public:
-  // Extract all non-local symbols for each ELF file in the group. Files without symbol tables are skipped. Archive's
-  // symbol index is ignored, meaning members' symbol tables are re-read from their ELF symtabs.
-  template <bts::ElfBits B, bts::ElfEndian E>
-  static std::expected<FileSymbolTable, SymbolTableError> collect(const bts::PackedInputElfGroup<B, E> &group);
-
   // Including STN_UNDEF/0 IDs are [0, size()).
   u32 size() const noexcept { return static_cast<u32>(_names.size()); }
-  // Both throw std::out_of_range if id >= size(). Name points into the ELF file's string table storage.
-  std::string_view name(FileSymbolID id) const;
-  bool undefined(FileSymbolID id) const;
+  // All throw std::out_of_range if id >= size(). Name points into the ELF file's string table storage.
+  std::string_view name(InputSymbolID id) const;
+  bool undefined(InputSymbolID id) const { return attributes(id).undefined; }
+  SymbolAttributes attributes(InputSymbolID id) const;
   // The ID of symbol index of file id: STN_UNDEF for index 0, or nullopt if the symbol is local or does not exist.
-  std::optional<FileSymbolID> find(bts::ElfFileID id, u32 index) const;
+  std::optional<InputSymbolID> find(bts::ElfFileID id, u32 index) const;
+  // The file that symbol id belongs to. Throws std::out_of_range for STN_UNDEF, which belongs to every file, or if
+  // id >= size().
+  bts::ElfFileID file_of(InputSymbolID id) const;
   // The number of files in the group when this table was made.
   u32 files() const noexcept { return static_cast<u32>(_non_locals.size() - 1); }
 
 private:
-  // Both are indexed by FileSymbolID. Entry 0 is STN_UNDEF which is both undefined and has no name.
+  // Both are indexed by InputSymbolID. Entry 0 is STN_UNDEF which is both undefined and has no name.
   std::vector<std::string_view> _names = std::vector<std::string_view>(1);
-  std::vector<bool> _undefined = std::vector<bool>(1, true);
+  std::vector<SymbolAttributes> _attributes = std::vector<SymbolAttributes>(1, SymbolAttributes{.undefined = 1});
 
   // The span of one file's non-local symbols
   struct NonLocalRange {
     // The file's first non-local symbol. All symbols in this file can be expressed as an offset from first_id.
-    FileSymbolID first_id;
+    InputSymbolID first_id;
     // The symbol table's index for the first non-local that is read from sh_info.
     u32 first_global = 0;
     // How many non-local symbols does the file contain?
@@ -84,22 +97,26 @@ private:
   };
   // Indexed by file ID. Index 0 is unused.
   std::vector<NonLocalRange> _non_locals = std::vector<NonLocalRange>(1);
+
+  template <bts::ElfBits B, bts::ElfEndian E>
+  friend std::expected<InputSymbols, GatherError> gather_symbols(const bts::PackedInputElfGroup<B, E> &group);
 };
 
+// Extract all non-local symbols for each ELF file in the group. Files without symbol tables are skipped. Archive's
+// symbol index is ignored, meaning members' symbol tables are re-read from their ELF symtabs.
 template <bts::ElfBits B, bts::ElfEndian E>
-std::expected<FileSymbolTable, SymbolTableError>
-FileSymbolTable::collect(const bts::PackedInputElfGroup<B, E> &group) {
+std::expected<InputSymbols, GatherError> gather_symbols(const bts::PackedInputElfGroup<B, E> &group) {
   using namespace bts;
-  using enum SymbolTableError::Code;
-  constexpr auto fail = [&](u32 id, SymbolTableError::Code code, u32 index) {
-    return std::unexpected(SymbolTableError{code, ElfFileID(id), index});
+  using enum GatherError::Code;
+  constexpr auto fail = [&](u32 id, GatherError::Code code, u32 index) {
+    return std::unexpected(GatherError{code, ElfFileID(id), index});
   };
 
-  FileSymbolTable ret;
+  InputSymbols ret;
 
   for (u32 id = 1; id <= group.size(); ++id) {
     const auto &elf = group.file(ElfFileID(id));
-    NonLocalRange range{.first_id = FileSymbolID(static_cast<u32>(ret._names.size()))};
+    InputSymbols::NonLocalRange range{.first_id = InputSymbolID(static_cast<u32>(ret._names.size()))};
     // Search for the first (only?) SHT_SYMTAB section. If there is none, the file has no non-local symbols.
     for (u16 sec = 0; sec < elf.section_headers.size(); ++sec) {
       const auto &shdr = elf.section_headers[sec];
@@ -121,7 +138,12 @@ FileSymbolTable::collect(const bts::PackedInputElfGroup<B, E> &group) {
           return fail(id, LocalOnlyType, it);
         const auto name = symtab.get_symbol_name(it);
         ret._names.emplace_back(name.data(), name.size());
-        ret._undefined.push_back(sym.is_undef());
+        ret._attributes.push_back({.undefined = static_cast<u8>(sym.is_undef()),
+                                   .weak = static_cast<u8>(sym.st_bind() == SymbolBinding::STB_WEAK),
+                                   .common = static_cast<u8>(sym.is_common()),
+                                   .tls = static_cast<u8>(sym.st_type() == SymbolType::STT_TLS),
+                                   .untyped = static_cast<u8>(sym.st_type() == SymbolType::STT_NOTYPE),
+                                   .visibility = static_cast<u8>(sym.st_visibility())});
       }
       break;
     }

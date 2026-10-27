@@ -15,8 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "core/link/file_symbols.hpp"
+#include "core/link/symbol_resolution.hpp"
 #include <catch.hpp>
+#include <initializer_list>
+#include <stdexcept>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -57,7 +59,7 @@ Elf object(bool with_symbols) {
 using Names = std::vector<std::string_view>;
 
 // The of non-local symbols for a particular file.
-Names names_of(const FileSymbolTable &table, ElfFileID file, u32 first, u32 last) {
+Names names_of(const InputSymbols &table, ElfFileID file, u32 first, u32 last) {
   Names ret;
   for (u32 index = first; index < last; ++index) {
     const auto id = table.find(file, index);
@@ -67,11 +69,11 @@ Names names_of(const FileSymbolTable &table, ElfFileID file, u32 first, u32 last
   return ret;
 }
 
-// The error from collecting elf, whose symbol table the caller has broken.
-SymbolTableError::Code error_of(Elf &elf) {
+// The error from gathering elf's symbols, after the caller has broken its symbol table.
+GatherError::Code error_of(Elf &elf) {
   PackedInputElfGroupLE32 group;
   REQUIRE(group.add(to_input_elf(elf)));
-  const auto table = FileSymbolTable::collect(group);
+  const auto table = gather_symbols(group);
   REQUIRE_FALSE(table);
   return table.error().code;
 }
@@ -83,29 +85,33 @@ TEST_CASE("Collect globals / undefineds", "[scope:core][scope:core.link][kind:un
   const auto a = group.add(to_input_elf(with)).value(), b = group.add(to_input_elf(without)).value();
 
   SECTION("Weak, global, and undefined symbols") {
-    const auto table = FileSymbolTable::collect(group);
+    const auto table = gather_symbols(group);
     REQUIRE(table);
     CHECK(table->files() == 2);
     // STN_UNDEF, then a's four non-locals, which are symbol indices 3 to 6.
     CHECK(table->size() == 5);
     CHECK(names_of(*table, a, 3, 7) == Names{"main", "helper", "printf", "optional"});
-    CHECK(table->find(a, 5) == FileSymbolID{3});
-    CHECK_FALSE(table->undefined(FileSymbolID{2}));
-    CHECK(table->undefined(FileSymbolID{3}));
+    CHECK(table->find(a, 5) == InputSymbolID{3});
+    CHECK_FALSE(table->undefined(InputSymbolID{2}));
+    CHECK(table->undefined(InputSymbolID{3}));
     // Index 0 is STN_UNDEF in every file, even one without a symbol table.
-    CHECK(table->find(b, 0) == FileSymbolID{0});
-    CHECK(table->name(FileSymbolID{0}).empty());
-    CHECK(table->undefined(FileSymbolID{0}));
+    CHECK(table->find(b, 0) == InputSymbolID{0});
+    CHECK(table->name(InputSymbolID{0}).empty());
+    CHECK(table->undefined(InputSymbolID{0}));
     // Locals have no ID, nor do indices past the end, unknown files, or files without a symbol table.
     CHECK_FALSE(table->find(a, 2));
     CHECK_FALSE(table->find(a, 7));
     CHECK_FALSE(table->find(b, 1));
     CHECK_FALSE(table->find(ElfFileID{3}, 0));
+    // Each ID maps back to its file, except STN_UNDEF which doesn't belong to any file.
+    CHECK(table->file_of(InputSymbolID{4}) == a);
+    CHECK_THROWS_AS(table->file_of(InputSymbolID{0}), std::out_of_range);
+    CHECK_THROWS_AS(table->file_of(InputSymbolID{5}), std::out_of_range);
   }
   SECTION("Reject malformed symbol tables") {
-    using enum SymbolTableError::Code;
+    using enum GatherError::Code;
     // sh_info past the end; at loop, which is local, at 2; after main, which is global, at 3.
-    const std::pair<u32, SymbolTableError::Code> first_globals[] = {
+    const std::pair<u32, GatherError::Code> first_globals[] = {
         {100, BadFirstGlobal}, {2, LocalAfterFirstGlobal}, {4, GlobalBeforeFirstGlobal}};
     for (const auto &[sh_info, code] : first_globals) {
       auto elf = object(true);
@@ -137,9 +143,11 @@ TEST_CASE("Collect globals / undefineds", "[scope:core][scope:core.link][kind:un
     REQUIRE(id);
     const auto c = group.add_member(*id, *member);
     REQUIRE(c);
-    const auto table = FileSymbolTable::collect(group);
+    const auto table = gather_symbols(group);
     REQUIRE(table);
-    // helper is collected anyway, from the member's own symbol table.
+    // helper is gathered anyway, from the member's own symbol table.
     CHECK(names_of(*table, *c, 3, 7) == names_of(*table, a, 3, 7));
+    // b, which has no non-locals, starts where c does, so c's IDs must not map back to b.
+    CHECK(table->file_of(*table->find(*c, 3)) == *c);
   }
 }
