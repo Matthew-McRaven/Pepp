@@ -88,9 +88,9 @@ TEST_CASE("SvgTransform tests-toString", "[scope:core][scope:core.svgdom.svgtran
     CHECK(test.toString() == ""s);
 
     test.setRotate(25.1);
-    CHECK(test.toString() == "transform=rotate(25.1)"s);
+    CHECK(test.toString() == "transform=\"rotate(25.1)\""s);
     test.setRotate(-1.1, 2.2, -3.3);
-    CHECK(test.toString() == "transform=rotate(-1.1 2.2 -3.3)"s);
+    CHECK(test.toString() == "transform=\"rotate(-1.1 2.2 -3.3)\""s);
     //  Resetting to default value removes element from output
     test.setRotate(0);
     CHECK(test.toString() == ""s);
@@ -103,9 +103,9 @@ TEST_CASE("SvgTransform tests-toString", "[scope:core][scope:core.svgdom.svgtran
   {
     SvgTransform test;
     test.setScale(5);
-    CHECK(test.toString() == "transform=scale(5)"s);
+    CHECK(test.toString() == "transform=\"scale(5)\""s);
     test.setScale(6, 7);
-    CHECK(test.toString() == "transform=scale(6 7)"s);
+    CHECK(test.toString() == "transform=\"scale(6 7)\""s);
     //  Resetting to default value removes element from output
     test.setScale(1, 0);
     CHECK(test.toString() == ""s);
@@ -115,10 +115,10 @@ TEST_CASE("SvgTransform tests-toString", "[scope:core][scope:core.svgdom.svgtran
   {
     SvgTransform test;
     test.setSkewX(25.5);
-    CHECK(test.toString() == "transform=skewX(25.5)"s);
+    CHECK(test.toString() == "transform=\"skewX(25.5)\""s);
     //  Values over 360 are clamped to 0 and 359
     test.setSkewX(1200);
-    CHECK(test.toString() == "transform=skewX(120)"s);
+    CHECK(test.toString() == "transform=\"skewX(120)\""s);
     //  Resetting to default value removes element from output
     test.setSkewX(0);
     CHECK(test.toString() == ""s);
@@ -128,10 +128,10 @@ TEST_CASE("SvgTransform tests-toString", "[scope:core][scope:core.svgdom.svgtran
   {
     SvgTransform test;
     test.setSkewY(24.5);
-    CHECK(test.toString() == "transform=skewY(24.5)"s);
+    CHECK(test.toString() == "transform=\"skewY(24.5)\""s);
     //  Negative values over 360 are clamped to 0 and 359
     test.setSkewY(-450);
-    CHECK(test.toString() == "transform=skewY(-90)"s);
+    CHECK(test.toString() == "transform=\"skewY(-90)\""s);
     //  Resetting to default value removes element from output
     test.setSkewY(0);
     CHECK(test.toString() == ""s);
@@ -141,9 +141,9 @@ TEST_CASE("SvgTransform tests-toString", "[scope:core][scope:core.svgdom.svgtran
   {
     SvgTransform test;
     test.setTranslate(12.3);
-    CHECK(test.toString() == "transform=translate(12.3)"s);
+    CHECK(test.toString() == "transform=\"translate(12.3)\""s);
     test.setTranslate(23.4, 43.2);
-    CHECK(test.toString() == "transform=translate(23.4 43.2)"s);
+    CHECK(test.toString() == "transform=\"translate(23.4 43.2)\""s);
     //  Resetting to default value removes element from output
     test.setTranslate(0, 0);
     CHECK(test.toString() == ""s);
@@ -163,11 +163,12 @@ TEST_CASE("SvgTransform tests-multiple transformations", "[scope:core][scope:cor
   test.setSkewX(25.5);
   test.setSkewY(-450);
   test.setTranslate(23.4, 43.2);
-  CHECK(test.toString() == "transform=rotate(-1.1 2.2 -3.3) scale(6 7) skewX(25.5) skewY(-90) translate(23.4 43.2)"s);
+  CHECK(test.toString() ==
+        "transform=\"rotate(-1.1 2.2 -3.3) scale(6 7) skewX(25.5) skewY(-90) translate(23.4 43.2)\""s);
 
   //  Change values
   test.setSkewX(0);        //  Removes value
   test.setRotate(321);     //  Moves value
   test.setTranslate(0, 0); //  Removes value
-  CHECK(test.toString() == "transform=scale(6 7) skewY(-90) rotate(321)"s);
+  CHECK(test.toString() == "transform=\"scale(6 7) skewY(-90) rotate(321)\""s);
 }

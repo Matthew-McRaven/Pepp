@@ -80,7 +80,7 @@ const std::string SvgTransform::toString() const {
   std::string buffer;
   for (const auto type : _order) {
     if (first) {
-      buffer = "transform="s;
+      buffer = "transform=\""s;
       first = false;
     } else buffer += " "s;
 
@@ -134,5 +134,6 @@ const std::string SvgTransform::toString() const {
     default: continue;
     }
   } //  for (auto type : _order)
+  if (!buffer.empty()) buffer += "\""s;
   return std::move(buffer);
 }

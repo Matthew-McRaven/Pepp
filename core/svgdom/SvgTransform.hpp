@@ -1,7 +1,6 @@
 #pragma once
 
 #include <fmt/format.h> //  For fmt::format
-#include <limits>       //  For std::numeric_limits
 #include <list>
 #include <string>
 using namespace std::string_literals;
