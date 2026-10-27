@@ -286,10 +286,12 @@ TEST_CASE("Symbol ranking and selection", "[scope:core][scope:core.link][kind:un
     CHECK(symbol(8).owner == entry(a, 8));
     CHECK(symbol(8).visibility == bits::to_underlying(SymbolVisibility::STV_HIDDEN));
   }
-  SECTION("Conflicts reported in input order") {
+  SECTION("Conflicts and strong undefined references are reported in input order") {
     using enum ResolveError::Code;
     const std::vector<ResolveError> expected{
         {MultipleDefinition, symbols.of(entry(a, 4)), entry(a, 4), entry(b, 4)},
+        // weak_refs, whose references are all weak, resolves to 0 without an error.
+        {Undefined, symbols.of(entry(b, 6)), InputSymbolID{0}, entry(b, 6)},
         {TlsMismatch, symbols.of(entry(a, 7)), entry(a, 7), entry(b, 7)}};
     CHECK(std::vector(symbols.errors().begin(), symbols.errors().end()) == expected);
   }

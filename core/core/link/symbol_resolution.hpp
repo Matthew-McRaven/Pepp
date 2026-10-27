@@ -168,8 +168,8 @@ struct ResolveError {
   enum class Code : u8 {
     MultipleDefinition, // Two strong definitions.
     TlsMismatch,        // A symbol is defined as TLS in one file and not in another.
+    Undefined,          // A Symbol was never defined. The offending symbol is held in "conflicting"
   };
-  // A short, lower-case description, such as "multiple definition".
   static std::string_view to_string(Code code);
 
   Code code;

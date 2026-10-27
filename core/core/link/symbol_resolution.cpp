@@ -190,6 +190,14 @@ pepp::link::ResolvedSymbols pepp::link::resolve_symbols(const InputSymbols &tabl
   ret._symbols.clear();
   ret._symbols.reserve(candidates.size());
   for (const auto &candidate : candidates) ret._symbols.push_back({candidate.owner, candidate.visibility});
+  // Perform a single pass to catch all undefined references from the source programs.
+  // TODO: need to perform reachability/garbage-collection pass first to avoid reporting undefs that are unused.
+  for (u32 it = 1; it < table.size(); ++it) {
+    const InputSymbolID id(it);
+    const auto attributes = table.attributes(id);
+    if (const auto symbol = ret.of(id); attributes.undefined && !attributes.weak && !ret._symbols[symbol.value].owner)
+      ret._errors.push_back({ResolveError::Code::Undefined, symbol, InputSymbolID(0), id});
+  }
   // Sort errors by the offending symbols input ID.
   std::ranges::stable_sort(ret._errors, {}, &ResolveError::conflicting);
   return ret;
@@ -199,6 +207,7 @@ std::string_view pepp::link::ResolveError::to_string(Code code) {
   switch (code) {
   case Code::MultipleDefinition: return "multiple definition";
   case Code::TlsMismatch: return "thread-local and non-thread-local symbols share a name";
+  case Code::Undefined: return "undefined symbol";
   }
   return "unknown error";
 }
