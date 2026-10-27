@@ -1,47 +1,56 @@
-;File: fig0648.pep
-;Computer Systems, Fifth edition
-;Figure 6.48
-;
-         BR      main
-data:    .EQUATE 0           ;struct field #2d
-next:    .EQUATE 2           ;struct field #2h
-;
-;******* main ()
-first:   .EQUATE 4           ;local variable #2h
-p:       .EQUATE 2           ;local variable #2h
-value:   .EQUATE 0           ;local variable #2d
-main:    SUBSP   6,i         ;push #first #p #value
-         LDWA    0,i         ;first = 0
-         STWA    first,s
-         @DECI   value,s     ;scanf("%d", &value);
-while:   LDWA    value,s     ;while (value != -9999)
-         CPWA    -9999,i
-         BREQ    endWh
-         LDWA    first,s     ;p = first
-         STWA    p,s
-         LDWA    4,i         ;first = (struct node *) malloc(sizeof(struct node))
-         CALL    malloc      ;allocate #data #next
-         STWX    first,s
-         LDWA    value,s     ;first->data = value
-         LDWX    data,i
-         STWA    first,sfx
-         LDWA    p,s         ;first->next = p
-         LDWX    next,i
-         STWA    first,sfx
-         @DECI   value,s     ;scanf("%d", &value)
-         BR      while
-endWh:   LDWA    first,s     ;for (p = first
-         STWA    p,s
-for:     LDWA    p,s         ;p != 0
-         CPWA    0,i
-         BREQ    endFor
-         LDWX    data,i      ;printf("%d ", p->data)
-         @DECO   p,sfx
-         @CHARO  ' ',i
-         LDWX    next,i      ;p = p->next)
-         LDWA    p,sfx
-         STWA    p,s
-         BR      for
-endFor:  ADDSP   6,i         ;pop #value #p #first
+BR      main
+vector:  .BLOCK  12          ;global variable #2d6a
+numItms: .BLOCK  2           ;global variable #2d
+;******* getVect(int v[], int *n)
+v:       .EQUATE 6           ;formal parameter #2h
+n:       .EQUATE 4           ;formal parameter #2h
+j:       .EQUATE 0           ;local variable #2d
+getVect: SUBSP   2,i         ;push #j
+@DECI   n,sf        ;scanf("%d", n)
+LDWX    0,i         ;for (j = 0
+STWX    j,s
+for:     CPWX    n,sf        ;j < *n
+BRGE    endFor
+ASLX                ;two bytes per integer
+@DECI   v,sfx       ;scanf("%d", &v[j])
+LDWX    j,s         ;j++)
+ADDX    1,i
+STWX    j,s
+BR      for
+endFor:  ADDSP   2,i         ;pop #j
+RET
+;******* putVect(int v[], int n)
+v2:      .EQUATE 6           ;formal parameter #2h
+n2:      .EQUATE 4           ;formal parameter #2d
+j2:      .EQUATE 0           ;local variable #2d
+putVect: SUBSP   2,i         ;push #j2
+LDWX    0,i         ;for (j = 0
+STWX    j2,s
+for2:    CPWX    n2,s        ;j < n
+BRGE    endFor2
+ASLX                ;two bytes per integer
+@DECO   v2,sfx      ;printf("%d ", v[j])
+@CHARO  ' ',i
+LDWX    j2,s        ;j++)
+ADDX    1,i
+STWX    j2,s
+BR      for2
+endFor2: @CHARO  '\n',i      ;printf("\n")
+ADDSP   2,i         ;pop #j2
+RET
+;******* main()
+main:    LDWA    vector,i    ;move (&)vector
+         STWA    -2,s
+         LDWA    numItms,i   ;move &numItms
+         STWA    -4,s
+         SUBSP   4,i         ;push #v #n
+         CALL    getVect     ;getVect(vector, &numItms)
+         ADDSP   4,i         ;pop #n #v
+         LDWA    vector,i    ;move (&)vector
+         STWA    -2,s
+         LDWA    numItms,d   ;move numItms
+         STWA    -4,s
+         SUBSP   4,i         ;push #v2 #n2
+         CALL    putVect     ;putVect(vector, numItms)
+         ADDSP   4,i         ;pop #n2 #v2
          RET
-         @MALLOC

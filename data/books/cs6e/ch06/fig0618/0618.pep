@@ -1,20 +1,13 @@
-;File: fig0618.pep
-;Computer Systems, Fifth edition
-;Figure 6.18
+BR      main
+number:  .EQUATE 0           ;local variable #2d
 ;
-         BR      main
-;
-;******* void printTri()
-printTri:@STRO   msg1,d      ;printf("*\n")
-         @STRO   msg2,d      ;printf("**\n")
-         @STRO   msg3,d      ;printf("***\n")
-         RET
-msg1:    .ASCII  "*\n\0"
-msg2:    .ASCII  "**\n\0"
-msg3:    .ASCII  "***\n\0"
-;
-;******* int main()
-main:    CALL    printTri    ;printTri()
-         CALL    printTri    ;printTri()
-         CALL    printTri    ;printTri()
-         RET
+main:    SUBSP   2,i         ;push #number
+@DECI   number,s    ;scanf("%d", &number)
+if:      LDWA    number,s    ;if (number < 0)
+BRGE    endIf
+LDWA    number,s    ;number = -number
+NEGA
+STWA    number,s
+endIf:   @DECO   number,s    ;printf("%d", number)
+ADDSP   2,i         ;pop #number
+RET

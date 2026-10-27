@@ -1,43 +1,39 @@
-;File: fig0632.pep
-;Computer Systems, Fifth edition
-;Figure 6.32
+BR      main
+numPts:  .BLOCK  2           ;global variable #2d
+value:   .BLOCK  2           ;global variable #2d
+j:       .BLOCK  2           ;global variable #2d
 ;
-         BR      main
-;
-LOWER:   .EQUATE 21          ;const int
-UPPER:   .EQUATE 65          ;const int
-;
-;******* bool inRange(int a)
-retVal:  .EQUATE 4           ;returned value #2d
-a:       .EQUATE 2           ;formal parameter #2d
-inRange: LDWA    LOWER,i     ;if ((LOWER <= a)
-if:      CPWA    a,s
-         BRGT    else
-         LDWA    a,s         ;&& (a <= UPPER))
-         CPWA    UPPER,i
-         BRGT    else
-then:    LDWA    true,i      ;return true
-         STWA    retVal,s
-         RET
-else:    LDWA    false,i     ;return false
-         STWA    retVal,s
-         RET
+;******* void printBar(int n)
+n:       .EQUATE 4           ;formal parameter #2d
+k:       .EQUATE 0           ;local variable #2d
+printBar:SUBSP   2,i         ;push #k
+LDWA    1,i         ;for (k = 1
+STWA    k,s
+for1:    CPWA    n,s         ;k <= n
+BRGT    endFor1
+@CHARO  '*',i       ;printf("*")
+LDWA    k,s         ;k++)
+ADDA    1,i
+STWA    k,s
+BR      for1
+endFor1: @CHARO  '\n',i      ;printf("\n")
+ADDSP   2,i         ;pop #k
+RET
 ;
 ;******* main()
-age:     .EQUATE 0           ;local variable #2d
-main:    SUBSP   2,i         ;push #age
-         @DECI   age,s       ;scanf("%d", &age)
-         LDWA    age,s       ;move age
-         STWA    -4,s
-         SUBSP   4,i         ;push #retVal #a
-         CALL    inRange     ;inRange(age)
-         ADDSP   4,i         ;pop #a #retVal
-         LDWA    -2,s        ;if (inRange(age))
-         BREQ    else2
-then2:   @STRO   msg1,d      ;printf("Qualified\n")
-         BR      endif2
-else2:   @STRO   msg2,d      ;printf("Unqualified\n");
-endif2:  ADDSP   2,i         ;pop #age
-         RET
-msg1:    .ASCII  "Qualified\n\0"
-msg2:    .ASCII  "Unqualified\n\0"
+main:    @DECI   numPts,d    ;scanf("%d", &numPts)
+LDWA    1,i         ;for (j = 1
+STWA    j,d
+for2:    CPWA    numPts,d    ;j <= numPts
+BRGT    endFor2
+@DECI   value,d     ;scanf("%d", &value)
+LDWA    value,d     ;move value
+STWA    -2,s
+SUBSP   2,i         ;push #n
+CALL    printBar    ;printBar(value)
+ADDSP   2,i         ;pop #n
+LDWA    j,d         ;j++)
+ADDA    1,i
+STWA    j,d
+BR      for2
+endFor2: RET

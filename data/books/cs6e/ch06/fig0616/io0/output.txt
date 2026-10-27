@@ -1,1 +1,1 @@
--15325
+Main failed with return value 666

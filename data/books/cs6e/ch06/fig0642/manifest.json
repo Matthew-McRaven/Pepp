@@ -5,9 +5,13 @@
   "arch": "pep10",
   "abstraction": "ASMB5",
   "default_os": "os:pep10os",
-  "description": "Translation of global pointers.",
+  "description": "A boolean function call.",
   "tests": [
-    "io0"
+    "io0",
+    "io1",
+    "io2",
+    "io3",
+    "io4"
   ],
   "fragments": [
     {

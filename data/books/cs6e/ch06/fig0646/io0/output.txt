@@ -1,3 +1,4 @@
-Initials: bj
-Age: 32
-Gender: male
+3 9
+2 -3
+1 26
+0 2

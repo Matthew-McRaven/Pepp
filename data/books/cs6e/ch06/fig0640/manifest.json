@@ -5,12 +5,9 @@
   "arch": "pep10",
   "abstraction": "ASMB5",
   "default_os": "os:pep10os",
-  "description": "Translation of a <code>switch</code> statement.",
+  "description": "A function call with local pointer parameters.",
   "tests": [
-    "io0",
-    "io1",
-    "io2",
-    "io3"
+    "io0"
   ],
   "fragments": [
     {

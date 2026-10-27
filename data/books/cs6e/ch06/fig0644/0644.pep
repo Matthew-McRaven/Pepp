@@ -1,44 +1,34 @@
-;File: fig0644.pep
-;Computer Systems, Fifth edition
-;Figure 6.44
-;
-         BR      main
+BR      main
+vector:  .BLOCK  8           ;global variable #2d4a
+j:       .BLOCK  2           ;global variable #2d
 ;
 ;******* main()
-a:       .EQUATE 4           ;local variable #2h
-b:       .EQUATE 2           ;local variable #2h
-c:       .EQUATE 0           ;local variable #2h
-main:    SUBSP   6,i         ;push #a #b #c
-         LDWA    2,i         ;a = (int *) malloc(sizeof(int))
-         CALL    malloc      ;allocate #2d
-         STWX    a,s
-         LDWA    5,i         ;*a = 5
-         STWA    a,sf
-         LDWA    2,i         ;b = (int *) malloc(sizeof(int))
-         CALL    malloc      ;allocate #2d
-         STWX    b,s
-         LDWA    3,i         ;*b = 3
-         STWA    b,sf
-         LDWA    a,s         ;c = a
-         STWA    c,s
-         LDWA    b,s         ;a = b
-         STWA    a,s
-         LDWA    2,i         ;*a = 2 + *c
-         ADDA    c,sf
-         STWA    a,sf
-         @STRO   msg0,d      ;printf("*a = %d\n", *a)
-         @DECO   a,sf
-         @CHARO  '\n',i
-         @STRO   msg1,d      ;printf("*b = %d\n", *b)
-         @DECO   b,sf
-         @CHARO  '\n',i
-         @STRO   msg2,d      ;printf("*c = %d\n", *c)
-         @DECO   c,sf
-         @CHARO  '\n',i
-         ADDSP   6,i         ;pop #c #b #a
-         RET
-msg0:    .ASCII  "*a = \0"
-msg1:    .ASCII  "*b = \0"
-msg2:    .ASCII  "*c = \0"
-;
-         @MALLOC
+main:    LDWX    0,i         ;for (j = 0
+STWX    j,d
+for1:    LDWX    j,d         ;j < 4
+CPWX    4,i
+BRGE    endFor1
+LDWX    j,d         ;scanf("%d", &vector[j])
+ASLX                ;two bytes per integer
+@DECI   vector,x
+LDWX    j,d         ;j++)
+ADDX    1,i
+STWX    j,d
+BR      for1
+endFor1: LDWX    3,i         ;for (j = 3
+STWX    j,d
+for2:    LDWX    j,d         ;j >= 0
+CPWX    0,i
+BRLT    endFor2
+LDWX    j,d         ;printf("%d %d\n", j, vector[j])
+@DECO   j,d
+@CHARO  ' ',i
+LDWX    j,d
+ASLX                ;two bytes per integer
+@DECO   vector,x
+@CHARO  '\n',i
+LDWX    j,d         ;j--)
+SUBX    1,i
+STWX    j,d
+BR      for2
+endFor2: RET

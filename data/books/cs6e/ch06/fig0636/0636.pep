@@ -1,36 +1,58 @@
-;File: fig0636.pep
-;Computer Systems, Fifth edition
-;Figure 6.36
+BR      main
 ;
-         BR      main
+;******* int binCoeff(int n, int k)
+retVal:  .EQUATE 10          ;return value #2d
+n:       .EQUATE 8           ;formal parameter #2d
+k:       .EQUATE 6           ;formal parameter #2d
+y1:      .EQUATE 2           ;local variable #2d
+y2:      .EQUATE 0           ;local variable #2d
+binCoeff:SUBSP   4,i         ;push #y1 #y2
+if:      LDWA    k,s         ;if ((k == 0)
+BREQ    then
+LDWA    n,s         ;|| (n == k))
+CPWA    k,s
+BRNE    else
+then:    LDWA    1,i         ;return 1
+STWA    retVal,s
+ADDSP   4,i         ;pop #y2 #y1
+RET
+else:    LDWA    n,s         ;move n - 1
+SUBA    1,i
+STWA    -4,s
+LDWA    k,s         ;move k
+STWA    -6,s
+SUBSP   6,i         ;push #retVal #n #k
+CALL    binCoeff    ;binCoeff(n - 1, k)
+ra2:     ADDSP   6,i         ;pop #k #n #retVal
+LDWA    -2,s        ;y1 = binCoeff(n - 1, k)
+STWA    y1,s
+LDWA    n,s         ;move n - 1
+SUBA    1,i
+STWA    -4,s
+LDWA    k,s         ;move k - 1
+SUBA    1,i
+STWA    -6,s
+SUBSP   6,i         ;push #retVal #n #k
+CALL    binCoeff    ;binCoeff(n - 1, k - 1)
+ra3:     ADDSP   6,i         ;pop #k #n #retVal
+LDWA    -2,s        ;y2 = binCoeff(n - 1, k - 1)
+STWA    y2,s
+LDWA    y1,s        ;return y1 + y2
+ADDA    y2,s
+STWA    retVal,s
+endIf:   ADDSP   4,i         ;pop #y2 #y1
+RET
 ;
-;******* main ()
-vector:  .EQUATE 2           ;local variable #2d4a
-j:       .EQUATE 0           ;local variable #2d
-main:    SUBSP   10,i        ;push #vector #j
-         LDWX    0,i         ;for (j = 0
-         STWX    j,s
-for1:    CPWX    4,i         ;j < 4
-         BRGE    endFor1
-         ASLX                ;two bytes per integer
-         @DECI   vector,sx   ;scanf("%d", &vector[j])
-         LDWX    j,s         ;j++)
-         ADDX    1,i
-         STWX    j,s
-         BR      for1
-endFor1: LDWX    3,i         ;for (j = 3
-         STWX    j,s
-for2:    CPWX    0,i         ;j >= 0
-         BRLT    endFor2
-         @DECO   j,s         ;printf("%d %d\n", j, vector[j])
-         LDBA    ' ',i
-         STBA    charOut,d
-         ASLX                ;two bytes per integer
-         @DECO   vector,sx
-         @CHARO  '\n',i
-         LDWX    j,s         ;j--)
-         SUBX    1,i
-         STWX    j,s
-         BR      for2
-endFor2: ADDSP   10,i        ;pop #j #vector
-         RET
+;******* main()
+main:    @STRO   msg,d       ;printf("binCoeff(3, 1) = %d\n",
+LDWA    3,i         ;move 3
+STWA    -4,s
+LDWA    1,i         ;move 1
+STWA    -6,s
+SUBSP   6,i         ;push #retVal #n #k
+CALL    binCoeff    ;binCoeff(3, 1)
+ra1:     ADDSP   6,i         ;pop #k #n #retVal
+@DECO   -2,s
+@CHARO  '\n',i
+RET
+msg:     .ASCII  "binCoeff(3, 1) = \0"

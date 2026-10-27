@@ -1,1 +1,1 @@
-40 50 60 70 80 
+Enter an integer: Enter an integer: Ordered they are: 4, 9
