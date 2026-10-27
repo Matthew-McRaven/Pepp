@@ -18,6 +18,7 @@
 #include "core/link/file_symbols.hpp"
 #include <catch.hpp>
 #include <string_view>
+#include <utility>
 #include <vector>
 #include "core/formats/ar/packed_archive.hpp"
 #include "core/formats/elf/packed_io.hpp"
@@ -48,7 +49,31 @@ Elf object(bool with_symbols) {
   writer.add_symbol(symbol(SymbolBinding::STB_WEAK, SymbolType::STT_FUNC), "helper", text);
   writer.add_symbol(symbol(SymbolBinding::STB_GLOBAL, SymbolType::STT_NOTYPE), "printf", 0); // 5
   writer.add_symbol(symbol(SymbolBinding::STB_WEAK, SymbolType::STT_NOTYPE), "optional", 0);
+  // Must sort symbol tables and update sh_info.
+  writer.arrange_local_symbols();
   return elf;
+}
+
+using Names = std::vector<std::string_view>;
+
+// The of non-local symbols for a particular file.
+Names names_of(const FileSymbolTable &table, ElfFileID file, u32 first, u32 last) {
+  Names ret;
+  for (u32 index = first; index < last; ++index) {
+    const auto id = table.find(file, index);
+    REQUIRE(id);
+    ret.push_back(table.name(*id));
+  }
+  return ret;
+}
+
+// The error from collecting elf, whose symbol table the caller has broken.
+SymbolTableError::Code error_of(Elf &elf) {
+  PackedInputElfGroupLE32 group;
+  REQUIRE(group.add(to_input_elf(elf)));
+  const auto table = FileSymbolTable::collect(group);
+  REQUIRE_FALSE(table);
+  return table.error().code;
 }
 } // namespace
 
@@ -58,13 +83,43 @@ TEST_CASE("Collect globals / undefineds", "[scope:core][scope:core.link][kind:un
   const auto a = group.add(to_input_elf(with)).value(), b = group.add(to_input_elf(without)).value();
 
   SECTION("Weak, global, and undefined symbols") {
-    const auto symbols = collect_symbols(group);
-    REQUIRE(symbols.size() == 3);
-    CHECK(symbols[a.value].globals == std::vector<FileSymbol>{{3, "main"}, {4, "helper"}});
-    CHECK(symbols[a.value].undefined == std::vector<FileSymbol>{{5, "printf"}, {6, "optional"}});
-    // A file without a symbol table has no symbols.
-    CHECK(symbols[b.value].globals.empty());
-    CHECK(symbols[b.value].undefined.empty());
+    const auto table = FileSymbolTable::collect(group);
+    REQUIRE(table);
+    CHECK(table->files() == 2);
+    // STN_UNDEF, then a's four non-locals, which are symbol indices 3 to 6.
+    CHECK(table->size() == 5);
+    CHECK(names_of(*table, a, 3, 7) == Names{"main", "helper", "printf", "optional"});
+    CHECK(table->find(a, 5) == FileSymbolID{3});
+    CHECK_FALSE(table->undefined(FileSymbolID{2}));
+    CHECK(table->undefined(FileSymbolID{3}));
+    // Index 0 is STN_UNDEF in every file, even one without a symbol table.
+    CHECK(table->find(b, 0) == FileSymbolID{0});
+    CHECK(table->name(FileSymbolID{0}).empty());
+    CHECK(table->undefined(FileSymbolID{0}));
+    // Locals have no ID, nor do indices past the end, unknown files, or files without a symbol table.
+    CHECK_FALSE(table->find(a, 2));
+    CHECK_FALSE(table->find(a, 7));
+    CHECK_FALSE(table->find(b, 1));
+    CHECK_FALSE(table->find(ElfFileID{3}, 0));
+  }
+  SECTION("Reject malformed symbol tables") {
+    using enum SymbolTableError::Code;
+    // sh_info past the end; at loop, which is local, at 2; after main, which is global, at 3.
+    const std::pair<u32, SymbolTableError::Code> first_globals[] = {
+        {100, BadFirstGlobal}, {2, LocalAfterFirstGlobal}, {4, GlobalBeforeFirstGlobal}};
+    for (const auto &[sh_info, code] : first_globals) {
+      auto elf = object(true);
+      elf.section_headers[find_named_section(elf, ".symtab")].sh_info = sh_info;
+      CHECK(error_of(elf) == code);
+    }
+    auto bad_link = object(true);
+    bad_link.section_headers[find_named_section(bad_link, ".symtab")].sh_link = 99;
+    CHECK(error_of(bad_link) == BadStringTable);
+    // main, at 3, retyped as a section symbol.
+    auto bad_type = object(true);
+    PackedSymbolWriter<ElfBits::b32, ElfEndian::le> writer(bad_type, find_named_section(bad_type, ".symtab"));
+    writer.get_symbol_ptr(3)->set_type(SymbolType::STT_SECTION);
+    CHECK(error_of(bad_type) == LocalOnlyType);
   }
   SECTION("Archive symbol indices are ignored") {
     PackedGrowableArchive archive;
@@ -82,9 +137,9 @@ TEST_CASE("Collect globals / undefineds", "[scope:core][scope:core.link][kind:un
     REQUIRE(id);
     const auto c = group.add_member(*id, *member);
     REQUIRE(c);
-    const auto symbols = collect_symbols(group);
+    const auto table = FileSymbolTable::collect(group);
+    REQUIRE(table);
     // helper is collected anyway, from the member's own symbol table.
-    CHECK(symbols[c->value].globals == symbols[a.value].globals);
-    CHECK(symbols[c->value].undefined == symbols[a.value].undefined);
+    CHECK(names_of(*table, *c, 3, 7) == names_of(*table, a, 3, 7));
   }
 }
