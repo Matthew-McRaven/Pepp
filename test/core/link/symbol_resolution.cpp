@@ -16,15 +16,18 @@
  */
 
 #include "core/link/symbol_resolution.hpp"
+#include <algorithm>
 #include <catch.hpp>
 #include <initializer_list>
 #include <stdexcept>
+#include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
 #include "core/formats/ar/packed_archive.hpp"
 #include "core/formats/elf/packed_io.hpp"
 #include "core/formats/elf/packed_ops.hpp"
+#include "core/link/linker_passes.hpp"
 
 namespace {
 using namespace pepp::bts;
@@ -164,9 +167,8 @@ struct TestSymbol {
 };
 
 // An object with pre-defined symbols.
-AnyInputElf object_of(std::initializer_list<TestSymbol> symbols) {
-  PackedGrowableElfFile<ElfBits::b32, ElfEndian::le> elf(ElfFileType::ET_REL, ElfMachineType::EM_PEP10,
-                                                         ElfABI::ELFOSABI_NONE);
+Elf elf_of(std::initializer_list<TestSymbol> symbols) {
+  Elf elf(ElfFileType::ET_REL, ElfMachineType::EM_PEP10, ElfABI::ELFOSABI_NONE);
   ensure_section_header_table(elf);
   const auto text = add_named_section(elf, ".text", SectionTypes::SHT_PROGBITS);
   const auto symtab = add_named_symtab(elf, ".symtab", add_named_section(elf, ".strtab", SectionTypes::SHT_STRTAB));
@@ -180,7 +182,33 @@ AnyInputElf object_of(std::initializer_list<TestSymbol> symbols) {
     writer.add_symbol(std::move(sym), symbol.name, section);
   }
   writer.arrange_local_symbols();
+  return elf;
+}
+AnyInputElf object_of(std::initializer_list<TestSymbol> symbols) {
+  auto elf = elf_of(symbols);
   return to_input_elf(elf);
+}
+
+// Adds an archive of objects to group, then each of its members in order.
+std::vector<ElfFileID> add_archive(PackedInputElfGroupLE32 &group,
+                                   std::initializer_list<std::initializer_list<TestSymbol>> members) {
+  PackedGrowableArchive archive;
+  for (const auto &symbols : members) {
+    auto elf = elf_of(symbols);
+    const auto bytes = elf_bytes(elf);
+    const auto name = std::to_string(archive.member_count()) + ".o";
+    REQUIRE(archive.add_member(name, std::make_shared<BlockStorage>(std::vector<char>(bytes.begin(), bytes.end()))));
+  }
+  auto input = to_input_archive(archive);
+  REQUIRE(input);
+  const auto id = group.add(std::move(*input));
+  REQUIRE(id);
+  std::vector<ElfFileID> ret;
+  for (const auto &member : group.archive(*id).members()) {
+    REQUIRE(member);
+    ret.push_back(group.add_member(*id, *member).value());
+  }
+  return ret;
 }
 } // namespace
 
@@ -198,7 +226,7 @@ TEST_CASE("Resolve symbols between files", "[scope:core][scope:core.link][kind:u
   const auto b = group.add(object_of({{"foo@@V2", true}, {"foo@V1", true}, {"bar", true}, {"foo@V4"}})).value();
   const auto table = gather_symbols(group);
   REQUIRE(table);
-  const auto symbols = resolve_symbols(*table);
+  const auto symbols = resolve_symbols(*table, std::vector(table->files() + 1, Liveness::Live));
   // The global symbol of file's symbol index.
   const auto of = [&](ElfFileID file, u32 index) {
     const auto id = table->find(file, index);
@@ -265,7 +293,7 @@ TEST_CASE("Symbol ranking and selection", "[scope:core][scope:core.link][kind:un
                      .value();
   const auto table = gather_symbols(group);
   REQUIRE(table);
-  const auto symbols = resolve_symbols(*table);
+  const auto symbols = resolve_symbols(*table, std::vector(table->files() + 1, Liveness::Live));
   const auto entry = [&](ElfFileID file, u32 index) {
     const auto id = table->find(file, index);
     REQUIRE(id);
@@ -294,5 +322,65 @@ TEST_CASE("Symbol ranking and selection", "[scope:core][scope:core.link][kind:un
         {Undefined, symbols.of(entry(b, 6)), InputSymbolID{0}, entry(b, 6)},
         {TlsMismatch, symbols.of(entry(a, 7)), entry(a, 7), entry(b, 7)}};
     CHECK(std::vector(symbols.errors().begin(), symbols.errors().end()) == expected);
+  }
+}
+
+TEST_CASE("Archive members are linked only when reachable", "[scope:core][scope:core.link][kind:unit][arch:*]") {
+  PackedInputElfGroupLE32 group;
+  const auto root = group
+                        .add(object_of({{.name = "needed", .defined = false},                                    // 1
+                                        {.name = "optional", .defined = false, .bind = SymbolBinding::STB_WEAK}, // 2
+                                        {.name = "block", .defined = true, .common = true}}))                    // 3
+                        .value();
+  const auto members = add_archive(
+      group, {{{.name = "needed", .defined = true}, {.name = "chained", .defined = false}},
+              {{.name = "chained", .defined = true}},
+              {{.name = "optional", .defined = true}, {.name = "missing", .defined = false}},
+              {{.name = "block", .defined = true}}});
+  const auto table = gather_symbols(group);
+  REQUIRE(table);
+  using enum Liveness;
+  // Files 1 (root)  needs 2, 3, 5, but not 4.
+  const std::vector needed{Excluded, Live, Live, Live, Excluded, Live};
+
+  std::vector files(table->files() + 1, Lazy);
+  files[root.value] = Live;
+  const auto link = [&] {
+    mark_live_objects(*table, resolve_symbols(*table, files), files);
+    std::ranges::replace(files, Lazy, Excluded);
+    return resolve_symbols(*table, files);
+  };
+  const auto entry = [&](ElfFileID file, u32 index) {
+    const auto id = table->find(file, index);
+    REQUIRE(id);
+    return *id;
+  };
+
+  SECTION("Strong/common pull in members") {
+    const auto symbols = link();
+    const auto owner = [&](u32 index) { return symbols.symbol(symbols.of(entry(root, index))).owner; };
+    // A strong reference pulls in needed's member, whose own reference pulls in chained's.
+    // A common definition pulls in a member defining the symbol.
+    CHECK(files == needed);
+    CHECK(owner(1) == entry(members[0], 1));
+    CHECK(owner(3) == entry(members[3], 1));
+    // Weak references do not pull in members and unreachables are not part of the link
+    CHECK_FALSE(owner(2));
+    CHECK(symbols.of(entry(members[2], 2)) == SymbolID{0});
+    CHECK(symbols.errors().empty());
+  }
+  SECTION("Explicitly live members are linked") {
+    files[members[2].value] = Live;
+    const auto symbols = link();
+    CHECK(files[members[2].value] == Live);
+    CHECK(symbols.symbol(symbols.of(entry(root, 2))).owner == entry(members[2], 1));
+    const std::vector<ResolveError> expected{
+        {ResolveError::Code::Undefined, symbols.of(entry(members[2], 2)), InputSymbolID{0}, entry(members[2], 2)}};
+    CHECK(std::vector(symbols.errors().begin(), symbols.errors().end()) == expected);
+  }
+  SECTION("do_link seeds live files correctly") {
+    const auto context = do_link(group);
+    REQUIRE(context);
+    CHECK(context->files == needed);
   }
 }

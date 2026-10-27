@@ -21,6 +21,7 @@
 #include <optional>
 #include <span>
 #include <string_view>
+#include <utility>
 #include <vector>
 #include "core/ds/opaque_handle.hpp"
 #include "core/formats/elf/packed_access_symbol.hpp"
@@ -30,6 +31,7 @@ namespace pepp::link {
 // Index of a symbol in InputSymbols. 0 is STN_UNDEF.
 using InputSymbolID = pepp::OpaqueHandle<struct InputSymbolTag, u32>;
 consteval void allow_opaque_handle_add(InputSymbolID);
+consteval void allow_opaque_handle_increment(InputSymbolID);
 
 struct GatherError {
   enum class Code : u8 {
@@ -78,6 +80,8 @@ public:
   // The file that symbol id belongs to. Throws std::out_of_range for STN_UNDEF, which belongs to every file, or if
   // id >= size().
   bts::ElfFileID file_of(InputSymbolID id) const;
+  // The non-local symbols of a file. Throws std::out_of_range if no file has this ID.
+  std::pair<InputSymbolID, InputSymbolID> ids_of(bts::ElfFileID id) const;
   // The number of files in the group when this table was made.
   u32 files() const noexcept { return static_cast<u32>(_non_locals.size() - 1); }
 
@@ -179,6 +183,16 @@ struct ResolveError {
   bool operator==(const ResolveError &) const = default;
 };
 
+// Limit a file's participation in resolve_symbols.
+enum class Liveness : u8 {
+  // Not part of the link. Its entries map to STN_UNDEF.
+  Excluded,
+  // An archive member not yet included. Its definitions rank below every live file's.
+  Lazy,
+  // Always included in the link. Lazy files referenced by live files become live.
+  Live,
+};
+
 // Merge all InputSymbols into a single set of all non-local symbols usable for the linker. Where multiple definitions
 // conflict, the highest ranked definition wins. Symbol versions are recorded so that foo@@V defines the default version
 // of foo, so it becomes the canonical value foor foo and foo@V. Otherwise, foo@V is a different symbol from foo.
@@ -186,7 +200,8 @@ class ResolvedSymbols {
 public:
   // IDs are [0, size()), with 0 as STN_UNDEF.
   u32 size() const noexcept { return static_cast<u32>(_names.size()); }
-  // The symbol entry id refers to, after following any forwards. Throws std::out_of_range if no entry has this ID.
+  // The symbol entry id refers to, after following any forwards. STN_UNDEF for an entry in an Excluded file. Throws
+  // std::out_of_range if no entry has this ID.
   SymbolID of(InputSymbolID id) const;
   // The name of the matching symbol entry, or throws std::out_of_range if no entry has this ID.
   std::string_view name(SymbolID id) const;
@@ -196,7 +211,7 @@ public:
   std::span<const ResolveError> errors() const noexcept { return _errors; }
 
 private:
-  friend ResolvedSymbols resolve_symbols(const InputSymbols &table);
+  friend ResolvedSymbols resolve_symbols(const InputSymbols &table, const std::vector<Liveness> &files);
   // Indexed by InputSymbolID.
   std::vector<SymbolID> _of;
   // Both are indexed by SymbolID. Entry 0 is STN_UNDEF.
@@ -213,7 +228,18 @@ private:
 // Lance Taylor's rules for symbol resolution as mold implements them (get_rank and merge_visibility in mold's
 // input-files.cc): a strong definition beats a weak one, which beats a common one; between equals, the earliest in
 // input order wins.
+// Drivers must call this twice. On the first pass, we determine which Lazy archive members should be promoted to live
+// (while still gathering all Lazy members' symbols). The second pass should occur after mark_live_objects performed
+// that promotion. Cannot be one pass, otherwise lazy members' undefineds could cause a link that should pass to fail.
+// The alternative is iterating in resolve_symbols until we reach a fixed-point, promoting on-the-fly.
+// files is indexed by file ID and must have table.files() + 1 entries, or this throws std::invalid_argument.
 // TODO: merge common sizes
-// TODO: separate ranking for archive members and shared libraries
-ResolvedSymbols resolve_symbols(const InputSymbols &table);
+// TODO: shared libraries
+ResolvedSymbols resolve_symbols(const InputSymbols &table, const std::vector<Liveness> &files);
+
+// For each file, convert Lazy to Live if ResolvedSymbols contains a strong reference to that file.
+// Otherwise, demote Lazy to Excluded. Live and excluded files are unchanged. files is indexed by file ID and must
+// have table.files() + 1 entries, or this throws std::invalid_argument. This is equivalent to mold's mark_live_objects
+// (passes.cc, input-files.cc)
+void mark_live_objects(const InputSymbols &table, const ResolvedSymbols &symbols, std::vector<Liveness> &files);
 } // namespace pepp::link
