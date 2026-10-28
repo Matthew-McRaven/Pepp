@@ -60,6 +60,7 @@ template <ElfBits B, ElfEndian E> using PackedSymbolWriter = PackedSymbolAccesso
 template <ElfBits B, ElfEndian E>
 AbsoluteFixup fixup_symbol_value(PackedElf<B, E> &elf, u16 section, word<B> index, std::function<word<B>()> func) {
   return AbsoluteFixup{.update = [elf, section, index, func]() {
+    if (section == 0) return;
     PackedSymbolReader<B, E> t(elf, section);
     if (index >= t.symbol_count()) return;
     PackedElfSymbol<B, E> *sym = t.get_symbol_ptr(index);
@@ -220,9 +221,9 @@ template <ElfBits B, ElfEndian E> using PackedVersionDefWriter = PackedVersionDe
 
 template <ElfBits B, ElfEndian E, bool Const>
 PackedSymbolAccessor<B, E, Const>::PackedSymbolAccessor(PackedSymbolAccessor<B, E, Const>::Elf &elf, u16 index)
-    : shdr_symtab(elf.section_headers[index]), data_symtab(elf.section_data[index]), strtab(elf, shdr_symtab.sh_link) {
-  if (index > elf.section_headers.size()) throw std::runtime_error("PackedSymbolWriter: invalid section index");
-}
+    : shdr_symtab(checked_section_header(elf, index, "PackedSymbolAccessor", "a symbol table", SectionTypes::SHT_SYMTAB,
+                                         SectionTypes::SHT_DYNSYM)),
+      data_symtab(elf.section_data[index]), strtab(elf, shdr_symtab.sh_link) {}
 
 template <ElfBits B, ElfEndian E, bool Const>
 PackedSymbolAccessor<B, E, Const>::PackedSymbolAccessor(PackedSymbolAccessor<B, E, Const>::Shdr &shdr_symbol,
@@ -362,7 +363,9 @@ void PackedSymbolAccessor<B, E, Const>::swap_symbols(u32 first, u32 second) noex
 
 template <ElfBits B, ElfEndian E, bool Const>
 PackedSymbolVersionAccessor<B, E, Const>::PackedSymbolVersionAccessor(Elf &elf, u16 index)
-    : shdr(elf.section_headers[index]), data(elf.section_data[index]), dynamic_symtab(elf, shdr.sh_link) {
+    : shdr(checked_section_header(elf, index, "PackedSymbolVersionAccessor", "a symbol version table",
+                                  SectionTypes::SHT_GNU_versym)),
+      data(elf.section_data[index]), dynamic_symtab(elf, shdr.sh_link) {
   // The size of this section should be the size of the dynamic symbol table * sh_entsize.
   if constexpr (!Const) {
     shdr.sh_entsize = sizeof(u16);

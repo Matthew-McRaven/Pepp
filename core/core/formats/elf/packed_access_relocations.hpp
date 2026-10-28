@@ -61,9 +61,9 @@ template <ElfBits B, ElfEndian E> using PackedRelocationWriter = PackedRelocatio
 template <ElfBits B, ElfEndian E, bool Const>
 PackedRelocationAccessor<B, E, Const>::PackedRelocationAccessor(PackedRelocationAccessor<B, E, Const>::Elf &elf,
                                                                 u16 index)
-    : shdr(elf.section_headers[index]), reloc(elf.section_data[index]), symtab(elf, shdr.sh_link) {
-  if (index > elf.section_headers.size()) throw std::runtime_error("PackedRelocationWriter: invalid section index");
-}
+    : shdr(checked_section_header(elf, index, "PackedRelocationAccessor", "a relocation table", SectionTypes::SHT_REL,
+                                  SectionTypes::SHT_RELA)),
+      reloc(elf.section_data[index]), symtab(elf, shdr.sh_link) {}
 
 template <ElfBits B, ElfEndian E, bool Const>
 PackedRelocationAccessor<B, E, Const>::PackedRelocationAccessor(PackedRelocationAccessor<B, E, Const>::Shdr &shdr_reloc,

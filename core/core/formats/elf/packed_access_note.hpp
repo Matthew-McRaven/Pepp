@@ -53,9 +53,8 @@ template <ElfBits B, ElfEndian E> using PackedNoteWriter = PackedNoteAccessor<B,
 
 template <ElfBits B, ElfEndian E, bool Const>
 PackedNoteAccessor<B, E, Const>::PackedNoteAccessor(PackedNoteAccessor<B, E, Const>::Elf &elf, u16 index)
-    : shdr(elf.section_headers[index]), data(elf.section_data[index]) {
-  if (index > elf.section_headers.size()) throw std::runtime_error("PackedNoteAccessor: invalid section index");
-}
+    : shdr(checked_section_header(elf, index, "PackedNoteAccessor", "a note section", SectionTypes::SHT_NOTE)),
+      data(elf.section_data[index]) {}
 
 template <ElfBits B, ElfEndian E, bool Const>
 PackedNoteAccessor<B, E, Const>::PackedNoteAccessor(Shdr &shdr_note, Data &data) noexcept
