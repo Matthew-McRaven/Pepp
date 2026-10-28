@@ -1,4 +1,6 @@
 #include <catch.hpp>
+#include <string>
+#include <string_view>
 
 #include "svgdom/utility_p.hpp"
 
@@ -188,7 +190,6 @@ TEST_CASE("Utility file-SvgRect tests", "[scope:core][scope:core.svgdom][kind:un
 }
 
 TEST_CASE("Utility file-SvgRope tests", "[scope:core][scope:core.svgdom][kind:unit]") {
-  //  Test that utility classes perform correctly
   //  Test SvgRope class
 
   SvgRope rope;
@@ -203,4 +204,24 @@ TEST_CASE("Utility file-SvgRope tests", "[scope:core][scope:core.svgdom][kind:un
 
   rope.clear();
   CHECK(rope.size() == 0);
+}
+
+TEST_CASE("Utility file-Conversion tests", "[scope:core][scope:core.svgdom.conversion][kind:unit]") {
+  //  Test that utility classes perform correctly
+  //  Test Conversion class
+  {
+    std::string_view s = "1234";
+    const auto num = Conversion::parseToNumber(s);
+    REQUIRE(num.has_value());
+    CHECK(*num == 1234);
+    CHECK(s.empty());
+  }
+  {
+    std::string_view s = "-100%";
+    const auto num = Conversion::parseToNumber(s);
+    REQUIRE(num.has_value());
+    CHECK(*num == -100);
+    CHECK(!s.empty());
+    CHECK(s == "%"s);
+  }
 }
