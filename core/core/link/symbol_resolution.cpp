@@ -42,6 +42,12 @@ pepp::link::SymbolAttributes pepp::link::InputSymbols::attributes(InputSymbolID 
   return _attributes[id.value];
 }
 
+pepp::link::CommonSize pepp::link::InputSymbols::common(InputSymbolID id) const {
+  const auto it = _commons.find(id);
+  if (it == _commons.end()) throw std::out_of_range("InputSymbols: not a common symbol");
+  return it->second;
+}
+
 std::optional<pepp::link::InputSymbolID> pepp::link::InputSymbols::find(bts::ElfFileID id, u32 index) const {
   if (!id || id.value >= _non_locals.size()) return std::nullopt;
   else if (index == 0) return InputSymbolID(0);
@@ -96,6 +102,7 @@ u64 rank_of(pepp::link::SymbolAttributes attributes, pepp::bts::ElfFileID file, 
   return rank_of(live ? Strong : StrongArchive, file);
 }
 Tier tier_of(u64 rank) { return static_cast<Tier>(rank >> 32); }
+bool is_common(Tier tier) { return tier == Tier::Common || tier == Tier::CommonArchive; }
 
 // Provide a ranking of how constrainining the visibility value is. Higher values are more constraining, and the highest
 // value is selected. Unlike mold, internal is not combined with hidden.
@@ -117,6 +124,8 @@ struct Ranking {
   // The first entry with a type, and whether it is thread-local. Type-mismatches will lead to link errors.
   InputSymbolID typed;
   bool tls = false;
+  // The merged size and alignment of every common definition so far. Only valid if owner is common.
+  pepp::link::CommonSize common;
 };
 
 // One entry's claim on its symbol.
@@ -131,6 +140,7 @@ Candidate candidate_of(const pepp::link::InputSymbols &table, InputSymbolID id, 
   Candidate ret{.symbol = {.visibility = attributes.visibility}, .ranking = {.tls = bool(attributes.tls)}};
   if (!attributes.untyped) ret.ranking.typed = id;
   if (!attributes.undefined) ret.symbol.owner = id, ret.ranking.rank = rank_of(attributes, file, live);
+  if (attributes.common) ret.ranking.common = table.common(id);
   return ret;
 }
 
@@ -150,7 +160,16 @@ void merge(pepp::link::Symbol &into, Ranking &ranking, const Candidate &from, Sy
   // Two strong definitions in object files are a multiple definition error.
   if (tier_of(from.ranking.rank) == Tier::Strong && tier_of(ranking.rank) == Tier::Strong)
     errors.push_back({MultipleDefinition, symbol, std::min(into.owner, owner), std::max(into.owner, owner)});
-  if (from.ranking.rank < ranking.rank) into.owner = owner, ranking.rank = from.ranking.rank;
+  // Merge two commons within the same tier, following the conventions of GNU ld and lld.
+  // Mold prefers to keep the earliest definition. Retain the larger of the two alignment requirements and select the
+  // larger symbol.
+  if (const auto tier = tier_of(from.ranking.rank); is_common(tier) && tier == tier_of(ranking.rank)) {
+    ranking.common.alignment = std::max(ranking.common.alignment, from.ranking.common.alignment);
+    if (from.ranking.common.size > ranking.common.size)
+      into.owner = owner, ranking.rank = from.ranking.rank, ranking.common.size = from.ranking.common.size;
+  } else if (from.ranking.rank < ranking.rank) {
+    into.owner = owner, ranking.rank = from.ranking.rank, ranking.common = from.ranking.common;
+  }
 }
 
 // Each canonical key's SymbolID, as mold's symbol_map, plus what default-version forwarding needs.
@@ -207,8 +226,10 @@ pepp::link::ResolvedSymbols pepp::link::resolve_symbols(const InputSymbols &tabl
   // Indexed by SymbolID, beside ret._symbols.
   std::vector<Ranking> rankings(1);
   std::vector<ResolveError> errors;
-  // Strong undefined references, which are errors if nothing defines their symbol.
+  // Strong undefined references. Errors if nothing defines their symbol.
   std::vector<InputSymbolID> references;
+  // Common definitions. Sizes must be merged when they are the owning symbol.
+  std::vector<InputSymbolID> commons;
 
   // Perform a single pass over the input symbols, selecting the best ranking input symbol for each name.
   // Iterate over files first so we can avoid a lg(n) reverse-lookup of the file from the symbol on each iteration.
@@ -233,6 +254,7 @@ pepp::link::ResolvedSymbols pepp::link::resolve_symbols(const InputSymbols &tabl
       merge(ret._symbols[symbol.value], rankings[symbol.value], candidate_of(table, id, file, live), symbol, errors);
       const auto attributes = table.attributes(id);
       if (attributes.undefined && !attributes.weak) references.push_back(id);
+      else if (attributes.common) commons.push_back(id);
     }
   }
 
@@ -247,6 +269,11 @@ pepp::link::ResolvedSymbols pepp::link::resolve_symbols(const InputSymbols &tabl
     const Candidate candidate{ret._symbols[from.value], rankings[from.value]};
     merge(ret._symbols[into.value], rankings[into.value], candidate, into, errors);
   }
+
+  // Ensure commons' merged size/alignment is kept after forwarding.
+  for (const auto id : commons)
+    if (const auto symbol = ret.of(id); table.attributes(ret._symbols[symbol.value].owner).common)
+      ret._commons.try_emplace(symbol, rankings[symbol.value].common);
 
   // Perform a single pass to catch all undefined references from the source programs.
   // All undefined references in live files are a linker error. Errors are produced per input file which references
@@ -311,4 +338,9 @@ std::string_view pepp::link::ResolvedSymbols::name(SymbolID id) const {
 const pepp::link::Symbol &pepp::link::ResolvedSymbols::symbol(SymbolID id) const {
   if (id.value >= _symbols.size()) throw std::out_of_range("ResolvedSymbols: no symbol with this ID");
   return _symbols[id.value];
+}
+
+std::optional<pepp::link::CommonSize> pepp::link::ResolvedSymbols::common(SymbolID id) const {
+  const auto it = _commons.find(id);
+  return it == _commons.end() ? std::nullopt : std::optional(it->second);
 }

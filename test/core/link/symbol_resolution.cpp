@@ -164,6 +164,9 @@ struct TestSymbol {
   SymbolVisibility visibility = SymbolVisibility::STV_DEFAULT;
   // Defined in SHN_COMMON rather than .text.
   bool common = false;
+  u32 size = 0;
+  // A common symbol's alignment.
+  u32 value = 0;
 };
 
 // An object with pre-defined symbols.
@@ -178,6 +181,8 @@ Elf elf_of(std::initializer_list<TestSymbol> symbols) {
     sym.set_bind(symbol.bind);
     sym.set_type(symbol.type);
     sym.set_visibility(symbol.visibility);
+    sym.st_size = symbol.size;
+    sym.st_value = symbol.value;
     const u16 section = symbol.common ? bits::to_underlying(SectionIndices::SHN_COMMON) : symbol.defined ? text : 0;
     writer.add_symbol(std::move(sym), symbol.name, section);
   }
@@ -273,18 +278,18 @@ TEST_CASE("Symbol ranking and selection", "[scope:core][scope:core.link][kind:un
   PackedInputElfGroupLE32 group;
   // Each symbol index names the same symbol in both files.
   const auto a = group
-                     .add(object_of({{.name = "weak_then_strong", .defined = true, .bind = weak},   // 1
-                                     {.name = "common_then_weak", .defined = true, .common = true}, // 2
-                                     {.name = "common_twice", .defined = true, .common = true},     // 3
-                                     {.name = "strong_twice", .defined = true},                     // 4
-                                     {.name = "weak_refs", .defined = false, .bind = weak},         // 5
-                                     {.name = "mixed_refs", .defined = false, .bind = weak},        // 6
-                                     {.name = "tls", .defined = true, .type = SymbolType::STT_TLS}, // 7
-                                     {.name = "hidden", .defined = true}}))                         // 8
+                     .add(object_of({{.name = "weak_then_strong", .defined = true, .bind = weak},     // 1
+                                     {.name = "common_then_weak", .defined = true, .common = true},   // 2
+                                     {.name = "common_twice", .common = true, .size = 4, .value = 4}, // 3
+                                     {.name = "strong_twice", .defined = true},                       // 4
+                                     {.name = "weak_refs", .defined = false, .bind = weak},           // 5
+                                     {.name = "mixed_refs", .defined = false, .bind = weak},          // 6
+                                     {.name = "tls", .defined = true, .type = SymbolType::STT_TLS},   // 7
+                                     {.name = "hidden", .defined = true}}))                           // 8
                      .value();
   const auto b = group.add(object_of({{.name = "weak_then_strong", .defined = true},
                                    {.name = "common_then_weak", .defined = true, .bind = weak},
-                                   {.name = "common_twice", .defined = true, .common = true},
+                                   {.name = "common_twice", .common = true, .size = 8, .value = 2},
                                    {.name = "strong_twice", .defined = true},
                                    {.name = "weak_refs", .defined = false, .bind = weak},
                                    {.name = "mixed_refs", .defined = false},
@@ -304,11 +309,19 @@ TEST_CASE("Symbol ranking and selection", "[scope:core][scope:core.link][kind:un
   SECTION("Strongest definition is selected as owner") {
     CHECK(symbol(1).owner == entry(b, 1));
     CHECK(symbol(2).owner == entry(b, 2));
-    CHECK(symbol(3).owner == entry(a, 3));
     CHECK(symbol(4).owner == entry(a, 4));
     // Neither object actual defines 5 or 6.
     CHECK_FALSE(symbol(5).owner);
     CHECK_FALSE(symbol(6).owner);
+  }
+  SECTION("Commons size/alignment are merged") {
+    // The largest common is treated as the owner.
+    CHECK(symbol(3).owner == entry(b, 3));
+    CHECK(symbols.common(symbols.of(entry(a, 3))) == CommonSize{.size = 8, .alignment = 4});
+    // Other definitions rank above common, which prevents size mergin.
+    CHECK_FALSE(symbols.common(symbols.of(entry(a, 2))));
+    CHECK(table->common(entry(a, 3)) == CommonSize{.size = 4, .alignment = 4});
+    CHECK_THROWS_AS(table->common(entry(a, 4)), std::out_of_range);
   }
   SECTION("Most restrictive visibility is propagated") {
     CHECK(symbol(8).owner == entry(a, 8));

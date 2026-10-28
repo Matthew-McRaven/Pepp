@@ -21,6 +21,7 @@
 #include <optional>
 #include <span>
 #include <string_view>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 #include "core/ds/opaque_handle.hpp"
@@ -65,6 +66,13 @@ struct SymbolAttributes {
 };
 static_assert(sizeof(SymbolAttributes) == 1);
 
+// A common (SHN_COMMON) definition, whose st_value holds its alignment.
+struct CommonSize {
+  u64 size = 0;
+  u64 alignment = 0;
+  bool operator==(const CommonSize &) const = default;
+};
+
 // The non-local symbols of every file in a group, stored as a flat vector sorted by file then symtab order.
 // Index 0 is reserved for the undefined symbol.
 class InputSymbols {
@@ -75,6 +83,8 @@ public:
   std::string_view name(InputSymbolID id) const;
   bool undefined(InputSymbolID id) const { return attributes(id).undefined; }
   SymbolAttributes attributes(InputSymbolID id) const;
+  // Throws std::out_of_range unless id is a common definition.
+  CommonSize common(InputSymbolID id) const;
   // The ID of symbol index of file id: STN_UNDEF for index 0, or nullopt if the symbol is local or does not exist.
   std::optional<InputSymbolID> find(bts::ElfFileID id, u32 index) const;
   // The file that symbol id belongs to. Throws std::out_of_range for STN_UNDEF, which belongs to every file, or if
@@ -101,6 +111,8 @@ private:
   };
   // Indexed by file ID. Index 0 is unused.
   std::vector<NonLocalRange> _non_locals = std::vector<NonLocalRange>(1);
+  // Sparse since few symbols are common.
+  std::unordered_map<InputSymbolID, CommonSize, pepp::handle_hash<InputSymbolID>> _commons;
 
   template <bts::ElfBits B, bts::ElfEndian E>
   friend std::expected<InputSymbols, GatherError> gather_symbols(const bts::PackedInputElfGroup<B, E> &group);
@@ -148,6 +160,9 @@ std::expected<InputSymbols, GatherError> gather_symbols(const bts::PackedInputEl
                                    .tls = static_cast<u8>(sym.st_type() == SymbolType::STT_TLS),
                                    .untyped = static_cast<u8>(sym.st_type() == SymbolType::STT_NOTYPE),
                                    .visibility = static_cast<u8>(sym.st_visibility())});
+        if (sym.is_common())
+          ret._commons.emplace(InputSymbolID(static_cast<u32>(ret._names.size() - 1)),
+                               CommonSize{.size = sym.st_size, .alignment = sym.st_value});
       }
       break;
     }
@@ -209,6 +224,8 @@ public:
   const Symbol &symbol(SymbolID id) const;
   // Conflicts found while resolving, in input order. The link must fail if this is non-empty.
   std::span<const ResolveError> errors() const noexcept { return _errors; }
+  // The merged size and alignment of id if its owner is a common definition, or nullopt.
+  std::optional<CommonSize> common(SymbolID id) const;
 
 private:
   friend ResolvedSymbols resolve_symbols(const InputSymbols &table, const std::vector<Liveness> &files);
@@ -222,6 +239,8 @@ private:
   std::vector<SymbolID> _forward;
   // Errors generated during resolve_symbols.
   std::vector<ResolveError> _errors;
+  // Sparse since few symbols are common.
+  std::unordered_map<SymbolID, CommonSize, pepp::handle_hash<SymbolID>> _commons;
 };
 
 // Decide which symbol of the link each entry of table refers to, and which definition owns each symbol. Follows Ian
