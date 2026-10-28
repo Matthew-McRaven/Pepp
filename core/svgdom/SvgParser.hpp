@@ -1,11 +1,14 @@
 #pragma once
 
+#include <cctype>
+#include <expected>
 #include <string>
 #include <vector>
 
 //	External xml parser
 //	3rd Party
 #include <rapidxml.hpp>
+#include "utility_p.hpp" //  For Conversion::parseToNumber
 
 namespace XmlNode {
 enum class Type { Element = 0, RootElement, RootAttribute, Attribute, EndElement, Comment, CData };
@@ -147,5 +150,129 @@ private:
       key = _key.append(node->name());
       break;
     }
+  }
+};
+
+class FunctionParser {
+public:
+  using Argument = std::pair<std::string, std::vector<double>>;
+  using ParseResults = std::vector<Argument>;
+  static auto parse(std::string_view &view) -> std::expected<ParseResults, bool> {
+    //  No data, no parsing
+    if (view.empty()) return std::unexpected(false);
+
+    ParseResults results;
+
+    //  Loop through all functions
+    while (view.contains(')')) {
+      auto result = parseElement(view);
+      if (result.has_value()) {
+        Argument &arg = *result;
+        results.push_back(arg);
+      }
+    }
+
+    if (results.empty()) return std::unexpected(false);
+    return std::move(results);
+  }
+
+  //  Trim spaces on left
+  static void trimLeft(std::string_view &view) {
+    while (!view.empty() && std::isspace(view.front())) {
+      view.remove_prefix(1);
+    }
+  }
+  //  Trim to search character
+  static void trimLeft(std::string_view &view, char search) {
+    trimLeft(view); //  Remove whitespace
+    while (!view.empty() && view.front() == search) {
+      //  Remove search character
+      view.remove_prefix(1);
+    }
+  }
+
+  //  Trim spaces on right
+  static void trimRight(std::string_view &view) {
+    while (!view.empty() && std::isspace(view.back())) {
+      view.remove_suffix(1);
+    }
+  }
+
+  //  Trim to search character
+  static void trimRight(std::string_view &view, char search) {
+    trimRight(view); //  Remove whitespace
+    while (!view.empty() && view.back() == search) {
+      //  Remove search character
+      view.remove_suffix(1);
+    }
+  }
+
+private:
+  static auto parseElement(std::string_view &view) -> std::expected<Argument, bool> {
+    //  No data, no parsing
+    if (view.empty()) return std::unexpected(false);
+
+    trimLeft(view);
+    std::string name{text(view)};
+    //  Function not found, parsing error
+    if (name.empty()) return std::unexpected(false);
+
+    //  Delete left paran, and leading and training spaces.
+    trimLeft(view, '(');
+    trimLeft(view);
+
+    //  Character not found, parsing error
+    if (view.empty()) return std::unexpected(false);
+
+    //  Trim trailing space
+    std::vector<double> values;
+
+    while (isDigit(view.front())) {
+      values.push_back(value(view));
+      trimLeft(view, ',');
+      trimLeft(view);
+    }
+    trimLeft(view, ')');
+    //  arguments not found, parsing error
+    if (values.empty()) return std::unexpected(false);
+    return std::move(std::make_pair(name, values));
+  }
+
+  //  Extract function name
+  static std::string_view text(std::string_view &view) {
+    size_t pos{};
+    while (!view.empty() && std::isalpha(view.at(pos))) {
+      ++pos;
+    }
+    std::string_view temp = view.substr(0, pos);
+    view.remove_prefix(pos);
+
+    return temp;
+  }
+
+  // Extract function variables
+  static double value(std::string_view &view) {
+    size_t pos{};
+    bool flag = true;
+    while (flag && !view.empty() && pos < view.size()) {
+      auto c = view.at(pos);
+      if (isDigit(c)) ++pos;
+      else flag = false;
+    }
+    double value{};
+    std::string_view v = view.substr(0, pos);
+
+    if (const auto num = Conversion::parseToNumber(v); num.has_value()) {
+      value = *num;
+    }
+    view.remove_prefix(pos);
+
+    return value;
+  }
+
+  // Extract function variables
+  static double isDigit(const char c) {
+    if (std::isdigit(c) || c == '+' || c == '-' || c == '.') return true;
+    return false;
   }
 };
