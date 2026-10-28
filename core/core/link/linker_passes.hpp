@@ -48,6 +48,17 @@ std::vector<Liveness> default_liveness(const bts::PackedInputElfGroup<B, E> &gro
 // TODO: still missing many steps.
 template <bts::ElfBits B, bts::ElfEndian E>
 std::expected<LinkContext, GatherError> do_link(const bts::PackedInputElfGroup<B, E> &group) {
+  /*
+   * Construct PackedInputElfGroup
+   */
+  // TODO: parse all linker scripts and extract names files. Files with the same path must be added to group only once.
+  // TODO: accept all input files as either filenames or mapped files. Must support both to support linker-as-a-library.
+  // TODO: remove files named by -exclude-libs
+  // TODO: create a dummy file containing linker-synthesized symbols. This file must be at the highest priority
+  /*
+   * Symbol resolution passes
+   */
+  // TODO: handle wrapped symbols, --retain-symbol-files prior to symbol resolution.
   auto inputs = gather_symbols(group);
   if (!inputs) return std::unexpected(inputs.error());
 
@@ -59,10 +70,51 @@ std::expected<LinkContext, GatherError> do_link(const bts::PackedInputElfGroup<B
     mark_live_objects(*inputs, resolve_symbols(*inputs, files), files);
     std::ranges::replace(files, Liveness::Lazy, Liveness::Excluded);
   }
-  // TODO: parse and execute the linker script, which may define symbols and place sections.
+  // TODO: Merge COMDAT groups.
+  // TODO: Create a selection for only-live files/sections.
   // In the second pass, do not include archive members that are now marked as excluded, which helps avoid undefined
   // symbol errors.
   auto symbols = resolve_symbols(*inputs, files);
-  return LinkContext{std::move(*inputs), std::move(files), std::move(symbols)};
+  /*
+   * Inspect special sections
+   */
+  // TODO: parse .eh_frame, .sframe sections
+  // TODO: handle mergeable sections
+  if (false /*relocatable*/) {
+    // TODO: create linker synthetic sections
+    // TODO: mark undefined symbols as imports
+    // TODO: compute section sizes, organize output sections to mimimize segment count
+    // TODO: construct output symtab / .eh_frame / .sframe
+    // TODO: create relocations, COMDAT groups
+    // TODO: the great bit-copya
+    return {};
+  } else {
+    // TODO: create .bss sections for commons
+    // TODO: compute import / export flags for each symbol
+    // TODO: create synthetic sections for the output, synthetic symbols
+    // TODO: validate no undefined symbols (if shlib), multiple definitions
+    // TODO: garbage collection, identical-code-folding
+    // TODO: assign input sections to output sections
+    // Output sections are now frozen
+    // TODO: handle --section-align for over-aligning sections
+    // TODO: mark undefined symbols as imports
+    // Symbol tables are now frozen
+    // TODO: raise errors for --require-defined poiting to undef symbol.
+    // TODO: apply sorting to array sections: .init_array, ._fini_array, .ctors, .dtors
+    // TODO: shuffle sections
+    // TODO: fill .dynstr from .dynsym
+    // TODO: extra got/plt/dynsym/etc entries from relocations
+    // TODO: sort output sections to minimize segment count
+    // TODO: separate debug info??
+    // TODO: compute layout of output sections and construct a map of in->out
+    // TODO: linker-generated section contents
+    // TODO: emit relocations, symtab, strtab, shstrtab, etc
+    // TODO: apply linker relaxation, remove redundant thunks. This can adjust the output layout
+    // Memory layout fixed / all symbol addresses are correct
+    // TODO: compress relevant sections, ensure thunks are coalesced
+    // Memory layout and file layout are fixed
+    // TODO: begin the bit copying, apply relocations as we go
+    return LinkContext{std::move(*inputs), std::move(files), std::move(symbols)};
+  }
 }
 } // namespace pepp::link
