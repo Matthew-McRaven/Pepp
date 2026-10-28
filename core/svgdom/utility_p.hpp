@@ -66,7 +66,13 @@ struct SvgUnits
 struct Conversion {
 
   static auto parseToNumber(std::string_view &sv) -> std::expected<double, bool> {
+    //  Empty string is an error
+    if (sv.empty()) return std::unexpected(false);
+
     double result;
+    //  Remove positive sign, causes conversion issues.
+    if (sv.front() == '+') sv.remove_prefix(1);
+
 #if PEPP_HAS_DOUBLE_FROM_CHARS
     // macOS 10.15 (Catalina) or later
     auto [ptr, ec] = std::from_chars(sv.data(), sv.data() + sv.size(), result);

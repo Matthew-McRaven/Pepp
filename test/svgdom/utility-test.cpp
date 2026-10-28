@@ -210,6 +210,12 @@ TEST_CASE("Utility file-Conversion tests", "[scope:core][scope:core.svgdom.conve
   //  Test that utility classes perform correctly
   //  Test Conversion class
   {
+    //  Empty string is an error
+    std::string_view s = "";
+    const auto num = Conversion::parseToNumber(s);
+    REQUIRE(!num.has_value());
+  }
+  {
     std::string_view s = "1234";
     const auto num = Conversion::parseToNumber(s);
     REQUIRE(num.has_value());
@@ -223,5 +229,14 @@ TEST_CASE("Utility file-Conversion tests", "[scope:core][scope:core.svgdom.conve
     CHECK(*num == -100);
     CHECK(!s.empty());
     CHECK(s == "%"s);
+  }
+  {
+    //  Positive sign triggers error in Windows
+    std::string_view s = "+10.1mm";
+    const auto num = Conversion::parseToNumber(s);
+    REQUIRE(num.has_value());
+    CHECK(*num == 10.1);
+    CHECK(!s.empty());
+    CHECK(s == "mm"s);
   }
 }
