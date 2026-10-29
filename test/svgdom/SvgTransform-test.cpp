@@ -1,9 +1,15 @@
 #include <catch.hpp>
 
+// #include <filesystem>
 #include <iostream>
 using namespace std::string_literals;
+// namespace fs = std::filesystem;
+
+// #include <QFile>
+// #include <QTemporaryDir>
 
 #include "svgdom/SvgTransform.hpp"
+// #include "svgdom/SvgDocument.hpp"
 
 void checkClear(const SvgTransform &test);
 
@@ -166,9 +172,77 @@ TEST_CASE("SvgTransform tests-multiple transformations", "[scope:core][scope:cor
   CHECK(test.toString() ==
         "transform=\"rotate(-1.1 2.2 -3.3) scale(6 7) skewX(25.5) skewY(-90) translate(23.4 43.2)\""s);
 
+  //  Test string parsing
+  test.fromString("rotate( -1.1,2.2 , -3.3) scale ( 6 7) skewX (+25.5 ) skewY(-450 ) translate (23.4 ,43.2 )"s);
+  CHECK(test.rotateAngle() == -1.1);
+  CHECK(test.rotateX() == 2.2);
+  CHECK(test.rotateY() == -3.3);
+  CHECK(test.scaleX() == 6);
+  CHECK(test.scaleY() == 7);
+  CHECK(test.skewX() == 25.5);
+  CHECK(test.skewY() == -90); //  Clamped to 0 & -359
+  CHECK(test.translateX() == 23.4);
+  CHECK(test.translateY() == 43.2);
+  CHECK(test.toString() ==
+        "transform=\"rotate(-1.1 2.2 -3.3) scale(6 7) skewX(25.5) skewY(-90) translate(23.4 43.2)\""s);
+
   //  Change values
-  test.setSkewX(0);        //  Removes value
-  test.setRotate(321);     //  Moves value
-  test.setTranslate(0, 0); //  Removes value
+  test.setSkewX(0);        //  Removes SkewX
+  test.setRotate(321);     //  Moves rotate to end
+  test.setTranslate(0, 0); //  Removes Translate
   CHECK(test.toString() == "transform=\"scale(6 7) skewY(-90) rotate(321)\""s);
+}
+
+TEST_CASE("SvgTransform tests-parse transform from svg", "[scope:core][scope:core.svgdom.svgtransform4][kind:unit]") {
+  //  Test that SvgTransform class perform correctly
+  //  Test that transformations can be read from file
+
+  // std::cout << "From SvgTransform" << std::endl;
+
+  //  Test rotation
+  SvgTransform test;
+  test.fromString("rotate(25.1)"s);
+  CHECK(test.rotateAngle() == 25.1);
+  CHECK(test.rotateX() == 0);
+  CHECK(test.rotateY() == 0);
+  CHECK(test.toString() == "transform=\"rotate(25.1)\""s);
+  test.fromString("rotate(-1.1, 2.2,-3.3)"s);
+  CHECK(test.rotateAngle() == -1.1);
+  CHECK(test.rotateX() == 2.2);
+  CHECK(test.rotateY() == -3.3);
+  CHECK(test.toString() == "transform=\"rotate(-1.1 2.2 -3.3)\""s);
+
+  //  Test scale
+  test.clear();
+  test.fromString("scale( 5 )"s);
+  CHECK(test.scaleX() == 5);
+  CHECK(test.scaleY() == 0);
+  CHECK(test.toString() == "transform=\"scale(5)\""s);
+  test.clear();
+  test.fromString("scale( 6, 7 )"s);
+  CHECK(test.scaleX() == 6);
+  CHECK(test.scaleY() == 7);
+  CHECK(test.toString() == "transform=\"scale(6 7)\""s);
+
+  //  Test skew
+  test.clear();
+  test.fromString("skewX (25.5)"s);
+  CHECK(test.skewX() == 25.5);
+  CHECK(test.toString() == "transform=\"skewX(25.5)\""s);
+  test.clear();
+  test.fromString("skewY (+24.5) "s);
+  CHECK(test.skewY() == 24.5);
+  CHECK(test.toString() == "transform=\"skewY(24.5)\""s);
+
+  //  Test translate
+  test.clear();
+  test.fromString("translate ( 12.3 ) "s);
+  CHECK(test.translateX() == 12.3);
+  CHECK(test.translateY() == 0);
+  CHECK(test.toString() == "transform=\"translate(12.3)\""s);
+  test.clear();
+  test.fromString("translate ( -23.4, 43.2 ) "s);
+  CHECK(test.translateX() == -23.4);
+  CHECK(test.translateY() == 43.2);
+  CHECK(test.toString() == "transform=\"translate(-23.4 43.2)\""s);
 }

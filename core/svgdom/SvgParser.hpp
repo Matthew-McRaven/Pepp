@@ -217,7 +217,7 @@ private:
     //  Function not found, parsing error
     if (name.empty()) return std::unexpected(false);
 
-    //  Delete left paran, and leading and training spaces.
+    //  Delete left paran, and leading and trailing spaces.
     trimLeft(view, '(');
     trimLeft(view);
 
