@@ -1,6 +1,11 @@
 #include "SvgTransform.hpp"
 
-#include <cmath>
+#include <ranges>
+#include <string_view>
+#include <vector>
+
+// #include "core/langs/expr/parser.hpp" //  Pepp parser
+#include "SvgParser.hpp"
 
 double SvgTransform::rotateAngle() const noexcept { return _rotateAngle; }
 double SvgTransform::rotateX() const noexcept { return _rotateX; }
@@ -73,6 +78,64 @@ void SvgTransform::clear() {
   _translateY = 0.0;
 
   _order.clear();
+}
+
+bool SvgTransform::fromString(const std::string &value) {
+  // using namespace pepp::tc::expr;
+  // const auto parse_result = parse(value);
+  // if (!std::holds_alternative<Parsed>(parse_result)) {
+  //   There was a parsing issue
+  // return false;
+  //}
+  // const auto &result = std::get<Parsed>(parse_result);
+
+  std::string_view view{value};
+  const auto results = FunctionParser::parse(view);
+
+  //  Parsing error
+  if (!results.has_value()) return false;
+
+  for (const auto &result : *results) {
+    const auto name = result.first;
+    auto &args = result.second;
+    if (name.starts_with("rotate"s)) {
+      assert(args.size() > 0 && args.size() < 4);
+      switch (args.size()) {
+      case 0: continue;
+      case 1: setRotate(args[0]); continue;
+      case 2: setRotate(args[0], args[1]); continue;
+      default: setRotate(args[0], args[1], args[2]); continue;
+      }
+
+    } else if (name.starts_with("scale")) {
+      assert(args.size() > 0 && args.size() < 3);
+      switch (args.size()) {
+      case 0: continue;
+      case 1: setScale(args[0]); continue;
+      default: setScale(args[0], args[1]); continue;
+      }
+    } else if (name.starts_with("skewX")) {
+      assert(args.size() == 1);
+      switch (args.size()) {
+      case 0: continue;
+      default: setSkewX(args[0]); continue;
+      }
+    } else if (name.starts_with("skewY")) {
+      assert(args.size() == 1);
+      switch (args.size()) {
+      case 0: continue;
+      default: setSkewY(args[0]); continue;
+      }
+    } else if (name.starts_with("translate")) {
+      assert(args.size() > 0 && args.size() < 3);
+      switch (args.size()) {
+      case 0: continue;
+      case 1: setTranslate(args[0]); continue;
+      default: setTranslate(args[0], args[1]); continue;
+      }
+    }
+  }
+  return true;
 }
 
 const std::string SvgTransform::toString() const {
