@@ -67,7 +67,8 @@ AbsoluteFixup fixup_dynamic_value(PackedElf<B, E> &elf, u16 section, u32 index, 
 
 template <ElfBits B, ElfEndian E, bool Const>
 PackedDynamicAccessor<B, E, Const>::PackedDynamicAccessor(Elf &elf, u16 index)
-    : shdr(elf.section_headers[index]), data(elf.section_data[index]) {}
+    : shdr(checked_section_header(elf, index, "PackedDynamicAccessor", "a dynamic section", SectionTypes::SHT_DYNAMIC)),
+      data(elf.section_data[index]) {}
 
 template <ElfBits B, ElfEndian E, bool Const>
 PackedDynamicAccessor<B, E, Const>::PackedDynamicAccessor(Shdr &shdr, Data &data) noexcept : shdr(shdr), data(data) {}

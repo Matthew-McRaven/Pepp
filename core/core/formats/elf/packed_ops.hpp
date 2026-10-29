@@ -43,6 +43,8 @@ template <ElfBits B, ElfEndian E>
 u16 add_named_rel(PackedGrowableElfFile<B, E> &, std::string_view name, u16 symtab_idx, u16 section_idx);
 template <ElfBits B, ElfEndian E>
 u16 add_named_rela(PackedGrowableElfFile<B, E> &, std::string_view name, u16 symtab_idx, u16 section_idx);
+// A section's name from the section header string table. Empty if section is missing or sh_name is out of range.
+template <ElfBits B, ElfEndian E> std::string_view section_name(const PackedElf<B, E> &, u32 index);
 // Index of the first section named `name`, or 0 if there is none.
 template <ElfBits B, ElfEndian E> u16 find_named_section(const PackedElf<B, E> &, std::string_view name);
 // All of section `index`'s bytes. Empty for index 0 or if section's bytes are non-contiguous in memory.
@@ -195,12 +197,17 @@ u16 add_named_rela(PackedGrowableElfFile<B, E> &elf, std::string_view name, u16 
   return elf.add_section(std::move(shdr));
 }
 
+template <ElfBits B, ElfEndian E> std::string_view section_name(const PackedElf<B, E> &elf, u32 index) {
+  const u16 strndx = elf.header.e_shstrndx;
+  if (strndx == 0 || strndx >= elf.section_headers.size() || index >= elf.section_headers.size()) return {};
+  const auto span = PackedStringReader<B, E>(elf.section_headers[strndx], elf.section_data[strndx])
+                        .get_string_span(elf.section_headers[index].sh_name);
+  return {span.data(), span.size()};
+}
+
 template <ElfBits B, ElfEndian E> u16 find_named_section(const PackedElf<B, E> &elf, std::string_view name) {
-  PackedStringReader<B, E> names(elf, elf.header.e_shstrndx);
-  for (u16 it = 1; it < elf.section_headers.size(); ++it) {
-    const auto n = names.get_string_span(elf.section_headers[it].sh_name);
-    if (std::string_view(n.data(), n.size()) == name) return it;
-  }
+  for (u16 it = 1; it < elf.section_headers.size(); ++it)
+    if (section_name(elf, it) == name) return it;
   return 0;
 }
 

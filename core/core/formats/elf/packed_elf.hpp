@@ -17,9 +17,23 @@
 
 #pragma once
 
+#include <concepts>
+#include <filesystem>
+#include <stdexcept>
+#include <string>
+#include <string_view>
 #include "core/formats/elf/packed_storage.hpp"
 #include "core/formats/elf/packed_types.hpp"
 namespace pepp::bts {
+// Return an PackedElfShdr after validating that index is in-bounds and that the section's type is in the types list.
+template <class Elf, std::same_as<SectionTypes>... Types>
+auto &checked_section_header(Elf &elf, u16 index, std::string_view name, std::string_view kind, Types... types) {
+  if (index >= elf.section_headers.size()) throw std::runtime_error(std::string(name) + ": invalid section index");
+  auto &shdr = elf.section_headers[index];
+  if (((shdr.sh_type != bits::to_underlying(types)) && ...))
+    throw std::runtime_error(std::string(name) + ": section is not " + std::string(kind));
+  return shdr;
+}
 
 // Packed POD class representing an ELF file in memory
 // Not meant to be instantiated directly. If you want to create a RO instance from a file, use PackedInputElfFile.
@@ -52,6 +66,8 @@ struct AElfSource {
 // Reads through a memory-mapped file, mapping each region on first access.
 struct MappedFileSource final : public AElfSource {
   explicit MappedFileSource(std::shared_ptr<MappedFile> file);
+  // The file at path or nullptr if it can't be read.
+  static std::shared_ptr<MappedFileSource> open(const std::filesystem::path &path);
   u64 size() const noexcept override;
   std::shared_ptr<AStorage> slice(u64 offset, u64 length) const override;
 

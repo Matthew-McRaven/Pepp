@@ -50,7 +50,7 @@ template <pepp::bts::ElfBits B, pepp::bts::ElfEndian E> void do_hash(pepp::bts::
   auto dynstr_idx = add_named_section(elf, ".dynstr", SectionTypes::SHT_STRTAB);
   auto dynsym_idx = add_named_dynsymtab(elf, ".dynsym", dynstr_idx);
   auto hash_idx = add_named_section(elf, ".hash", SectionTypes::SHT_HASH, dynsym_idx);
-  auto dynamic_idx = add_named_section(elf, ".dynamic", SectionTypes::SHT_DYNAMIC, symtab_idx);
+  auto dynamic_idx = add_named_section(elf, ".dynamic", SectionTypes::SHT_DYNAMIC, dynstr_idx);
 
   {
     PackedHashedSymbolWriter<B, E> hs_writer(elf, hash_idx);
@@ -88,7 +88,7 @@ template <pepp::bts::ElfBits B, pepp::bts::ElfEndian E> void do_hash(pepp::bts::
     auto _DYNAMIC = st_writer.add_symbol(create_null_symbol<B, E>(), "_DYNAMIC", dynamic_idx);
     st_writer.arrange_local_symbols();
     fixups.emplace_back(
-        fixup_symbol_value(elf, dynamic_idx, _DYNAMIC, [&]() { return elf.program_headers[0].p_paddr; }));
+        fixup_symbol_value(elf, symtab_idx, _DYNAMIC, [&]() { return elf.program_headers[0].p_paddr; }));
   }
   {
     PackedDynamicWriter<B, E> dyn_writer(elf, dynamic_idx);
@@ -167,7 +167,7 @@ void do_gnuhash(pepp::bts::ElfMachineType t, std::string fname) {
   auto dynstr_idx = add_named_section(elf, ".dynstr", SectionTypes::SHT_STRTAB);
   auto dynsym_idx = add_named_dynsymtab(elf, ".dynsym", dynstr_idx);
   auto hash_idx = add_named_section(elf, ".gnu.hash", SectionTypes::SHT_GNU_HASH, dynsym_idx);
-  auto dynamic_idx = add_named_section(elf, ".dynamic", SectionTypes::SHT_DYNAMIC);
+  auto dynamic_idx = add_named_section(elf, ".dynamic", SectionTypes::SHT_DYNAMIC, dynstr_idx);
 
   {
     PackedGNUHashedSymbolWriter<B, E> hs_writer(elf, hash_idx);
@@ -205,7 +205,7 @@ void do_gnuhash(pepp::bts::ElfMachineType t, std::string fname) {
     auto _DYNAMIC = st_writer.add_symbol(create_null_symbol<B, E>(), "_DYNAMIC", dynamic_idx);
     st_writer.arrange_local_symbols();
     fixups.emplace_back(
-        fixup_symbol_value(elf, dynamic_idx, _DYNAMIC, [&]() { return elf.program_headers[0].p_paddr; }));
+        fixup_symbol_value(elf, symtab_idx, _DYNAMIC, [&]() { return elf.program_headers[0].p_paddr; }));
   }
   {
     PackedDynamicWriter<B, E> dyn_writer(elf, dynamic_idx);

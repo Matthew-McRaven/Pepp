@@ -43,7 +43,9 @@ template <ElfBits B, ElfEndian E> using PackedArrayWriter = PackedArrayAccessor<
 
 template <ElfBits B, ElfEndian E, bool Const>
 PackedArrayAccessor<B, E, Const>::PackedArrayAccessor(Elf &elf, u16 index)
-    : shdr(elf.section_headers[index]), data(elf.section_data[index]) {}
+    : shdr(checked_section_header(elf, index, "PackedArrayAccessor", "an array section", SectionTypes::SHT_INIT_ARRAY,
+                                  SectionTypes::SHT_FINI_ARRAY, SectionTypes::SHT_PREINIT_ARRAY)),
+      data(elf.section_data[index]) {}
 
 template <ElfBits B, ElfEndian E, bool Const>
 PackedArrayAccessor<B, E, Const>::PackedArrayAccessor(Shdr &shdr, Data &data) noexcept : shdr(shdr), data(data) {}

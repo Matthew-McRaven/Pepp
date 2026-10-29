@@ -44,9 +44,8 @@ template <ElfBits B, ElfEndian E> using PackedStringWriter = PackedStringAccesso
 
 template <ElfBits B, ElfEndian E, bool Const>
 PackedStringAccessor<B, E, Const>::PackedStringAccessor(PackedStringAccessor<B, E, Const>::Elf &elf, u16 index)
-    : shdr(elf.section_headers[index]), strtab(elf.section_data[index]) {
-  if (index > elf.section_headers.size()) throw std::runtime_error("PackedStringReader: invalid section index");
-}
+    : shdr(checked_section_header(elf, index, "PackedStringAccessor", "a string table", SectionTypes::SHT_STRTAB)),
+      strtab(elf.section_data[index]) {}
 
 template <ElfBits B, ElfEndian E, bool Const>
 PackedStringAccessor<B, E, Const>::PackedStringAccessor(PackedStringAccessor<B, E, Const>::Shdr &shdr,
