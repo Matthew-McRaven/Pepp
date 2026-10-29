@@ -186,14 +186,14 @@ pepp::link::LinkContext pepp::link::do_link(LinkConfig &&config) {
    */
   // TODO: remove files named by -exclude-libs
   // TODO: create a dummy file containing linker-synthesized symbols. This file must be at the highest priority
-  auto group = detect_group_type(config.inputs);
-  if (!group) {
-    ret.diagnostics.add({Severity::Fatal, LinkCode::NoInputs});
-    return ret;
-  }
-  ret.group = std::move(*group);
+  auto detected = detect_group_type(config.inputs);
+  // Without an ELF, every input is empty or bad. Just choose an arbitrary input type to a void a null group.
+  if (detected) ret.group = std::move(*detected);
+  else ret.group = std::make_unique<bts::PackedInputElfGroup<bts::ElfBits::b32, bts::ElfEndian::le>>();
   auto f = [&](auto &ptr) {
-    if (populate(ret.diagnostics, *ptr, std::move(config.inputs))) link_group(ret, *ptr);
+    if (!populate(ret.diagnostics, *ptr, std::move(config.inputs))) return;
+    else if (!detected) ret.diagnostics.add({Severity::Fatal, LinkCode::NoInputs});
+    else link_group(ret, *ptr);
   };
   std::visit(f, ret.group);
   return ret;

@@ -66,4 +66,7 @@ TEST_CASE("e2e linking", "[scope:core][scope:core.link][kind:unit][arch:*]") {
   CHECK(entries_of(missing.diagnostics) ==
         std::vector<Diagnostic>{{Severity::Fatal, InputGroupError::Code::CannotOpen, ConfigInputID{1}}});
   CHECK(messages_of(missing) == std::vector<std::string>{"link_config_missing.o: cannot open file"});
+  CHECK(messages_of(do_link(config_of(path("link_config_missing.o")))) ==
+        std::vector<std::string>{"link_config_missing.o: cannot open file"});
+  CHECK(messages_of(do_link(config_of())) == std::vector<std::string>{"no ELF input files"});
 }

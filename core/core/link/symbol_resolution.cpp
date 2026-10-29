@@ -175,8 +175,10 @@ void merge(pepp::link::Symbol &into, Ranking &ranking, const Candidate &from,
 struct SymbolMap {
   // De-duplicate all symbols which share the same name
   std::unordered_map<std::string_view, SymbolID> ids;
-  // Every defined default version.
-  pepp::link::DefaultVersionSet default_versions;
+  // Every defined default version, and the definition that a reference to it needs.
+  std::unordered_map<pepp::link::VersionedName, InputSymbolID, pepp::link::BaseVersionHash,
+                     pepp::link::BaseVersionEqual>
+      default_versions;
   // Symbols which need to be revisited because they were explicitly versioned (foo@V).
   // A later default version may make any of these equal to the default, in which case we need _forward entries.
   std::vector<SymbolID> versioned;
@@ -185,13 +187,17 @@ struct SymbolMap {
 // Map an input symbol to an output SymbolID, substituting for default versions where possible, i.e., foo@@V is foo.
 // Like mold's get_symbol (input-files.cc), a new key is added to the map, and appended to names.
 SymbolID get_symbol(SymbolMap &map, std::vector<std::string_view> &names, const pepp::link::InputSymbols &table,
-                    InputSymbolID id) {
+                    InputSymbolID id, bool live) {
   using Kind = pepp::link::VersionedName::Kind;
   const auto name = table.name(id);
   const auto split_name = pepp::link::split(name);
   // Extract the name/version parts of the symbol entry. Record default version for later fixups.
   const auto key = split_name.kind == Kind::Default ? split_name.base : name;
-  if (split_name.kind == Kind::Default && !table.undefined(id)) map.default_versions.insert(split_name);
+  // A live definition needs no member pulled in. Only pull in a lazy default definition if one is not already present.
+  if (split_name.kind == Kind::Default && !table.undefined(id)) {
+    if (live) map.default_versions.insert_or_assign(split_name, id);
+    else map.default_versions.try_emplace(split_name, id);
+  }
   // If not already present, must extend the various vectors to hold a new SymbolID
   const auto [entry, inserted] = map.ids.try_emplace(key, SymbolID(static_cast<u32>(names.size())));
   if (inserted) {
@@ -199,14 +205,6 @@ SymbolID get_symbol(SymbolMap &map, std::vector<std::string_view> &names, const 
     if (split_name.kind == Kind::NonDefault) map.versioned.push_back(entry->second);
   }
   return entry->second;
-}
-
-// The symbol that versioned symbol name (sym@V) collapses into if V turned out to be sym's default version due to a
-// later definition, or STN_UNDEF.
-SymbolID forward_of(const SymbolMap &map, std::string_view name) {
-  // Check if there is a default version definition for this symbol. If not, forwarding is impossible.
-  const auto split_name = pepp::link::split(name);
-  return map.default_versions.contains(split_name) ? map.ids.at(split_name.base) : SymbolID(0);
 }
 
 void check_file_count(const pepp::link::InputSymbols &table, const std::vector<Liveness> &files) {
@@ -243,7 +241,7 @@ pepp::link::ResolvedSymbols pepp::link::resolve_symbols(Diagnostics &diagnostics
     }
     const bool live = files[it] == Liveness::Live;
     for (auto id = first; id < last; ++id) {
-      const auto symbol = get_symbol(map, ret._names, table, id);
+      const auto symbol = get_symbol(map, ret._names, table, id, live);
       // Establishing mapping from input symbol to an already allocated output symbol (entry)
       ret._of.push_back(symbol);
       // A new symbol starts undefined.
@@ -260,11 +258,14 @@ pepp::link::ResolvedSymbols pepp::link::resolve_symbols(Diagnostics &diagnostics
   // Perform a second, shorter pass over the versioned symbols.
   // Each sym@V whose V turned out to be the default due to a later definition should be collapsed to sym.
   for (const auto from : map.versioned) {
-    const auto into = forward_of(map, ret._names[from.value]);
-    if (!into) continue;
+    // If there is no default version definition for this symbol, forwarding is impossible.
+    const auto split_name = split(ret._names[from.value]);
+    const auto provider = map.default_versions.find(split_name);
+    if (provider == map.default_versions.end()) continue;
+    const auto into = map.ids.at(split_name.base);
     // Lazily allocate the forwarding vector. It is unlikely to be used in most links.
     if (ret._forward.empty()) ret._forward.resize(ret._names.size());
-    ret._forward[from.value] = into;
+    ret._forward[from.value] = {into, provider->second};
     const Candidate candidate{ret._symbols[from.value], rankings[from.value]};
     merge(ret._symbols[into.value], rankings[into.value], candidate, errors);
   }
@@ -301,7 +302,9 @@ void pepp::link::mark_live_objects(const InputSymbols &table, const ResolvedSymb
     // Search all the symbol references of that file.
     const auto [first, last] = table.ids_of(file);
     for (auto id = first; id < last; ++id) {
-      const auto owner = symbols.symbol(symbols.of(id)).owner;
+      // foo@V needs the member defining foo@@V, even if another definition of foo outranks it.
+      const auto provider = symbols.provider(id);
+      const auto owner = provider ? provider : symbols.symbol(symbols.of(id)).owner;
       if (!owner) continue;
       const auto attributes = table.attributes(id);
       const bool undefined_ref = attributes.undefined && !attributes.weak;
@@ -317,7 +320,12 @@ void pepp::link::mark_live_objects(const InputSymbols &table, const ResolvedSymb
 pepp::link::SymbolID pepp::link::ResolvedSymbols::of(InputSymbolID id) const {
   if (id.value >= _of.size()) throw std::out_of_range("ResolvedSymbols: no entry with this ID");
   const auto symbol = _of[id.value];
-  return _forward.empty() || !_forward[symbol.value] ? symbol : _forward[symbol.value];
+  return _forward.empty() || !_forward[symbol.value].into ? symbol : _forward[symbol.value].into;
+}
+
+pepp::link::InputSymbolID pepp::link::ResolvedSymbols::provider(InputSymbolID id) const {
+  if (id.value >= _of.size()) throw std::out_of_range("ResolvedSymbols: no entry with this ID");
+  return _forward.empty() ? InputSymbolID{} : _forward[_of[id.value].value].provider;
 }
 
 std::string_view pepp::link::ResolvedSymbols::name(SymbolID id) const {

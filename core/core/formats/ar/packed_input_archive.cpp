@@ -281,11 +281,9 @@ pepp::bts::PackedInputArchive::open(std::shared_ptr<const AElfSource> source,
 
 std::expected<pepp::bts::PackedInputArchive, pepp::bts::ArchiveError>
 pepp::bts::PackedInputArchive::open(const std::string &path) {
-  // MappedFileSource throws if it cannot size the file, so check first.
-  std::error_code ec;
-  std::filesystem::file_size(path, ec);
-  if (ec) return fail(CannotOpen, 0);
-  return open(std::make_shared<MappedFileSource>(MappedFile::open_readonly(path)), path);
+  auto source = MappedFileSource::open(path);
+  if (!source) return fail(CannotOpen, 0);
+  return open(std::move(source), path);
 }
 
 bits::span<const u8> pepp::bts::PackedInputArchive::bytes(u64 offset, u64 length) const noexcept {
@@ -323,11 +321,9 @@ std::expected<std::shared_ptr<const pepp::bts::AElfSource>, pepp::bts::ArchiveEr
 pepp::bts::PackedInputArchive::member_source(const PackedArMember &member) const {
   if (_thin && !_path) return fail(ThinMember, member.header_offset);
   else if (_thin) {
-    const auto path = thin_member_path(*_path, name(member));
-    std::error_code ec;
-    std::filesystem::file_size(path, ec);
-    if (ec) return fail(CannotOpen, member.header_offset);
-    return std::make_shared<MappedFileSource>(MappedFile::open_readonly(path.string()));
+    auto source = MappedFileSource::open(thin_member_path(*_path, name(member)));
+    if (!source) return fail(CannotOpen, member.header_offset);
+    return source;
   }
   return std::make_shared<SliceSource>(_source, member.data_offset(), member.size);
 }

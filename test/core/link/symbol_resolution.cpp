@@ -267,19 +267,24 @@ TEST_CASE("Link only reachable archive members ", "[scope:core][scope:core.link]
   const auto root = group
                         .add(object_of({{.name = "needed", .defined = false},                                    // 1
                                         {.name = "optional", .defined = false, .bind = SymbolBinding::STB_WEAK}, // 2
-                                        {.name = "block", .defined = true, .common = true}}))                    // 3
+                                        {.name = "block", .defined = true, .common = true},                      // 3
+                                        {.name = "foo@V", .defined = false},                                     // 4
+                                        {.name = "bar", .defined = true, .bind = SymbolBinding::STB_WEAK},       // 5
+                                        {.name = "bar@V", .defined = false}}))                                   // 6
                         .value();
   const auto members = add_archive(
       group, {{{.name = "needed", .defined = true}, {.name = "chained", .defined = false}},
               {{.name = "chained", .defined = true}},
               {{.name = "optional", .defined = true}, {.name = "missing", .defined = false}},
-              {{.name = "block", .defined = true}}});
+              {{.name = "block", .defined = true}},
+              {{.name = "foo", .defined = true}, {.name = "bar", .defined = true}},
+              {{.name = "foo@@V", .defined = true}, {.name = "bar@@V", .defined = true}}});
   Diagnostics diagnostics;
   const auto table = gather_symbols(diagnostics, group);
   REQUIRE(table);
   using enum Liveness;
-  // Files 1 (root)  needs 2, 3, 5, but not 4.
-  const std::vector needed{Excluded, Live, Live, Live, Excluded, Live};
+  // Files 1 (root)  needs 2, 3, 5, 7, but not 4 or 6.
+  const std::vector needed{Excluded, Live, Live, Live, Excluded, Live, Excluded, Live};
 
   std::vector files(table->files() + 1, Lazy);
   files[root.value] = Live;
@@ -300,6 +305,9 @@ TEST_CASE("Link only reachable archive members ", "[scope:core][scope:core.link]
     CHECK(files == needed);
     CHECK(owner(1) == entry(members[0], 1));
     CHECK(owner(3) == entry(members[3], 1));
+    // foo@V needs foo@@V's member, though an earlier member's foo and a live weak bar outrank foo@@V and bar@@V.
+    CHECK(owner(4) == entry(members[5], 1));
+    CHECK(owner(6) == entry(members[5], 2));
     // Weak references do not pull in members and unreachables are not part of the link
     CHECK_FALSE(owner(2));
     CHECK(symbols.of(entry(members[2], 2)) == SymbolID{0});

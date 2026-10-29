@@ -38,11 +38,9 @@ std::string_view pepp::bts::InputGroupError::to_string(Code code) {
 auto pepp::bts::detail::detect_input(const std::filesystem::path &path)
     -> std::expected<DetectedInput, InputGroupError> {
   using enum InputGroupError::Code;
-  // MappedFileSource throws if it cannot size the file, so check first.
-  std::error_code ec;
-  std::filesystem::file_size(path, ec);
-  if (ec) return std::unexpected(InputGroupError{CannotOpen});
-  DetectedInput ret{.source = std::make_shared<MappedFileSource>(MappedFile::open_readonly(path.string()))};
+  auto source = MappedFileSource::open(path);
+  if (!source) return std::unexpected(InputGroupError{CannotOpen});
+  DetectedInput ret{.source = std::move(source)};
   const auto slice = ret.source->slice(0, PackedInputArchive::REGULAR_MAGIC.size());
   const auto bytes = slice->get(0, slice->size());
   const auto magic = bits::as_string_view(bytes);

@@ -29,7 +29,7 @@
 namespace pepp::link {
 // The inputs of a link and the state shared between its passes.
 struct LinkContext {
-  // Null if the link stopped before any input was read.
+  // Null if the link stopped before reading its inputs.
   bts::AnyElfGroup group;
   Diagnostics diagnostics;
   // Indexed by ConfigInputID. Each input's path, or <memory>.

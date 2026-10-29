@@ -14,12 +14,20 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "packed_elf.hpp"
+#include <fstream>
 
 pepp::bts::AElfSource::~AElfSource() = default;
 
 pepp::bts::MappedFileSource::MappedFileSource(std::shared_ptr<MappedFile> file) : _file(std::move(file)) {
   if (!_file) throw std::invalid_argument("MappedFileSource: file must be non-null");
   _size = _file->size();
+}
+
+std::shared_ptr<pepp::bts::MappedFileSource> pepp::bts::MappedFileSource::open(const std::filesystem::path &path) {
+  std::error_code ec;
+  std::filesystem::file_size(path, ec);
+  if (ec || !std::ifstream(path, std::ios::binary)) return nullptr;
+  return std::make_shared<MappedFileSource>(MappedFile::open_readonly(path.string()));
 }
 
 u64 pepp::bts::MappedFileSource::size() const noexcept { return _size; }

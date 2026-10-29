@@ -188,6 +188,8 @@ public:
   const Symbol &symbol(SymbolID id) const;
   // The merged size and alignment of id if its owner is a common definition, or nullopt.
   std::optional<CommonSize> common(SymbolID id) const;
+  // The best ranked foo@@V definition that a foo@V or foo entry forwards to. STN_UNDEF if not forwarded.
+  InputSymbolID provider(InputSymbolID id) const;
 
 private:
   friend ResolvedSymbols resolve_symbols(Diagnostics &diagnostics, const InputSymbols &table,
@@ -197,9 +199,16 @@ private:
   // Both are indexed by SymbolID. Entry 0 is STN_UNDEF.
   std::vector<std::string_view> _names = std::vector<std::string_view>(1);
   std::vector<Symbol> _symbols = std::vector<Symbol>(1);
-  // Indexed by SymbolID. If the symbol collapsed into another (e.g., foo@V into foo), this points to the best ranking
-  // symbol matching the same name. Otherwise points to 0 / STN_UNDEF.
-  std::vector<SymbolID> _forward;
+  // If the symbol collapsed into another (e.g., foo@V into foo), record both the collapsed symbol and the original
+  // owner.
+  struct Forward {
+    // Points to the best ranking symbol matching the same name.
+    SymbolID into;
+    // The original symbol definition before collapse.
+    InputSymbolID provider;
+  };
+  // Indexed by SymbolID.
+  std::vector<Forward> _forward;
   // Sparse since few symbols are common.
   std::unordered_map<SymbolID, CommonSize, pepp::handle_hash<SymbolID>> _commons;
 };

@@ -18,6 +18,7 @@
 #pragma once
 
 #include <concepts>
+#include <filesystem>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -65,6 +66,8 @@ struct AElfSource {
 // Reads through a memory-mapped file, mapping each region on first access.
 struct MappedFileSource final : public AElfSource {
   explicit MappedFileSource(std::shared_ptr<MappedFile> file);
+  // The file at path or nullptr if it can't be read.
+  static std::shared_ptr<MappedFileSource> open(const std::filesystem::path &path);
   u64 size() const noexcept override;
   std::shared_ptr<AStorage> slice(u64 offset, u64 length) const override;
 
