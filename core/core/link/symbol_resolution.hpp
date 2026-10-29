@@ -17,9 +17,7 @@
 
 #pragma once
 #include <algorithm>
-#include <expected>
 #include <optional>
-#include <span>
 #include <string_view>
 #include <unordered_map>
 #include <utility>
@@ -27,31 +25,9 @@
 #include "core/ds/opaque_handle.hpp"
 #include "core/formats/elf/packed_access_symbol.hpp"
 #include "core/formats/elf/packed_input_group.hpp"
+#include "core/link/diagnostics.hpp"
 
 namespace pepp::link {
-// Index of a symbol in InputSymbols. 0 is STN_UNDEF.
-using InputSymbolID = pepp::OpaqueHandle<struct InputSymbolTag, u32>;
-consteval void allow_opaque_handle_add(InputSymbolID);
-consteval void allow_opaque_handle_increment(InputSymbolID);
-
-struct GatherError {
-  enum class Code : u8 {
-    // sh_link does not point to a valid string table.
-    BadStringTable,
-    // sh_info is greater than the number of symbols in the table.
-    BadFirstGlobal,
-    LocalAfterFirstGlobal,
-    GlobalBeforeFirstGlobal,
-    // A non-local STT_FILE or STT_SECTION.
-    LocalOnlyType,
-  };
-  static std::string_view to_string(Code code);
-
-  Code code;
-  bts::ElfFileID file;
-  // The offending symbol index in the given file's symtab. 0 if the error is not specific to a single symbol.
-  u32 index = 0;
-};
 
 // What resolution needs to know about one non-local symbol, read once while gathering. One byte.
 struct SymbolAttributes {
@@ -115,17 +91,20 @@ private:
   std::unordered_map<InputSymbolID, CommonSize, pepp::handle_hash<InputSymbolID>> _commons;
 
   template <bts::ElfBits B, bts::ElfEndian E>
-  friend std::expected<InputSymbols, GatherError> gather_symbols(const bts::PackedInputElfGroup<B, E> &group);
+  friend std::optional<InputSymbols> gather_symbols(Diagnostics &diagnostics,
+                                                    const bts::PackedInputElfGroup<B, E> &group);
 };
 
 // Extract all non-local symbols for each ELF file in the group. Files without symbol tables are skipped. Archive's
 // symbol index is ignored, meaning members' symbol tables are re-read from their ELF symtabs.
+// A malformed symbol table is Fatal, citing the offending symbol index, or 0 for the table as a whole.
 template <bts::ElfBits B, bts::ElfEndian E>
-std::expected<InputSymbols, GatherError> gather_symbols(const bts::PackedInputElfGroup<B, E> &group) {
+std::optional<InputSymbols> gather_symbols(Diagnostics &diagnostics, const bts::PackedInputElfGroup<B, E> &group) {
   using namespace bts;
-  using enum GatherError::Code;
-  constexpr auto fail = [&](u32 id, GatherError::Code code, u32 index) {
-    return std::unexpected(GatherError{code, ElfFileID(id), index});
+  using enum SymbolCode;
+  const auto fail = [&](u32 id, SymbolCode code, u32 index) -> std::optional<InputSymbols> {
+    diagnostics.add({Severity::Fatal, code, InputElfSymbolHandle{ElfFileID(id), index}});
+    return std::nullopt;
   };
 
   InputSymbols ret;
@@ -183,21 +162,6 @@ struct Symbol {
   u8 visibility = 0;
 };
 
-struct ResolveError {
-  enum class Code : u8 {
-    MultipleDefinition, // Two strong definitions.
-    TlsMismatch,        // A symbol is defined as TLS in one file and not in another.
-    Undefined,          // A Symbol was never defined. The offending symbol is held in "conflicting"
-  };
-  static std::string_view to_string(Code code);
-
-  Code code;
-  // Output symbol associated with the conflict.
-  SymbolID symbol;
-  InputSymbolID original, conflicting;
-  bool operator==(const ResolveError &) const = default;
-};
-
 // Limit a file's participation in resolve_symbols.
 enum class Liveness : u8 {
   // Not part of the link. Its entries map to STN_UNDEF.
@@ -222,13 +186,12 @@ public:
   std::string_view name(SymbolID id) const;
   // Throws std::out_of_range if no symbol has this ID.
   const Symbol &symbol(SymbolID id) const;
-  // Conflicts found while resolving, in input order. The link must fail if this is non-empty.
-  std::span<const ResolveError> errors() const noexcept { return _errors; }
   // The merged size and alignment of id if its owner is a common definition, or nullopt.
   std::optional<CommonSize> common(SymbolID id) const;
 
 private:
-  friend ResolvedSymbols resolve_symbols(const InputSymbols &table, const std::vector<Liveness> &files);
+  friend ResolvedSymbols resolve_symbols(Diagnostics &diagnostics, const InputSymbols &table,
+                                         const std::vector<Liveness> &files);
   // Indexed by InputSymbolID.
   std::vector<SymbolID> _of;
   // Both are indexed by SymbolID. Entry 0 is STN_UNDEF.
@@ -237,8 +200,6 @@ private:
   // Indexed by SymbolID. If the symbol collapsed into another (e.g., foo@V into foo), this points to the best ranking
   // symbol matching the same name. Otherwise points to 0 / STN_UNDEF.
   std::vector<SymbolID> _forward;
-  // Errors generated during resolve_symbols.
-  std::vector<ResolveError> _errors;
   // Sparse since few symbols are common.
   std::unordered_map<SymbolID, CommonSize, pepp::handle_hash<SymbolID>> _commons;
 };
@@ -252,9 +213,11 @@ private:
 // that promotion. Cannot be one pass, otherwise lazy members' undefineds could cause a link that should pass to fail.
 // The alternative is iterating in resolve_symbols until we reach a fixed-point, promoting on-the-fly.
 // files is indexed by file ID and must have table.files() + 1 entries, or this throws std::invalid_argument.
+// Conflicts and strong undefined references are added as Errors in input order.
 // TODO: merge common sizes
 // TODO: shared libraries
-ResolvedSymbols resolve_symbols(const InputSymbols &table, const std::vector<Liveness> &files);
+ResolvedSymbols resolve_symbols(Diagnostics &diagnostics, const InputSymbols &table,
+                                const std::vector<Liveness> &files);
 
 // For each file, convert Lazy to Live if ResolvedSymbols contains a strong reference to that file.
 // Otherwise, demote Lazy to Excluded. Live and excluded files are unchanged. files is indexed by file ID and must

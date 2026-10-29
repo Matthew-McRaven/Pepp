@@ -21,17 +21,6 @@
 #include <unordered_map>
 #include "core/link/symbol_versions.hpp"
 
-std::string_view pepp::link::GatherError::to_string(Code code) {
-  switch (code) {
-  case Code::BadStringTable: return "symbol table's string table does not exist";
-  case Code::BadFirstGlobal: return "symbol table's sh_info is out-of-bounds";
-  case Code::LocalAfterFirstGlobal: return "local symbol after sh_info";
-  case Code::GlobalBeforeFirstGlobal: return "non-local symbol before sh_info";
-  case Code::LocalOnlyType: return "non-local file or section symbol";
-  }
-  return "unknown error";
-}
-
 std::string_view pepp::link::InputSymbols::name(InputSymbolID id) const {
   if (id.value >= _names.size()) throw std::out_of_range("InputSymbols: no symbol with this ID");
   return _names[id.value];
@@ -144,22 +133,32 @@ Candidate candidate_of(const pepp::link::InputSymbols &table, InputSymbolID id, 
   return ret;
 }
 
+// An Error between two symbols, citing the later one.
+pepp::link::Diagnostic conflict(pepp::link::SymbolCode code, InputSymbolID lhs, InputSymbolID rhs) {
+  return {pepp::link::Severity::Error, code, pepp::link::SymbolConflict{std::max(lhs, rhs), std::min(lhs, rhs)}};
+}
+// Reutrn the symbol ID of a diagnostic. If it contains multiple symbols, return the latest one.
+InputSymbolID later_of(const pepp::link::Diagnostic &diagnostic) {
+  if (const auto *pair = std::get_if<pepp::link::SymbolConflict>(&diagnostic.subject)) return pair->symbol;
+  return std::get<InputSymbolID>(diagnostic.subject);
+}
+
 // If from is a better candidate than into, update into and its ranking with the fields of from.
-void merge(pepp::link::Symbol &into, Ranking &ranking, const Candidate &from, SymbolID symbol,
-           std::vector<pepp::link::ResolveError> &errors) {
-  using enum pepp::link::ResolveError::Code;
+void merge(pepp::link::Symbol &into, Ranking &ranking, const Candidate &from,
+           std::vector<pepp::link::Diagnostic> &errors) {
+  using enum pepp::link::SymbolCode;
   // Keep the more restrictive visibility for the output.
   if (constraint_of(from.symbol.visibility) > constraint_of(into.visibility)) into.visibility = from.symbol.visibility;
   // Declarations must agree on whether the symbol is thread-local. STT_NOTYPE can be ignored.
   const auto typed = from.ranking.typed;
   if (typed && !ranking.typed) ranking.typed = typed, ranking.tls = from.ranking.tls;
   else if (typed && from.ranking.tls != ranking.tls)
-    errors.push_back({TlsMismatch, symbol, std::min(ranking.typed, typed), std::max(ranking.typed, typed)});
+    errors.push_back(conflict(TlsMismatch, ranking.typed, typed));
   const auto owner = from.symbol.owner;
   if (!owner) return; // Must be undefined. No point in checking attributes. Hope someone else defines it later.
   // Two strong definitions in object files are a multiple definition error.
   if (tier_of(from.ranking.rank) == Tier::Strong && tier_of(ranking.rank) == Tier::Strong)
-    errors.push_back({MultipleDefinition, symbol, std::min(into.owner, owner), std::max(into.owner, owner)});
+    errors.push_back(conflict(MultipleDefinition, into.owner, owner));
   // Merge two commons within the same tier, following the conventions of GNU ld and lld.
   // Mold prefers to keep the earliest definition. Retain the larger of the two alignment requirements and select the
   // larger symbol.
@@ -215,7 +214,7 @@ void check_file_count(const pepp::link::InputSymbols &table, const std::vector<L
 }
 } // namespace
 
-pepp::link::ResolvedSymbols pepp::link::resolve_symbols(const InputSymbols &table,
+pepp::link::ResolvedSymbols pepp::link::resolve_symbols(Diagnostics &diagnostics, const InputSymbols &table,
                                                         const std::vector<Liveness> &files) {
   check_file_count(table, files);
   ResolvedSymbols ret;
@@ -225,7 +224,7 @@ pepp::link::ResolvedSymbols pepp::link::resolve_symbols(const InputSymbols &tabl
   SymbolMap map;
   // Indexed by SymbolID, beside ret._symbols.
   std::vector<Ranking> rankings(1);
-  std::vector<ResolveError> errors;
+  std::vector<Diagnostic> errors;
   // Strong undefined references. Errors if nothing defines their symbol.
   std::vector<InputSymbolID> references;
   // Common definitions. Sizes must be merged when they are the owning symbol.
@@ -251,7 +250,7 @@ pepp::link::ResolvedSymbols pepp::link::resolve_symbols(const InputSymbols &tabl
       ret._symbols.resize(ret._names.size());
       rankings.resize(ret._names.size());
       // Pick the best input symbol for each output symbol.
-      merge(ret._symbols[symbol.value], rankings[symbol.value], candidate_of(table, id, file, live), symbol, errors);
+      merge(ret._symbols[symbol.value], rankings[symbol.value], candidate_of(table, id, file, live), errors);
       const auto attributes = table.attributes(id);
       if (attributes.undefined && !attributes.weak) references.push_back(id);
       else if (attributes.common) commons.push_back(id);
@@ -267,7 +266,7 @@ pepp::link::ResolvedSymbols pepp::link::resolve_symbols(const InputSymbols &tabl
     if (ret._forward.empty()) ret._forward.resize(ret._names.size());
     ret._forward[from.value] = into;
     const Candidate candidate{ret._symbols[from.value], rankings[from.value]};
-    merge(ret._symbols[into.value], rankings[into.value], candidate, into, errors);
+    merge(ret._symbols[into.value], rankings[into.value], candidate, errors);
   }
 
   // Ensure commons' merged size/alignment is kept after forwarding.
@@ -280,10 +279,10 @@ pepp::link::ResolvedSymbols pepp::link::resolve_symbols(const InputSymbols &tabl
   // that symbol rather than per-symbol in the output (following mold).
   for (const auto id : references)
     if (const auto symbol = ret.of(id); !ret._symbols[symbol.value].owner)
-      errors.push_back({ResolveError::Code::Undefined, symbol, InputSymbolID(0), id});
+      errors.push_back({Severity::Error, SymbolCode::Undefined, id});
   // Sort errors by the offending symbols input ID.
-  std::ranges::stable_sort(errors, {}, &ResolveError::conflicting);
-  ret._errors = std::move(errors);
+  std::ranges::stable_sort(errors, {}, later_of);
+  for (auto &error : errors) diagnostics.add(std::move(error));
   return ret;
 }
 
@@ -313,15 +312,6 @@ void pepp::link::mark_live_objects(const InputSymbols &table, const ResolvedSymb
         files[owner_file.value] = Liveness::Live, worklist.push_back(owner_file);
     }
   }
-}
-
-std::string_view pepp::link::ResolveError::to_string(Code code) {
-  switch (code) {
-  case Code::MultipleDefinition: return "multiple definition";
-  case Code::TlsMismatch: return "thread-local and non-thread-local symbols share a name";
-  case Code::Undefined: return "undefined symbol";
-  }
-  return "unknown error";
 }
 
 pepp::link::SymbolID pepp::link::ResolvedSymbols::of(InputSymbolID id) const {

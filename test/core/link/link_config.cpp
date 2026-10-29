@@ -18,9 +18,8 @@
 #include "core/link/link_config.hpp"
 #include <catch.hpp>
 #include <filesystem>
-#include <memory>
+#include <string>
 #include <utility>
-#include <variant>
 #include <vector>
 #include "./helpers.hpp"
 #include "core/link/linker_passes.hpp"
@@ -35,35 +34,36 @@ LinkConfig config_of(auto &&...inputs) {
   return ret;
 }
 
-const PackedInputElfGroupLE32 &group_of(const LinkResult &result) {
-  REQUIRE(std::holds_alternative<std::unique_ptr<PackedInputElfGroupLE32>>(result.group));
-  return *std::get<std::unique_ptr<PackedInputElfGroupLE32>>(result.group);
+std::vector<std::string> messages_of(const LinkContext &context) {
+  std::vector<std::string> ret;
+  for (const auto &diagnostic : context.diagnostics) ret.push_back(describe(context, diagnostic));
+  return ret;
 }
 } // namespace
 
-TEST_CASE("Link from a LinkConfig", "[scope:core][scope:core.link][kind:unit][arch:*]") {
-  SECTION("Inputs from disk and memory") {
-    using enum Liveness;
-    write_bytes("link_config_a.o", bytes_of({{"main", true}, {"needed", false}, {"also", false}}));
-    auto lib = archive_of({{{"needed", true}}}), in_memory = archive_of({{{"also", true}}});
-    write_bytes("link_config_lib.a", archive_bytes(lib).value());
+TEST_CASE("e2e linking", "[scope:core][scope:core.link][kind:unit][arch:*]") {
+  using enum SymbolBinding;
+  using enum SymbolType;
+  write_bytes("link_config_a.o", bytes_of({{"main", true}, {"needed", false}, {"also", false}}));
+  write_bytes("link_config_lib.a", archive_bytes_of({{{"needed", true}, {"missing", false}}}));
+  auto in_memory = archive_of({{{"also", true}}});
 
-    // The class comes from the first input's member. One file is duplicated (link_config_a).
-    const auto result = do_link(config_of(path("link_config_lib.a"), path("link_config_a.o"),
-                                          to_input_archive(in_memory).value(), object_of({{"other", true}}),
-                                          path("link_config_a.o")));
-    REQUIRE(result);
-    const auto &group = group_of(*result);
-    REQUIRE(group.size() == 5);
-    CHECK(group.archive_count() == 2);
-    CHECK(std::holds_alternative<ElfFromArchive>(group.provenance(ElfFileID{1})));
-    CHECK(std::get<ElfFromPath>(group.provenance(ElfFileID{2})).path == "link_config_a.o");
-    CHECK(std::holds_alternative<ElfFromArchive>(group.provenance(ElfFileID{3})));
-    CHECK(std::holds_alternative<ElfInMemory>(group.provenance(ElfFileID{4})));
-    // main's references pull in both members.
-    CHECK(result->context.files == std::vector{Excluded, Live, Live, Live, Live, Live});
-    const auto errors = result->context.symbols.errors();
-    REQUIRE(errors.size() == 1);
-    CHECK(errors[0].code == ResolveError::Code::MultipleDefinition);
-  }
+  // The class comes from the first input's member. a.o is linked twice.
+  const auto result = do_link(config_of(path("link_config_lib.a"), path("link_config_a.o"),
+                                        to_input_archive(in_memory).value(),
+                                        object_of({{"t", true, STB_GLOBAL, STT_TLS}}),
+                                        object_of({{"t", false, STB_GLOBAL, STT_OBJECT}}), path("link_config_a.o")));
+  // non-fatal errors do not stop link
+  CHECK(result.diagnostics.count(Severity::Fatal) == 0);
+  CHECK(messages_of(result) ==
+        std::vector<std::string>{
+            "link_config_lib.a(0.o): undefined reference to `missing'",
+            "t: TLS definition in <memory> mismatches non-TLS reference in <memory>",
+            "link_config_a.o: multiple definition of `main'; link_config_a.o: first defined here"});
+
+  // A fatal error stops the link.
+  const auto missing = do_link(config_of(object_of({{"a", true}}), path("link_config_missing.o")));
+  CHECK(entries_of(missing.diagnostics) ==
+        std::vector<Diagnostic>{{Severity::Fatal, InputGroupError::Code::CannotOpen, ConfigInputID{1}}});
+  CHECK(messages_of(missing) == std::vector<std::string>{"link_config_missing.o: cannot open file"});
 }

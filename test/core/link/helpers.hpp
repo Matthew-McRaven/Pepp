@@ -90,6 +90,14 @@ inline PackedGrowableArchive archive_of(std::initializer_list<Symbols> members) 
   }
   return ret;
 }
+inline std::vector<u8> archive_bytes_of(std::initializer_list<Symbols> members) {
+  auto archive = archive_of(members);
+  return archive_bytes(archive).value();
+}
+
+inline std::vector<Diagnostic> entries_of(const Diagnostics &diagnostics) {
+  return {diagnostics.begin(), diagnostics.end()};
+}
 
 // Looks up the entry of a file's symbol index or fail the test.
 inline auto entry_of(const InputSymbols &table) {

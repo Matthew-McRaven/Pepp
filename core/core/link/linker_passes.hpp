@@ -17,23 +17,30 @@
 
 #pragma once
 #include <algorithm>
-#include <expected>
-#include <optional>
-#include <string_view>
+#include <string>
 #include <utility>
 #include <variant>
 #include <vector>
 #include "core/formats/elf/packed_input_group.hpp"
+#include "core/link/diagnostics.hpp"
 #include "core/link/link_config.hpp"
 #include "core/link/symbol_resolution.hpp"
 
 namespace pepp::link {
-// The state of a link that is shared between passes. The associate InputGroup must outlive this context.
+// The inputs of a link and the state shared between its passes.
 struct LinkContext {
+  // Null if the link stopped before any input was read.
+  bts::AnyElfGroup group;
+  Diagnostics diagnostics;
+  // Indexed by ConfigInputID. Each input's path, or <memory>.
+  std::vector<std::string> input_names;
   InputSymbols inputs;
   // Indexed by file ID. Index 0 is unused.
   std::vector<Liveness> files;
   ResolvedSymbols symbols;
+
+  // True if the link produced no Error or Fatal diagnostics.
+  bool ok() const { return diagnostics.count(Severity::Error) == 0; }
 };
 
 // For each file ID of the group, Live if not an archive, or Lazy if an archive member.
@@ -47,59 +54,41 @@ std::vector<Liveness> default_liveness(const bts::PackedInputElfGroup<B, E> &gro
   return ret;
 }
 
-struct LinkError {
-  enum class Code : u8 {
-    // No input provides an ELF file from which to take the class and byte order.
-    NoInputs,
-    // A config field or input kind that is not implemented yet.
-    Unsupported,
-    // An input could not be opened or added to the group. See group.
-    BadInput,
-    // An input's symbol table is malformed. See gather.
-    BadSymbols,
-  };
-  static std::string_view to_string(Code code);
-
-  Code code;
-  // If error is specific to a single input file this is its index in LinkConfig::inputs.
-  std::optional<u32> input = std::nullopt;
-  std::optional<bts::InputGroupError> group = std::nullopt;
-  std::optional<GatherError> gather = std::nullopt;
-};
-
-// The inputs of a link and the state derived from them. context refers into group, which is heap-allocated.
-struct LinkResult {
-  bts::AnyElfGroup group;
-  LinkContext context;
-};
-
 // Our equivalent to mold_main, which runs all of the steps of the linking process for a particular config.
-std::expected<LinkResult, LinkError> do_link(LinkConfig &&config);
+// Stops at the first Fatal diagnostic. Check ok() before using the result.
+LinkContext do_link(LinkConfig &&config);
+// Pretty-print a description of a diagnostic message.
+std::string describe(const LinkContext &context, const Diagnostic &diagnostic);
 
 // The steps of do_link that run once the inputs are in a group.
 // TODO: still missing many steps.
 template <bts::ElfBits B, bts::ElfEndian E>
-std::expected<LinkContext, GatherError> link_group(const bts::PackedInputElfGroup<B, E> &group) {
+void link_group(LinkContext &context, const bts::PackedInputElfGroup<B, E> &group) {
+  auto &diagnostics = context.diagnostics;
+  auto &inputs = context.inputs;
+  auto &files = context.files;
   /*
    * Symbol resolution passes
    */
   // TODO: handle wrapped symbols, --retain-symbol-files prior to symbol resolution.
-  auto inputs = gather_symbols(group);
-  if (!inputs) return std::unexpected(inputs.error());
+  if (auto gathered = gather_symbols(diagnostics, group); !gathered) return;
+  else inputs = std::move(*gathered);
 
   // As in mold, perform two passes for symbol resolution.
-  auto files = default_liveness(group);
+  files = default_liveness(group);
   // The first pass, determines the best definition of each symbol, marking archive members as live if they are used by
   // another live file. Without archive members, both passes would agree, so skip the first.
+  // Discard this pass's diagnostics so that unused lazy member's undefined references are not errors.
   if (std::ranges::find(files, Liveness::Lazy) != files.end()) {
-    mark_live_objects(*inputs, resolve_symbols(*inputs, files), files);
+    Diagnostics discarded;
+    mark_live_objects(inputs, resolve_symbols(discarded, inputs, files), files);
     std::ranges::replace(files, Liveness::Lazy, Liveness::Excluded);
   }
   // TODO: Merge COMDAT groups.
   // TODO: Create a selection for only-live files/sections.
   // In the second pass, do not include archive members that are now marked as excluded, which helps avoid undefined
   // symbol errors.
-  auto symbols = resolve_symbols(*inputs, files);
+  context.symbols = resolve_symbols(diagnostics, inputs, files);
   /*
    * Inspect special sections
    */
@@ -112,7 +101,7 @@ std::expected<LinkContext, GatherError> link_group(const bts::PackedInputElfGrou
     // TODO: construct output symtab / .eh_frame / .sframe
     // TODO: create relocations, COMDAT groups
     // TODO: the great bit-copya
-    return {};
+    return;
   } else {
     // TODO: create .bss sections for commons
     // TODO: compute import / export flags for each symbol
@@ -139,7 +128,6 @@ std::expected<LinkContext, GatherError> link_group(const bts::PackedInputElfGrou
     // TODO: compress relevant sections, ensure thunks are coalesced
     // Memory layout and file layout are fixed
     // TODO: begin the bit copying, apply relocations as we go
-    return LinkContext{std::move(*inputs), std::move(files), std::move(symbols)};
   }
 }
 } // namespace pepp::link

@@ -50,13 +50,16 @@ Names names_of(const InputSymbols &table, ElfFileID file, u32 first, u32 last) {
 }
 
 // The error from gathering elf's symbols, after the caller has broken its symbol table.
-GatherError::Code error_of(Elf &elf) {
+DiagnosticCode error_of(Elf &elf) {
   PackedInputElfGroupLE32 group;
   REQUIRE(group.add(to_input_elf(elf)));
-  const auto table = gather_symbols(group);
+  Diagnostics diagnostics;
+  const auto table = gather_symbols(diagnostics, group);
   REQUIRE_FALSE(table);
-  return table.error().code;
+  REQUIRE(diagnostics.size() == 1);
+  return diagnostics.begin()->code;
 }
+
 
 // Adds an archive of objects to group, extracting each member's ELFs
 std::vector<ElfFileID> add_archive(PackedInputElfGroupLE32 &group, std::initializer_list<Symbols> members) {
@@ -71,11 +74,12 @@ std::vector<ElfFileID> add_archive(PackedInputElfGroupLE32 &group, std::initiali
 
 TEST_CASE("Collect globals / undefineds", "[scope:core][scope:core.link][kind:unit][arch:*]") {
   PackedInputElfGroupLE32 group;
+  Diagnostics diagnostics;
   auto with = with_every_binding(), without = elf_of({});
   const auto a = group.add(to_input_elf(with)).value(), b = group.add(to_input_elf(without)).value();
 
   SECTION("Weak, global, and undefined symbols") {
-    const auto table = gather_symbols(group);
+    const auto table = gather_symbols(diagnostics, group);
     REQUIRE(table);
     CHECK(table->files() == 2);
     // STN_UNDEF, then a's four non-locals, which are symbol indices 3 to 6.
@@ -99,9 +103,9 @@ TEST_CASE("Collect globals / undefineds", "[scope:core][scope:core.link][kind:un
     CHECK_THROWS_AS(table->file_of(InputSymbolID{5}), std::out_of_range);
   }
   SECTION("Reject malformed symbol tables") {
-    using enum GatherError::Code;
+    using enum SymbolCode;
     // sh_info past the end; at loop, which is local, at 2; after main, which is global, at 3.
-    const std::pair<u32, GatherError::Code> first_globals[] = {
+    const std::pair<u32, DiagnosticCode> first_globals[] = {
         {100, BadFirstGlobal}, {2, LocalAfterFirstGlobal}, {4, GlobalBeforeFirstGlobal}};
     for (const auto &[sh_info, code] : first_globals) {
       auto elf = with_every_binding();
@@ -110,12 +114,12 @@ TEST_CASE("Collect globals / undefineds", "[scope:core][scope:core.link][kind:un
     }
     auto bad_link = with_every_binding();
     bad_link.section_headers[find_named_section(bad_link, ".symtab")].sh_link = 99;
-    CHECK(error_of(bad_link) == BadStringTable);
+    CHECK(error_of(bad_link) == DiagnosticCode{BadStringTable});
     // main, at 3, retyped as a section symbol.
     auto bad_type = with_every_binding();
     PackedSymbolWriter<ElfBits::b32, ElfEndian::le> writer(bad_type, find_named_section(bad_type, ".symtab"));
     writer.get_symbol_ptr(3)->set_type(SymbolType::STT_SECTION);
-    CHECK(error_of(bad_type) == LocalOnlyType);
+    CHECK(error_of(bad_type) == DiagnosticCode{LocalOnlyType});
   }
   SECTION("Archive symbol indices are ignored") {
     PackedGrowableArchive archive;
@@ -133,7 +137,7 @@ TEST_CASE("Collect globals / undefineds", "[scope:core][scope:core.link][kind:un
     REQUIRE(id);
     const auto c = group.add_member(*id, *member);
     REQUIRE(c);
-    const auto table = gather_symbols(group);
+    const auto table = gather_symbols(diagnostics, group);
     REQUIRE(table);
     // helper is gathered anyway, from the member's own symbol table.
     CHECK(names_of(*table, *c, 3, 7) == names_of(*table, a, 3, 7));
@@ -154,9 +158,10 @@ TEST_CASE("Resolve symbols between files", "[scope:core][scope:core.link][kind:u
                                    {"qux@", false}}))
                      .value();
   const auto b = group.add(object_of({{"foo@@V2", true}, {"foo@V1", true}, {"bar", true}, {"foo@V4"}})).value();
-  const auto table = gather_symbols(group);
+  Diagnostics diagnostics;
+  const auto table = gather_symbols(diagnostics, group);
   REQUIRE(table);
-  const auto symbols = resolve_symbols(*table, std::vector(table->files() + 1, Liveness::Live));
+  const auto symbols = resolve_symbols(diagnostics, *table, std::vector(table->files() + 1, Liveness::Live));
   // The global symbol of file's symbol index.
   const auto of = [&, entry = entry_of(*table)](ElfFileID file, u32 index) { return symbols.of(entry(file, index)); };
 
@@ -217,9 +222,10 @@ TEST_CASE("Symbol ranking and selection", "[scope:core][scope:core.link][kind:un
                                    {.name = "tls", .defined = false, .type = SymbolType::STT_OBJECT},
                                    {.name = "hidden", .defined = false, .visibility = SymbolVisibility::STV_HIDDEN}}))
                      .value();
-  const auto table = gather_symbols(group);
+  Diagnostics diagnostics;
+  const auto table = gather_symbols(diagnostics, group);
   REQUIRE(table);
-  const auto symbols = resolve_symbols(*table, std::vector(table->files() + 1, Liveness::Live));
+  const auto symbols = resolve_symbols(diagnostics, *table, std::vector(table->files() + 1, Liveness::Live));
   const auto entry = entry_of(*table);
   const auto symbol = [&](u32 index) { return symbols.symbol(symbols.of(entry(a, index))); };
 
@@ -245,13 +251,14 @@ TEST_CASE("Symbol ranking and selection", "[scope:core][scope:core.link][kind:un
     CHECK(symbol(8).visibility == bits::to_underlying(SymbolVisibility::STV_HIDDEN));
   }
   SECTION("Conflicts and strong undefined references are reported in input order") {
-    using enum ResolveError::Code;
-    const std::vector<ResolveError> expected{
-        {MultipleDefinition, symbols.of(entry(a, 4)), entry(a, 4), entry(b, 4)},
+    using enum SymbolCode;
+    const auto error = Severity::Error;
+    const std::vector<Diagnostic> expected{
+        {error, MultipleDefinition, SymbolConflict{entry(b, 4), entry(a, 4)}},
         // weak_refs, whose references are all weak, resolves to 0 without an error.
-        {Undefined, symbols.of(entry(b, 6)), InputSymbolID{0}, entry(b, 6)},
-        {TlsMismatch, symbols.of(entry(a, 7)), entry(a, 7), entry(b, 7)}};
-    CHECK(std::vector(symbols.errors().begin(), symbols.errors().end()) == expected);
+        {error, Undefined, entry(b, 6)},
+        {error, TlsMismatch, SymbolConflict{entry(b, 7), entry(a, 7)}}};
+    CHECK(entries_of(diagnostics) == expected);
   }
 }
 
@@ -267,7 +274,8 @@ TEST_CASE("Link only reachable archive members ", "[scope:core][scope:core.link]
               {{.name = "chained", .defined = true}},
               {{.name = "optional", .defined = true}, {.name = "missing", .defined = false}},
               {{.name = "block", .defined = true}}});
-  const auto table = gather_symbols(group);
+  Diagnostics diagnostics;
+  const auto table = gather_symbols(diagnostics, group);
   REQUIRE(table);
   using enum Liveness;
   // Files 1 (root)  needs 2, 3, 5, but not 4.
@@ -275,10 +283,12 @@ TEST_CASE("Link only reachable archive members ", "[scope:core][scope:core.link]
 
   std::vector files(table->files() + 1, Lazy);
   files[root.value] = Live;
+  // The first pass's diagnostics are discarded, as in link_group.
   const auto link = [&] {
-    mark_live_objects(*table, resolve_symbols(*table, files), files);
+    Diagnostics discarded;
+    mark_live_objects(*table, resolve_symbols(discarded, *table, files), files);
     std::ranges::replace(files, Lazy, Excluded);
-    return resolve_symbols(*table, files);
+    return resolve_symbols(diagnostics, *table, files);
   };
   const auto entry = entry_of(*table);
 
@@ -293,15 +303,14 @@ TEST_CASE("Link only reachable archive members ", "[scope:core][scope:core.link]
     // Weak references do not pull in members and unreachables are not part of the link
     CHECK_FALSE(owner(2));
     CHECK(symbols.of(entry(members[2], 2)) == SymbolID{0});
-    CHECK(symbols.errors().empty());
+    CHECK(diagnostics.size() == 0);
   }
   SECTION("Explicitly live members are linked") {
     files[members[2].value] = Live;
     const auto symbols = link();
     CHECK(files[members[2].value] == Live);
     CHECK(symbols.symbol(symbols.of(entry(root, 2))).owner == entry(members[2], 1));
-    const std::vector<ResolveError> expected{
-        {ResolveError::Code::Undefined, symbols.of(entry(members[2], 2)), InputSymbolID{0}, entry(members[2], 2)}};
-    CHECK(std::vector(symbols.errors().begin(), symbols.errors().end()) == expected);
+    CHECK(entries_of(diagnostics) ==
+          std::vector<Diagnostic>{{Severity::Error, SymbolCode::Undefined, entry(members[2], 2)}});
   }
 }

@@ -50,6 +50,7 @@ template <class Tag> struct InputElfItemHandle {
 };
 using InputElfSectionHandle = InputElfItemHandle<struct InputElfSectionTag>;
 using InputElfSegmentHandle = InputElfItemHandle<struct InputElfSegmentTag>;
+using InputElfSymbolHandle = InputElfItemHandle<struct InputElfSymbolTag>;
 
 // Identifies one archive within a PackedInputElfGroup. IDs are dense from 1. A default-constructed ID is invalid.
 using ElfArchiveID = pepp::OpaqueHandle<struct ElfArchiveTag, u32>;
