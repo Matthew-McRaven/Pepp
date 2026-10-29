@@ -18,45 +18,24 @@
 #include "core/link/symbol_versions.hpp"
 #include <catch.hpp>
 #include <string_view>
+#include <utility>
 
 TEST_CASE("Handle versioned symbols", "[scope:core][scope:core.link][kind:unit][arch:*]") {
   using pepp::link::split;
-  using Kind = pepp::link::VersionedName::Kind;
-  SECTION("Unversioned") {
-    for (const std::string_view name : {"foo", "foo@"}) {
+  SECTION("Splitting versioned names") {
+    using enum pepp::link::VersionedName::Kind;
+    const std::pair<std::string_view, pepp::link::VersionedName> cases[] = {
+        {"foo", {"foo", "", Unversioned}},       {"foo@", {"foo@", "", Unversioned}},
+        {"foo@V", {"foo", "V", NonDefault}},     {"foo@@V", {"foo", "V", Default}},
+        {"foo@V@W", {"foo", "V@W", NonDefault}}, {"@V", {"", "V", NonDefault}},
+        {"foo@@", {"foo", "", Default}}};
+    for (const auto &[name, expected] : cases) {
       CAPTURE(name);
       const auto parts = split(name);
-      CHECK(parts.kind == Kind::Unversioned);
-      CHECK(parts.base == name);
-      CHECK(parts.version.empty());
+      CHECK(parts.kind == expected.kind);
+      CHECK(parts.base == expected.base);
+      CHECK(parts.version == expected.version);
     }
-  }
-  SECTION("Non-default version") {
-    const auto parts = split("foo@V");
-    CHECK(parts.kind == Kind::NonDefault);
-    CHECK(parts.base == "foo");
-    CHECK(parts.version == "V");
-  }
-  SECTION("Default version") {
-    const auto parts = split("foo@@V");
-    CHECK(parts.kind == Kind::Default);
-    CHECK(parts.base == "foo");
-    CHECK(parts.version == "V");
-  }
-  SECTION("Splits at the first @") {
-    const auto parts = split("foo@V@W");
-    CHECK(parts.base == "foo");
-    CHECK(parts.version == "V@W");
-  }
-  SECTION("Empty base or version") {
-    const auto no_base = split("@V");
-    CHECK(no_base.kind == Kind::NonDefault);
-    CHECK(no_base.base.empty());
-    CHECK(no_base.version == "V");
-    const auto no_version = split("foo@@");
-    CHECK(no_version.kind == Kind::Default);
-    CHECK(no_version.base == "foo");
-    CHECK(no_version.version.empty());
   }
   SECTION("Strip default versions") {
     using pepp::link::strip_default_version;

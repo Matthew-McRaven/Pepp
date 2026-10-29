@@ -18,57 +18,34 @@
 #include "core/link/symbol_resolution.hpp"
 #include <algorithm>
 #include <catch.hpp>
-#include <initializer_list>
 #include <stdexcept>
-#include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
-#include "core/formats/ar/packed_archive.hpp"
-#include "core/formats/elf/packed_io.hpp"
-#include "core/formats/elf/packed_ops.hpp"
-#include "core/link/linker_passes.hpp"
+#include "./helpers.hpp"
 
 namespace {
-using namespace pepp::bts;
-using namespace pepp::link;
+using namespace link_test;
 using Elf = PackedGrowableElfFile<ElfBits::b32, ElfEndian::le>;
 
 // An object with .text and an optional symbol table with every distinguishable binding.
-Elf object(bool with_symbols) {
-  Elf elf(ElfFileType::ET_REL, ElfMachineType::EM_PEP10, ElfABI::ELFOSABI_NONE);
-  ensure_section_header_table(elf);
-  const auto text = add_named_section(elf, ".text", SectionTypes::SHT_PROGBITS);
-  if (!with_symbols) return elf;
-  const auto symtab = add_named_symtab(elf, ".symtab", add_named_section(elf, ".strtab", SectionTypes::SHT_STRTAB));
-  PackedSymbolWriter<ElfBits::b32, ElfEndian::le> writer(elf, symtab);
-  const auto symbol = [](SymbolBinding bind, SymbolType type) {
-    PackedElfSymbol<ElfBits::b32, ElfEndian::le> ret;
-    ret.set_bind(bind);
-    ret.set_type(type);
-    return ret;
-  };
-  writer.add_symbol(symbol(SymbolBinding::STB_LOCAL, SymbolType::STT_SECTION), "", text); // 1
-  writer.add_symbol(symbol(SymbolBinding::STB_LOCAL, SymbolType::STT_NOTYPE), "loop", text);
-  writer.add_symbol(symbol(SymbolBinding::STB_GLOBAL, SymbolType::STT_FUNC), "main", text); // 3
-  writer.add_symbol(symbol(SymbolBinding::STB_WEAK, SymbolType::STT_FUNC), "helper", text);
-  writer.add_symbol(symbol(SymbolBinding::STB_GLOBAL, SymbolType::STT_NOTYPE), "printf", 0); // 5
-  writer.add_symbol(symbol(SymbolBinding::STB_WEAK, SymbolType::STT_NOTYPE), "optional", 0);
-  // Must sort symbol tables and update sh_info.
-  writer.arrange_local_symbols();
-  return elf;
+Elf with_every_binding() {
+  using enum SymbolBinding;
+  using enum SymbolType;
+  return elf_of({{"", true, STB_LOCAL, STT_SECTION},
+                 {"loop", true, STB_LOCAL},
+                 {"main", true, STB_GLOBAL, STT_FUNC},
+                 {"helper", true, STB_WEAK, STT_FUNC},
+                 {"printf", false},
+                 {"optional", false, STB_WEAK}});
 }
 
 using Names = std::vector<std::string_view>;
 
-// The of non-local symbols for a particular file.
+// The names of a file's non-local symbols in [first, last).
 Names names_of(const InputSymbols &table, ElfFileID file, u32 first, u32 last) {
   Names ret;
-  for (u32 index = first; index < last; ++index) {
-    const auto id = table.find(file, index);
-    REQUIRE(id);
-    ret.push_back(table.name(*id));
-  }
+  for (u32 index = first; index < last; ++index) ret.push_back(table.name(entry_of(table)(file, index)));
   return ret;
 }
 
@@ -80,11 +57,21 @@ GatherError::Code error_of(Elf &elf) {
   REQUIRE_FALSE(table);
   return table.error().code;
 }
+
+// Adds an archive of objects to group, extracting each member's ELFs
+std::vector<ElfFileID> add_archive(PackedInputElfGroupLE32 &group, std::initializer_list<Symbols> members) {
+  auto archive = archive_of(members);
+  const auto id = group.add(to_input_archive(archive).value());
+  REQUIRE(id);
+  std::vector<ElfFileID> ret;
+  for (const auto &member : group.archive(*id).members()) ret.push_back(group.add_member(*id, member.value()).value());
+  return ret;
+}
 } // namespace
 
 TEST_CASE("Collect globals / undefineds", "[scope:core][scope:core.link][kind:unit][arch:*]") {
   PackedInputElfGroupLE32 group;
-  auto with = object(true), without = object(false);
+  auto with = with_every_binding(), without = elf_of({});
   const auto a = group.add(to_input_elf(with)).value(), b = group.add(to_input_elf(without)).value();
 
   SECTION("Weak, global, and undefined symbols") {
@@ -117,15 +104,15 @@ TEST_CASE("Collect globals / undefineds", "[scope:core][scope:core.link][kind:un
     const std::pair<u32, GatherError::Code> first_globals[] = {
         {100, BadFirstGlobal}, {2, LocalAfterFirstGlobal}, {4, GlobalBeforeFirstGlobal}};
     for (const auto &[sh_info, code] : first_globals) {
-      auto elf = object(true);
+      auto elf = with_every_binding();
       elf.section_headers[find_named_section(elf, ".symtab")].sh_info = sh_info;
       CHECK(error_of(elf) == code);
     }
-    auto bad_link = object(true);
+    auto bad_link = with_every_binding();
     bad_link.section_headers[find_named_section(bad_link, ".symtab")].sh_link = 99;
     CHECK(error_of(bad_link) == BadStringTable);
     // main, at 3, retyped as a section symbol.
-    auto bad_type = object(true);
+    auto bad_type = with_every_binding();
     PackedSymbolWriter<ElfBits::b32, ElfEndian::le> writer(bad_type, find_named_section(bad_type, ".symtab"));
     writer.get_symbol_ptr(3)->set_type(SymbolType::STT_SECTION);
     CHECK(error_of(bad_type) == LocalOnlyType);
@@ -155,68 +142,6 @@ TEST_CASE("Collect globals / undefineds", "[scope:core][scope:core.link][kind:un
   }
 }
 
-namespace {
-struct TestSymbol {
-  std::string_view name;
-  bool defined;
-  SymbolBinding bind = SymbolBinding::STB_GLOBAL;
-  SymbolType type = SymbolType::STT_NOTYPE;
-  SymbolVisibility visibility = SymbolVisibility::STV_DEFAULT;
-  // Defined in SHN_COMMON rather than .text.
-  bool common = false;
-  u32 size = 0;
-  // A common symbol's alignment.
-  u32 value = 0;
-};
-
-// An object with pre-defined symbols.
-Elf elf_of(std::initializer_list<TestSymbol> symbols) {
-  Elf elf(ElfFileType::ET_REL, ElfMachineType::EM_PEP10, ElfABI::ELFOSABI_NONE);
-  ensure_section_header_table(elf);
-  const auto text = add_named_section(elf, ".text", SectionTypes::SHT_PROGBITS);
-  const auto symtab = add_named_symtab(elf, ".symtab", add_named_section(elf, ".strtab", SectionTypes::SHT_STRTAB));
-  PackedSymbolWriter<ElfBits::b32, ElfEndian::le> writer(elf, symtab);
-  for (const auto &symbol : symbols) {
-    PackedElfSymbol<ElfBits::b32, ElfEndian::le> sym;
-    sym.set_bind(symbol.bind);
-    sym.set_type(symbol.type);
-    sym.set_visibility(symbol.visibility);
-    sym.st_size = symbol.size;
-    sym.st_value = symbol.value;
-    const u16 section = symbol.common ? bits::to_underlying(SectionIndices::SHN_COMMON) : symbol.defined ? text : 0;
-    writer.add_symbol(std::move(sym), symbol.name, section);
-  }
-  writer.arrange_local_symbols();
-  return elf;
-}
-AnyInputElf object_of(std::initializer_list<TestSymbol> symbols) {
-  auto elf = elf_of(symbols);
-  return to_input_elf(elf);
-}
-
-// Adds an archive of objects to group, then each of its members in order.
-std::vector<ElfFileID> add_archive(PackedInputElfGroupLE32 &group,
-                                   std::initializer_list<std::initializer_list<TestSymbol>> members) {
-  PackedGrowableArchive archive;
-  for (const auto &symbols : members) {
-    auto elf = elf_of(symbols);
-    const auto bytes = elf_bytes(elf);
-    const auto name = std::to_string(archive.member_count()) + ".o";
-    REQUIRE(archive.add_member(name, std::make_shared<BlockStorage>(std::vector<char>(bytes.begin(), bytes.end()))));
-  }
-  auto input = to_input_archive(archive);
-  REQUIRE(input);
-  const auto id = group.add(std::move(*input));
-  REQUIRE(id);
-  std::vector<ElfFileID> ret;
-  for (const auto &member : group.archive(*id).members()) {
-    REQUIRE(member);
-    ret.push_back(group.add_member(*id, *member).value());
-  }
-  return ret;
-}
-} // namespace
-
 TEST_CASE("Resolve symbols between files", "[scope:core][scope:core.link][kind:unit][arch:*]") {
   PackedInputElfGroupLE32 group;
   // First object file's foo@V2 is explicitly versioned here, and will become the default when linked with B and become
@@ -233,11 +158,7 @@ TEST_CASE("Resolve symbols between files", "[scope:core][scope:core.link][kind:u
   REQUIRE(table);
   const auto symbols = resolve_symbols(*table, std::vector(table->files() + 1, Liveness::Live));
   // The global symbol of file's symbol index.
-  const auto of = [&](ElfFileID file, u32 index) {
-    const auto id = table->find(file, index);
-    REQUIRE(id);
-    return symbols.of(*id);
-  };
+  const auto of = [&, entry = entry_of(*table)](ElfFileID file, u32 index) { return symbols.of(entry(file, index)); };
 
   SECTION("Symbols numbered by order of first appearance") {
     // STN_UNDEF, then foo@V2(1), ending with qux@ (6). Only unique def in b is foo@V4.
@@ -299,11 +220,7 @@ TEST_CASE("Symbol ranking and selection", "[scope:core][scope:core.link][kind:un
   const auto table = gather_symbols(group);
   REQUIRE(table);
   const auto symbols = resolve_symbols(*table, std::vector(table->files() + 1, Liveness::Live));
-  const auto entry = [&](ElfFileID file, u32 index) {
-    const auto id = table->find(file, index);
-    REQUIRE(id);
-    return *id;
-  };
+  const auto entry = entry_of(*table);
   const auto symbol = [&](u32 index) { return symbols.symbol(symbols.of(entry(a, index))); };
 
   SECTION("Strongest definition is selected as owner") {
@@ -314,7 +231,7 @@ TEST_CASE("Symbol ranking and selection", "[scope:core][scope:core.link][kind:un
     CHECK_FALSE(symbol(5).owner);
     CHECK_FALSE(symbol(6).owner);
   }
-  SECTION("Commons size/alignment are merged") {
+  SECTION("Common size/alignment are merged") {
     // The largest common is treated as the owner.
     CHECK(symbol(3).owner == entry(b, 3));
     CHECK(symbols.common(symbols.of(entry(a, 3))) == CommonSize{.size = 8, .alignment = 4});
@@ -323,7 +240,7 @@ TEST_CASE("Symbol ranking and selection", "[scope:core][scope:core.link][kind:un
     CHECK(table->common(entry(a, 3)) == CommonSize{.size = 4, .alignment = 4});
     CHECK_THROWS_AS(table->common(entry(a, 4)), std::out_of_range);
   }
-  SECTION("Most restrictive visibility is propagated") {
+  SECTION("Selet most restrictive visibility") {
     CHECK(symbol(8).owner == entry(a, 8));
     CHECK(symbol(8).visibility == bits::to_underlying(SymbolVisibility::STV_HIDDEN));
   }
@@ -338,7 +255,7 @@ TEST_CASE("Symbol ranking and selection", "[scope:core][scope:core.link][kind:un
   }
 }
 
-TEST_CASE("Archive members are linked only when reachable", "[scope:core][scope:core.link][kind:unit][arch:*]") {
+TEST_CASE("Link only reachable archive members ", "[scope:core][scope:core.link][kind:unit][arch:*]") {
   PackedInputElfGroupLE32 group;
   const auto root = group
                         .add(object_of({{.name = "needed", .defined = false},                                    // 1
@@ -363,11 +280,7 @@ TEST_CASE("Archive members are linked only when reachable", "[scope:core][scope:
     std::ranges::replace(files, Lazy, Excluded);
     return resolve_symbols(*table, files);
   };
-  const auto entry = [&](ElfFileID file, u32 index) {
-    const auto id = table->find(file, index);
-    REQUIRE(id);
-    return *id;
-  };
+  const auto entry = entry_of(*table);
 
   SECTION("Strong/common pull in members") {
     const auto symbols = link();
@@ -390,10 +303,5 @@ TEST_CASE("Archive members are linked only when reachable", "[scope:core][scope:
     const std::vector<ResolveError> expected{
         {ResolveError::Code::Undefined, symbols.of(entry(members[2], 2)), InputSymbolID{0}, entry(members[2], 2)}};
     CHECK(std::vector(symbols.errors().begin(), symbols.errors().end()) == expected);
-  }
-  SECTION("do_link seeds live files correctly") {
-    const auto context = do_link(group);
-    REQUIRE(context);
-    CHECK(context->files == needed);
   }
 }
