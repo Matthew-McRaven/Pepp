@@ -97,6 +97,10 @@ std::expected<AnyInputElf, InputGroupError> open_member(const PackedInputArchive
                                                         const PackedArMember &member);
 } // namespace detail
 
+// A file opened from disk that is identified by its magic.
+using OpenedInput = std::variant<AnyInputElf, PackedInputArchive>;
+std::expected<OpenedInput, InputGroupError> open_input(const std::filesystem::path &path);
+
 // A group of read-only ELF files which share a word size and byte order, such as every input to a single load.
 // Handles name sections and segments across the whole group, so callers need not track which file each came from.
 template <ElfBits B, ElfEndian E> class PackedInputElfGroup {
@@ -166,16 +170,10 @@ auto PackedInputElfGroup<B, E>::add(PackedInputArchive archive) -> Result<ElfArc
 
 template <ElfBits B, ElfEndian E>
 auto PackedInputElfGroup<B, E>::add(const std::filesystem::path &path) -> Result<Input> {
-  auto detected = detail::detect_input(path);
-  if (!detected) return std::unexpected(detected.error());
-  else if (detected->format == detail::DetectedInput::Format::Archive) {
-    auto archive = PackedInputArchive::open(detected->source, path);
-    if (!archive) return std::unexpected(InputGroupError{InputGroupError::Code::BadArchive, archive.error()});
-    return insert(std::move(*archive));
-  }
-  auto elf = detail::open_elf(detected->source);
-  if (!elf) return std::unexpected(elf.error());
-  return insert(std::move(*elf), ElfFromPath{path});
+  auto opened = open_input(path);
+  if (!opened) return std::unexpected(opened.error());
+  else if (auto *archive = std::get_if<PackedInputArchive>(&*opened)) return insert(std::move(*archive));
+  return insert(std::move(std::get<AnyInputElf>(*opened)), ElfFromPath{path});
 }
 
 template <ElfBits B, ElfEndian E>

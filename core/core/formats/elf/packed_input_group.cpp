@@ -71,6 +71,19 @@ auto pepp::bts::detail::open_member(const PackedInputArchive &archive, const Pac
   return std::unexpected(ret);
 }
 
+auto pepp::bts::open_input(const std::filesystem::path &path) -> std::expected<OpenedInput, InputGroupError> {
+  auto detected = detail::detect_input(path);
+  if (!detected) return std::unexpected(detected.error());
+  else if (detected->format == detail::DetectedInput::Format::Archive) {
+    auto archive = PackedInputArchive::open(detected->source, path);
+    if (!archive) return std::unexpected(InputGroupError{InputGroupError::Code::BadArchive, archive.error()});
+    return std::move(*archive);
+  }
+  auto elf = detail::open_elf(detected->source);
+  if (!elf) return std::unexpected(elf.error());
+  return std::move(*elf);
+}
+
 pepp::bts::AnyElfGroup pepp::bts::to_input_group(AnyInputElf elf) {
   auto visitor = [](auto &file) -> AnyElfGroup {
     using File = typename std::remove_reference_t<decltype(file)>::element_type;

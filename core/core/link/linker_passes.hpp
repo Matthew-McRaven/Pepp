@@ -18,10 +18,13 @@
 #pragma once
 #include <algorithm>
 #include <expected>
+#include <optional>
+#include <string_view>
 #include <utility>
 #include <variant>
 #include <vector>
 #include "core/formats/elf/packed_input_group.hpp"
+#include "core/link/link_config.hpp"
 #include "core/link/symbol_resolution.hpp"
 
 namespace pepp::link {
@@ -44,17 +47,39 @@ std::vector<Liveness> default_liveness(const bts::PackedInputElfGroup<B, E> &gro
   return ret;
 }
 
-// Our equivalent to mold_main, which runs all of the steps of the linking process for a particular context.
+struct LinkError {
+  enum class Code : u8 {
+    // No input provides an ELF file from which to take the class and byte order.
+    NoInputs,
+    // A config field or input kind that is not implemented yet.
+    Unsupported,
+    // An input could not be opened or added to the group. See group.
+    BadInput,
+    // An input's symbol table is malformed. See gather.
+    BadSymbols,
+  };
+  static std::string_view to_string(Code code);
+
+  Code code;
+  // If error is specific to a single input file this is its index in LinkConfig::inputs.
+  std::optional<u32> input = std::nullopt;
+  std::optional<bts::InputGroupError> group = std::nullopt;
+  std::optional<GatherError> gather = std::nullopt;
+};
+
+// The inputs of a link and the state derived from them. context refers into group, which is heap-allocated.
+struct LinkResult {
+  bts::AnyElfGroup group;
+  LinkContext context;
+};
+
+// Our equivalent to mold_main, which runs all of the steps of the linking process for a particular config.
+std::expected<LinkResult, LinkError> do_link(LinkConfig &&config);
+
+// The steps of do_link that run once the inputs are in a group.
 // TODO: still missing many steps.
 template <bts::ElfBits B, bts::ElfEndian E>
-std::expected<LinkContext, GatherError> do_link(const bts::PackedInputElfGroup<B, E> &group) {
-  /*
-   * Construct PackedInputElfGroup
-   */
-  // TODO: parse all linker scripts and extract names files. Files with the same path must be added to group only once.
-  // TODO: accept all input files as either filenames or mapped files. Must support both to support linker-as-a-library.
-  // TODO: remove files named by -exclude-libs
-  // TODO: create a dummy file containing linker-synthesized symbols. This file must be at the highest priority
+std::expected<LinkContext, GatherError> link_group(const bts::PackedInputElfGroup<B, E> &group) {
   /*
    * Symbol resolution passes
    */
