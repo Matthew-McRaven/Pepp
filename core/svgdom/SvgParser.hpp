@@ -207,6 +207,30 @@ public:
     }
   }
 
+  static auto parseArguments(std::string_view &view) -> std::expected<std::vector<double>, bool> {
+    //  No data, no parsing
+    if (view.empty()) return std::unexpected(false);
+
+    //  Remove leading spaces, if any
+    trimLeft(view);
+
+    //  Character not found, parsing error
+    if (view.empty()) return std::unexpected(false);
+
+    //  Trim trailing space
+    std::vector<double> values;
+
+    while (!view.empty() && isDigit(view.front())) {
+      values.push_back(value(view));
+      trimLeft(view, ',');
+      trimLeft(view);
+    }
+
+    //  arguments not found, parsing error
+    if (values.empty()) return std::unexpected(false);
+    return std::move(values);
+  }
+
 private:
   static auto parseElement(std::string_view &view) -> std::expected<Argument, bool> {
     //  No data, no parsing
@@ -219,7 +243,7 @@ private:
 
     //  Delete left paran, and leading and trailing spaces.
     trimLeft(view, '(');
-    trimLeft(view);
+    /*trimLeft(view);
 
     //  Character not found, parsing error
     if (view.empty()) return std::unexpected(false);
@@ -231,11 +255,15 @@ private:
       values.push_back(value(view));
       trimLeft(view, ',');
       trimLeft(view);
-    }
+    }*/
+
+    auto values = parseArguments(view);
     trimLeft(view, ')');
     //  arguments not found, parsing error
-    if (values.empty()) return std::unexpected(false);
-    return std::move(std::make_pair(name, values));
+    if (!values.has_value() || (*values).empty()) return std::unexpected(false);
+
+    //  Return result
+    return std::move(std::make_pair(name, (*values)));
   }
 
   //  Extract function name
