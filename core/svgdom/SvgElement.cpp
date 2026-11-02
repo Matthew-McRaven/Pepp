@@ -333,58 +333,57 @@ bool SvgElement::setAttribute(const std::string &key, const std::string &value)
 
 bool SvgElement::attributeXml(SvgRope &output) const
 {
-    std::string buffer;
     bool hasAttributes = false;
     if (!_id.empty()) {
         hasAttributes = true;
-        buffer = fmt::format(" id=\"{}\"", _id);
+        std::string buffer = fmt::format(" id=\"{}\"", _id);
         output.push_back(std::move(buffer));
     }
     if (!_x.empty()) {
       hasAttributes = true;
-      buffer = fmt::format(" x=\"{}\"", _x.toString());
+      std::string buffer = fmt::format(" x=\"{}\"", _x.toString());
       output.push_back(std::move(buffer));
     }
     if (!_y.empty()) {
         hasAttributes = true;
-        buffer = fmt::format(" y=\"{}\"", _y.toString());
+        std::string buffer = fmt::format(" y=\"{}\"", _y.toString());
         output.push_back(std::move(buffer));
     }
     if (!_width.empty()) {
         hasAttributes = true;
-        buffer = fmt::format(" width=\"{}\"", _width.toString());
+        std::string buffer = fmt::format(" width=\"{}\"", _width.toString());
         output.push_back(std::move(buffer));
     }
     if (!_height.empty()) {
         hasAttributes = true;
-        buffer = fmt::format(" height=\"{}\"", _height.toString());
+        std::string buffer = fmt::format(" height=\"{}\"", _height.toString());
         output.push_back(std::move(buffer));
     }
     if (!_classList.empty()) {
       hasAttributes = true;
-      buffer = fmt::format(" class=\"{}\"", _classList.toString());
+      std::string buffer = fmt::format(" class=\"{}\"", _classList.toString());
       output.push_back(std::move(buffer));
     }
     if (_fill != SvgColor::Color::Unknown) {
       hasAttributes = true;
-      buffer = fmt::format(" fill=\"{}\"", SvgColor::fromRgb(_fill));
+      std::string buffer = fmt::format(" fill=\"{}\"", SvgColor::fromRgb(_fill));
       output.push_back(std::move(buffer));
     }
     if (1.0 - _opacity > 0.000001) {
       hasAttributes = true;
-      buffer = fmt::format(" opacity=\"{}\"", _opacity);
+      std::string buffer = fmt::format(" opacity=\"{}\"", _opacity);
       output.push_back(std::move(buffer));
     }
     if (_transforms.size() > 0) {
       hasAttributes = true;
-      auto temp = _transforms.toString();
+      std::string temp = _transforms.toString();
       //  There may be transforms, but transforms with default
       //  values do not output a string.
-      if (temp.size() > 0) {
-        buffer += " "s;
+      if (!temp.empty()) {
+        std::string buffer = " "s;
         buffer += temp;
+        output.push_back(std::move(buffer));
       }
-      output.push_back(std::move(buffer));
     }
 
     //  Output remaining attributes
@@ -392,7 +391,7 @@ bool SvgElement::attributeXml(SvgRope &output) const
         //  If all attributes become editable, this logic can
         //  be removed.
         hasAttributes = true;
-        buffer = _attributes.write();
+        std::string buffer = _attributes.write();
         output.push_back(std::move(buffer));
     }
 

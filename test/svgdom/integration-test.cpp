@@ -157,9 +157,13 @@ TEST_CASE("Create library file", "[scope:core][scope:core.svgdom][kind:unit]") {
     if (use) {
       use->setHref(srcNames.at(i));
       use->setFill(colors.at(i));
-      use->setX((i % 3) * 60);
-      use->setY(i < 3 ? 0 : 40);
-      // use->tranformList().appendItem().setRotate(i * 90);
+      const double x = (i % 3) * 60;
+      const double y = i < 3 ? 0 : 40;
+      use->setX(x);
+      use->setY(y);
+
+      //  Must set center of gate, or rotation will take place at 0,0 of background
+      use->tranformList().appendItem().setRotate(i * 90, 24.0 + x, 16.0 + y);
     } else {
       std::cout << "Use Element not found: "s << srcNames.at(i) << std::endl;
     }
