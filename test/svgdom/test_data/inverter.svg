@@ -10,8 +10,8 @@
 	L 36 15
 	L 5 31
 	Z"
-	style="fill:white;stroke:#000000;stroke-width:1" />
+	style="stroke:#000000;stroke-width:1" />
 	<circle cx="40" cy="15" r="3"
-	style="fill:white;stroke:#000000;stroke-width:1" />
+	style="stroke:#000000;stroke-width:1" />
   </g>
 </svg>
