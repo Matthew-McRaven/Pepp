@@ -87,10 +87,9 @@ public:
 
   void clear();
   size_t size() const noexcept;
-  auto getItem(const size_t pos) -> std::expected<SvgTransform, bool>;
-  // const auto &getItem(size_t pos) const -> std::expected<const SvgTransform&, bool>;
-  void insertItemBefore();
-  void replaceItem();
+  SvgTransform *getItem(const size_t pos);
+  bool removeItem(const size_t pos);
+  // void insertItemBefore();
   SvgTransform &appendItem();
   void createSvgTransformFromMatrix();
   void consolidate();
