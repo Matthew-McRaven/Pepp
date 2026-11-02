@@ -52,6 +52,11 @@ TEST_CASE("SvgElement tests-getter-setter", "[scope:core][scope:core.svgdom.svge
   CHECK(element.opacity() == Catch::Approx(1.0));
   element.setOpacity(-5.5);
   CHECK(element.opacity() == Catch::Approx(0.0));
+  element.tranformList().appendItem().setScale(2, 2);
+  auto t = element.tranformList().getItem(0);
+  REQUIRE(t != nullptr);
+  CHECK(t->scaleX() == Catch::Approx(2.0));
+  CHECK(t->scaleY() == Catch::Approx(2.0));
 
   element.setX(1);
   CHECK(element.x().toString() == SvgUnitValue(1).toString());
