@@ -204,13 +204,23 @@ void SvgTransformList::clear() { _transforms.clear(); }
 
 size_t SvgTransformList::size() const noexcept { return _transforms.size(); }
 
-auto SvgTransformList::getItem(const size_t pos) -> std::expected<SvgTransform, bool> {
-  if (pos > _transforms.size()) return std::unexpected(false);
+SvgTransform *SvgTransformList::getItem(const size_t pos) {
+  if (pos > _transforms.size()) return nullptr;
 
   auto it = std::next(_transforms.begin(), pos);
-  if (it == _transforms.end()) return std::unexpected(false);
+  if (it == _transforms.end()) return nullptr;
 
-  return *it;
+  return &(*it);
+}
+
+bool SvgTransformList::removeItem(const size_t pos) {
+  if (pos > _transforms.size()) return false;
+
+  auto it = std::next(_transforms.begin(), pos);
+  if (it == _transforms.end()) return false;
+
+  _transforms.erase(it);
+  return true;
 }
 
 bool SvgTransformList::fromString(const std::string &value) {
