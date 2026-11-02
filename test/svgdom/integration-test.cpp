@@ -11,7 +11,8 @@
 using namespace std::string_literals;
 namespace fs = std::filesystem;
 
-#include "svgdom/SvgCommentElement.hpp"
+// #include "svgdom/SvgCommentElement.hpp"
+#include "svgdom/SvgColor.hpp"
 #include "svgdom/SvgDocument.hpp"
 #include "svgdom/SvgRectElement.hpp"
 #include "svgdom/SvgUseElement.hpp"
@@ -122,6 +123,8 @@ TEST_CASE("Create library file", "[scope:core][scope:core.svgdom][kind:unit]") {
   std::string path = dir.path().toStdString() + "/svgs/{}.svg";
 
   std::array<std::string, 6> srcNames{"and", "inverter", "nand", "nor", "or", "xor"};
+  std::array<SvgColor::Color, 6> colors{SvgColor::Color::Aqua,   SvgColor::Color::Crimson, SvgColor::Color::DodgerBlue,
+                                        SvgColor::Color::Orange, SvgColor::Color::Yellow,  SvgColor::Color::BlueViolet};
   std::vector<std::string> srcFiles;
   for (auto &srcName : srcNames) {
     srcFiles.push_back(fmt::format(fmt::runtime(path), srcName));
@@ -153,6 +156,8 @@ TEST_CASE("Create library file", "[scope:core][scope:core.svgdom][kind:unit]") {
     REQUIRE(use != nullptr);
     if (use) {
       use->setHref(srcNames.at(i));
+      use->setFill(colors.at(i));
+      use->tranformList().appendItem().setRotate(i * 90);
       use->setX((i % 3) * 60);
       use->setY(i < 3 ? 0 : 40);
     } else {

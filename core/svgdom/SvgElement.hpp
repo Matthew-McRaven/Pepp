@@ -4,6 +4,7 @@
 #include <string>
 
 #include "SvgInterface.hpp"
+#include "SvgTransform.hpp"
 #include "XmlAttributes_p.hpp"
 #include "utility_p.hpp"
 
@@ -12,6 +13,7 @@ class XmlAttributes;
 class Document;
 class SvgDocument;
 class SvgFactory;
+class SvgTransformList;
 
 class SvgElement : public Cloneable<SvgElement, SvgInterface>
 {
@@ -55,6 +57,8 @@ public:
   void setFill(const SvgColor::Color color) override;
   const double &opacity() const override;
   void setOpacity(const double &opacity) override;
+  const SvgTransformList &tranformList() const;
+  SvgTransformList &tranformList();
 
   //  User access functions
   //  Values can be changed, but not units of measure (yet)
@@ -105,6 +109,7 @@ private:
 
   SvgColor::Color _fill = SvgColor::Color::Unknown;
   double _opacity = 1.0;
+  SvgTransformList _transforms;
 
   SvgUnitValue _x;
   SvgUnitValue _y;

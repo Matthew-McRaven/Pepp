@@ -48,6 +48,7 @@ SvgElement::SvgElement(const SvgElement &original)
 
     _fill = original._fill;
     _opacity = original._opacity;
+    _transforms = original._transforms;
 
     //  Use class logic for attributes
     _attributes = original._attributes;
@@ -147,6 +148,8 @@ void SvgElement::setOpacity(const double &opacity) {
   //  Clamp opacity between 0 and 1
   _opacity = std::clamp(opacity, 0.0, 1.0);
 }
+const SvgTransformList &SvgElement::tranformList() const { return _transforms; }
+SvgTransformList &SvgElement::tranformList() { return _transforms; }
 
 //  Dimension accessors
 SvgUnitValue SvgElement::x() const { return _x; }
@@ -302,6 +305,11 @@ bool SvgElement::setAttribute(const std::string &key, const std::string &value)
       _opacity = 1.0;
       return false;
     }
+    if (key == "transform"s) {
+      //  Transform will parse value. There maybe many arguments for a single transform
+      _transforms.fromString(value);
+      return true;
+    }
     if (key == "x"s) {
       return _x.fromString(value);
     }
@@ -365,6 +373,17 @@ bool SvgElement::attributeXml(SvgRope &output) const
     if (1.0 - _opacity > 0.000001) {
       hasAttributes = true;
       buffer = fmt::format(" opacity=\"{}\"", _opacity);
+      output.push_back(std::move(buffer));
+    }
+    if (_transforms.size() > 0) {
+      hasAttributes = true;
+      auto temp = _transforms.toString();
+      //  There may be transforms, but transforms with default
+      //  values do not output a string.
+      if (temp.size() > 0) {
+        buffer += " "s;
+        buffer += temp;
+      }
       output.push_back(std::move(buffer));
     }
 
