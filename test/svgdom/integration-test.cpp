@@ -141,6 +141,7 @@ TEST_CASE("Create library file", "[scope:core][scope:core.svgdom][kind:unit]") {
   REQUIRE(library != nullptr);
   REQUIRE(gElement != nullptr);
 
+  double opacity = 0.1;
   for (int i = 0; i < srcFiles.size(); ++i) {
     SvgDocument d(srcFiles.at(i));
 
@@ -157,6 +158,8 @@ TEST_CASE("Create library file", "[scope:core][scope:core.svgdom][kind:unit]") {
     if (use) {
       use->setHref(srcNames.at(i));
       use->setFill(colors.at(i));
+      use->setOpacity(opacity);
+      opacity += 0.2;
       const double x = (i % 3) * 60;
       const double y = i < 3 ? 0 : 40;
       use->setX(x);

@@ -256,27 +256,32 @@ void SvgElement::appendChild(SvgInterface *child)
 
 void SvgElement::toXml(SvgRope &output) const
 {
-    output.push_back("<" + _xmlName);
+  // If unintialized, just return
+  if (_xmlName.empty()) return;
 
-    attributeXml(output);
+  output.push_back("<" + _xmlName);
 
-    //  No child elements and no values, add end tag
-    if (_children.empty() && _value.empty()) {
-        output.push_back(" />");
-        return;
-    }
-    output.push_back(">");
+  attributeXml(output);
 
-    //	Save value, if present
-    if (!_value.empty())
-        //  Pass copy
-        output.push_back(std::string(_value));
+  //  No child elements and no values, add end tag
+  if (_children.empty() && _value.empty()) {
+    output.push_back(" />");
+    return;
+  }
 
-    for (const auto &element : _children) {
-        element->toXml(output);
-    }
-    //  After child elements, add closing element
-    output.push_back("</" + _xmlName + ">");
+  output.push_back(">");
+
+  //	Save value, if present
+  if (!_value.empty())
+    //  Pass copy
+    output.push_back(std::string(_value));
+
+  for (const auto &element : _children) {
+    element->toXml(output);
+  }
+
+  //  After child elements, add closing element
+  output.push_back("</" + _xmlName + ">");
 }
 
 bool SvgElement::setAttribute(const std::string &key, const std::string &value)
@@ -301,8 +306,8 @@ bool SvgElement::setAttribute(const std::string &key, const std::string &value)
           return true;
         }
       } catch (const std::exception &) {
+        _opacity = 1.0;
       }
-      _opacity = 1.0;
       return false;
     }
     if (key == "transform"s) {
