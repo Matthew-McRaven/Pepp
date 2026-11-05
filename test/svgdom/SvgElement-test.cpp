@@ -113,3 +113,69 @@ TEST_CASE("SvgElement tests-getter-setter", "[scope:core][scope:core.svgdom.svge
   CHECK(move.width().toString() == "30in"s);
   CHECK(move.height().toString() == "40px"s);
 }
+
+TEST_CASE("SvgElement tests-output", "[scope:core][scope:core.svgdom.svgelement2][kind:unit]") {
+  //  Test that SvgElement class perform correctly
+
+  // std::cout << "From SvgElement" << std::endl;
+  //  Output
+  {
+    SvgRope output;
+    SvgElement element;
+
+    element.setValue("Value"s);
+    element.setId("Id"s);
+    element.setTitle("Title"s);
+    element.setDesc("Desc"s);
+    element.setMetadata("Metadata"s);
+
+    //  Test that missing element name produces no output
+    element.toXml(output);
+    CHECK(output.toString() == ""s);
+
+    //  Add name
+    element.setXmlName("XmlName"s);
+
+    output.clear();
+    element.toXml(output);
+    CHECK(output.toString() ==
+          "<XmlName id=\"Id\">Value<title>Title</title><desc>Desc</desc><metadata>Metadata</metadata></XmlName>"s);
+  }
+  {
+    SvgRope output;
+    SvgElement element;
+    element.setXmlName("XmlName"s);
+
+    element.setFill(SvgColor::Color::AntiqueWhite);
+    element.setOpacity(0.4);
+    element.tranformList().appendItem().setScale(2, 2);
+
+    element.toXml(output);
+    CHECK(output.toString() == "<XmlName fill=\"AntiqueWhite\" opacity=\"0.4\" transform=\"scale(2 2)\" />"s);
+  }
+
+  {
+    SvgRope output;
+    SvgElement element;
+    element.setXmlName("XmlName"s);
+
+    element.setX("10%"s);
+    element.setY("20mm"s);
+    element.setWidth("30in"s);
+    element.setHeight("40px"s);
+
+    element.toXml(output);
+    CHECK(output.toString() == "<XmlName x=\"10%\" y=\"20mm\" width=\"30in\" height=\"40px\" />"s);
+  }
+  {
+    SvgRope output;
+    SvgElement element;
+    element.setXmlName("XmlName"s);
+
+    element.attributes().add("n1"s, "v1"s);
+    element.attributes().add("n2"s, "v2"s);
+
+    element.toXml(output);
+    CHECK(output.toString() == "<XmlName n1=\"v1\" n2=\"v2\" />"s);
+  }
+}
