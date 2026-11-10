@@ -19,6 +19,7 @@
 #include <filesystem>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -57,4 +58,6 @@ struct LinkConfig {
 
 // Read a text file as whitespace-separated symbol names, as GNU ld does. nullopt if the file cannot be read.
 std::optional<std::vector<std::string>> read_symbol_list(const std::filesystem::path &path);
+// Try to parse as `name=address`, where address is a hex value . nullopt if malformed.
+std::optional<std::pair<std::string, u64>> parse_section_start(std::string_view arg);
 } // namespace pepp::link

@@ -19,10 +19,7 @@
 #pragma once
 #include <CLI11.hpp>
 #include <filesystem>
-#include <optional>
 #include <string>
-#include <string_view>
-#include <utility>
 #include <vector>
 #include "../../shared.hpp"
 #include "../../task.hpp"
@@ -37,9 +34,6 @@ private:
   pepp::link::LinkConfig &_config;
 };
 
-// parse name=address(hex) pairs for --section-start.
-std::optional<std::pair<std::string, u64>> parse_section_start(std::string_view arg);
-
 void registerLd(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
   static pepp::link::LinkConfig config;
   static CLI::App *ld = app.add_subcommand("ld", "Link object files and archives.")->alias("pld");
@@ -53,7 +47,7 @@ void registerLd(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
       "--section-start",
       [](const std::vector<std::string> &args) {
         for (const auto &arg : args)
-          if (auto parsed = parse_section_start(arg)) config.section_start.push_back(std::move(*parsed));
+          if (auto parsed = pepp::link::parse_section_start(arg)) config.section_start.push_back(std::move(*parsed));
           else throw CLI::ValidationError("--section-start", arg + " is not name=address");
       },
       "Set address of named section")

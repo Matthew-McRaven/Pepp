@@ -16,6 +16,7 @@
  */
 
 #include "core/link/link_config.hpp"
+#include <charconv>
 #include <fstream>
 #include <iterator>
 
@@ -23,4 +24,16 @@ std::optional<std::vector<std::string>> pepp::link::read_symbol_list(const std::
   std::ifstream file(path);
   if (!file) return std::nullopt;
   return std::vector<std::string>(std::istream_iterator<std::string>(file), {});
+}
+
+std::optional<std::pair<std::string, u64>> pepp::link::parse_section_start(std::string_view arg) {
+  const auto eq = arg.find('=');
+  if (eq == arg.npos || eq == 0) return std::nullopt;
+  auto address = arg.substr(eq + 1);
+  if (address.starts_with("0x") || address.starts_with("0X")) address.remove_prefix(2);
+  u64 value = 0;
+  const auto end = address.data() + address.size();
+  if (const auto [ptr, ec] = std::from_chars(address.data(), end, value, 16); ec != std::errc{} || ptr != end)
+    return std::nullopt;
+  return std::pair{std::string(arg.substr(0, eq)), value};
 }
