@@ -12,10 +12,10 @@ qt_add_resources(
   PREFIX
   "/ar"
   BASE
-  "${CMAKE_CURRENT_LIST_DIR}/data/archive-members"
+  "${CMAKE_CURRENT_LIST_DIR}/data/ar-mixed-members"
   FILES
-  data/archive-members/regular.a
-  data/archive-members/thin.a)
+  data/ar-mixed-members/regular.a
+  data/ar-mixed-members/thin.a)
 
 if(NOT IOS)
   # WASM execution requires an extra shim script
@@ -39,4 +39,8 @@ if(NOT (IOS OR EMSCRIPTEN) AND Python_FOUND)
   set_tests_properties(
     binutils-ar PROPERTIES ENVIRONMENT "PEPP_TERM=$<TARGET_FILE:pepp-term>"
                            SKIP_REGULAR_EXPRESSION "no GNU ar found")
+  add_test(NAME binutils-ld COMMAND ${Python_EXECUTABLE} -I
+                                    "${CMAKE_CURRENT_LIST_DIR}/test_ld.py")
+  set_tests_properties(
+    binutils-ld PROPERTIES ENVIRONMENT "PEPP_TERM=$<TARGET_FILE:pepp-term>")
 endif()

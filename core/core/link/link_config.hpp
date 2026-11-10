@@ -23,6 +23,7 @@
 #include <variant>
 #include <vector>
 #include "core/formats/ar/packed_archive.hpp"
+#include "core/formats/elf/packed_elf.hpp"
 
 namespace pepp::link {
 
@@ -33,6 +34,8 @@ struct LinkInput {
   };
 
   std::variant<std::filesystem::path, bts::PackedInputArchive, Script, bts::AnyInputElf> source;
+  // Allow resolution of symbols in this file, but do not include its sections in the output.
+  bool just_symbols = false;
 };
 
 // Configuration options for the linker that are shared between command-line and library usage.
@@ -46,5 +49,12 @@ struct LinkConfig {
   std::vector<std::pair<std::string, u64>> section_start;
   // -m. Set the class+byte-order before reading input files.
   std::optional<std::string> emulation;
+  // Archive file names whose symbols are inelligible for resolution. ALL excludes every archive.
+  std::vector<std::string> exclude_libs;
+  // Keep only the symbols in this list if present. Otherwise, all symbols are kept.
+  std::optional<std::vector<std::string>> retain_symbols;
 };
+
+// Read a text file as whitespace-separated symbol names, as GNU ld does. nullopt if the file cannot be read.
+std::optional<std::vector<std::string>> read_symbol_list(const std::filesystem::path &path);
 } // namespace pepp::link

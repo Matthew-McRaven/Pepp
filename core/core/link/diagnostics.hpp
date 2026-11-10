@@ -37,7 +37,7 @@ consteval void allow_opaque_handle_increment(InputSymbolID);
 enum class LinkCode : u8 {
   // No input provides an ELF file from which to take the class and byte order.
   NoInputs,
-  // A config field or input kind that is not implemented yet.
+  // An input kind that is not implemented yet.
   Unsupported,
 };
 

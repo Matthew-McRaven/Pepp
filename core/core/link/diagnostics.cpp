@@ -24,7 +24,7 @@ using namespace pepp::link;
 std::string_view to_string(LinkCode code) {
   switch (code) {
   case LinkCode::NoInputs: return "no ELF input files";
-  case LinkCode::Unsupported: return "option or input is not supported yet";
+  case LinkCode::Unsupported: return "input is not supported yet";
   }
   return "unknown error";
 }

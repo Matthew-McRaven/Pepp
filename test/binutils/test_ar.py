@@ -19,8 +19,8 @@ The tools must agree on each command's exit status and stdout, and on every file
 stderr is not compared, since the two word their messages differently.
 
 The test reads PEPP_TERM (the pepp-term executable) from the environment, and the member files from
-data/archive-members/regular.a. GNU ar is $PEPP_TEST_AR, or else the first of AR_NAMES on PATH that reports itself as GNU ar. Without
-a valid GNU ar, the test is skipped.
+data/ar-mixed-members/regular.a. GNU ar is $PEPP_TEST_AR, or else the first of AR_NAMES on PATH that reports itself
+as GNU ar. Without a valid GNU ar, the test is skipped.
 """
 
 import os
@@ -134,7 +134,7 @@ class ArMatchesGnu(unittest.TestCase):
         # The member files come out of a GNU-built archive, so both tools start from the same bytes.
         cls.seed = pathlib.Path(cls.scratch.name) / "seed"
         cls.seed.mkdir()
-        members = pathlib.Path(__file__).parent / "data/archive-members/regular.a"
+        members = pathlib.Path(__file__).parent / "data/ar-mixed-members/regular.a"
         subprocess.run([cls.gnu_ar, "x", members], cwd=cls.seed, check=True)
 
     @classmethod

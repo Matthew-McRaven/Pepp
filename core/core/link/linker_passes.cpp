@@ -177,10 +177,7 @@ std::string pepp::link::describe(const LinkContext &context, const Diagnostic &d
 pepp::link::LinkContext pepp::link::do_link(LinkConfig &&config) {
   LinkContext ret;
   for (const auto &input : config.inputs) ret.input_names.push_back(input_file_name(input.source));
-  if (config.output || config.entry || !config.section_start.empty() || config.emulation) {
-    ret.diagnostics.add({Severity::Fatal, LinkCode::Unsupported});
-    return ret;
-  }
+  // TODO: config's options other than inputs are ignored until their passes exist.
   /*
    * Construct PackedInputElfGroup
    */
