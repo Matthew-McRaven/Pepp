@@ -54,7 +54,7 @@ DriverResult assemble_riscv(const RISCVDriverConfig &cfg, const FormattingConfig
   }
   // After flattening, so that a definition inside an expansion has its instantiation's line.
   result.set_elf(riscv_to_elf(split.grouped_ir, addresses, object_code, *rv_parser.symbol_table(), cfg.debug_files,
-                              parser::defined_macros(program), layout ? &layout->rows : nullptr));
+                              parser::defined_macros(program), layout ? &layout->rows : nullptr, cfg.output_type));
   if (layout)
     result.unformatted_listing = DriverResult::UnformattedListing{std::move(layout->text), riscv_listing_style};
   return result;

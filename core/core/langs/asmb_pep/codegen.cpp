@@ -407,10 +407,11 @@ pepp::tc::ElfResult pepp::tc::pepp_to_elf(std::vector<std::pair<SectionDescripto
                                           const pepp::core::symbol::LeafTable &symbols,
                                           const std::vector<IO> &mmios, const DebugLineFiles &files,
                                           const std::vector<std::shared_ptr<const InlineMacroDefinition>> &macros,
-                                          pepp::bts::ElfMachineType machine, const IR2ListingLineMap *listing) {
+                                          pepp::bts::ElfMachineType machine, const IR2ListingLineMap *listing,
+                                          pepp::bts::ElfFileType type) {
   using namespace pepp::bts;
   SPDLOG_INFO("Creating pep ELF");
-  auto ret = sections_to_elf(ElfBits::b32, ElfEndian::be, machine, prog, object_code, symbols);
+  auto ret = sections_to_elf(ElfBits::b32, ElfEndian::be, machine, prog, object_code, symbols, type);
 
   // Pep/10 addresses are 2 bytes.
   const auto abs16 = bits::to_underlying(RelocationsPep::R_PEP10_ABS16);

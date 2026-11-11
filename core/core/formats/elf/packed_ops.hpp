@@ -25,6 +25,7 @@
 #include <iosfwd>
 #include <optional>
 #include <stdexcept>
+#include <vector>
 #include "core/math/bitmanip/log2.hpp"
 
 namespace pepp::bts {
@@ -81,6 +82,21 @@ struct SegmentLayoutConstraint {
   bool update_sec_addrs = true;
   u64 base_address = 0;
 };
+
+struct LoadSegment {
+  SegmentFlags flags = SegmentFlags::PF_NONE;
+  SegmentLayoutConstraint constraint;
+};
+// group_load_segments will combine adjacent sections within this distance into a single PT_LOAD, assuming the flags are
+// compatible. Chosen to be 1/2 a typical page size (4KiB).
+inline constexpr u64 DEFAULT_MAX_PTLOAD_GAP = 2048;
+// Organize contiguous sections (by sh_ndx) into PT_LOAD'able segments by forming "runs" of sections with compatible
+// flags. Gaps between sections, up to max_gap, are inserted into the file to minimize the number of segments.
+// Unallocated  and empty sections end a run, as do changes in flags, a decreasing sh_addr, or a gap larger than
+// max_gap.
+template <ElfBits B, ElfEndian E>
+std::vector<LoadSegment> group_load_segments(const PackedElf<B, E> &elf, u16 from, u16 to,
+                                             u64 max_gap = DEFAULT_MAX_PTLOAD_GAP);
 // Returns an iovec-like vector of LayoutItems representing the final ELF file layout and associated data.
 // The [i]th constraint is for the [ith] segment. If nullptr, no constraints and sh_addr will not be assigned.
 // There should never be overlapping [offset, offset+data.size()] entries in a layout, otherwise you have concocted a
@@ -209,6 +225,55 @@ template <ElfBits B, ElfEndian E> u16 find_named_section(const PackedElf<B, E> &
   for (u16 it = 1; it < elf.section_headers.size(); ++it)
     if (section_name(elf, it) == name) return it;
   return 0;
+}
+
+template <ElfBits B, ElfEndian E>
+std::vector<LoadSegment> group_load_segments(const PackedElf<B, E> &elf, u16 from, u16 to, u64 max_gap) {
+  std::vector<LoadSegment> ret;
+  // The segment being grown, if any. Addresses must ascend, and a gap wider than max_gap starts a new segment.
+  struct Run {
+    u64 end;
+    bool has_nobits;
+  };
+  std::optional<Run> run;
+  for (u16 index = from; index < to; ++index) {
+    const auto &shdr = elf.section_headers[index];
+    const word<B> sh_flags = shdr.sh_flags;
+    if ((sh_flags & bits::to_underlying(SectionFlags::SHF_ALLOC)) == 0) {
+      run.reset();
+      continue;
+    }
+    // Mark all allocated segments are readable
+    u32 pf = bits::to_underlying(SegmentFlags::PF_R);
+    if (sh_flags & bits::to_underlying(SectionFlags::SHF_WRITE)) pf |= bits::to_underlying(SegmentFlags::PF_W);
+    if (sh_flags & bits::to_underlying(SectionFlags::SHF_EXECINSTR)) pf |= bits::to_underlying(SegmentFlags::PF_X);
+    const auto flags = static_cast<SegmentFlags>(pf);
+    const bool nobits = shdr.sh_type == bits::to_underlying(SectionTypes::SHT_NOBITS);
+    // A growable file's sh_size is only set at layout, except for NOBITS.
+    const u64 extent = nobits ? static_cast<u64>(shdr.sh_size) : elf.section_data[index]->size();
+    const u64 address = shdr.sh_addr;
+    const u16 align = std::max<u16>(static_cast<u16>(shdr.sh_addralign), 1);
+    const bool occupies_memory = extent > 0;
+    // File data after a NOBITS would sit past p_filesz. A trailing NOBITS is fine.
+    const bool blocked = run && run->has_nobits && !nobits && occupies_memory;
+    // We can extend the run if: matching flags, a gap of at most max_gap, and no intervening NOBITS.
+    const u64 start = run ? bits::align_up(run->end, align) : 0;
+    if (run && ret.back().flags == flags && !blocked && address >= start && address - start <= max_gap) {
+      auto &constraint = ret.back().constraint;
+      constraint.to_sec = index;
+      constraint.alignment = std::max(constraint.alignment, align);
+      run->end = address + extent;
+      run->has_nobits |= nobits;
+    } else if (occupies_memory) {
+      SegmentLayoutConstraint constraint;
+      constraint.alignment = align;
+      constraint.from_sec = constraint.to_sec = index;
+      constraint.update_sec_addrs = false; // The sections already carry their addresses.
+      ret.push_back({flags, constraint});
+      run = Run{address + extent, nobits};
+    } else run.reset();
+  }
+  return ret;
 }
 
 template <ElfBits B, ElfEndian E> bits::span<const u8> section_bytes(const PackedElf<B, E> &elf, u16 index) {

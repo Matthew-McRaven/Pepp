@@ -436,10 +436,11 @@ pepp::tc::ElfResult pepp::tc::riscv_to_elf(std::vector<std::pair<SectionDescript
                                            const ProgramObjectCodeResult &object_code,
                                            const pepp::core::symbol::LeafTable &symbols, const DebugLineFiles &files,
                                            const std::vector<std::shared_ptr<const InlineMacroDefinition>> &macros,
-                                           const IR2ListingLineMap *listing) {
+                                           const IR2ListingLineMap *listing, pepp::bts::ElfFileType type) {
   using namespace pepp::bts;
   SPDLOG_INFO("Creating RISC-V ELF");
-  auto ret = sections_to_elf(ElfBits::b32, ElfEndian::le, ElfMachineType::EM_RISCV, prog, object_code, symbols);
+  auto ret =
+      sections_to_elf(ElfBits::b32, ElfEndian::le, ElfMachineType::EM_RISCV, prog, object_code, symbols, type);
 
   // RV32 addresses are 4 bytes.
   const auto r_riscv_32 = bits::to_underlying(RelocationsRISCV::R_RISCV_32);

@@ -75,6 +75,7 @@ ElfResult riscv_to_elf(std::vector<std::pair<SectionDescriptor, IRProgram>> &pro
                        const IRMemoryAddressTable<RISCVAddress> &addrs, const ProgramObjectCodeResult &object_code,
                        const pepp::core::symbol::LeafTable &symbols, const DebugLineFiles &files = {},
                        const std::vector<std::shared_ptr<const InlineMacroDefinition>> &macros = {},
-                       const IR2ListingLineMap *listing = nullptr);
+                       const IR2ListingLineMap *listing = nullptr,
+                       pepp::bts::ElfFileType type = pepp::bts::ElfFileType::ET_EXEC);
 
 } // namespace pepp::tc
