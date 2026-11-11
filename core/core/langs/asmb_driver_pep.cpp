@@ -46,6 +46,7 @@ DriverResult assemble_pep(const pep::Dialect &dialect, bts::ElfMachineType machi
   if (fmtcfg.source) result.formatted_source = format_source(dialect, program);
 
   auto flattened = parser::flatten_macros(program, fmtcfg.listing);
+  if (output_type == bts::ElfFileType::ET_REL) reject_absolute_placement(result.diagnostics, flattened);
   auto split = pepp_split_to_sections(result.diagnostics, flattened);
   if (result.diagnostics.count(Severity::Fatal) > 0) return result;
 

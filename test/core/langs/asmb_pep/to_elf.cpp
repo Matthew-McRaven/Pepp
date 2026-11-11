@@ -750,4 +750,17 @@ y: .word 1
     CHECK(rv_elf.segments.size() == 0);
     CHECK(rv_elf.sections[".data"]->get_address() == 0);
   }
+  // Absolute placement cannot be expressed in an ET_REL yet.
+  SECTION("Disallow .ORG and .BURN") {
+    const auto only_error = [](const DriverResult &result, std::string_view directive) {
+      CHECK(!result.ok());
+      REQUIRE(result.diagnostics.count() == 1);
+      const auto &[_, diagnostic] = *result.diagnostics.cbegin();
+      CHECK(diagnostic.severity == Severity::Fatal);
+      CHECK(diagnostic.message.starts_with(directive));
+    };
+    only_error(assemble_pep10(Pep10DriverConfig{.output_type = rel}, {}, ".ORG 0x100\nLDWA 1,i\n"), ".ORG");
+    only_error(assemble_pep9(Pep9DriverConfig{.output_type = rel}, {}, "LDWA 1,i\n.BURN 0xFFFF\nRET\n"), ".BURN");
+    only_error(assemble_riscv(RISCVDriverConfig{.output_type = rel}, {}, ".ORG 0x100\naddi x0, x0, 0\n"), ".ORG");
+  }
 }

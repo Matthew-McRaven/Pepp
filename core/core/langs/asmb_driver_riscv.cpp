@@ -40,6 +40,7 @@ DriverResult assemble_riscv(const RISCVDriverConfig &cfg, const FormattingConfig
   std::optional<parser::MacroComments> comments;
   if (fmtcfg.listing) comments = parser::MacroComments{riscv_format_as_columns, '#'};
   auto flattened = parser::flatten_macros(program, comments);
+  if (cfg.output_type == bts::ElfFileType::ET_REL) reject_absolute_placement(result.diagnostics, flattened);
   auto split = riscv_split_to_sections(result.diagnostics, flattened);
   if (result.diagnostics.count(Severity::Fatal) > 0) return result;
 
