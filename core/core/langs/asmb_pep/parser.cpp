@@ -43,6 +43,7 @@
 #include "core/langs/asmb_pep/text_format.hpp"
 #include "core/macros.hpp"
 #include "core/langs/asmb/expression_operand.hpp"
+#include "core/langs/expr/nested.hpp"
 #include "core/math/bitmanip/mask.hpp"
 #include "core/math/bitmanip/strings.hpp"
 
@@ -82,7 +83,7 @@ std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::PepParser::argument() {
   auto buf = active_buffer();
   const auto counter = [this] { return location_counter(); };
   // Must try expression first, otherwise we might lex part of the expression searching for a string constant.
-  if (const auto expr = parse_expression(*buf, *active_lexer(), _pool, expression_options, counter); !expr)
+  if (const auto expr = pepp::tc::expr::parse_nested(*buf, *active_lexer(), _pool, expression_options, counter); !expr)
     throw expression_error(expr.error());
   else if (*expr) {
     if (const auto value = lower(**expr, _symtab, expression_options.default_type, 2); !value)
@@ -276,7 +277,8 @@ std::vector<pepp::tc::parser::ExpressionResult> pepp::tc::parser::PepParser::mne
   std::vector<ExpressionResult> ret;
   // Operands are comma-separated, and only an addressing mode follows a comma.
   while (ret.empty() || buf->match_literal(",")) {
-    if (const auto expr = parse_expression(*buf, *active_lexer(), _pool, expression_options, counter); !expr)
+    if (const auto expr = pepp::tc::expr::parse_nested(*buf, *active_lexer(), _pool, expression_options, counter);
+        !expr)
       throw expression_error(expr.error());
     else if (*expr) ret.push_back(*expr);
     else if (ret.empty()) break;

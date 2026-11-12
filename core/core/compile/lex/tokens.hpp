@@ -16,6 +16,7 @@ enum class CommonTokenType {
   Literal = 1 << 7,
   CharacterConstant = 1 << 8,
   StringConstant = 1 << 9,
+  ParsedExpression = 1 << 10, // See core/langs/expr/nested.hpp
   _FirstUser = 1 << 11,
 };
 

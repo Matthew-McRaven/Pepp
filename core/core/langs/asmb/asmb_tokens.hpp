@@ -23,7 +23,6 @@ namespace pepp::tc::lex {
 enum class AsmTokenType {
   DotCommand = static_cast<int>(CommonTokenType::_FirstUser) << 0,
   MacroPlaceholder = static_cast<int>(CommonTokenType::_FirstUser) << 1,
-  ParsedExpression = static_cast<int>(CommonTokenType::_FirstUser) << 2,
 };
 
 struct DotCommand : public Identifier {
@@ -39,17 +38,6 @@ struct MacroPlaceholder : public Identifier {
   std::string type_name() const override;
   std::string to_string() const override;
   std::string repr() const override;
-};
-
-// An expression parsed by a nested parser (e.g., the expression parser)
-struct ParsedExpression : public Token {
-  ParsedExpression(support::LocationInterval loc, std::shared_ptr<const pepp::tc::expr::Parsed> operand);
-  static constexpr int TYPE = static_cast<int>(AsmTokenType::ParsedExpression);
-  int type() const override;
-  std::string type_name() const override;
-  std::string to_string() const override;
-
-  std::shared_ptr<const pepp::tc::expr::Parsed> operand;
 };
 
 } // namespace pepp::tc::lex

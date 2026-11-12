@@ -39,6 +39,7 @@
 #include "core/langs/asmb/expression_operand.hpp"
 #include "core/langs/asmb_riscv/parser_error.hpp"
 #include "core/langs/asmb_riscv/pseudo_instructions.hpp"
+#include "core/langs/expr/nested.hpp"
 #include "core/macros.hpp"
 #include "core/math/bitmanip/log2.hpp"
 #include "core/math/bitmanip/mask.hpp"
@@ -205,7 +206,8 @@ std::shared_ptr<pepp::ast::IRValue> pepp::tc::parser::RISCVParser::argument() {
   const auto location_counter = resolve_location_counter(*_symtab, _location_counter);
   const auto constant_of = pepp::ast::constants_of(_symtab, options.default_type);
 
-  if (const auto expr = parse_expression(*buf, *lexer, _pool, options, location_counter, constant_of); !expr)
+  if (const auto expr = pepp::tc::expr::parse_nested(*buf, *lexer, _pool, options, location_counter, constant_of);
+      !expr)
     throw invalid(expr.error());
   else if (*expr) {
     if (const auto value = lower(**expr, _symtab, options.default_type, 4); !value) throw invalid(value.error());
@@ -326,7 +328,8 @@ std::vector<pepp::tc::parser::RISCVOperand> pepp::tc::parser::RISCVParser::mnemo
   // Try an expression before a comma, so that the lexer never lexes an operand's text. An operand may also follow the
   // previous one without a comma, as (x3) does in 0(x3).
   while (true) {
-    if (const auto expr = parse_expression(*buf, *lexer, _pool, options, location_counter, constant_of); !expr)
+    if (const auto expr = pepp::tc::expr::parse_nested(*buf, *lexer, _pool, options, location_counter, constant_of);
+        !expr)
       throw invalid(expr.error());
     else if (*expr) ret.push_back({*expr, std::exchange(comma, false)});
     else if (!comma && buf->match_literal(",")) comma = true;

@@ -31,27 +31,6 @@ namespace {
 namespace expr = pepp::tc::expr;
 } // namespace
 
-std::expected<pepp::tc::parser::ExpressionResult, pepp::tc::expr::Error>
-pepp::tc::parser::parse_expression(lex::Buffer &buf, lex::ALexer &lexer, std::shared_ptr<expr::IdentifierPool> pool,
-                                   const expr::Options &options, const expr::NameLocationCounter &location_counter,
-                                   const expr::ValueOf &constant_of) {
-  // The expression parser reads the lexer's text, which is past any buffered token. This is a bug in the assembler,
-  // but is reported as an error in the source rather than ending the program.
-  if (const auto buffered = buf.buffered_tokens(); !buffered.empty())
-    return std::unexpected(expr::Error{buffered.front()->location(), expr::NullaryError::Syntax_BufferedToken});
-
-  auto result = expr::parse(lexer.cursor(), std::move(pool), options, location_counter, constant_of);
-  if (const auto *error = std::get_if<expr::Error>(&result)) return std::unexpected(*error);
-  auto *parsed = std::get_if<expr::Parsed>(&result);
-  if (!parsed) return nullptr;
-
-  // Resume lexing after the operand, which the buffer sees as a single token.
-  const support::LocationInterval span{parsed->locations[parsed->tree.root()].lower(), parsed->after.location()};
-  lexer.resume_at(parsed->after);
-  buf.push_token(std::make_shared<lex::ParsedExpression>(span, std::make_shared<expr::Parsed>(std::move(*parsed))));
-  return buf.match<lex::ParsedExpression>()->operand;
-}
-
 std::expected<std::shared_ptr<pepp::ast::IRValue>, pepp::tc::expr::Error>
 pepp::tc::parser::lower(const expr::Parsed &operand, std::shared_ptr<core::symbol::LeafTable> symtab,
                         expr::Type default_type, u8 size) {
