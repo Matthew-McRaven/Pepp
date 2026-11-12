@@ -62,8 +62,9 @@ std::shared_ptr<pepp::core::symbol::LeafTable> pepp::tc::parser::PepParser::symb
 void pepp::tc::parser::PepParser::debug_print_tokens(bool debug) { _root_lexer->print_tokens = debug; }
 
 namespace {
-constexpr pepp::tc::expr::Options expression_options{.default_type = {16, pepp::tc::expr::Signedness::Unsigned},
-                                                     .dot = pepp::tc::expr::Options::Dot::Identifier};
+using pepp::tc::expr::Options;
+constexpr Options expression_options{.default_type = {16, pepp::tc::expr::Signedness::Unsigned},
+                                     .identifiers = Options::Identifiers::LeadingDot};
 
 pepp::tc::PepParserError expression_error(const pepp::tc::expr::Error &error) {
   return pepp::tc::PepParserError(pepp::tc::PepParserError::UnaryError::Expression_Invalid, error.message(),

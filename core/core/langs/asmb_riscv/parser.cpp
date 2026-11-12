@@ -109,9 +109,8 @@ const std::array<expr::Function, 7> functions{{
 
 // `.` is the location counter, .L<name> a local label, and %name a relocation modifier.
 const expr::Options options{.default_type = {32, expr::Signedness::Signed},
-                            .dot = expr::Options::Dot::Identifier,
+                            .identifiers = expr::Options::Identifiers::LeadingDot,
                             .percent_identifiers = true,
-                            .local_labels = true,
                             .functions = functions};
 
 // Conditionals choose which lines are parsed, so like equates they are evaluated as they are parsed.

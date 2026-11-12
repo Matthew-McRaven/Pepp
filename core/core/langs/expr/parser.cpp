@@ -41,15 +41,13 @@ public:
   Parser(lex::Buffer &buffer, Location origin, const Options &options, const NameLocationCounter &location_counter,
          const ValueOf &constant_of)
       : _buf(buffer), _options(options), _name_location_counter(location_counter), _constant_of(constant_of),
-        _origin(origin), _end(origin) {}
+        _end(origin) {}
 
   // Returns nullopt if the next token cannot start an expression.
   std::optional<NodeId> expression(int min_precedence) {
     auto lhs = unary();
     if (!lhs) return std::nullopt;
     while (auto literal = _buf.peek<lex::Literal>()) {
-      if (_options.dot == Options::Dot::Operator && literal->literal == ".")
-        throw Error{literal->location(), NullaryError::Syntax_MemberAccess};
       const auto op = binary_op(literal->literal);
       if (!op || precedence(*op) < min_precedence) break;
       consume(_buf.match<lex::Literal>());
@@ -61,8 +59,8 @@ public:
     return lhs;
   }
 
-  // Number of characters consumed from the start of the text.
-  size_t length() const { return static_cast<size_t>(_end.column - _origin.column); }
+  // Where the last consumed token ends.
+  Location end() const { return _end; }
 
   Tree tree;
   std::vector<LocationInterval> locations;
@@ -98,12 +96,12 @@ private:
     } else if (auto identifier = _buf.match<lex::Identifier>(); identifier) {
       consume(identifier);
       const auto name = identifier->view();
-      const auto function = std::ranges::find(_options.functions, name, &Function::name);
-      if (function != _options.functions.end()) return call(*function, identifier->location());
+      if (std::ranges::find(_options.functions, name, &Function::name) != _options.functions.end())
+        return call(name, identifier->location());
       // Only functions may be named with a %.
       else if (name.starts_with('%')) throw Error{identifier->location(), UnaryError::Function_Unknown, name};
       return add(Identifier{std::string(name)}, identifier->location());
-    } else if (_options.dot == Options::Dot::Identifier && _buf.peek_literal(".")) {
+    } else if (_buf.peek_literal(".")) { // The lexer only produces . where it is the location counter.
       const auto dot = _buf.match_literal(".");
       consume(dot);
       return add(LocationCounter{location_counter(dot->location())}, dot->location());
@@ -121,7 +119,7 @@ private:
   }
 
   // <function> ( [<expression> (, <expression>)*] )
-  NodeId call(const Function &function, LocationInterval name) {
+  NodeId call(std::string_view function_name, LocationInterval name) {
     if (!_buf.peek_literal("(")) throw Error{_buf.peek()->location(), NullaryError::Syntax_ExpectedOpenParen};
     consume(_buf.match_literal("("));
     // If the call turns out to be constant-evaluable, we will replace the entire call with a folded constant.
@@ -139,10 +137,12 @@ private:
     const auto close = _buf.match_literal(")");
     consume(close);
     const LocationInterval location(name.lower(), close->location().upper());
-    if (arguments.size() != function.parameters.size())
-      throw Error{location, UnaryError::Function_WrongArity, function.name};
-    else if (function.category != Function::Category::ConstEval)
-      return add(Call{&function, std::move(arguments)}, location);
+    const auto overload = std::ranges::find_if(_options.functions, [&](const Function &f) {
+      return f.name == function_name && f.parameters.size() == arguments.size();
+    });
+    if (overload == _options.functions.end()) throw Error{location, UnaryError::Function_WrongArity, function_name};
+    const Function &function = *overload;
+    if (function.category != Function::Category::ConstEval) return add(Call{&function, std::move(arguments)}, location);
     else if (!_constant_of) throw Error{location, UnaryError::Function_Unavailable, function.name};
 
     // Since this is a constant-evaluated function, we must evaluate it now.
@@ -174,7 +174,7 @@ private:
   // What the host knows of symbols so far, for ConstEval calls.
   const ValueOf &_constant_of;
   std::optional<std::string> _location_counter;
-  Location _origin, _end;
+  Location _end;
 };
 } // namespace
 
@@ -193,9 +193,14 @@ pepp::tc::expr::ParseResult pepp::tc::expr::parse(support::SeekableData cursor, 
   try {
     const auto root = parser.expression(0);
     if (!root) return NoExpression{};
-    // Parser does not consume newlines meaning it only advances the column.
-    after.skip(parser.length());
-    return Parsed{std::move(parser.tree), std::move(parser.locations), parser.length(), std::move(after)};
+    // Step over the consumed text, which may span lines when newlines are whitespace.
+    const auto first = after.end();
+    while (after.location() < parser.end() && after.input_remains()) {
+      const bool newline = after.peek() == '\n';
+      after.skip(1);
+      if (newline) after.newline();
+    }
+    return Parsed{std::move(parser.tree), std::move(parser.locations), after.end() - first, std::move(after)};
   } catch (const Error &error) {
     return error;
   }
