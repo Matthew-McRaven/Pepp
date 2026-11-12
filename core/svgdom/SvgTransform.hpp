@@ -3,6 +3,7 @@
 #include <expected>
 #include <fmt/format.h> //  For fmt::format
 #include <list>
+#include <numbers> //  std::numbers::inv_pi
 #include <string>
 using namespace std::string_literals;
 
@@ -63,19 +64,22 @@ class SvgTransformList {
   std::list<SvgTransform> _transforms;
   double _a{1.0}, _b{}, _c{}, _d{1.0}, _e{}, _f{}; //  Matrix values
 
-  double _rotateAngle = 0;
-  double _rotateX = 0;
-  double _rotateY = 0;
-  double _scaleX = 1;
-  double _scaleY = 1;
-  double _skewX = 0;
-  double _skewY = 0;
-  double _translateX = 0;
-  double _translateY = 0;
+  static constexpr double radiansToDegrees = std::numbers::inv_pi / 180.0;
+  static constexpr double degreesToRadians = 180.0 / std::numbers::inv_pi;
+  static constexpr double epsilon = 1e-9;
 
-  void createMatrix();
+  void resetMatrix();
+  // void createMatrix();
   void multiply(const double ma, const double mb, const double mc, const double md, const double me, const double mf);
   void composeSequentialMatrix();
+
+  //  Used in matrix manipulation
+  void setRotate(const double angle, const double cx = 0, const double cy = 0);
+  void setScale(const double sx, const double sy = 0);
+  void setSkewX(const double angle);
+  void setSkewY(const double angle);
+  void setTranslate(const double tx, const double ty = 0);
+  bool isNearlyZero(const double x);
 
 public:
   SvgTransformList() = default;
@@ -91,7 +95,7 @@ public:
   bool removeItem(const size_t pos);
   // void insertItemBefore();
   SvgTransform &appendItem();
-  void createSvgTransformFromMatrix();
+  // void createSvgTransformFromMatrix();
   void consolidate();
 
   //  Persistence functions
