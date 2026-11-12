@@ -36,7 +36,7 @@ std::vector<std::shared_ptr<lex::Token>> lex_all(std::shared_ptr<std::unordered_
   do {
     ret.push_back(lexer.next_token());
     REQUIRE(ret.back() != nullptr);
-    REQUIRE(ret.size() < 100); // Guarantee forward progress.
+    REQUIRE(ret.size() < 100); // Fail instead of looping forever if the lexer stops advancing.
   } while (ret.back()->type() != lex::EoF::TYPE);
   return ret;
 }

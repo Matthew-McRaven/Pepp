@@ -82,6 +82,12 @@ int pepp::tc::lex::InlineComment::type() const { return TYPE; }
 
 std::string pepp::tc::lex::InlineComment::type_name() const { return "InlineComment"; }
 
+pepp::tc::lex::BlockComment::BlockComment(support::LocationInterval loc, std::string const *v) : Identifier(loc, v) {}
+
+int pepp::tc::lex::BlockComment::type() const { return TYPE; }
+
+std::string pepp::tc::lex::BlockComment::type_name() const { return "BlockComment"; }
+
 pepp::tc::lex::Literal::Literal(support::LocationInterval loc, std::string literal) : Token(loc), literal(literal) {}
 
 int pepp::tc::lex::Literal::type() const { return TYPE; }
