@@ -31,10 +31,6 @@ public:
   std::shared_ptr<lex::Token> next_token() override;
 
 private:
-  // On a match, advance the cursor over it and return true.
-  bool match_advance(const std::regex &pattern);
-  // Interval spanning from start to _cursor.
-  support::LocationInterval since(support::Location start) const;
   // Create tokens for various lexemes, spanning from start to _cursor.
   std::shared_ptr<lex::Token> invalid(support::Location start) const;
   std::shared_ptr<lex::Token> integer(support::Location start, const std::optional<bits::ParsedInteger> &parsed) const;

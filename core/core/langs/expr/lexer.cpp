@@ -16,7 +16,6 @@
 #include "core/langs/expr/lexer.hpp"
 #include <regex>
 #include "core/compile/lex/tokens.hpp"
-#include "core/langs/asmb/asmb_tokens.hpp"
 #include "core/math/bitmanip/strings.hpp"
 
 namespace {
@@ -79,13 +78,7 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::expr::ExpressionLexer::next_toke
     const auto next = _cursor.peek();
     if (next == ' ' || next == '\t' || next == '\r') _cursor.skip(1);
     else if (_options.newline_whitespace && next == '\n') _cursor.skip(1), _cursor.newline();
-    else if (const auto rest = _cursor.rest();
-             _options.block_comments && rest.starts_with("/*") && rest.find("*/", 2) != rest.npos) {
-      for (const char c : rest.substr(0, rest.find("*/", 2) + 2)) {
-        _cursor.skip(1);
-        if (c == '\n') _cursor.newline();
-      }
-    } else break;
+    else if (!_options.block_comments || !skip_block_comment()) break;
   }
 
   const auto start = _cursor.location();
@@ -117,16 +110,6 @@ std::shared_ptr<pepp::tc::lex::Token> pepp::tc::expr::ExpressionLexer::next_toke
   }
   _cursor.skip(0);
   return current_token;
-}
-
-pepp::tc::support::LocationInterval pepp::tc::expr::ExpressionLexer::since(support::Location start) const {
-  return {start, _cursor.location()};
-}
-
-bool pepp::tc::expr::ExpressionLexer::match_advance(const std::regex &pattern) {
-  const auto match = _cursor.matchView(pattern);
-  if (!match.empty()) _cursor.advance(match.length(0));
-  return !match.empty();
 }
 
 std::shared_ptr<pepp::tc::lex::Token> pepp::tc::expr::ExpressionLexer::invalid(support::Location start) const {
