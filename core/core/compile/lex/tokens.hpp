@@ -14,7 +14,9 @@ enum class CommonTokenType {
   InlineComment = 1 << 5,
   SymbolDeclaration = 1 << 6,
   Literal = 1 << 7,
-  _FirstUser = 1 << 8,
+  CharacterConstant = 1 << 8,
+  StringConstant = 1 << 9,
+  _FirstUser = 1 << 11,
 };
 
 struct Token {
@@ -111,6 +113,28 @@ struct Literal : public Token {
   std::string to_string() const override;
 
   std::string literal;
+};
+
+struct CharacterConstant : public Token {
+  CharacterConstant(support::LocationInterval loc, std::string value);
+  static constexpr int TYPE = static_cast<int>(CommonTokenType::CharacterConstant);
+  int type() const override;
+  std::string type_name() const override;
+  std::string to_string() const override;
+  std::string repr() const override;
+
+  std::string value;
+};
+
+// We are going to cheat with string constants. You should drop the quotes when making an ID out of this.
+// While the lexer MUST check that escape sequences are valid, it does NOT need to convert them into bytes.
+struct StringConstant : public Identifier {
+  StringConstant(support::LocationInterval loc, std::string const *v);
+  static constexpr int TYPE = static_cast<int>(CommonTokenType::StringConstant);
+  int type() const override;
+  std::string type_name() const override;
+  std::string to_string() const override;
+  std::string repr() const override;
 };
 
 } // namespace pepp::tc::lex
