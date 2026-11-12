@@ -1,7 +1,6 @@
 #include "SvgTransform.hpp"
 
 #include <cmath>
-#include <numbers>
 #include <ranges>
 #include <string_view>
 #include <vector>
@@ -300,54 +299,66 @@ const std::string SvgTransformList::toString() const {
 }
 
 //  Matrix operations
+//  Recalculate transforms from matrix
 void SvgTransformList::consolidate() {
+  //  First, translate current tranformations into matrix
+  composeSequentialMatrix();
+
+  //  Reset transform list
+  _transforms.clear();
+
+  // Translate matrix into tranformations
   // 1. Translation is direct
-  _translateX = _e;
-  _translateY = _f;
+  if (!isNearlyZero(_e) || !isNearlyZero(_f)) appendItem().setTranslate(_e, _f);
 
   // 2. Calculate Scale factors (magnitudes of the column vectors)
-  _scaleX = std::sqrt(_a * _a + _b * _b);
-  _scaleY = std::sqrt(_c * _c + _d * _d);
-
-  // 3. Calculate Rotation and Skew
-  // Determine if the matrix has a reflection (flipped)
+  // If the determinant is negative, correct the scale and flip the sign
   const double determinant = _a * _d - _b * _c;
-  if (determinant < 0) {
-    // If the determinant is negative, correct the scale and flip the sign
-    _scaleY = -_scaleY;
+
+  const double scaleX = std::sqrt(_a * _a + _b * _b);
+  const double scaleY = std::sqrt(_c * _c + _d * _d);
+
+  //  If both values are 1, then there is no transform
+  if (!isNearlyZero(scaleX - 1) || !isNearlyZero(scaleY - 1)) {
+    if (!isNearlyZero(scaleY) || !isNearlyZero(scaleY - scaleX))
+      //  X and Y directions have scale
+      appendItem().setScale(scaleX, determinant < 0 ? scaleY : -scaleY);
+    else
+      //  If scaleY is zero, use scaleX value
+      appendItem().setScale(scaleX);
   }
 
-  //  Convert all angles from degrees to radians
-  //  Temporary used in next 3 formulas
-  const double degreesToRadians = 180.0 / std::numbers::inv_pi;
-
   // Rotation is isolated from the first column vector [a, b]
-  _rotateAngle = std::atan2(_b, _a) * degreesToRadians;
+  const double rotateAngle = std::atan2(_b, _a) * SvgTransformList::degreesToRadians;
+  if (!isNearlyZero(rotateAngle))
+    //  There is a non-zero rotation
+    appendItem().setRotate(rotateAngle);
 
   // Skew X is the remaining angular difference between the two basis vectors
   // We use the dot product and determinant values to extract it cleanly
-  _skewX = 0;
-  if (_a != 0 || _b != 0) {
-    _skewX = std::atan2(_a * _c + _b * _d, determinant) * degreesToRadians;
+  double skewX = 0;
+  if (!isNearlyZero(_a) || !isNearlyZero(_b)) {
+    skewX = std::atan2(_a * _c + _b * _d, determinant) * SvgTransformList::degreesToRadians;
   } else {
-    _skewX = std::atan2(_c, _d) * degreesToRadians;
+    skewX = std::atan2(_c, _d) * SvgTransformList::degreesToRadians;
   }
+
+  if (!isNearlyZero(skewX))
+    //  There is a non-zero skew in X direction
+    appendItem().setSkewX(skewX);
+
   // In this standard model, skewY is fully absorbed by rotation and skewX
   // In 2D matrix transformations, a combination of Rotation + Skew X is
   // mathematically identical to a combination of Skew X + Skew Y.
-  _skewY = 0;
 }
 
 //  Only works for single function. does not work with 2 "translate" function
 //  (or any other duplicates like skewY skewY).
-void SvgTransformList::createMatrix() {
+/*void SvgTransformList::createMatrix() {
   //  Convert all angles from degrees to radians
-  //  Temporary used in next 3 formulas
-  const double radiansToDegrees = std::numbers::inv_pi / 180.0;
-
-  const double rRad = _rotateAngle * radiansToDegrees;
-  const double skXRad = _skewX * radiansToDegrees;
-  const double skYRad = _skewY * radiansToDegrees;
+  const double rRad = _rotateAngle * SvgTransformList::radiansToDegrees;
+  const double skXRad = _skewX * SvgTransformList::radiansToDegrees;
+  const double skYRad = _skewY * SvgTransformList::radiansToDegrees;
 
   // Default scales to 1 if not provided
   // const double sx = scale &&scale.x != = undefined ? scale.x : 1;
@@ -371,6 +382,11 @@ void SvgTransformList::createMatrix() {
   _d = _scaleY * (sinR * tanX + cosR);
   _e = _translateX + _rotateX - (_a * _rotateX + _c * _rotateY);
   _f = _translateY + _rotateY - (_b * _rotateX + _d * _rotateY);
+}*/
+
+void SvgTransformList::resetMatrix() {
+  // Start with an Identity Matrix (no changes)
+  _a = 1, _b = 0, _c = 0, _d = 1, _e = 0, _f = 0;
 }
 
 // Helper helper function to multiply current state by an incoming transformation step
@@ -396,57 +412,75 @@ void SvgTransformList::multiply(const double ma, const double mb, const double m
 
 void SvgTransformList::composeSequentialMatrix() {
   //  Convert all angles from degrees to radians
-  //  Temporary used in next 3 formulas
-  const double radiansToDegrees = std::numbers::inv_pi / 180.0;
 
-  // 1. Defaults with nullish coalescing
-  // const tx = translate?.x ?? 0;
-  // const ty = translate?.y ?? 0;
-  // const sx = scale?.x ?? 1;
-  // const sy = scale?.y ?? 1;
-  const double rRad = _rotateAngle * radiansToDegrees;
-  const double skXRad = _skewX * radiansToDegrees;
-  const double skYRad = _skewY * radiansToDegrees;
-  // const double cx = origin?.x ?? 0;
-  // const double cy = origin?.y ?? 0;
+  for (const auto &transform : _transforms) {
+    switch (transform.type()) {
+    case SvgTransform::TransformType::Rotate:
+      setRotate(transform.rotateAngle(), transform.rotateX(), transform.rotateY());
+      break;
+    case SvgTransform::TransformType::Scale: setScale(transform.scaleX(), transform.scaleY()); break;
+    case SvgTransform::TransformType::SkewX: setSkewX(transform.skewX()); break;
+    case SvgTransform::TransformType::SkewY: setSkewY(transform.skewY()); break;
+    case SvgTransform::TransformType::Translate: setTranslate(transform.translateX(), transform.translateY()); break;
+    default:
+      //  Other tranformations types are not output
+      break;
+    }
+  }
+}
 
-  // Start with an Identity Matrix (no changes)
-  _a = 1, _b = 0, _c = 0, _d = 1, _e = 0, _f = 0;
+void SvgTransformList::setRotate(const double angle, const double cx, const double cy) {
+  //  If no rotation, just return.
+  //  If rotation is zero, this is a non-operation
+  if (isNearlyZero(angle)) return;
 
+  bool hasOriginPivot = false;
   // STEP 1: Handle transform-origin pivot (Move origin to 0,0)
-  if (_rotateX != 0 || _rotateY != 0) {
-    multiply(1, 0, 0, 1, -_rotateX, -_rotateY);
-  }
-
-  // STEP 2: Translate
-  if (_translateX != 0 || _translateY != 0) {
-    multiply(1, 0, 0, 1, _translateX, _translateY);
-  }
-
-  // STEP 3: Scale
-  if (_scaleX != 1 || _scaleY != 1) {
-    multiply(_scaleX, 0, 0, _scaleY, 0, 0);
+  if (!isNearlyZero(cx) || !isNearlyZero(cy)) {
+    multiply(1, 0, 0, 1, -cx, -cy);
+    hasOriginPivot = true;
   }
 
   // STEP 4: Rotate
-  if (rRad != 0) {
-    const double cosR = std::cos(rRad);
-    const double sinR = std::sin(rRad);
-    multiply(cosR, sinR, -sinR, cosR, 0, 0);
-  }
-
-  // STEP 5: Skew X
-  if (skXRad != 0) {
-    multiply(1, 0, std::tan(skXRad), 1, 0, 0);
-  }
-
-  // STEP 6: Skew Y
-  if (skYRad != 0) {
-    multiply(1, std::tan(skYRad), 0, 1, 0, 0);
-  }
+  const double cosR = std::cos(angle);
+  const double sinR = std::sin(angle);
+  multiply(cosR, sinR, -sinR, cosR, 0, 0);
 
   // STEP 7: Reset transform-origin pivot (Move origin back)
-  if (_rotateX != 0 || _rotateY != 0) {
-    multiply(1, 0, 0, 1, _rotateX, _rotateY);
+  if (hasOriginPivot) {
+    multiply(1, 0, 0, 1, cx, cy);
   }
 }
+
+void SvgTransformList::setScale(const double sx, const double sy) {
+  const double newSy = (std::fabs(sy) < SvgTransformList::epsilon) ? sx : sy;
+  // STEP 3: Scale
+  if (!isNearlyZero(sx - 1) || !isNearlyZero(newSy - 1)) {
+    multiply(sx, 0, 0, newSy, 0, 0);
+  }
+}
+
+void SvgTransformList::setSkewX(const double angle) {
+  // STEP 5: Skew X
+  if (!isNearlyZero(angle)) {
+    //  convert to radians. Input is degrees
+    multiply(1, 0, std::tan(angle * SvgTransformList::radiansToDegrees), 1, 0, 0);
+  }
+}
+
+void SvgTransformList::setSkewY(const double angle) {
+  // STEP 6: Skew Y
+  if (!isNearlyZero(angle)) {
+    multiply(1, std::tan(angle * SvgTransformList::radiansToDegrees), 0, 1, 0, 0);
+  }
+}
+
+void SvgTransformList::setTranslate(const double tx, const double ty) {
+  // STEP 2: Translate
+  //  If both values are zero, this is a non-operation
+  if (!isNearlyZero(tx) || !isNearlyZero(ty)) {
+    multiply(1, 0, 0, 1, tx, ty);
+  }
+}
+
+bool SvgTransformList::isNearlyZero(const double x) { return std::fabs(x) < SvgTransformList::epsilon; }
