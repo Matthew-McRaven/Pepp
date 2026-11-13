@@ -96,7 +96,7 @@ pepp::bts::MappedFile &pepp::bts::MappedFile::operator=(MappedFile &&o) noexcept
   if (this != &o) {
     release();
     _path = std::move(o._path);
-    _readonly = o._readonly, _opened = o._opened, _use_fallback = o._use_fallback;
+    _readonly = o._readonly, _truncate = o._truncate, _opened = o._opened, _use_fallback = o._use_fallback;
     o._opened = false, o._use_fallback = false;
 #if defined(_WIN32)
     _hFile = o._hFile;
@@ -120,6 +120,12 @@ std::shared_ptr<pepp::bts::MappedFile> pepp::bts::MappedFile::open_readonly(std:
 
 std::shared_ptr<pepp::bts::MappedFile> pepp::bts::MappedFile::open_readwrite(std::string path) {
   return std::make_shared<MappedFile>(private_ctor_tag{}, path, false);
+}
+
+std::shared_ptr<pepp::bts::MappedFile> pepp::bts::MappedFile::open_truncated(std::string path) {
+  auto ret = open_readwrite(std::move(path));
+  ret->_truncate = true;
+  return ret;
 }
 
 u64 pepp::bts::MappedFile::size() const { return std::filesystem::file_size(_path); }
@@ -161,8 +167,8 @@ void pepp::bts::MappedFile::open_file() const {
     _hFile = ::CreateFileA(_path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL,
                            nullptr);
   else
-    _hFile = ::CreateFileA(_path.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL,
-                           nullptr);
+    _hFile = ::CreateFileA(_path.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr,
+                           _truncate ? CREATE_ALWAYS : OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
 
   if (_hFile == INVALID_HANDLE_VALUE) {
     spdlog::warn("Failed to CreateFileA file '{}' with {}", _path, ::GetLastError());
@@ -172,11 +178,10 @@ void pepp::bts::MappedFile::open_file() const {
 
 #elif defined(__unix__) || defined(__APPLE__)
   if (_readonly) _fd = ::open(_path.c_str(), O_RDONLY);
-  else _fd = ::open(_path.c_str(), O_RDWR | O_CREAT, 0644);
+  else _fd = ::open(_path.c_str(), O_RDWR | O_CREAT | (_truncate ? O_TRUNC : 0), 0644);
   if (_fd < 0) {
     spdlog::warn("Failed to open file '{}' with errno {}", _path, errno);
     _use_fallback = true;
-    return;
   } else _opened = true;
 #else
   _use_fallback = true;
@@ -203,9 +208,11 @@ void pepp::bts::MappedFile::load_mapped(Slice &slice) const {
   if (_use_fallback) {
     load_fallback(slice);
     slice._loaded = true;
-    return;
   }
 
+  // fallback does not hold file open, so truncate it here.
+  if (_use_fallback && _truncate) std::ofstream(_path, std::ios::binary | std::ios::trunc);
+  _truncate = false;
   const std::size_t ps = page_size(), base = slice._file_offset - (slice._file_offset % ps),
                     delta = slice._file_offset - base;
   slice._map_len = delta + static_cast<std::size_t>(slice._file_len);

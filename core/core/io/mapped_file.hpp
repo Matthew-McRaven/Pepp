@@ -93,6 +93,8 @@ public:
 
   static std::shared_ptr<MappedFile> open_readonly(std::string path);
   static std::shared_ptr<MappedFile> open_readwrite(std::string path);
+  // open_readwrite and truncate to 0 bytes if it exists.
+  static std::shared_ptr<MappedFile> open_truncated(std::string path);
 
   // Byte size of the backing file or throws a std::filesystem::filesystem_error if the file's size cannot be
   // determined.
@@ -108,6 +110,8 @@ private:
 #if defined(_WIN32)
   mutable void *_hFile = nullptr;
 #elif defined(__unix__) || defined(__APPLE__)
+  // True if the next open_file() call must truncate the file.
+  mutable bool _truncate = false;
   mutable int _fd = -1;
 #endif
   inline void ensure_opened() const {
