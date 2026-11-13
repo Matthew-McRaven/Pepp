@@ -64,6 +64,9 @@ struct LinkConfig {
   std::optional<std::vector<std::string>> retain_symbols;
 };
 
+// The default linker script for Pep8..10
+// TODO: Replace with the built-in Pep default script.
+tc::ldscript::Script default_pep_script();
 // Read a text file as whitespace-separated symbol names, as GNU ld does. nullopt if the file cannot be read.
 std::optional<std::vector<std::string>> read_symbol_list(const std::filesystem::path &path);
 // Try to parse as `name=address`, where address is a hex value . nullopt if malformed.

@@ -16,6 +16,7 @@
  */
 
 #include "core/link/linker_passes.hpp"
+#include <algorithm>
 #include <deque>
 #include <fmt/format.h>
 #include <fstream>
@@ -252,6 +253,11 @@ pepp::link::LinkContext pepp::link::do_link(LinkConfig &&config) {
 
 pepp::link::ParsedScripts pepp::link::parse_scripts(Diagnostics &diagnostics, std::vector<LinkInput> inputs) {
   ParsedScripts ret;
+  // Unless a explicit linker script was provided (LinkerInput::Script via -T), insert a default script at the front of
+  // the input list. A script provided posiitonally via filename does not replace the default script.
+  const auto is_script = [](const LinkInput &input) { return std::holds_alternative<LinkInput::Script>(input.source); };
+  if (std::ranges::none_of(inputs, is_script))
+    inputs.insert(inputs.begin(), LinkInput{.source = LinkInput::Script{default_pep_script()}});
   // Unparsed scripts and other inputs. When a script is parsed, the files of its INPUT/GROUP
   // commands are placed at the front so that input order is preserved.
   std::deque<LinkInput> pending(std::make_move_iterator(inputs.begin()), std::make_move_iterator(inputs.end()));

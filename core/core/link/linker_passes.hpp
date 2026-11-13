@@ -71,8 +71,9 @@ struct ParsedScripts {
 
 // Parse every linker script in inputs, returning the effective linker script and an updated input list. That list
 // replaces each script with the files of its INPUT/GROUP commands. If a path is it is neither an ELF file nor an
-// archive, it is treated as a script. Stops at the first script that cannot be read or parsed, reporting it as Fatal
-// error.
+// archive, it is treated as a script. If no input is a LinkInput::Script (from -T), a default script is prepended to
+// the inputs. Stops at the first script that cannot be read or parsed, reporting it
+// as Fatal error.
 ParsedScripts parse_scripts(Diagnostics &diagnostics, std::vector<LinkInput> inputs);
 
 // The steps of do_link that run once the inputs are in a group.

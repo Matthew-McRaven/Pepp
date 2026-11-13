@@ -20,6 +20,8 @@
 #include <fstream>
 #include <iterator>
 
+pepp::tc::ldscript::Script pepp::link::default_pep_script() { return {}; }
+
 std::optional<std::vector<std::string>> pepp::link::read_symbol_list(const std::filesystem::path &path) {
   std::ifstream file(path);
   if (!file) return std::nullopt;
