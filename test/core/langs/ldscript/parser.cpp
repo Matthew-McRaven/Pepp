@@ -77,14 +77,6 @@ std::vector<std::string> reprs(std::string text) {
   return ret;
 }
 
-expr::Type first(std::span<const expr::Type> types, expr::Type) { return types[0]; }
-constexpr std::array one_value{expr::Function::Parameter::Value};
-constexpr std::array two_values{expr::Function::Parameter::Value, expr::Function::Parameter::Value};
-// Overloads of ld's ALIGN, chosen by arity (e.g., ALIGN(align), ALIGN(exp, align)).
-const std::array<expr::Function, 2> align{{
-    {"ALIGN", expr::Function::Category::NonConstExpr, one_value, nullptr, first},
-    {"ALIGN", expr::Function::Category::NonConstExpr, two_values, nullptr, first},
-}};
 } // namespace
 
 TEST_CASE("ld script expressions", "[scope:core][scope:core.langs][kind:unit][arch:*]") {
@@ -100,8 +92,7 @@ TEST_CASE("ld script expressions", "[scope:core][scope:core.langs][kind:unit][ar
     CHECK(reprs("a /* x") == V{"Identifier(a)", "Invalid(/* x)", "EoF()"});
   }
   SECTION("Expressions span lines and comments") {
-    auto options = expression_options();
-    options.functions = align;
+    const auto options = expression_options();
     const expr::NameLocationCounter name = [] { return std::string("."); };
     const auto parse_ld = [&](const char *source) {
       return expr::parse(source, Location(0, 0), nullptr, options, name);
@@ -113,11 +104,11 @@ TEST_CASE("ld script expressions", "[scope:core][scope:core.langs][kind:unit][ar
     CHECK(result.length == 33);
     CHECK(result.after.rest() == ";\nnext");
     CHECK(result.after.location() == Location(1, 19));
-    // The overload is chosen by arity.
+    // The ALIGN overload is chosen by arity.
     const auto one = parse_ld("ALIGN(4)"), two = parse_ld("ALIGN(., 4)"), three = parse_ld("ALIGN(1, 2, 3)");
     const auto &one_tree = std::get<expr::Parsed>(one).tree, &two_tree = std::get<expr::Parsed>(two).tree;
-    CHECK(std::get<expr::Call>(one_tree[one_tree.root()]).function == &align[0]);
-    CHECK(std::get<expr::Call>(two_tree[two_tree.root()]).function == &align[1]);
+    CHECK(std::get<expr::Call>(one_tree[one_tree.root()]).function->parameters.size() == 1);
+    CHECK(std::get<expr::Call>(two_tree[two_tree.root()]).function->parameters.size() == 2);
     REQUIRE(std::holds_alternative<expr::Error>(three));
     CHECK(std::get<expr::Error>(three).matches(expr::UnaryError::Function_WrongArity, "ALIGN"));
   }

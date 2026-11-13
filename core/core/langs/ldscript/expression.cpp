@@ -14,6 +14,24 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "core/langs/ldscript/expression.hpp"
+#include <array>
+#include <span>
+
+namespace {
+namespace expr = pepp::tc::expr;
+constexpr std::array one_value{expr::Function::Parameter::Value};
+constexpr std::array two_values{expr::Function::Parameter::Value, expr::Function::Parameter::Value};
+
+// Returns the default type, since ALIGN returns an address.
+expr::Type address_type(std::span<const expr::Type>, expr::Type default_type) { return default_type; }
+
+// ALIGN(align) returns the the aligned location counter, while ALIGN(exp, align) aligns the expression `exp`.
+// ALIGN(align) is equivalent to ALIGN(ABSOLUTE(.), align)).
+const std::array<expr::Function, 2> functions{{
+    {"ALIGN", expr::Function::Category::NonConstExpr, one_value, nullptr, address_type},
+    {"ALIGN", expr::Function::Category::NonConstExpr, two_values, nullptr, address_type},
+}};
+} // namespace
 
 pepp::tc::expr::Options pepp::tc::ldscript::expression_options() {
   using Options = expr::Options;
@@ -21,5 +39,6 @@ pepp::tc::expr::Options pepp::tc::ldscript::expression_options() {
           .integers = Options::Integers::Ld,
           .newline_whitespace = true,
           .block_comments = true,
-          .character_constants = false};
+          .character_constants = false,
+          .functions = functions};
 }
