@@ -196,9 +196,9 @@ private:
   Sections sections(const Identifier &keyword) {
     Sections ret;
     auto f = [&] {
-      if (const auto provide_keyword = match_keyword(is_provide)) ret.items.emplace_back(provide(provide_keyword));
-      else if (auto assigned = assignment()) ret.items.emplace_back(std::move(*assigned));
-      else if (auto section = output_section()) ret.items.emplace_back(std::move(*section));
+      if (const auto provide_keyword = match_keyword(is_provide)) ret.commands.emplace_back(provide(provide_keyword));
+      else if (auto assigned = assignment()) ret.commands.emplace_back(std::move(*assigned));
+      else if (auto section = output_section()) ret.commands.emplace_back(std::move(*section));
       else return false;
       return true;
     };
@@ -247,10 +247,10 @@ private:
     OutputSectionDescription ret{.name = std::string(section_name->view()), .address = maybe_address};
     expect_literal(":");
     auto f = [&] {
-      if (const auto provide_keyword = match_keyword(is_provide)) ret.items.emplace_back(provide(provide_keyword));
-      else if (const auto keep_keyword = match_keyword(is_keep)) ret.items.emplace_back(keep(keep_keyword));
-      else if (auto assigned = assignment()) ret.items.emplace_back(std::move(*assigned));
-      else if (auto input = input_section()) ret.items.emplace_back(std::move(*input));
+      if (const auto provide_keyword = match_keyword(is_provide)) ret.commands.emplace_back(provide(provide_keyword));
+      else if (const auto keep_keyword = match_keyword(is_keep)) ret.commands.emplace_back(keep(keep_keyword));
+      else if (auto assigned = assignment()) ret.commands.emplace_back(std::move(*assigned));
+      else if (auto input = input_section()) ret.commands.emplace_back(std::move(*input));
       else return false;
       return true;
     };

@@ -20,6 +20,8 @@
 #include <array>
 #include <iterator>
 #include <ranges>
+#include <stdexcept>
+#include <utility>
 #include "core/langs/ldscript/lexer.hpp"
 #include "fmt/format.h"
 #include "fmt/ranges.h"
@@ -112,23 +114,23 @@ std::string to_string(const OutputArch &output) {
 
 std::string to_string(const OutputSectionDescription &output);
 
-// Print each item on its own line after indent. Nested items are already indented to their depth.
-template <typename Items> std::string lines(const Items &items, std::string_view indent) {
+// Print each command on its own line after indent. Nested commands are already indented to their depth.
+template <typename Commands> std::string lines(const Commands &commands, std::string_view indent) {
   const auto line = [&](const auto &item) {
     return std::visit([&](const auto &it) { return fmt::format("{}{}\n", indent, to_string(it)); }, item);
   };
-  return fmt::to_string(fmt::join(items | std::views::transform(line), ""));
+  return fmt::to_string(fmt::join(commands | std::views::transform(line), ""));
 }
 
 std::string to_string(const OutputSectionDescription &output) {
   const auto address = output.address ? " " + to_string(*output.address) : "";
-  return fmt::format("{}{} :\n  {{\n{}  }}", name(output.name), address, lines(output.items, "    "));
+  return fmt::format("{}{} :\n  {{\n{}  }}", name(output.name), address, lines(output.commands, "    "));
 }
 
 std::string to_string(const Entry &entry) { return fmt::format("ENTRY({})", name(entry.symbol)); }
 
 std::string to_string(const Sections &sections) {
-  return fmt::format("SECTIONS\n{{\n{}}}", lines(sections.items, "  "));
+  return fmt::format("SECTIONS\n{{\n{}}}", lines(sections.commands, "  "));
 }
 } // namespace
 
@@ -175,15 +177,53 @@ std::string pepp::tc::ldscript::to_string(const Script &script) {
 std::vector<const pepp::tc::ldscript::OutputSectionDescription *>
 pepp::tc::ldscript::output_sections(const Script &script) {
   const auto is_sections = [](const Script::Command &command) { return std::holds_alternative<Sections>(command); };
-  const auto items = [](const Script::Command &command) -> const auto & { return std::get<Sections>(command).items; };
-  const auto is_statement = [](const Sections::Item &item) {
-    return std::holds_alternative<OutputSectionDescription>(item);
+  const auto commands_of = [](const Script::Command &command) -> const auto & {
+    return std::get<Sections>(command).commands;
   };
-  const auto statement = [](const Sections::Item &item) { return &std::get<OutputSectionDescription>(item); };
+  const auto is_output_section = [](const Sections::Command &command) {
+    return std::holds_alternative<OutputSectionDescription>(command);
+  };
+  const auto output_section = [](const Sections::Command &command) {
+    return &std::get<OutputSectionDescription>(command);
+  };
   std::vector<const OutputSectionDescription *> ret;
-  // For all SECTION directives, extract their items. For OutputSectionDescription in items, extract the description.
-  std::ranges::copy(script.commands | std::views::filter(is_sections) | std::views::transform(items) |
-                        std::views::join | std::views::filter(is_statement) | std::views::transform(statement),
+  // For all SECTIONS commands, extract their commands. For each OutputSectionDescription among them, extract it.
+  std::ranges::copy(script.commands | std::views::filter(is_sections) | std::views::transform(commands_of) |
+                        std::views::join | std::views::filter(is_output_section) |
+                        std::views::transform(output_section),
                     std::back_inserter(ret));
   return ret;
+}
+
+std::vector<pepp::tc::ldscript::OutputSectionDescription *> pepp::tc::ldscript::output_sections(Script &script) {
+  // Casting away const is safe, since the output sections belong to the non-const script.
+  const auto outputs = output_sections(std::as_const(script));
+  std::vector<OutputSectionDescription *> ret(outputs.size());
+  const auto mutable_ = [](const OutputSectionDescription *it) { return const_cast<OutputSectionDescription *>(it); };
+  std::ranges::transform(outputs, ret.begin(), mutable_);
+  return ret;
+}
+
+void pepp::tc::ldscript::merge_sections(Script &script) {
+  Sections merged;
+  std::vector<Script::Command> kept;
+  std::optional<size_t> at;
+  for (auto &command : script.commands) {
+    if (auto *assignment = std::get_if<Assignment>(&command)) merged.commands.emplace_back(std::move(*assignment));
+    else if (auto *sections = std::get_if<Sections>(&command))
+      std::ranges::move(sections->commands, std::back_inserter(merged.commands));
+    else {
+      kept.push_back(std::move(command));
+      continue;
+    }
+    if (!at) at = kept.size();
+  }
+  kept.insert(kept.begin() + static_cast<std::ptrdiff_t>(at.value_or(kept.size())), std::move(merged));
+  script.commands = std::move(kept);
+}
+
+pepp::tc::ldscript::Sections &pepp::tc::ldscript::sections(Script &script) {
+  for (auto &command : script.commands)
+    if (auto *sections = std::get_if<Sections>(&command)) return *sections;
+  throw std::logic_error("ldscript: the script has no SECTIONS command");
 }

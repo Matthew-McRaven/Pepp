@@ -20,12 +20,20 @@
 #include <variant>
 #include <vector>
 #include "core/compile/source/location.hpp"
+#include "core/ds/opaque_handle.hpp"
 #include "core/formats/elf/enums_eheader.hpp"
+#include "core/formats/elf/enums_sections.hpp"
 #include "core/integers.h"
 #include "core/langs/expr/ir.hpp"
 
 // IR for GNU ld linker scripts.
 namespace pepp::tc::ldscript {
+
+// Identifies one output section. Numbered from 1 in output section allocation order.
+using OutputSectionID = pepp::OpaqueHandle<struct OutputSectionTag, u32>;
+// Identifies one input section match, such as `*(.text)` in a linker script and used to order input sections within an
+// output section.
+using InputSectionDescriptionID = pepp::OpaqueHandle<struct InputSectionDescriptionTag, u32>;
 
 // Symbol whose address is the program's entry point (e.g., ENTRY(_start)).
 struct Entry {
@@ -101,21 +109,31 @@ struct InputSectionDescription {
   std::vector<std::string> sections;
   bool keep = false;
   support::LocationInterval source_interval;
+  InputSectionDescriptionID id;
+  // True if the linker added this description to hold orphans.
+  bool orphan = false;
 };
 
 // An output section with an optional address and its contents (e.g., .text 0x100 : { *(.text) }).
 struct OutputSectionDescription {
-  using Item = std::variant<Assignment, InputSectionDescription>;
+  using Command = std::variant<Assignment, InputSectionDescription>;
   std::string name;
   std::optional<expr::Tree> address;
-  std::vector<Item> items;
+  std::vector<Command> commands;
   support::LocationInterval source_interval;
+  OutputSectionID id;
+  // True if the linker inserted this output section to hold orphans.
+  bool orphan = false;
+  // Union of the members' sh_flags. Set by the linker as it assigns members.
+  u64 flags = 0;
+  // SHT_NULL if there are no members. Otherwise, the members' type, or SHT_PROGBITS if their types differ.
+  bts::SectionTypes type = bts::SectionTypes::SHT_NULL;
 };
 
 // The SECTIONS command, which maps input sections into output sections.
 struct Sections {
-  using Item = std::variant<Assignment, OutputSectionDescription>;
-  std::vector<Item> items;
+  using Command = std::variant<Assignment, OutputSectionDescription>;
+  std::vector<Command> commands;
   support::LocationInterval source_interval;
 };
 
@@ -127,8 +145,14 @@ struct Script {
 
 // Print the script in GNU ld's strict syntax, which matches the output of ld --verbose.
 std::string to_string(const Script &script);
-// Returns the output section statements of every SECTIONS command in script, in order. The pointers are valid while
+// Returns the output section descriptions of every SECTIONS command in script, in order. The pointers are valid while
 // script is unchanged.
 std::vector<const OutputSectionDescription *> output_sections(const Script &script);
+std::vector<OutputSectionDescription *> output_sections(Script &script);
+// Merge all top-level assignments and all SECTIONS commands into a single SECTIONS, preserving script order.
+// If no SECTIONS exists, appends one to the end of the script.
+void merge_sections(Script &script);
+// Returns the SECTIONS command of a script that merge_sections() has merged. Throws std::logic_error if there is none.
+Sections &sections(Script &script);
 
 } // namespace pepp::tc::ldscript

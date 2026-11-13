@@ -42,9 +42,8 @@ struct LinkContext {
   // Indexed by file ID. Index 0 is unused.
   std::vector<Liveness> files;
   ResolvedSymbols symbols;
-  // The output sections and the mapping between input and output sections. Empty when the link stopped before
-  // placement.
-  std::optional<PlacedSections> placed;
+  // The output section of each placeable input section. Empty when the link stopped before placement.
+  std::optional<SectionPlacements> placements;
 
   // True if the link produced no Error or Fatal diagnostics.
   bool ok() const { return diagnostics.count(Severity::Error) == 0; }
@@ -109,9 +108,8 @@ void link_group(LinkContext &context, const bts::PackedInputElfGroup<B, E> &grou
   // In the second pass, do not include archive members that are now marked as excluded, which helps avoid undefined
   // symbol errors.
   context.symbols = resolve_symbols(diagnostics, inputs, files);
-  // Assign the live files' sections to the output sections.
-  // TODO: place orphaned sections .
-  context.placed = place_sections(group, files, context.script);
+  //
+
   /*
    * Inspect special sections
    */
@@ -131,7 +129,8 @@ void link_group(LinkContext &context, const bts::PackedInputElfGroup<B, E> &grou
     // TODO: create synthetic sections for the output, synthetic symbols
     // TODO: validate no undefined symbols (if shlib), multiple definitions
     // TODO: garbage collection, identical-code-folding
-    // TODO: assign input sections to output sections
+    // Assign the live files' sections to the output sections, inserting output sections for orphans.
+    context.placements = place_sections(group, files, context.script);
     // Output sections are now frozen
     // TODO: handle --section-align for over-aligning sections
     // TODO: mark undefined symbols as imports

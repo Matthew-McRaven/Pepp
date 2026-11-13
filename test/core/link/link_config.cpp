@@ -87,7 +87,8 @@ TEST_CASE("linker scripts", "[scope:core][scope:core.link][kind:unit][arch:*]") 
         std::vector<std::string>{"link_script_a.o: multiple definition of `a'; link_script_b.o: first defined here"});
   CHECK(result.input_names == std::vector<std::string>{"link_script_b.o", "link_script_a.o"});
   // Commands are kept in input order, including INPUT and GROUP.
-  CHECK(to_string(result.script) == "ENTRY(b)\nGROUP(link_script_b.o)\nINPUT(link_script_a.o)\nENTRY(a)\n");
+  CHECK(to_string(result.script) == "ENTRY(b)\nGROUP(link_script_b.o)\nINPUT(link_script_a.o)\nENTRY(a)\n"
+                                    "SECTIONS\n{\n  .text :\n  {\n    *(.text)\n  }\n}\n");
 
   // A nested script's files take the place of its INPUT, but its commands follow the outer script's.
   write_text("link_script_outer.ld", "y = 1; INPUT(link_script_nested.ld) y = 3;");

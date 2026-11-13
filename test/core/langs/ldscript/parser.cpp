@@ -177,7 +177,7 @@ SECTIONS
     CHECK(format.big.encoding == pepp::bts::ElfEncoding::ELFDATA2MSB);
     CHECK(std::get<OutputArch>(commands[1]).machine == pepp::bts::ElfMachineType::EM_RISCV);
     CHECK(!std::get<Assignment>(commands[5]).compound);
-    const auto &last = std::get<Sections>(commands[6]).items.back();
+    const auto &last = std::get<Sections>(commands[6]).commands.back();
     CHECK(std::get<Assignment>(last).compound == pepp::tc::expr::BinaryOp::Add);
   }
   SECTION("Source intervals recorded on IR") {
@@ -185,10 +185,10 @@ SECTIONS
     const auto &commands = script.commands;
     const auto &entry = std::get<Entry>(commands[0]);
     CHECK(spans(entry.source_interval, Location(0, 0), Location(0, 13)));
-    const auto &items = std::get<Sections>(commands[1]).items;
-    const auto &keep = std::get<InputSectionDescription>(std::get<OutputSectionDescription>(items[0]).items[0]);
+    const auto &inner = std::get<Sections>(commands[1]).commands;
+    const auto &keep = std::get<InputSectionDescription>(std::get<OutputSectionDescription>(inner[0]).commands[0]);
     CHECK(spans(keep.source_interval, Location(1, 21), Location(1, 35)));
-    const auto &assignment = std::get<Assignment>(items[1]);
+    const auto &assignment = std::get<Assignment>(inner[1]);
     CHECK(spans(assignment.source_interval, Location(1, 38), Location(1, 48)));
   }
   SECTION("Failed parsing does not halt parsing") {

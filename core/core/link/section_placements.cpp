@@ -17,6 +17,105 @@
 
 #include "core/link/section_placements.hpp"
 
+namespace {
+namespace ld = pepp::tc::ldscript;
+
+// Returns the index of the first output section in commands that satisfies pred, or nullopt if there is none.
+std::optional<size_t> first_output_section(std::span<const ld::Sections::Command> commands, auto pred) {
+  for (size_t index = 0; index < commands.size(); ++index)
+    if (const auto *output = std::get_if<ld::OutputSectionDescription>(&commands[index]); output && pred(*output))
+      return index;
+  return std::nullopt;
+}
+
+// Returns the index of the last output section in commands that satisfies pred, or nullopt if there is none.
+std::optional<size_t> last_output_section(std::span<const ld::Sections::Command> commands, auto pred) {
+  for (size_t index = commands.size(); index-- > 0;)
+    if (const auto *output = std::get_if<ld::OutputSectionDescription>(&commands[index]); output && pred(*output))
+      return index;
+  return std::nullopt;
+}
+
+// Returns true if command assigns to a symbol other than the location counter (`.`).
+bool is_symbol_assignment(const ld::Sections::Command &command) {
+  const auto *assignment = std::get_if<ld::Assignment>(&command);
+  return assignment && assignment->symbol != ".";
+}
+
+// Returns the attributes of an output section's members, or nullopt if it has no members.
+std::optional<pepp::link::OrphanAttributes> attributes_of(const ld::OutputSectionDescription &output) {
+  if (output.type == pepp::bts::SectionTypes::SHT_NULL) return std::nullopt;
+  return pepp::link::orphan_attributes(output.flags, output.type);
+}
+
+// Returns the index of the output section after which an orphan should be placed.
+std::optional<size_t> preceding_output_section(std::span<const ld::Sections::Command> commands,
+                                               pepp::link::OrphanAttributes attributes) {
+  static constexpr std::array<std::string_view, 4> usual_names{".text", ".rodata", ".data", ".bss"};
+  const auto same = [&](const auto &output) { return attributes_of(output) == attributes; };
+  // After the previous orphan with the same attributes, which preserves input order among orphans.
+  if (const auto at = last_output_section(commands, [&](const auto &output) { return output.orphan && same(output); }))
+    return at;
+  // Then after a standard section which shares the same attributes.
+  const auto usual_name = usual_names[std::to_underlying(attributes)];
+  if (const auto at = first_output_section(commands, [&](const auto &output) { return output.name == usual_name; }))
+    return at;
+  // Then after any output section with the same attributes.
+  if (const auto at = last_output_section(commands, same)) return at;
+  // Lastly after any output section whose attributes place it earlier in the output order.
+  return last_output_section(commands, [&](const auto &output) {
+    return attributes_of(output).value_or(attributes) < attributes;
+  });
+}
+} // namespace
+
+pepp::link::OrphanAttributes pepp::link::orphan_attributes(u64 flags, bts::SectionTypes type) {
+  using enum OrphanAttributes;
+  using enum bts::SectionFlags;
+  const auto has = [flags](bts::SectionFlags flag) { return (flags & static_cast<u64>(flag)) != 0; };
+  if (!has(SHF_ALLOC)) return NonAlloc;
+  else if (type == bts::SectionTypes::SHT_NOBITS) return Bss;
+  else if (has(SHF_WRITE)) return Data;
+  else if (has(SHF_EXECINSTR)) return Text;
+  return Rodata;
+}
+
+std::optional<size_t> pepp::link::find_output_section(std::span<const tc::ldscript::Sections::Command> commands,
+                                                      std::string_view name) {
+  return first_output_section(commands, [name](const auto &output) { return output.name == name; });
+}
+
+size_t pepp::link::insert_orphan(std::vector<tc::ldscript::Sections::Command> &commands,
+                                 tc::ldscript::OutputSectionDescription orphan) {
+  const auto attributes = orphan_attributes(orphan.flags, orphan.type);
+  // Non-allocated orphans go last.
+  auto at = commands.size();
+  if (attributes != OrphanAttributes::NonAlloc) {
+    if (const auto preceding = preceding_output_section(commands, attributes)) at = *preceding + 1;
+    else {
+      // Insert after a leading location counter assignment, or else before the first output section.
+      at = 0;
+      while (at < commands.size() && is_symbol_assignment(commands[at])) ++at;
+      if (at < commands.size() && std::holds_alternative<ld::Assignment>(commands[at])) ++at;
+    }
+    // Skip over symbol assignments, which are often used to mark the end of an output section (e.g., _etext = .;).
+    while (at < commands.size() && is_symbol_assignment(commands[at])) ++at;
+  }
+  commands.emplace(commands.begin() + static_cast<std::ptrdiff_t>(at), std::move(orphan));
+  return at;
+}
+
+pepp::link::InputSectionDescriptionID pepp::link::orphan_description(tc::ldscript::OutputSectionDescription &output,
+                                                                     u32 &descriptions) {
+  for (const auto &command : output.commands)
+    if (const auto *input = std::get_if<ld::InputSectionDescription>(&command); input && input->orphan)
+      return input->id;
+  const InputSectionDescriptionID id{++descriptions};
+  output.commands.emplace_back(ld::InputSectionDescription{
+      .file = {.pattern = "*"}, .sections = {output.name}, .id = id, .orphan = true});
+  return id;
+}
+
 void pepp::link::SectionPlacements::assign(InputElfSectionHandle handle, OutputSectionID output,
                                            InputSectionDescriptionID description) {
   if (!output) throw std::invalid_argument("SectionPlacements: output must be valid");
