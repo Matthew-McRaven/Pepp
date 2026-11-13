@@ -44,31 +44,6 @@ Elf object(std::initializer_list<std::string_view> names) {
   return elf;
 }
 
-// Represents a section to add to an object.
-struct SectionSpec {
-  std::string_view name;
-  SectionTypes type = SectionTypes::SHT_PROGBITS;
-  SectionFlags flags{};
-  u64 size = 0;
-  u64 alignment = 1;
-};
-
-// An object with null, .shstrtab, then a section for each spec, in order.
-Elf object_with(std::initializer_list<SectionSpec> specs) {
-  Elf elf(ElfFileType::ET_REL, ElfMachineType::EM_PEP10, ElfABI::ELFOSABI_NONE);
-  ensure_section_header_table(elf);
-  for (const auto &spec : specs) {
-    const auto index = add_named_section(elf, spec.name, spec.type);
-    auto &header = elf.section_headers[index];
-    header.sh_flags = bits::to_underlying(spec.flags);
-    header.sh_size = spec.size;
-    header.sh_addralign = spec.alignment;
-    if (spec.type != SectionTypes::SHT_NOBITS)
-      elf.section_data[index] = std::make_shared<BlockStorage>(std::vector<char>(spec.size));
-  }
-  return elf;
-}
-
 // Returns the name of each output section and assigned symbol in a SECTIONS command, in order.
 std::vector<std::string> layout_of(const pepp::tc::ldscript::Sections &sections) {
   std::vector<std::string> ret;
@@ -164,16 +139,17 @@ TEST_CASE("orphan sections", "[scope:core][scope:core.link][kind:unit][arch:*]")
   using enum SectionTypes;
   PackedInputElfGroupLE32 group;
   // Section indices start at 2, after the null section and .shstrtab.
-  auto first = object_with({{".text", SHT_PROGBITS, SHF_ALLOC | SHF_EXECINSTR},
-                           {".mycode", SHT_PROGBITS, SHF_ALLOC | SHF_EXECINSTR},
-                           {".rodata", SHT_PROGBITS, SHF_ALLOC},
-                           {".data", SHT_PROGBITS, SHF_ALLOC | SHF_WRITE},
-                           {".bss", SHT_NOBITS, SHF_ALLOC | SHF_WRITE},
-                           {".mydata", SHT_PROGBITS, SHF_ALLOC | SHF_WRITE},
-                           {".zz_awx", SHT_PROGBITS, SHF_ALLOC | SHF_WRITE | SHF_EXECINSTR},
-                           {".debug_info", SHT_PROGBITS},
-                           {".mybss", SHT_NOBITS, SHF_ALLOC | SHF_WRITE}});
-  auto second = object_with({{".mycode", SHT_PROGBITS, SHF_ALLOC | SHF_EXECINSTR}, {".b_ro", SHT_PROGBITS, SHF_ALLOC}});
+  auto first = link_test::elf_with({{".text", SHT_PROGBITS, SHF_ALLOC | SHF_EXECINSTR},
+                                    {".mycode", SHT_PROGBITS, SHF_ALLOC | SHF_EXECINSTR},
+                                    {".rodata", SHT_PROGBITS, SHF_ALLOC},
+                                    {".data", SHT_PROGBITS, SHF_ALLOC | SHF_WRITE},
+                                    {".bss", SHT_NOBITS, SHF_ALLOC | SHF_WRITE},
+                                    {".mydata", SHT_PROGBITS, SHF_ALLOC | SHF_WRITE},
+                                    {".zz_awx", SHT_PROGBITS, SHF_ALLOC | SHF_WRITE | SHF_EXECINSTR},
+                                    {".debug_info", SHT_PROGBITS},
+                                    {".mybss", SHT_NOBITS, SHF_ALLOC | SHF_WRITE}});
+  auto second = link_test::elf_with(
+      {{".mycode", SHT_PROGBITS, SHF_ALLOC | SHF_EXECINSTR}, {".b_ro", SHT_PROGBITS, SHF_ALLOC}});
   const auto a = group.add(to_input_elf(first)).value();
   const auto b = group.add(to_input_elf(second)).value();
   const std::vector<Liveness> files(group.size() + 1, Liveness::Live);
@@ -236,12 +212,12 @@ TEST_CASE("section layout", "[scope:core][scope:core.link][kind:unit][arch:*]") 
   using enum SectionTypes;
   using namespace bits;
   PackedInputElfGroupLE32 group;
-  auto first = object_with({
+  auto first = link_test::elf_with({
       {".text", SHT_PROGBITS, SHF_ALLOC | SHF_EXECINSTR, 8, 1},
       {".data", SHT_PROGBITS, SHF_ALLOC | SHF_WRITE, 4, 1},
       {".bss", SHT_NOBITS, SHF_ALLOC | SHF_WRITE, 0, 1},
   });
-  auto second = object_with({
+  auto second = link_test::elf_with({
       {".text", SHT_PROGBITS, SHF_ALLOC | SHF_EXECINSTR, 8, 2},
   });
   const auto a = group.add(to_input_elf(first)).value();

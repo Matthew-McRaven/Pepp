@@ -67,6 +67,35 @@ template <ElfBits B = ElfBits::b32, ElfEndian E = ElfEndian::le> PackedGrowableE
   writer.arrange_local_symbols();
   return elf;
 }
+// Represents a section to add to an object. A NOBITS section is size bytes long. Other sections hold bytes, or size 0s
+// if bytes is empty.
+struct SectionSpec {
+  std::string_view name;
+  SectionTypes type = SectionTypes::SHT_PROGBITS;
+  SectionFlags flags{};
+  u64 size = 0;
+  u64 alignment = 1;
+  std::vector<char> bytes = {};
+};
+
+// An object with null, .shstrtab, then a section for each spec, in order.
+template <ElfBits B = ElfBits::b32, ElfEndian E = ElfEndian::le>
+PackedGrowableElfFile<B, E> elf_with(std::initializer_list<SectionSpec> specs) {
+  PackedGrowableElfFile<B, E> elf(ElfFileType::ET_REL, ElfMachineType::EM_PEP10, ElfABI::ELFOSABI_NONE);
+  ensure_section_header_table(elf);
+  for (const auto &spec : specs) {
+    const auto index = add_named_section(elf, spec.name, spec.type);
+    auto &header = elf.section_headers[index];
+    header.sh_flags = bits::to_underlying(spec.flags);
+    header.sh_size = spec.size;
+    header.sh_addralign = spec.alignment;
+    if (spec.type == SectionTypes::SHT_NOBITS) continue;
+    auto bytes = spec.bytes.empty() ? std::vector<char>(spec.size) : spec.bytes;
+    elf.section_data[index] = std::make_shared<BlockStorage>(std::move(bytes));
+  }
+  return elf;
+}
+
 template <ElfBits B = ElfBits::b32, ElfEndian E = ElfEndian::le> AnyInputElf object_of(Symbols symbols) {
   auto elf = elf_of<B, E>(symbols);
   return to_input_elf(elf);
