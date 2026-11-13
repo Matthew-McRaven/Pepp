@@ -98,7 +98,7 @@ inline constexpr u64 DEFAULT_MAX_PTLOAD_GAP = 2048;
 template <ElfBits B, ElfEndian E>
 std::vector<LoadSegment> group_load_segments(const PackedElf<B, E> &elf, u16 from, u16 to,
                                              u64 max_gap = DEFAULT_MAX_PTLOAD_GAP);
-// Set the sh_size of each section to its data's size. NOBITS sections are unmodified.
+// Set the sh_size of each section to its data's size. NOBITS sections and sections with null data are unmodified.
 template <ElfBits B, ElfEndian E> void update_section_sizes(PackedElf<B, E> &);
 
 // Assign a file offset to the header tables, and to each section before creating segments. sh_size must already be
@@ -264,7 +264,8 @@ std::vector<LoadSegment> group_load_segments(const PackedElf<B, E> &elf, u16 fro
     const auto flags = static_cast<SegmentFlags>(pf);
     const bool nobits = shdr.sh_type == bits::to_underlying(SectionTypes::SHT_NOBITS);
     // A growable file's sh_size is only set at layout, except for NOBITS.
-    const u64 extent = nobits ? static_cast<u64>(shdr.sh_size) : elf.section_data[index]->size();
+    const auto &data = elf.section_data[index];
+    const u64 extent = nobits || !data ? static_cast<u64>(shdr.sh_size) : data->size();
     const u64 address = shdr.sh_addr;
     const u16 align = std::max<u16>(static_cast<u16>(shdr.sh_addralign), 1);
     const bool occupies_memory = extent > 0;
@@ -324,7 +325,7 @@ template <ElfBits B, ElfEndian E> void update_section_sizes(PackedElf<B, E> &elf
     auto &shdr = elf.section_headers[i];
     // Per TIS ELF 1.2 sh_size is a filesize. For NOBITS, it is the memory size.
     // Our storage reports file size, so special-case NOBITS.
-    if (shdr.sh_type != bits::to_underlying(SectionTypes::SHT_NOBITS))
+    if (elf.section_data[i] && shdr.sh_type != bits::to_underlying(SectionTypes::SHT_NOBITS))
       shdr.sh_size = elf.section_data[i]->size();
   }
 }
@@ -487,7 +488,8 @@ template <ElfBits B, ElfEndian E> std::vector<LayoutItem> layout_items(PackedElf
     ret.emplace_back(
         LayoutItem{elf.header.e_phoff, std::span<u8>(reinterpret_cast<u8 *>(elf.program_headers.data()),
                                                      sizeof(typename PackedElf::Phdr) * elf.program_headers.size())});
-  for (size_t i = 1; i < shdrs.size(); ++i) elf.section_data[i]->calculate_layout(ret, shdrs[i].sh_offset);
+  for (size_t i = 1; i < shdrs.size(); ++i)
+    if (elf.section_data[i]) elf.section_data[i]->calculate_layout(ret, shdrs[i].sh_offset);
   return ret;
 }
 
