@@ -73,6 +73,16 @@ void registerLd(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
         config.inputs.push_back({.source = std::filesystem::path(path), .just_symbols = just_symbols});
     };
   };
+  ld->add_option_function<std::vector<std::string>>(
+      "-T,--script",
+      [](const std::vector<std::string> &paths) {
+        for (const auto &path : paths)
+          config.inputs.push_back({.source = pepp::link::LinkInput::Script{std::filesystem::path(path)}});
+      },
+      "Read linker script")
+      ->option_text("FILE")
+      ->allow_extra_args(false)
+      ->trigger_on_parse();
   ld->add_option_function<std::vector<std::string>>("-R,--just-symbols", input(true), "Just link symbols")
       ->option_text("FILE")
       ->allow_extra_args(false)

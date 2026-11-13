@@ -1,5 +1,3 @@
-
-#include "link_config.hpp"
 /*
  * Copyright (c) 2026 J. Stanley Warford, Matthew McRaven
  *
@@ -17,11 +15,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "core/link/linker_passes.hpp"
+#include <deque>
 #include <fmt/format.h>
+#include <fstream>
+#include <iterator>
 #include <memory>
 #include <string>
 #include <type_traits>
-#include "core/link/linker_passes.hpp"
+#include "core/langs/asmb/diagnostic_table.hpp"
+#include "core/langs/ldscript/parser.hpp"
+#include "link_config.hpp"
 
 namespace {
 using namespace pepp;
@@ -53,11 +57,10 @@ std::optional<bts::AnyElfGroup> detect_group_type(const bts::PackedInputArchive 
   return std::nullopt;
 }
 std::optional<bts::AnyElfGroup> detect_group_type(const LinkInput::Script &) { return std::nullopt; }
-std::optional<bts::AnyElfGroup> detect_group_type(const std::filesystem::path &path) {
-  // Opened again when the group is populated, which also reports any error.
-  const auto opened = bts::open_input(path);
-  if (!opened) return std::nullopt;
-  return std::visit([](const auto &file) { return detect_group_type(file); }, *opened);
+// parse_scripts() already opened every path it could.
+std::optional<bts::AnyElfGroup> detect_group_type(const std::filesystem::path &) { return std::nullopt; }
+std::optional<bts::AnyElfGroup> detect_group_type(const LinkInput::Opened &opened) {
+  return std::visit([](const auto &file) { return detect_group_type(file); }, opened.file);
 }
 
 // Create an empty group type matching the first input ELF file (including archive members).
@@ -67,8 +70,40 @@ std::optional<bts::AnyElfGroup> detect_group_type(const std::vector<LinkInput> &
   return std::nullopt;
 }
 
+// Read a linker script and parse it, returning nullopt if it cannot be read or parsed.
+// If the source is a built-in script, it is returned directly.
+std::optional<tc::ldscript::Script> read_script(Diagnostics &diagnostics, const LinkInput::Script &source) {
+  if (const auto *built_in = std::get_if<tc::ldscript::Script>(&source.source)) return *built_in;
+  const auto &path = std::get<std::filesystem::path>(source.source);
+  std::ifstream file(path, std::ios::binary);
+  if (!file) {
+    diagnostics.add({Severity::Fatal, InputGroupError::Code::CannotOpen, ScriptMessage{path.string()}});
+    return std::nullopt;
+  }
+  const auto text = std::string(std::istreambuf_iterator<char>(file), {});
+  tc::DiagnosticTable table;
+  auto ret = tc::ldscript::parse(table, text);
+  for (auto it = table.cbegin(); it != table.cend(); ++it)
+    diagnostics.add(
+        {it->second.severity, LinkCode::BadScript, ScriptMessage{path.string(), it->first, it->second.message}});
+  if (table.count() > 0) return std::nullopt;
+  return ret;
+}
+
+// Opens a path input, replacing it with the opened file so that later passes need not open it again. A path that cannot
+// be opened is left alone, so that populate() reports why.
+void open_path(LinkInput &input) {
+  const auto *path = std::get_if<std::filesystem::path>(&input.source);
+  if (!path) return;
+  auto opened = bts::open_input(*path);
+  if (opened) input.source = LinkInput::Opened{*path, std::move(*opened)};
+  // A file that is not an elf file nor archive is treated as a linker script.
+  else if (opened.error().code == InputGroupError::Code::UnknownFormat) input.source = LinkInput::Script{*path};
+}
+
 std::string input_file_name(const decltype(LinkInput::source) &source) {
   if (const auto *path = std::get_if<std::filesystem::path>(&source)) return path->string();
+  else if (const auto *opened = std::get_if<LinkInput::Opened>(&source)) return opened->path.string();
   else if (const auto *script = std::get_if<LinkInput::Script>(&source))
     if (const auto *path = std::get_if<std::filesystem::path>(&script->source)) return path->string();
   return "<memory>";
@@ -86,6 +121,11 @@ bool populate(Diagnostics &diagnostics, bts::PackedInputElfGroup<B, E> &group, s
     }
     return true;
   };
+  const auto add_archive = [&](bts::PackedInputArchive archive, ConfigInputID input) {
+    const auto id = group.add(std::move(archive));
+    if (!id) return bad_input(diagnostics, input, id.error());
+    return add_members(*id, input);
+  };
   // Extract all input files into the group.
   for (u32 index = 0; index < inputs.size(); ++index) {
     const ConfigInputID input{index};
@@ -96,14 +136,17 @@ bool populate(Diagnostics &diagnostics, bts::PackedInputElfGroup<B, E> &group, s
       else if (const auto *archive = std::get_if<bts::ElfArchiveID>(&*added); archive && !add_members(*archive, input))
         return false;
     } else if (auto *archive = std::get_if<bts::PackedInputArchive>(&source)) {
-      const auto id = group.add(std::move(*archive));
-      if (!id) return bad_input(diagnostics, input, id.error());
-      else if (!add_members(*id, input)) return false;
+      if (!add_archive(std::move(*archive), input)) return false;
     } else if (auto *elf = std::get_if<bts::AnyInputElf>(&source)) {
       if (const auto id = group.add(std::move(*elf)); !id) return bad_input(diagnostics, input, id.error());
+    } else if (auto *opened = std::get_if<LinkInput::Opened>(&source)) {
+      if (auto *opened_archive = std::get_if<bts::PackedInputArchive>(&opened->file)) {
+        if (!add_archive(std::move(*opened_archive), input)) return false;
+      } else if (const auto id = group.add(std::get<bts::AnyInputElf>(std::move(opened->file)), opened->path); !id)
+        return bad_input(diagnostics, input, id.error());
     } else {
-      // TODO: parse linker scripts, adding the files named by INPUT and GROUP.
-      diagnostics.add({Severity::Fatal, LinkCode::Unsupported, input});
+      // parse_scripts() replaces every script with the files it names, so a script here means it was not called.
+      diagnostics.add({Severity::Fatal, LinkCode::UnparsedScript, input});
       return false;
     }
   }
@@ -138,6 +181,12 @@ template <class Group> struct Describe {
   }
   std::string operator()(const ConfigInputOffset &at) const {
     return fmt::format("{} at offset {}: {}", context.input_names.at(at.input.value), at.offset, code());
+  }
+  std::string operator()(const ScriptMessage &at) const {
+    const auto message = at.message.empty() ? std::string(code()) : at.message;
+    if (!at.location.valid()) return fmt::format("{}: {}", at.file, message);
+    const auto lower = at.location.lower();
+    return fmt::format("{}:{}:{}: {}", at.file, lower.row + 1, lower.column + 1, message);
   }
   std::string operator()(const bts::InputElfSymbolHandle &at) const {
     if (!group) return std::string(code());
@@ -176,22 +225,55 @@ std::string pepp::link::describe(const LinkContext &context, const Diagnostic &d
 
 pepp::link::LinkContext pepp::link::do_link(LinkConfig &&config) {
   LinkContext ret;
-  for (const auto &input : config.inputs) ret.input_names.push_back(input_file_name(input.source));
+  // Parse scripts prior to creating group so that OUTPUT_* directives can determine ELF type.
+  // Scripts are replaced by the files the contain via INPUT/GROUP directives, preserving input order.
+  auto [inputs, script] = parse_scripts(ret.diagnostics, std::move(config.inputs));
+  ret.script = std::move(script);
+  for (const auto &input : inputs) ret.input_names.push_back(input_file_name(input.source));
+  if (ret.diagnostics.count(Severity::Fatal) > 0) return ret;
   // TODO: config's options other than inputs are ignored until their passes exist.
   /*
    * Construct PackedInputElfGroup
    */
   // TODO: remove files named by -exclude-libs
   // TODO: create a dummy file containing linker-synthesized symbols. This file must be at the highest priority
-  auto detected = detect_group_type(config.inputs);
+  auto detected = detect_group_type(inputs);
   // Without an ELF, every input is empty or bad. Just choose an arbitrary input type to a void a null group.
   if (detected) ret.group = std::move(*detected);
   else ret.group = std::make_unique<bts::PackedInputElfGroup<bts::ElfBits::b32, bts::ElfEndian::le>>();
   auto f = [&](auto &ptr) {
-    if (!populate(ret.diagnostics, *ptr, std::move(config.inputs))) return;
+    if (!populate(ret.diagnostics, *ptr, std::move(inputs))) return;
     else if (!detected) ret.diagnostics.add({Severity::Fatal, LinkCode::NoInputs});
     else link_group(ret, *ptr);
   };
   std::visit(f, ret.group);
+  return ret;
+}
+
+pepp::link::ParsedScripts pepp::link::parse_scripts(Diagnostics &diagnostics, std::vector<LinkInput> inputs) {
+  ParsedScripts ret;
+  // Unparsed scripts and other inputs. When a script is parsed, the files of its INPUT/GROUP
+  // commands are placed at the front so that input order is preserved.
+  std::deque<LinkInput> pending(std::make_move_iterator(inputs.begin()), std::make_move_iterator(inputs.end()));
+  while (!pending.empty()) {
+    auto next = std::move(pending.front());
+    pending.pop_front();
+    open_path(next);
+    // If not a script, treat it as normal linker input.
+    if (const auto *script_src = std::get_if<LinkInput::Script>(&next.source); !script_src)
+      ret.inputs.push_back(std::move(next));
+    else {
+      auto script = read_script(diagnostics, *script_src);
+      if (!script) break;
+      // Extract the input files in reverse order so that we only ever push to the front of the pending list.
+      // Must occur before commands are extracted to the returned script.
+      for (auto command = script->commands.rbegin(); command != script->commands.rend(); ++command)
+        if (const auto *named = std::get_if<tc::ldscript::InputFiles>(&*command))
+          for (auto file = named->files.rbegin(); file != named->files.rend(); ++file)
+            pending.push_front(LinkInput{.source = std::filesystem::path(*file)});
+      // Extract all commands from the script to construct the effective output script.
+      for (auto &command : script->commands) ret.script.commands.push_back(std::move(command));
+    }
+  }
   return ret;
 }

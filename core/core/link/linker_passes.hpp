@@ -34,6 +34,8 @@ struct LinkContext {
   Diagnostics diagnostics;
   // Indexed by ConfigInputID. Each input's path, or <memory>.
   std::vector<std::string> input_names;
+  // Concatenated contents of parsed input linker scripts in input order.
+  tc::ldscript::Script script;
   InputSymbols inputs;
   // Indexed by file ID. Index 0 is unused.
   std::vector<Liveness> files;
@@ -59,6 +61,19 @@ std::vector<Liveness> default_liveness(const bts::PackedInputElfGroup<B, E> &gro
 LinkContext do_link(LinkConfig &&config);
 // Pretty-print a description of a diagnostic message.
 std::string describe(const LinkContext &context, const Diagnostic &diagnostic);
+
+struct ParsedScripts {
+  // The effective inputs to the linker, with scripts replaced by their input files.
+  std::vector<LinkInput> inputs;
+  // The effective linker script, which is every script's commands concatenated in input order.
+  tc::ldscript::Script script;
+};
+
+// Parse every linker script in inputs, returning the effective linker script and an updated input list. That list
+// replaces each script with the files of its INPUT/GROUP commands. If a path is it is neither an ELF file nor an
+// archive, it is treated as a script. Stops at the first script that cannot be read or parsed, reporting it as Fatal
+// error.
+ParsedScripts parse_scripts(Diagnostics &diagnostics, std::vector<LinkInput> inputs);
 
 // The steps of do_link that run once the inputs are in a group.
 // TODO: still missing many steps.

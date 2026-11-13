@@ -25,16 +25,24 @@
 #include <vector>
 #include "core/formats/ar/packed_archive.hpp"
 #include "core/formats/elf/packed_elf.hpp"
+#include "core/formats/elf/packed_input_group.hpp"
+#include "core/langs/ldscript/ir.hpp"
 
 namespace pepp::link {
 
 // Input files to the linker in command-line order.
 struct LinkInput {
+  // A linker script provided via -T/--script or one built in C++ (e.g., the default script).
   struct Script {
-    std::variant<std::filesystem::path, std::string> source;
+    std::variant<std::filesystem::path, tc::ldscript::Script> source;
+  };
+  // A file that has already been mapped into memory. std::filesystem::path should be replaced by this on first open.
+  struct Opened {
+    std::filesystem::path path;
+    bts::OpenedInput file;
   };
 
-  std::variant<std::filesystem::path, bts::PackedInputArchive, Script, bts::AnyInputElf> source;
+  std::variant<std::filesystem::path, bts::PackedInputArchive, Script, bts::AnyInputElf, Opened> source;
   // Allow resolution of symbols in this file, but do not include its sections in the output.
   bool just_symbols = false;
 };
