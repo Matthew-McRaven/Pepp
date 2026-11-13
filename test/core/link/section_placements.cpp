@@ -42,7 +42,7 @@ TEST_CASE("SectionPlacements", "[scope:core][scope:core.link][kind:unit][arch:*]
   // a is .text = 2, .text.hot = 3, .comment = 4, .text.unlikely = 5; b is .text = 2, .comment = 3.
   const auto a = group.add(object({".text", ".text.hot", ".comment", ".text.unlikely"})).value();
   const auto b = group.add(object({".text", ".comment"})).value();
-  SectionPlacements<ElfBits::b32, ElfEndian::le> placements(group);
+  SectionPlacements placements(group);
   Glob hot, comment, text;
   REQUIRE(hot.add(".text.hot", 0));
   REQUIRE(comment.add(".comment", 0));

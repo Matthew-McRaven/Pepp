@@ -23,7 +23,8 @@
 
 namespace {
 using namespace pepp::bts;
-using Selection = PackedSectionSelection<ElfBits::b32, ElfEndian::le>;
+using Selection = PackedSectionSelection;
+using Ref = InputElfSectionRef<ElfBits::b32, ElfEndian::le>;
 
 // An in-memory object with null, .shstrtab, an allocated .text, and an unallocated .comment.
 AnyInputElf object() {
@@ -36,7 +37,7 @@ AnyInputElf object() {
   return to_input_elf(elf);
 }
 
-bool allocated(const Selection::Ref &ref) {
+bool allocated(const Ref &ref) {
   const u64 flags = ref.header.sh_flags;
   return (flags & bits::to_underlying(SectionFlags::SHF_ALLOC)) != 0;
 }

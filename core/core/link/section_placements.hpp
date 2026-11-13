@@ -49,17 +49,18 @@ struct SectionClaim {
   constexpr explicit operator bool() const { return bool(output); }
 };
 
-template <ElfBits B, ElfEndian E> class SectionMembers;
+class SectionMembers;
 
 // Given a selection over input sections (usually constructed via a glob), record which input section description first
 // claimed each input section. The first selection to cover an input section prevents later selections from claiming it,
 // which matches the typical linker rules. If the InputGroup changes, this class needs to be re-generated.
-template <ElfBits B, ElfEndian E> class SectionPlacements {
+class SectionPlacements {
 public:
-  using Group = bts::PackedInputElfGroup<B, E>;
-  using Selection = bts::PackedSectionSelection<B, E>;
+  using Selection = bts::PackedSectionSelection;
 
-  explicit SectionPlacements(const Group &group) : _sections(group), _claims(_sections.size()) {}
+  template <ElfBits B, ElfEndian E>
+  explicit SectionPlacements(const bts::PackedInputElfGroup<B, E> &group)
+      : _sections(group), _claims(_sections.size()) {}
 
   // All input sections covered by this table.
   const Selection &sections() const noexcept { return _sections; }
@@ -73,7 +74,7 @@ public:
   // Throws std::invalid_argument if output is invalid.
   u32 claim(const Selection &selection, OutputSectionID output, InputSectionDescriptionID description);
   // The claimed sections, grouped by output section. Build it once every description is matched.
-  SectionMembers<B, E> members() const;
+  SectionMembers members() const;
 
 private:
   u32 position_of(InputElfSectionHandle handle) const;
@@ -83,89 +84,28 @@ private:
 
 // The sorted input sections of each output section. Sorted first by description, then by file order in group, then by
 // section index within their file. This should match GNU ld's sorting.
-template <ElfBits B, ElfEndian E> class SectionMembers {
+class SectionMembers {
 public:
   // Empty for an unknown ID.
   std::span<const InputElfSectionHandle> members(OutputSectionID output) const;
 
 private:
-  friend class SectionPlacements<B, E>;
-  explicit SectionMembers(const SectionPlacements<B, E> &placements);
+  friend class SectionPlacements;
+  explicit SectionMembers(const SectionPlacements &placements);
   std::vector<InputElfSectionHandle> _members;
   // _members[_offsets[id], _offsets[id + 1]) are output section id's members. Index 0 is unused.
   std::vector<u32> _offsets;
 };
 
-template <ElfBits B, ElfEndian E>
-u32 SectionPlacements<B, E>::claim(const Selection &selection, OutputSectionID output,
-                                   InputSectionDescriptionID description) {
-  if (!output) throw std::invalid_argument("SectionPlacements: output must be valid");
-  u32 claimed = 0;
-  for (const auto handle : selection.handles()) {
-    auto &claim = _claims[position_of(handle)];
-    if (claim) continue;
-    claim = {output, description};
-    ++claimed;
-  }
-  return claimed;
-}
-
-template <ElfBits B, ElfEndian E> SectionMembers<B, E> SectionPlacements<B, E>::members() const {
-  return SectionMembers<B, E>(*this);
-}
-
-template <ElfBits B, ElfEndian E> u32 SectionPlacements<B, E>::position_of(InputElfSectionHandle handle) const {
-  const auto position = _sections.position(handle);
-  if (!position) throw std::out_of_range("SectionPlacements: section not covered");
-  return *position;
-}
-
-template <ElfBits B, ElfEndian E> SectionMembers<B, E>::SectionMembers(const SectionPlacements<B, E> &placements) {
-  const auto claims = placements.claims();
-  const auto handles = placements.sections().handles();
-  // Collect the indices of all claimed sections and track total number of output sections.
-  std::vector<u32> positions;
-  u32 outputs = 0;
-  for (u32 position = 0; position < claims.size(); ++position) {
-    if (!claims[position]) continue;
-    positions.push_back(position);
-    outputs = std::max(outputs, claims[position].output.value);
-  }
-  // Sort by output section then description. Ties within a description preserve the group's order,
-  // which gives us sorting by file order and section index order within a file for free.
-  std::ranges::stable_sort(positions, {}, [&](u32 position) { return claims[position]; });
-
-  // For each id members span [_offsets[id], _offsets[id + 1]).
-  _members.reserve(positions.size());
-  // Slot 0 is unused, and we need id+1 entries to prevent an buffer overrun when accessing the maximum id, so we need
-  // to zero a total of outputs+2 elements.
-  _offsets.assign(outputs + 2, 0);
-  // Count the total number of members in each output section.
-  for (const auto position : positions) {
-    _members.push_back(handles[position]);
-    ++_offsets[claims[position].output.value];
-  }
-  // Converts from a count at each output section to an offset in our _members array.
-  // _offsets[i] becomes the sum of the counts before it, _offsets[0..i), which is where output i starts.
-  std::exclusive_scan(_offsets.begin(), _offsets.end(), _offsets.begin(), 0u);
-}
-
-template <ElfBits B, ElfEndian E>
-std::span<const InputElfSectionHandle> SectionMembers<B, E>::members(OutputSectionID output) const {
-  if (!output || output.value >= _offsets.size() - 1) return {};
-  const u32 first = _offsets[output.value];
-  return std::span(_members).subspan(first, _offsets[output.value + 1] - first);
-}
-
 // The sections whose names match glob and which placements has not claimed yet. The null section is never selected.
 // The glob is mutable because it compiles itself on first use.
 template <ElfBits B, ElfEndian E>
-bts::PackedSectionSelection<B, E> select_unclaimed(const bts::PackedInputElfGroup<B, E> &group, Glob &glob,
-                                                   const SectionPlacements<B, E> &placements) {
+bts::PackedSectionSelection select_unclaimed(const bts::PackedInputElfGroup<B, E> &group, Glob &glob,
+                                             const SectionPlacements &placements) {
   auto f = [&](const bts::InputElfSectionRef<B, E> &ref) {
     return ref.handle.index != 0 && !placements.claimed(ref.handle) &&
            glob.find(bts::section_name(ref.file, ref.handle.index)) >= 0;
   };
-  return bts::PackedSectionSelection<B, E>(group, f);
+  return bts::PackedSectionSelection(group, f);
 }
 } // namespace pepp::link
