@@ -84,9 +84,20 @@ std::string_view to_string(Assignment::Kind kind);
 // Nullopt if not a valid assignment keyword
 std::optional<Assignment::Kind> assignment_kind(std::string_view keyword);
 
-// Input sections selected by file and section globs (e.g., *(.text .text.*), KEEP(crt0.o(.init))).
+// The file pattern of an input section description.
+struct FilePattern {
+  enum class Match : u8 {
+    Name,         // The file's path, or archive:member for an archive member (e.g., a.o, lib.a:a.o).
+    WholeArchive, // The path of a member's archive (e.g., lib.a:).
+    NotInArchive, // The path of a file that is not in an archive (e.g., :a.o).
+  } match = Match::Name;
+  // The pattern, minus a leading or trailing :.
+  std::string pattern;
+};
+
+// Input sections selected by file and section patterns (e.g., *(.text .text.*), KEEP(crt0.o(.init))).
 struct InputSectionDescription {
-  std::string file;
+  FilePattern file;
   std::vector<std::string> sections;
   bool keep = false;
   support::LocationInterval source_interval;
@@ -116,5 +127,8 @@ struct Script {
 
 // Print the script in GNU ld's strict syntax, which matches the output of ld --verbose.
 std::string to_string(const Script &script);
+// Returns the output section statements of every SECTIONS command in script, in order. The pointers are valid while
+// script is unchanged.
+std::vector<const OutputSectionDescription *> output_sections(const Script &script);
 
 } // namespace pepp::tc::ldscript

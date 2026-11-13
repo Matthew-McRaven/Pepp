@@ -134,7 +134,7 @@ SECTIONS{
   . = 0x200;
   .text # address
   0x1000: { *(.text, .text.*) ; KEEP(crt0.o(.init)) y = . + 4K; }
-  ".data" : { PROVIDE(z = .) "b.o"(.data) }
+  ".data" : { PROVIDE(z = .) "b.o"(.data) lib.a:m.o(.data) KEEP(lib.a:(.init)) :c.o(.data) }
   "a b": { *("x:y") }
   w += 1;
 }
@@ -158,6 +158,9 @@ SECTIONS
   {
     PROVIDE(z = .);
     b.o(.data)
+    "lib.a:m.o"(.data)
+    KEEP(lib.a:(.init))
+    :c.o(.data)
   }
   "a b" :
   {

@@ -17,76 +17,102 @@
 
 #include "core/link/section_placements.hpp"
 #include <catch.hpp>
+#include <filesystem>
 #include <initializer_list>
+#include <string>
 #include <string_view>
 #include <vector>
+#include "./helpers.hpp"
 #include "core/formats/elf/packed_io.hpp"
+#include "core/langs/asmb/diagnostic_table.hpp"
+#include "core/langs/ldscript/parser.hpp"
 
 namespace {
 using namespace pepp::bts;
 using namespace pepp::link;
+using Elf = PackedGrowableElfFile<ElfBits::b32, ElfEndian::le>;
 
-// An in-memory object with null, .shstrtab, then a PROGBITS section for each name, in order.
-AnyInputElf object(std::initializer_list<std::string_view> names) {
-  PackedGrowableElfFile<ElfBits::b32, ElfEndian::le> elf(ElfFileType::ET_REL, ElfMachineType::EM_PEP10,
-                                                         ElfABI::ELFOSABI_NONE);
+// An object with null, .shstrtab, then a PROGBITS section for each name, in order.
+Elf object(std::initializer_list<std::string_view> names) {
+  Elf elf(ElfFileType::ET_REL, ElfMachineType::EM_PEP10, ElfABI::ELFOSABI_NONE);
   ensure_section_header_table(elf);
   for (const auto name : names) add_named_section(elf, name, SectionTypes::SHT_PROGBITS);
-  return to_input_elf(elf);
+  return elf;
+}
+
+// Add an object that is held in memory, and so has no name for a file pattern to match.
+ElfFileID add_in_memory(PackedInputElfGroupLE32 &group, std::initializer_list<std::string_view> names) {
+  auto elf = object(names);
+  return group.add(to_input_elf(elf)).value();
+}
+
+// Write an object to path, then add it to group.
+ElfFileID add_from_path(PackedInputElfGroupLE32 &group, const std::string &path,
+                        std::initializer_list<std::string_view> names) {
+  auto elf = object(names);
+  link_test::write_bytes(path, elf_bytes(elf));
+  return std::get<ElfFileID>(group.add(std::filesystem::path(path)).value());
 }
 } // namespace
 
-TEST_CASE("SectionPlacements", "[scope:core][scope:core.link][kind:unit][arch:*]") {
+TEST_CASE("place_sections", "[scope:core][scope:core.link][kind:unit][arch:*]") {
   using Handles = std::vector<InputElfSectionHandle>;
   PackedInputElfGroupLE32 group;
-  // a is .text = 2, .text.hot = 3, .comment = 4, .text.unlikely = 5; b is .text = 2, .comment = 3.
-  const auto a = group.add(object({".text", ".text.hot", ".comment", ".text.unlikely"})).value();
-  const auto b = group.add(object({".text", ".comment"})).value();
-  SectionPlacements placements(group);
-  Glob hot, comment, text;
-  REQUIRE(hot.add(".text.hot", 0));
-  REQUIRE(comment.add(".comment", 0));
-  REQUIRE(text.add(".text*", 0));
+  // Section indices start at 2, after the null section and .shstrtab.
+  const auto a = add_from_path(group, "place_a.o", {".text", ".text.hot", ".comment", ".text.unlikely", ".data"});
+  const auto b = add_from_path(group, "place_b.o", {".text", ".comment", ".rodata"});
+  link_test::write_bytes("place_lib.a", link_test::archive_bytes_of({{{"x", true}}}));
+  const auto lib = std::get<ElfArchiveID>(group.add(std::filesystem::path("place_lib.a")).value());
+  const auto first_member = *group.archive(lib).members().begin();
+  REQUIRE(first_member);
+  const auto member = group.add_member(lib, *first_member).value();
+  const auto memory = add_in_memory(group, {".text.hot"});
+  const auto excluded = add_in_memory(group, {".text"});
+  std::vector<Liveness> files(group.size() + 1, Liveness::Live);
+  files[excluded.value] = Liveness::Excluded;
 
-  // Emulate the script `.text : { *(.text.hot) } /DISCARD/ : { *(.comment) } .text : { *(.text*) }`.
-  const OutputSectionID text_out{1}, discard_out{2};
-  // First text pattern matches only hot. Second text pattern matches any text.
-  const InputSectionDescriptionID hot_desc{10}, comment_desc{20}, text_desc{30};
-  const auto hot_count = placements.claim(select_unclaimed(group, hot, placements), text_out, hot_desc);
-  const auto comment_count = placements.claim(select_unclaimed(group, comment, placements), discard_out, comment_desc);
-  const auto text_count = placements.claim(select_by_name(group, text), text_out, text_desc);
+  // A plain file name matches a file that is not in an archive, :name only such a file, and archive: any of the
+  // archive's members.
+  pepp::tc::DiagnosticTable diag;
+  const auto script = pepp::tc::ldscript::parse(diag, R"(SECTIONS {
+  .text : { *(.text.hot) place_a.o(.text*) }
+  .text : { :place_b.o(.text) place_lib.a:(.text) }
+  /DISCARD/ : { *(.comment) }
+  .data 0x1000 : { *(.data .rodata) }
+})");
+  REQUIRE(diag.count() == 0);
+  auto [outputs, placements] = place_sections(group, files, script);
 
-  SECTION("Claim respect previously claimed sections") {
-    // Only a has a hot
-    CHECK(hot_count == 1);
-    // Both a and b have comment
-    CHECK(comment_count == 2);
-    // .text* matches a's .text.hot too, but it was already claimed by hot_desc
-    CHECK(text_count == 3);
-  }
-  SECTION("Input sections record which output section claimed them") {
-    CHECK(placements.claim_of(InputElfSectionHandle{a, 3}) == SectionClaim{text_out, hot_desc});
-    CHECK(placements.claim_of(InputElfSectionHandle{b, 2}) == SectionClaim{text_out, text_desc});
-    CHECK(placements.claim_of(InputElfSectionHandle{b, 3}) == SectionClaim{discard_out, comment_desc});
-    // Neither .shstrtab nor the null section were matched.
-    CHECK_FALSE(placements.claimed(InputElfSectionHandle{a, 1}));
-    CHECK_FALSE(placements.claimed(InputElfSectionHandle{a, 0}));
-  }
-  SECTION("Sort by description, then by file, then section index") {
-    const auto members = placements.members();
-    const auto text_members = members.members(text_out);
-    // Grouped by description: a:.text.hot (3) before a:.text (2).
-    // Then by file: a:.text.unlikely (5) before b:.text (2).
-    // Then by section index: a:.text (2) before a:.text.unlikely (5).
-    CHECK(Handles(text_members.begin(), text_members.end()) == Handles{{a, 3}, {a, 2}, {a, 5}, {b, 2}});
-    const auto discarded = members.members(discard_out);
-    CHECK(Handles(discarded.begin(), discarded.end()) == Handles{{a, 4}, {b, 3}});
-    CHECK(members.members(OutputSectionID{}).empty());
-  }
-  SECTION("Invalid claims and lookups") {
-    CHECK(placements.claim(select_by_name(group, text), text_out, text_desc) == 0);
-    CHECK_THROWS_AS(placements.claim(select_by_name(group, text), OutputSectionID{}, text_desc), std::invalid_argument);
-    // Parenthesized, because the macro would split at the handle's comma.
-    CHECK_THROWS_AS((placements.claim_of(InputElfSectionHandle{ElfFileID{3}, 0})), std::out_of_range);
-  }
+  // A repeated name creates a unique output section since the and an address is evaluated later.
+  REQUIRE(outputs.size() == 5);
+  CHECK(outputs[1].name == ".text");
+  CHECK(outputs[2].name == ".text");
+  CHECK(outputs[4].name == ".data");
+  CHECK(!outputs[1].address);
+  CHECK(outputs[4].address);
+
+  const auto assigned = [](u32 output, u32 description) {
+    return SectionAssignment{OutputSectionID{output}, InputSectionDescriptionID{description}};
+  };
+  // place_a.o(.text*) also matches a's .text.hot, but *(.text.hot) matched it first.
+  CHECK(placements.assignment_of({a, 3}) == assigned(1, 1));
+  CHECK(placements.assignment_of({memory, 2}) == assigned(1, 1));
+  CHECK(placements.assignment_of({a, 2}) == assigned(1, 2));
+  CHECK(placements.assignment_of({b, 2}) == assigned(2, 3));
+  CHECK(placements.assignment_of({member, 2}) == assigned(2, 4));
+  CHECK(placements.assignment_of({b, 3}) == assigned(3, 5));
+  CHECK(placements.assignment_of({b, 4}) == assigned(4, 6));
+  // Only live files' sections are placeable. null sections and string table are never assigned.
+  CHECK_FALSE(placements.sections().contains({excluded, 2}));
+  CHECK_FALSE(placements.sections().contains({a, 0}));
+  CHECK_FALSE(placements.sections().contains({a, 1}));
+
+  // Members are sorted by description, then by file, then by section index.
+  const auto members = placements.members();
+  const auto text = members.members(OutputSectionID{1});
+  CHECK(Handles(text.begin(), text.end()) == Handles{{a, 3}, {memory, 2}, {a, 2}, {a, 5}});
+  CHECK(members.members(OutputSectionID{}).empty());
+
+  CHECK_THROWS_AS(placements.assign({a, 2}, OutputSectionID{}, InputSectionDescriptionID{2}), std::invalid_argument);
+  CHECK_THROWS_AS((placements.assignment_of({excluded, 2})), std::out_of_range);
 }

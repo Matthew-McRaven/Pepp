@@ -23,7 +23,6 @@
 #include <span>
 #include <stdexcept>
 #include <vector>
-#include "core/ds/glob/glob.hpp"
 #include "core/formats/elf/packed_input_group.hpp"
 #include "core/formats/elf/packed_ops.hpp"
 
@@ -83,11 +82,4 @@ private:
   std::vector<u32> _offsets;
 };
 
-// Extract the sections whose name matches a glob pattern. The glob is mutable because it compiles itself on first use.
-template <ElfBits B, ElfEndian E>
-PackedSectionSelection select_by_name(const PackedInputElfGroup<B, E> &group, Glob &glob) {
-  return PackedSectionSelection(group, [&glob](const InputElfSectionRef<B, E> &ref) {
-    return ref.handle.index != 0 && glob.find(section_name(ref.file, ref.handle.index)) >= 0;
-  });
-}
 } // namespace pepp::bts

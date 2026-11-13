@@ -16,6 +16,7 @@
 #include "core/langs/ldscript/parser.hpp"
 #include <memory>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 #include "core/compile/diagnostic/severity.hpp"
 #include "core/compile/lex/buffer.hpp"
@@ -88,10 +89,11 @@ public:
  *   <output-arch>    ::= OUTPUT_ARCH ( <name> )
  *   <sections>       ::= SECTIONS { (<provide> | <assignment> | <output-section> | ;)* }
  *   <output-section> ::= <name> [<expression>] : { (<provide> | <keep> | <assignment> | <input-section> | ;)* }
- *   <input-section>  ::= <name> <name-list>
+ *   <input-section>  ::= <file> <name-list>
  *   <keep>           ::= KEEP ( <input-section> )
  *   <assignment>     ::= <name> (= | += | -= | *= | /= | <<= | >>= | &= | |=) <expression> ;
  *   <provide>        ::= (PROVIDE | PROVIDE_HIDDEN | HIDDEN) ( <name> = <expression> )
+ *   <file>           ::= <name> [: [<name>]] | : <name>
  *   <name-list>      ::= ( (<name> [,])* )
  *
  * A <name> is an unquoted name or a quoted string, and an <expression> is parsed by the expr sub-parser. Comments are
@@ -260,18 +262,36 @@ private:
   // KEEP ( <file> <name-list> )
   InputSectionDescription keep(const Identifier &keyword) {
     expect_literal("(");
-    const auto file = name();
+    auto file = file_pattern();
     if (!file) throw missing(NullaryError::Name_Expected);
     auto sections = name_list();
     expect_literal(")");
-    return InputSectionDescription{std::string(file->view()), std::move(sections), true, matched_since(keyword)};
+    return InputSectionDescription{std::move(file->second), std::move(sections), true, matched_since(keyword)};
   }
 
   // <file> <name-list>
   std::optional<InputSectionDescription> input_section() {
-    const auto file = name();
+    auto file = file_pattern();
     if (!file) return std::nullopt;
-    return InputSectionDescription{std::string(file->view()), name_list(), false, matched_since(file)};
+    return InputSectionDescription{std::move(file->second), name_list(), false, matched_since(file->first)};
+  }
+
+  // <name> [: [<name>]] | : <name>
+  // Parse a file pattern, returning it with its first token. Returns nullopt if the following tokens are not a <name>.
+  std::optional<std::pair<TokenPtr, FilePattern>> file_pattern() {
+    using enum FilePattern::Match;
+    using Ret = std::pair<TokenPtr, FilePattern>;
+    if (const auto colon = _buf.match_literal(":")) {
+      const auto file = name();
+      if (!file) throw missing(NullaryError::Name_Expected);
+      return Ret{colon, {NotInArchive, std::string(file->view())}};
+    }
+    const auto first = name();
+    if (!first) return std::nullopt;
+    else if (!_buf.match_literal(":")) return Ret{first, {Name, std::string(first->view())}};
+    else if (const auto member = name())
+      return Ret{first, {Name, std::string(first->view()) + ":" + std::string(member->view())}};
+    return Ret{first, {WholeArchive, std::string(first->view())}};
   }
 
   // { (<item> | ;)* }, where item returns false if the next token does not start an item.

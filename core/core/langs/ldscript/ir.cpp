@@ -14,7 +14,11 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "core/langs/ldscript/ir.hpp"
+// algorithm must be before array and iterator for ranges to work
+#include <algorithm>
+// algorithm must be before array and iterator for ranges to work
 #include <array>
+#include <iterator>
 #include <ranges>
 #include "core/langs/ldscript/lexer.hpp"
 #include "fmt/format.h"
@@ -75,9 +79,16 @@ std::string to_string(const Assignment &assignment) {
   return keyword.empty() ? plain + ";" : fmt::format("{}({});", keyword, plain);
 }
 
+std::string to_string(const FilePattern &file) {
+  using enum FilePattern::Match;
+  if (file.match == WholeArchive) return name(file.pattern) + ':';
+  else if (file.match == NotInArchive) return ':' + name(file.pattern);
+  return name(file.pattern);
+}
+
 std::string to_string(const InputSectionDescription &input) {
   const auto description =
-      fmt::format("{}({})", name(input.file), fmt::join(input.sections | std::views::transform(name), " "));
+      fmt::format("{}({})", to_string(input.file), fmt::join(input.sections | std::views::transform(name), " "));
   return input.keep ? fmt::format("KEEP({})", description) : description;
 }
 
@@ -158,5 +169,21 @@ std::string pepp::tc::ldscript::to_string(const Script &script) {
   std::string ret;
   for (const auto &command : script.commands)
     std::visit([&](const auto &it) { ret += ::to_string(it) + "\n"; }, command);
+  return ret;
+}
+
+std::vector<const pepp::tc::ldscript::OutputSectionDescription *>
+pepp::tc::ldscript::output_sections(const Script &script) {
+  const auto is_sections = [](const Script::Command &command) { return std::holds_alternative<Sections>(command); };
+  const auto items = [](const Script::Command &command) -> const auto & { return std::get<Sections>(command).items; };
+  const auto is_statement = [](const Sections::Item &item) {
+    return std::holds_alternative<OutputSectionDescription>(item);
+  };
+  const auto statement = [](const Sections::Item &item) { return &std::get<OutputSectionDescription>(item); };
+  std::vector<const OutputSectionDescription *> ret;
+  // For all SECTION directives, extract their items. For OutputSectionDescription in items, extract the description.
+  std::ranges::copy(script.commands | std::views::filter(is_sections) | std::views::transform(items) |
+                        std::views::join | std::views::filter(is_statement) | std::views::transform(statement),
+                    std::back_inserter(ret));
   return ret;
 }

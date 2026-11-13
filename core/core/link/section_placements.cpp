@@ -17,17 +17,10 @@
 
 #include "core/link/section_placements.hpp"
 
-u32 pepp::link::SectionPlacements::claim(const Selection &selection, OutputSectionID output,
-                                         InputSectionDescriptionID description) {
+void pepp::link::SectionPlacements::assign(InputElfSectionHandle handle, OutputSectionID output,
+                                           InputSectionDescriptionID description) {
   if (!output) throw std::invalid_argument("SectionPlacements: output must be valid");
-  u32 claimed = 0;
-  for (const auto handle : selection.handles()) {
-    auto &claim = _claims[position_of(handle)];
-    if (claim) continue;
-    claim = {output, description};
-    ++claimed;
-  }
-  return claimed;
+  _assignments[position_of(handle)] = {output, description};
 }
 
 pepp::link::SectionMembers pepp::link::SectionPlacements::members() const { return SectionMembers(*this); }
@@ -39,19 +32,19 @@ u32 pepp::link::SectionPlacements::position_of(InputElfSectionHandle handle) con
 }
 
 pepp::link::SectionMembers::SectionMembers(const SectionPlacements &placements) {
-  const auto claims = placements.claims();
+  const auto assignments = placements.assignments();
   const auto handles = placements.sections().handles();
-  // Collect the indices of all claimed sections and track total number of output sections.
+  // Collect the indices of all assigned sections and track total number of output sections.
   std::vector<u32> positions;
   u32 outputs = 0;
-  for (u32 position = 0; position < claims.size(); ++position) {
-    if (!claims[position]) continue;
+  for (u32 position = 0; position < assignments.size(); ++position) {
+    if (!assignments[position]) continue;
     positions.push_back(position);
-    outputs = std::max(outputs, claims[position].output.value);
+    outputs = std::max(outputs, assignments[position].output.value);
   }
   // Sort by output section then description. Ties within a description preserve the group's order,
   // which gives us sorting by file order and section index order within a file for free.
-  std::ranges::stable_sort(positions, {}, [&](u32 position) { return claims[position]; });
+  std::ranges::stable_sort(positions, {}, [&](u32 position) { return assignments[position]; });
 
   // For each id members span [_offsets[id], _offsets[id + 1]).
   _members.reserve(positions.size());
@@ -61,7 +54,7 @@ pepp::link::SectionMembers::SectionMembers(const SectionPlacements &placements) 
   // Count the total number of members in each output section.
   for (const auto position : positions) {
     _members.push_back(handles[position]);
-    ++_offsets[claims[position].output.value];
+    ++_offsets[assignments[position].output.value];
   }
   // Converts from a count at each output section to an offset in our _members array.
   // _offsets[i] becomes the sum of the counts before it, _offsets[0..i), which is where output i starts.
@@ -72,4 +65,11 @@ std::span<const pepp::bts::InputElfSectionHandle> pepp::link::SectionMembers::me
   if (!output || output.value >= _offsets.size() - 1) return {};
   const u32 first = _offsets[output.value];
   return std::span(_members).subspan(first, _offsets[output.value + 1] - first);
+}
+
+pepp::link::InputSectionDescriptionMatcher::InputSectionDescriptionMatcher(
+    const tc::ldscript::InputSectionDescription &description)
+    : _match(description.file.match) {
+  _file.add(description.file.pattern, 0);
+  for (const auto &section : description.sections) _sections.add(section, 0);
 }

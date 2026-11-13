@@ -17,6 +17,7 @@
 
 #pragma once
 #include <algorithm>
+#include <optional>
 #include <string>
 #include <utility>
 #include <variant>
@@ -24,6 +25,7 @@
 #include "core/formats/elf/packed_input_group.hpp"
 #include "core/link/diagnostics.hpp"
 #include "core/link/link_config.hpp"
+#include "core/link/section_placements.hpp"
 #include "core/link/symbol_resolution.hpp"
 
 namespace pepp::link {
@@ -40,6 +42,9 @@ struct LinkContext {
   // Indexed by file ID. Index 0 is unused.
   std::vector<Liveness> files;
   ResolvedSymbols symbols;
+  // The output sections and the mapping between input and output sections. Empty when the link stopped before
+  // placement.
+  std::optional<PlacedSections> placed;
 
   // True if the link produced no Error or Fatal diagnostics.
   bool ok() const { return diagnostics.count(Severity::Error) == 0; }
@@ -101,10 +106,12 @@ void link_group(LinkContext &context, const bts::PackedInputElfGroup<B, E> &grou
     std::ranges::replace(files, Liveness::Lazy, Liveness::Excluded);
   }
   // TODO: Merge COMDAT groups.
-  // TODO: Create a selection for only-live files/sections.
   // In the second pass, do not include archive members that are now marked as excluded, which helps avoid undefined
   // symbol errors.
   context.symbols = resolve_symbols(diagnostics, inputs, files);
+  // Assign the live files' sections to the output sections.
+  // TODO: place orphaned sections .
+  context.placed = place_sections(group, files, context.script);
   /*
    * Inspect special sections
    */
