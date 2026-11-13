@@ -42,6 +42,10 @@ enum class LinkCode : u8 {
   BadScript,
   // An unparsed linker script reached a pass that requires it to have already been parsed.
   UnparsedScript,
+  // A linker script expression could not be evaluated. The subject is a ScriptMessage.
+  BadExpression,
+  // An assignment moved the location counter backwards within an output section. The subject is a ScriptMessage.
+  LocationCounterBackwards,
 };
 
 // Errors during symbol resolution.

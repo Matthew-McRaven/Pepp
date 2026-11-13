@@ -145,14 +145,8 @@ struct Script {
 
 // Print the script in GNU ld's strict syntax, which matches the output of ld --verbose.
 std::string to_string(const Script &script);
-// Returns the output section descriptions of every SECTIONS command in script, in order. The pointers are valid while
-// script is unchanged.
-std::vector<const OutputSectionDescription *> output_sections(const Script &script);
-std::vector<OutputSectionDescription *> output_sections(Script &script);
-// Merge all top-level assignments and all SECTIONS commands into a single SECTIONS, preserving script order.
-// If no SECTIONS exists, appends one to the end of the script.
-void merge_sections(Script &script);
-// Returns the SECTIONS command of a script that merge_sections() has merged. Throws std::logic_error if there is none.
-Sections &sections(Script &script);
+// Merge all top-level assignments and all SECTIONS commands into a single SECTIONS, preserving script order, and return
+// it. If no SECTIONS exists, appends one to the end of the script.
+Sections &merge_sections(Script &script);
 
 } // namespace pepp::tc::ldscript

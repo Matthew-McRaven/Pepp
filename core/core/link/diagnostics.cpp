@@ -26,6 +26,8 @@ std::string_view to_string(LinkCode code) {
   case LinkCode::NoInputs: return "no ELF input files";
   case LinkCode::BadScript: return "malformed linker script";
   case LinkCode::UnparsedScript: return "linker script was not parsed";
+  case LinkCode::BadExpression: return "invalid linker script expression";
+  case LinkCode::LocationCounterBackwards: return "cannot move location counter backwards";
   }
   return "unknown error";
 }

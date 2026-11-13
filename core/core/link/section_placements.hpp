@@ -37,7 +37,6 @@ using bts::ElfBits;
 using bts::ElfEndian;
 using bts::InputElfSectionHandle;
 
-// Numbered from 1 in creation order (i.e., the script's output sections, then orphans). The script gives output order.
 using tc::ldscript::OutputSectionID;
 using tc::ldscript::InputSectionDescriptionID;
 
@@ -196,29 +195,31 @@ size_t insert_orphan(std::vector<tc::ldscript::Sections::Command> &commands,
 // `*(name)` description and number it with ++descriptions. Such a description is never matched.
 InputSectionDescriptionID orphan_description(tc::ldscript::OutputSectionDescription &output, u32 &descriptions);
 
-// Number the script's output and input section descriptions, then assign each placeable section to the first input
-// section description that matches it. Output sections with duplicate names receive unique IDs. Give each remaining
-// section (i.e., an orphan) to the output section with its name, or else to one inserted for it.
+// Number the output and input section descriptions of a merged SECTIONS command (see tc::ldscript::merge_sections),
+// then assign each placeable section to the first input section description that matches it. Output sections with
+// duplicate names receive unique IDs. Give each remaining section (i.e., an orphan) to the output section with its
+// name, or else to one inserted for it.
+// TODO: /DISCARD/ is treated as an ordinary output section. Its members should be dropped from the output.
 template <ElfBits B, ElfEndian E>
 SectionPlacements place_sections(const bts::PackedInputElfGroup<B, E> &group, std::span<const Liveness> files,
-                                 tc::ldscript::Script &script) {
+                                 tc::ldscript::Sections &sections) {
   namespace ld = tc::ldscript;
-  // Needed so that orphans can be inserted among assignments from any SECTIONS command.
-  ld::merge_sections(script);
+  auto &commands = sections.commands;
   SectionPlacements ret(placeable_sections(group, files));
   u32 outputs = 0, descriptions = 0;
   // Assign input sections to output sections by matching their file and section patterns.
-  for (auto *output : ld::output_sections(script)) {
+  for (auto &command : commands) {
+    auto *output = std::get_if<ld::OutputSectionDescription>(&command);
+    if (!output) continue;
     output->id = OutputSectionID{++outputs};
-    for (auto &command : output->commands)
-      if (auto *input = std::get_if<ld::InputSectionDescription>(&command)) {
+    for (auto &inner : output->commands)
+      if (auto *input = std::get_if<ld::InputSectionDescription>(&inner)) {
         input->id = InputSectionDescriptionID{++descriptions};
         assign_matching(group, ret, *input, *output);
       }
   }
 
   // Place the orphans in group order.
-  auto &commands = ld::sections(script).commands;
   for (const auto section : ret.sections().handles()) {
     if (ret.assignment_of(section)) continue;
     const auto name = bts::section_name(group.file(section.file), section.index);

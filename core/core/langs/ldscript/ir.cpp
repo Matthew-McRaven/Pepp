@@ -20,7 +20,6 @@
 #include <array>
 #include <iterator>
 #include <ranges>
-#include <stdexcept>
 #include <utility>
 #include "core/langs/ldscript/lexer.hpp"
 #include "fmt/format.h"
@@ -174,37 +173,7 @@ std::string pepp::tc::ldscript::to_string(const Script &script) {
   return ret;
 }
 
-std::vector<const pepp::tc::ldscript::OutputSectionDescription *>
-pepp::tc::ldscript::output_sections(const Script &script) {
-  const auto is_sections = [](const Script::Command &command) { return std::holds_alternative<Sections>(command); };
-  const auto commands_of = [](const Script::Command &command) -> const auto & {
-    return std::get<Sections>(command).commands;
-  };
-  const auto is_output_section = [](const Sections::Command &command) {
-    return std::holds_alternative<OutputSectionDescription>(command);
-  };
-  const auto output_section = [](const Sections::Command &command) {
-    return &std::get<OutputSectionDescription>(command);
-  };
-  std::vector<const OutputSectionDescription *> ret;
-  // For all SECTIONS commands, extract their commands. For each OutputSectionDescription among them, extract it.
-  std::ranges::copy(script.commands | std::views::filter(is_sections) | std::views::transform(commands_of) |
-                        std::views::join | std::views::filter(is_output_section) |
-                        std::views::transform(output_section),
-                    std::back_inserter(ret));
-  return ret;
-}
-
-std::vector<pepp::tc::ldscript::OutputSectionDescription *> pepp::tc::ldscript::output_sections(Script &script) {
-  // Casting away const is safe, since the output sections belong to the non-const script.
-  const auto outputs = output_sections(std::as_const(script));
-  std::vector<OutputSectionDescription *> ret(outputs.size());
-  const auto mutable_ = [](const OutputSectionDescription *it) { return const_cast<OutputSectionDescription *>(it); };
-  std::ranges::transform(outputs, ret.begin(), mutable_);
-  return ret;
-}
-
-void pepp::tc::ldscript::merge_sections(Script &script) {
+pepp::tc::ldscript::Sections &pepp::tc::ldscript::merge_sections(Script &script) {
   Sections merged;
   std::vector<Script::Command> kept;
   std::optional<size_t> at;
@@ -218,12 +187,9 @@ void pepp::tc::ldscript::merge_sections(Script &script) {
     }
     if (!at) at = kept.size();
   }
-  kept.insert(kept.begin() + static_cast<std::ptrdiff_t>(at.value_or(kept.size())), std::move(merged));
+  const auto first = kept.begin() + static_cast<std::ptrdiff_t>(at.value_or(kept.size()));
+  const auto position = kept.insert(first, std::move(merged));
   script.commands = std::move(kept);
-}
-
-pepp::tc::ldscript::Sections &pepp::tc::ldscript::sections(Script &script) {
-  for (auto &command : script.commands)
-    if (auto *sections = std::get_if<Sections>(&command)) return *sections;
-  throw std::logic_error("ldscript: the script has no SECTIONS command");
+  // Moving the vector keeps its elements in place, so position still refers to the merged command.
+  return std::get<Sections>(*position);
 }

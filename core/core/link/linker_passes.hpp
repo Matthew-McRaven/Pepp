@@ -25,6 +25,7 @@
 #include "core/formats/elf/packed_input_group.hpp"
 #include "core/link/diagnostics.hpp"
 #include "core/link/link_config.hpp"
+#include "core/link/section_layout.hpp"
 #include "core/link/section_placements.hpp"
 #include "core/link/symbol_resolution.hpp"
 
@@ -44,6 +45,8 @@ struct LinkContext {
   ResolvedSymbols symbols;
   // The output section of each placeable input section. Empty when the link stopped before placement.
   std::optional<SectionPlacements> placements;
+  // The memory layout of the output. Empty when the link stopped before layout.
+  std::optional<SectionLayout> layout;
 
   // True if the link produced no Error or Fatal diagnostics.
   bool ok() const { return diagnostics.count(Severity::Error) == 0; }
@@ -129,8 +132,10 @@ void link_group(LinkContext &context, const bts::PackedInputElfGroup<B, E> &grou
     // TODO: create synthetic sections for the output, synthetic symbols
     // TODO: validate no undefined symbols (if shlib), multiple definitions
     // TODO: garbage collection, identical-code-folding
+    // Needed so that orphans can be inserted among assignments from any SECTIONS command.
+    auto &sections = tc::ldscript::merge_sections(context.script);
     // Assign the live files' sections to the output sections, inserting output sections for orphans.
-    context.placements = place_sections(group, files, context.script);
+    context.placements = place_sections(group, files, sections);
     // Output sections are now frozen
     // TODO: handle --section-align for over-aligning sections
     // TODO: mark undefined symbols as imports
@@ -142,7 +147,8 @@ void link_group(LinkContext &context, const bts::PackedInputElfGroup<B, E> &grou
     // TODO: extra got/plt/dynsym/etc entries from relocations
     // TODO: sort output sections to minimize segment count
     // TODO: separate debug info??
-    // TODO: compute layout of output sections and construct a map of in->out
+    // Compute layout of output sections and construct a map of in->out
+    context.layout = lay_out_sections(diagnostics, group, *context.placements, sections);
     // TODO: linker-generated section contents
     // TODO: emit relocations, symtab, strtab, shstrtab, etc
     // TODO: apply linker relaxation, remove redundant thunks. This can adjust the output layout
