@@ -29,7 +29,7 @@
 
 namespace pepp::link {
 
-// What resolution needs to know about one non-local symbol, read once while gathering. One byte.
+// The attributes of a non-local symbol read by resolution.
 struct SymbolAttributes {
   u8 undefined : 1 = 0;
   u8 weak : 1 = 0;
@@ -53,7 +53,7 @@ struct CommonSize {
 // Index 0 is reserved for the undefined symbol.
 class InputSymbols {
 public:
-  // Including STN_UNDEF/0 IDs are [0, size()).
+  // IDs are [0, size()), with 0 as STN_UNDEF.
   u32 size() const noexcept { return static_cast<u32>(_names.size()); }
   // All throw std::out_of_range if id >= size(). Name points into the ELF file's string table storage.
   std::string_view name(InputSymbolID id) const;
@@ -61,16 +61,17 @@ public:
   SymbolAttributes attributes(InputSymbolID id) const;
   // Throws std::out_of_range unless id is a common definition.
   CommonSize common(InputSymbolID id) const;
-  // The ID of symbol index of file id: STN_UNDEF for index 0, or nullopt if the symbol is local or does not exist.
+  // Returns the ID of symbol index of file id, which is STN_UNDEF for index 0. Returns nullopt if the symbol is local
+  // or does not exist.
   std::optional<InputSymbolID> find(bts::ElfFileID id, u32 index) const;
   // Returns the file and symbol table index of symbol id. Throws std::out_of_range for STN_UNDEF or if id >= size().
   bts::InputElfSymbolHandle handle_of(InputSymbolID id) const;
   // Returns the section index of a file's symbol table, or 0 if it has none.
   u16 symtab_of(bts::ElfFileID id) const;
-  // The file that symbol id belongs to. Throws std::out_of_range for STN_UNDEF, which belongs to every file, or if
-  // id >= size().
+  // Returns the file that owns symbol id. Throws std::out_of_range for STN_UNDEF, which belongs to every file, or if id
+  // >= size().
   bts::ElfFileID file_of(InputSymbolID id) const;
-  // The non-local symbols of a file. Throws std::out_of_range if no file has this ID.
+  // Returns the IDs of a file's non-local symbols as [first, last). Throws std::out_of_range if no file has this ID.
   std::pair<InputSymbolID, InputSymbolID> ids_of(bts::ElfFileID id) const;
   // The number of files in the group when this table was made.
   u32 files() const noexcept { return static_cast<u32>(_non_locals.size() - 1); }
@@ -86,7 +87,7 @@ private:
     InputSymbolID first_id;
     // The symbol table's index for the first non-local that is read from sh_info.
     u32 first_global = 0;
-    // How many non-local symbols does the file contain?
+    // The number of non-local symbols in the file.
     u32 count = 0;
     // The section index of the file's symbol table, or 0 if it has none.
     u16 symtab = 0;
@@ -101,9 +102,9 @@ private:
                                                     const bts::PackedInputElfGroup<B, E> &group);
 };
 
-// Extract all non-local symbols for each ELF file in the group. Files without symbol tables are skipped. Archive's
-// symbol index is ignored, meaning members' symbol tables are re-read from their ELF symtabs.
-// A malformed symbol table is Fatal, citing the offending symbol index, or 0 for the table as a whole.
+// Extract the non-local symbols of each ELF file in the group, skipping files without a symbol table. Ignores each
+// archive's symbol index and reads members' own symbol tables instead. A malformed symbol table is Fatal and cites the
+// offending symbol index, or 0 for the table as a whole.
 template <bts::ElfBits B, bts::ElfEndian E>
 std::optional<InputSymbols> gather_symbols(Diagnostics &diagnostics, const bts::PackedInputElfGroup<B, E> &group) {
   using namespace bts;
@@ -158,14 +159,14 @@ std::optional<InputSymbols> gather_symbols(Diagnostics &diagnostics, const bts::
   return ret;
 }
 
-// Identifies one symbol of the link after mergin InputSymbols. 0 remains STN_UNDEF
+// A symbol of the link after merging InputSymbols. 0 remains STN_UNDEF.
 using SymbolID = pepp::OpaqueHandle<struct SymbolTag, u32>;
 
 // Resolved definition of a single symbol.
 struct Symbol {
   // The strongest definition. Refer to the owner's attributes for information other than visibility.
   InputSymbolID owner;
-  // Record the most constraining visibility for any InputSymbol which maps to this instance.
+  // The most constraining visibility of every InputSymbol that maps to this symbol.
   u8 visibility = 0;
 };
 
@@ -179,25 +180,25 @@ enum class Liveness : u8 {
   Live,
 };
 
-// Merge all InputSymbols into a single set of all non-local symbols usable for the linker. Where multiple definitions
-// conflict, the highest ranked definition wins. Symbol versions are recorded so that foo@@V defines the default version
-// of foo, so it becomes the canonical value foor foo and foo@V. Otherwise, foo@V is a different symbol from foo.
+// The non-local symbols of the link, merged from InputSymbols. Where definitions conflict, the highest ranked wins.
+// foo@@V defines the default version of foo, so foo and foo@V both resolve to it. Without a default, foo@V is a
+// different symbol from foo.
 class ResolvedSymbols {
 public:
   // IDs are [0, size()), with 0 as STN_UNDEF.
   u32 size() const noexcept { return static_cast<u32>(_names.size()); }
-  // The symbol entry id refers to, after following any forwards. STN_UNDEF for an entry in an Excluded file. Throws
-  // std::out_of_range if no entry has this ID.
+  // Returns the symbol of entry id, after following any forwards. Returns STN_UNDEF for an entry in an Excluded file.
+  // Throws std::out_of_range if no entry has this ID.
   SymbolID of(InputSymbolID id) const;
-  // The name of the matching symbol entry, or throws std::out_of_range if no entry has this ID.
+  // Returns the name of symbol id. Throws std::out_of_range if no symbol has this ID.
   std::string_view name(SymbolID id) const;
   // Throws std::out_of_range if no symbol has this ID.
   const Symbol &symbol(SymbolID id) const;
-  // The merged size and alignment of id if its owner is a common definition, or nullopt.
+  // Returns the merged size and alignment of id if its owner is a common definition. Otherwise, returns nullopt.
   std::optional<CommonSize> common(SymbolID id) const;
-  // Search all symbols to find a definition matching name, otherwise return STN_UNDEF.
+  // Returns the symbol with this name after following any forward, or STN_UNDEF if there is none.
   SymbolID find(std::string_view name) const;
-  // The best ranked foo@@V definition that a foo@V or foo entry forwards to. STN_UNDEF if not forwarded.
+  // Returns the best ranked foo@@V definition for a forwarding foo@V or foo entry, or STN_UNDEF if id does not forward.
   InputSymbolID provider(InputSymbolID id) const;
 
 private:

@@ -55,8 +55,8 @@ struct SectionAssignment {
 
 class SectionMembers;
 
-// For a selection of input sections, record the output section to which it is assigned. Like the underlying
-// PackedSectionSelection, this class needs to be regenerated if the InputElfGroup changes.
+// The assignment of each input section in a selection. Must be rebuilt if the InputElfGroup changes, like the
+// PackedSectionSelection it holds.
 class SectionPlacements {
 public:
   using Selection = bts::PackedSectionSelection;
@@ -64,9 +64,8 @@ public:
   // Covers only the sections of the selection.
   explicit SectionPlacements(Selection sections) : _sections(std::move(sections)), _assignments(_sections.size()) {}
 
-  // All input sections covered by this table.
   const Selection &sections() const noexcept { return _sections; }
-  // The assignment of each input section, which shares an index with _sections.
+  // Indexed like sections().
   std::span<const SectionAssignment> assignments() const noexcept { return _assignments; }
   // Throws std::out_of_range if this table does not cover the section.
   SectionAssignment assignment_of(InputElfSectionHandle handle) const { return _assignments[position_of(handle)]; }
@@ -75,7 +74,7 @@ public:
   void assign(InputElfSectionHandle handle, OutputSectionID output, InputSectionDescriptionID description);
   // position indexes sections().
   void set_offset(u32 position, u64 offset) { _assignments.at(position).offset = offset; }
-  // The assigned sections, grouped by output section. Build it once every description is matched.
+  // Returns the assigned sections, grouped by output section. Call it after every description is matched.
   SectionMembers members() const;
 
 private:
@@ -114,8 +113,8 @@ void merge_member(tc::ldscript::OutputSectionDescription &output, const bts::Pac
   else if (output.type != type) output.type = SHT_PROGBITS;
 }
 
-// The rules used by GNU ld to place orphans (i.e., input sections that no input section description matches) after
-// output sections with the same attributes.
+// The rules used by GNU ld to place orphans (i.e., input sections matched by no input section description) after output
+// sections with the same attributes.
 enum class OrphanAttributes : u8 { Text, Rodata, Data, Bss, NonAlloc };
 // Returns the attributes of a section with these flags and type. A writable section is Data even if executable.
 OrphanAttributes orphan_attributes(u64 flags, bts::SectionTypes type);
@@ -140,7 +139,7 @@ bts::PackedSectionSelection placeable_sections(const bts::PackedInputElfGroup<B,
   return bts::PackedSectionSelection(group, f);
 }
 
-// Represents an input section description whose file and section patterns have been compiled.
+// An input section description with its file and section patterns compiled.
 class InputSectionDescriptionMatcher {
 public:
   explicit InputSectionDescriptionMatcher(const tc::ldscript::InputSectionDescription &description);
@@ -175,8 +174,7 @@ private:
   mutable Glob _file, _sections;
 };
 
-// Iterate over the live input sections. If the descriptor matches a given (section+file) and the section is unassigned,
-// map the input section to the current output section.
+// Assign each unassigned input section matched by description to output.
 template <ElfBits B, ElfEndian E>
 void assign_matching(const bts::PackedInputElfGroup<B, E> &group, SectionPlacements &placements,
                      const tc::ldscript::InputSectionDescription &description,
@@ -197,14 +195,14 @@ std::optional<size_t> find_output_section(std::span<const tc::ldscript::Sections
 size_t insert_orphan(std::vector<tc::ldscript::Sections::Command> &commands,
                      tc::ldscript::OutputSectionDescription orphan);
 // Returns the ID of the input section description that holds an output section's orphans. If there is none, append a
-// `*(name)` description and number it with ++descriptions. Such a description is never matched.
+// `*(name)` description and number it with ++descriptions. place_sections never matches such a description.
 InputSectionDescriptionID orphan_description(tc::ldscript::OutputSectionDescription &output, u32 &descriptions);
 
 // Number the output and input section descriptions of a merged SECTIONS command (see tc::ldscript::merge_sections),
 // then assign each placeable section to the first input section description that matches it. Output sections with
 // duplicate names receive unique IDs. Give each remaining section (i.e., an orphan) to the output section with its
 // name, or else to one inserted for it.
-// TODO: /DISCARD/ is treated as an ordinary output section. Its members should be dropped from the output.
+// TODO: drop the members of /DISCARD/ instead of treating it as an ordinary output section.
 template <ElfBits B, ElfEndian E>
 SectionPlacements place_sections(const bts::PackedInputElfGroup<B, E> &group, std::span<const Liveness> files,
                                  tc::ldscript::Sections &sections) {

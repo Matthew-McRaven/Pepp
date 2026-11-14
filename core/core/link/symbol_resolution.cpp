@@ -104,7 +104,7 @@ u64 rank_of(pepp::link::SymbolAttributes attributes, pepp::bts::ElfFileID file, 
 Tier tier_of(u64 rank) { return static_cast<Tier>(rank >> 32); }
 bool is_common(Tier tier) { return tier == Tier::Common || tier == Tier::CommonArchive; }
 
-// Provide a ranking of how constrainining the visibility value is. Higher values are more constraining, and the highest
+// Provide a ranking of how constraining the visibility value is. Higher values are more constraining, and the highest
 // value is selected. Unlike mold, internal is not combined with hidden.
 u8 constraint_of(u8 visibility) {
   using enum pepp::bts::SymbolVisibility;
@@ -148,7 +148,7 @@ Candidate candidate_of(const pepp::link::InputSymbols &table, InputSymbolID id, 
 pepp::link::Diagnostic conflict(pepp::link::SymbolCode code, InputSymbolID lhs, InputSymbolID rhs) {
   return {pepp::link::Severity::Error, code, pepp::link::SymbolConflict{std::max(lhs, rhs), std::min(lhs, rhs)}};
 }
-// Reutrn the symbol ID of a diagnostic. If it contains multiple symbols, return the latest one.
+// Return the symbol ID of a diagnostic. If it contains multiple symbols, return the latest one.
 InputSymbolID later_of(const pepp::link::Diagnostic &diagnostic) {
   if (const auto *pair = std::get_if<pepp::link::SymbolConflict>(&diagnostic.subject)) return pair->symbol;
   return std::get<InputSymbolID>(diagnostic.subject);
@@ -186,7 +186,7 @@ void merge(pepp::link::Symbol &into, Ranking &ranking, const Candidate &from,
 struct SymbolMap {
   // De-duplicate all symbols which share the same name
   std::unordered_map<std::string_view, SymbolID> ids;
-  // Every defined default version, and the definition that a reference to it needs.
+  // Every defined default version and the definition needed by a reference to it.
   std::unordered_map<pepp::link::VersionedName, InputSymbolID, pepp::link::BaseVersionHash,
                      pepp::link::BaseVersionEqual>
       default_versions;
@@ -196,7 +196,7 @@ struct SymbolMap {
 };
 
 // Map an input symbol to an output SymbolID, substituting for default versions where possible, i.e., foo@@V is foo.
-// Like mold's get_symbol (input-files.cc), a new key is added to the map, and appended to names.
+// Adds a new key to the map and appends it to names.
 SymbolID get_symbol(SymbolMap &map, std::vector<std::string_view> &names, const pepp::link::InputSymbols &table,
                     InputSymbolID id, bool live) {
   using Kind = pepp::link::VersionedName::Kind;

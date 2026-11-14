@@ -34,13 +34,13 @@ using InputSymbolID = pepp::OpaqueHandle<struct InputSymbolTag, u32>;
 consteval void allow_opaque_handle_add(InputSymbolID);
 consteval void allow_opaque_handle_increment(InputSymbolID);
 
-// Procedural errors encountered during the linking process.
+// Errors from the linker's own passes.
 enum class LinkCode : u8 {
   // No input provides an ELF file from which to take the class and byte order.
   NoInputs,
   // A linker script failed to parse. The subject is a ScriptMessage.
   BadScript,
-  // An unparsed linker script reached a pass that requires it to have already been parsed.
+  // A pass received a linker script not parsed by parse_scripts().
   UnparsedScript,
   // A linker script expression could not be evaluated. The subject is a ScriptMessage.
   BadExpression,
@@ -83,7 +83,6 @@ enum class RelocationCode : u8 {
   NoSymbolAddress,
 };
 
-// Errors could stem from the linker itself, our attempt to open files as a group or archive.
 using DiagnosticCode =
     std::variant<LinkCode, bts::InputGroupError::Code, bts::ArchiveError::Code, SymbolCode, RelocationCode>;
 std::string_view to_string(const DiagnosticCode &code);
@@ -142,7 +141,6 @@ class Diagnostics {
 public:
   void add(Diagnostic diagnostic) { _entries.push_back(std::move(diagnostic)); }
   std::size_t size() const noexcept { return _entries.size(); }
-  // Number of diagnostics at or above a given severity.
   std::size_t count(Severity minimum) const;
   auto begin() const { return _entries.cbegin(); }
   auto end() const { return _entries.cend(); }

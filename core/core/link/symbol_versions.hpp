@@ -45,12 +45,13 @@ struct BaseVersionEqual {
     return lhs.base == rhs.base && lhs.version == rhs.version;
   }
 };
-// Every (base, version) that some `base@@version` definition made a default. Members compare by base and version
-// only, so a `foo@V` reference finds the `foo@@V` that made V the default, as GNU ld matches them.
-// A base with two default versions definitions strip to `base`, and resolution will report a multiple definition error.
+// Every (base, version) made a default by some `base@@version` definition. Members compare by base and version only, so
+// a `foo@V` reference finds the `foo@@V` that made V the default, as GNU ld matches them.
+// A base with two default version definitions strips both to `base`, and resolution reports a multiple definition
+// error.
 using DefaultVersionSet = std::unordered_set<VersionedName, BaseVersionHash, BaseVersionEqual>;
 
-// name without its version if that version is the base's default, else name unchanged. So `foo`, `foo@@V`, and `foo@V`
-// (with V the default) all become `foo`.
+// Returns name without its version if that version is the base's default. Otherwise, returns name unchanged. `foo`,
+// `foo@@V`, and `foo@V` (with V the default) all become `foo`.
 std::string_view strip_default_version(std::string_view name, const DefaultVersionSet &default_versions);
 } // namespace pepp::link

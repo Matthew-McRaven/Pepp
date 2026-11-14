@@ -108,7 +108,7 @@ pepp::link::combine(tc::expr::BinaryOp op, ScriptValue lhs, ScriptValue rhs, con
   // Comparisons and logical operators produce numbers.
   const bool number_result = op == expr::BinaryOp::LogicalAnd || op == expr::BinaryOp::LogicalOr ||
                              (op >= expr::BinaryOp::Less && op <= expr::BinaryOp::NotEqual);
-  // Operations on the offsets within a section, or offsets combined with numbers remain offsets
+  // Operations on offsets within a section, or on an offset and a number, remain offsets.
   if (lhs.kind == Relative && (rhs.kind == Number || (rhs.kind == Relative && rhs.section == lhs.section))) {
     if (const auto value = apply(lhs.value, rhs.value); !value) return std::unexpected(value.error());
     else if (number_result || rhs.kind == Relative) return ScriptValue{context.current ? Number : Absolute, *value};
@@ -123,7 +123,7 @@ pepp::link::combine(tc::expr::BinaryOp op, ScriptValue lhs, ScriptValue rhs, con
   if (const auto value = apply(absolute(lhs, context), absolute(rhs, context)); !value)
     return std::unexpected(value.error());
   else if (number_result || (lhs.kind == Number && rhs.kind == Number)) return ScriptValue{Number, *value};
-  // An operation between two addresses is a number,
+  // An operation between two addresses is a number.
   else if (lhs.kind != Number && rhs.kind != Number && context.current) return ScriptValue{Number, *value};
   else return ScriptValue{Absolute, *value};
 }

@@ -98,7 +98,7 @@ size_t pepp::link::insert_orphan(std::vector<tc::ldscript::Sections::Command> &c
       while (at < commands.size() && is_symbol_assignment(commands[at])) ++at;
       if (at < commands.size() && std::holds_alternative<ld::Assignment>(commands[at])) ++at;
     }
-    // Skip over symbol assignments, which are often used to mark the end of an output section (e.g., _etext = .;).
+    // Skip over symbol assignments, which often mark the end of an output section (e.g., _etext = .;).
     while (at < commands.size() && is_symbol_assignment(commands[at])) ++at;
   }
   commands.emplace(commands.begin() + static_cast<std::ptrdiff_t>(at), std::move(orphan));
@@ -146,18 +146,16 @@ pepp::link::SectionMembers::SectionMembers(const SectionPlacements &placements) 
     return std::pair{assignments[position].output, assignments[position].description};
   });
 
-  // For each id members span [_offsets[id], _offsets[id + 1]).
   _members.reserve(positions.size());
-  // Slot 0 is unused, and we need id+1 entries to prevent an buffer overrun when accessing the maximum id, so we need
-  // to zero a total of outputs+2 elements.
+  // Slot 0 is unused and members() reads _offsets[id + 1], so zero outputs + 2 elements.
   _offsets.assign(outputs + 2, 0);
   // Count the total number of members in each output section.
   for (const auto position : positions) {
     _members.push_back(position);
     ++_offsets[assignments[position].output.value];
   }
-  // Converts from a count at each output section to an offset in our _members array.
-  // _offsets[i] becomes the sum of the counts before it, _offsets[0..i), which is where output i starts.
+  // Convert each count to an offset into _members. _offsets[i] becomes the sum of the counts before it, which is where
+  // output i starts.
   std::exclusive_scan(_offsets.begin(), _offsets.end(), _offsets.begin(), 0u);
 }
 

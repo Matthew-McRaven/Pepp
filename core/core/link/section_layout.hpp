@@ -28,7 +28,7 @@ namespace pepp::link {
 // sections.commands invalidates the result.
 std::vector<tc::ldscript::OutputSectionDescription *> output_sections(tc::ldscript::Sections &sections);
 
-// Represents the size and alignment of a placeable input section.
+// The part of an input section's header read by layout.
 struct SectionExtent {
   u64 size = 0;
   u64 alignment = 1;

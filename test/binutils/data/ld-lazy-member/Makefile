@@ -1,5 +1,5 @@
 # main.o references needed, which lib.a's only member defines.
-# Uses RISC-V binutils by default (e.g. Homebrew's riscv64-elf-binutils); override PREFIX for another one.
+# Override PREFIX to select a different binutils
 PREFIX ?= riscv64-elf-
 AS := $(PREFIX)as
 AR := $(PREFIX)ar

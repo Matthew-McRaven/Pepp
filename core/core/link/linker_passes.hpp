@@ -59,7 +59,7 @@ struct LinkContext {
   bool ok() const { return diagnostics.count(Severity::Error) == 0; }
 };
 
-// For each file ID of the group, Live if not an archive, or Lazy if an archive member.
+// Returns Lazy for each archive member and Live for every other file, indexed by file ID.
 template <bts::ElfBits B, bts::ElfEndian E>
 std::vector<Liveness> default_liveness(const bts::PackedInputElfGroup<B, E> &group) {
   std::vector<Liveness> ret(group.size() + 1);
@@ -70,10 +70,10 @@ std::vector<Liveness> default_liveness(const bts::PackedInputElfGroup<B, E> &gro
   return ret;
 }
 
-// Our equivalent to mold_main, which runs all of the steps of the linking process for a particular config.
-// Stops at the first Fatal diagnostic. Check ok() before using the result.
+// Run every step of the linker for a given config, stopping at the first Fatal diagnostic.
+// Check ok() before using the result.
 LinkContext do_link(LinkConfig &&config);
-// Pretty-print a description of a diagnostic message.
+// Format a diagnostic as a message for the user.
 std::string describe(const LinkContext &context, const Diagnostic &diagnostic);
 
 struct ParsedScripts {
@@ -83,11 +83,10 @@ struct ParsedScripts {
   tc::ldscript::Script script;
 };
 
-// Parse every linker script in inputs, returning the effective linker script and an updated input list. That list
-// replaces each script with the files of its INPUT/GROUP commands. If a path is it is neither an ELF file nor an
-// archive, it is treated as a script. If no input is a LinkInput::Script (from -T), a default script is prepended to
-// the inputs. Stops at the first script that cannot be read or parsed, reporting it
-// as Fatal error.
+// Parse every linker script in inputs. Returns the effective linker script and the updated inputs, with each script
+// replaced by the files of its INPUT/GROUP commands. Treats a path that is neither an ELF file nor an archive as a
+// script. Prepends a default script if no input is a LinkInput::Script (from -T). Stops at the first script that cannot
+// be read or parsed and reports it as Fatal error.
 ParsedScripts parse_scripts(Diagnostics &diagnostics, std::vector<LinkInput> inputs);
 
 // Mark the output at path as executable if the link has no errors. Otherwise, release the output and delete it.
@@ -107,21 +106,20 @@ void link_group(LinkContext &context, const bts::PackedInputElfGroup<B, E> &grou
   if (auto gathered = gather_symbols(diagnostics, group); !gathered) return;
   else inputs = std::move(*gathered);
 
-  // As in mold, perform two passes for symbol resolution.
+  // Resolve symbols in two passes.
   files = default_liveness(group);
-  // The first pass, determines the best definition of each symbol, marking archive members as live if they are used by
-  // another live file. Without archive members, both passes would agree, so skip the first.
-  // Discard this pass's diagnostics so that unused lazy member's undefined references are not errors.
+  // The first pass picks the best definition of each symbol and marks an archive member live if a live file uses it.
+  // Only archive members can be lazy, so this pass can be skipped without archives. Discard this pass's diagnostics so
+  // that an unused lazy member's undefined references are not errors.
   if (std::ranges::find(files, Liveness::Lazy) != files.end()) {
     Diagnostics discarded;
     mark_live_objects(inputs, resolve_symbols(discarded, inputs, files), files);
     std::ranges::replace(files, Liveness::Lazy, Liveness::Excluded);
   }
   // TODO: Merge COMDAT groups.
-  // In the second pass, do not include archive members that are now marked as excluded, which helps avoid undefined
-  // symbol errors.
+  // The second pass leaves out the archive members excluded by the first pass, so their undefined references are not
+  // errors.
   context.symbols = resolve_symbols(diagnostics, inputs, files);
-  //
 
   /*
    * Inspect special sections
@@ -146,10 +144,10 @@ void link_group(LinkContext &context, const bts::PackedInputElfGroup<B, E> &grou
     auto &sections = tc::ldscript::merge_sections(context.script);
     // Assign the live files' sections to the output sections, inserting output sections for orphans.
     context.placements = place_sections(group, files, sections);
-    // Output sections are now frozen
+    /*Output sections are now frozen*/
     // TODO: handle --section-align for over-aligning sections
     // TODO: mark undefined symbols as imports
-    // Symbol tables are now frozen
+    /*Symbol tables are now frozen*/
     // TODO: raise errors for --require-defined poiting to undef symbol.
     // TODO: apply sorting to array sections: .init_array, ._fini_array, .ctors, .dtors
     // TODO: shuffle sections
@@ -157,14 +155,14 @@ void link_group(LinkContext &context, const bts::PackedInputElfGroup<B, E> &grou
     // TODO: extra got/plt/dynsym/etc entries from relocations
     // TODO: sort output sections to minimize segment count
     // TODO: separate debug info??
-    // Compute layout of output sections and construct a map of in->out
+    // Assign addresses to the output sections and offsets to their members.
     lay_out_sections(diagnostics, group, *context.placements, sections);
     // TODO: linker-generated section contents
     // TODO: emit relocations, symtab, strtab, shstrtab, etc
     // TODO: apply linker relaxation, remove redundant thunks. This can adjust the output layout
-    // Memory layout fixed / all symbol addresses are correct
+    /*Memory layout fixed / all symbol addresses are correct*/
     // TODO: compress relevant sections, ensure thunks are coalesced
-    // Memory layout and file layout are fixed
+    /*Memory layout and file layout are fixed*/
     // Compute the file layout, copy the input sections into the output file, then apply relocations there.
     if (!context.ok()) return;
     const auto outputs = output_sections(sections);

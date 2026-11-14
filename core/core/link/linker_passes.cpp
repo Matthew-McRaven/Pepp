@@ -33,8 +33,8 @@ using namespace pepp;
 using namespace pepp::link;
 using bts::InputGroupError;
 
-// Cites the archive's code and offset when there is one, since it is more specific than the group's.
-// Returns false, which is the expected return value of populate() when it calls this function.
+// Report a Fatal error for input, preferring the archive's code and offset because they are more specific than the
+// group's. Returns false to simplify populate().
 bool bad_input(Diagnostics &diagnostics, ConfigInputID input, const InputGroupError &error) {
   if (error.archive)
     diagnostics.add({Severity::Fatal, error.archive->code,
@@ -71,8 +71,7 @@ std::optional<bts::AnyElfGroup> detect_group_type(const std::vector<LinkInput> &
   return std::nullopt;
 }
 
-// Read a linker script and parse it, returning nullopt if it cannot be read or parsed.
-// If the source is a built-in script, it is returned directly.
+// Read and parse a linker script. Returns nullopt if it cannot be read or parsed. Returns a built-in script unchanged.
 std::optional<tc::ldscript::Script> read_script(Diagnostics &diagnostics, const LinkInput::Script &source) {
   if (const auto *built_in = std::get_if<tc::ldscript::Script>(&source.source)) return *built_in;
   const auto &path = std::get<std::filesystem::path>(source.source);
@@ -91,14 +90,14 @@ std::optional<tc::ldscript::Script> read_script(Diagnostics &diagnostics, const 
   return ret;
 }
 
-// Opens a path input, replacing it with the opened file so that later passes need not open it again. A path that cannot
-// be opened is left alone, so that populate() reports why.
+// Open a path input and replace it with the opened file, so that later passes need not open it again. Leave a path that
+// cannot be opened alone so populate() reports a more specific error.
 void open_path(LinkInput &input) {
   const auto *path = std::get_if<std::filesystem::path>(&input.source);
   if (!path) return;
   auto opened = bts::open_input(*path);
   if (opened) input.source = LinkInput::Opened{*path, std::move(*opened)};
-  // A file that is not an elf file nor archive is treated as a linker script.
+  // Treat a file that is neither an ELF file nor an archive as a linker script.
   else if (opened.error().code == InputGroupError::Code::UnknownFormat) input.source = LinkInput::Script{*path};
 }
 
@@ -110,7 +109,7 @@ std::string input_file_name(const decltype(LinkInput::source) &source) {
   return "<memory>";
 }
 
-// Adds every input to group. Returns false if a Fatal error was encountered.
+// Add every input to group. Returns false after a Fatal error.
 template <bts::ElfBits B, bts::ElfEndian E>
 bool populate(Diagnostics &diagnostics, bts::PackedInputElfGroup<B, E> &group, std::vector<LinkInput> inputs) {
   // Eagerly extract archive members (like ELF). Later reachability passes remove unused members from the output.
@@ -146,7 +145,7 @@ bool populate(Diagnostics &diagnostics, bts::PackedInputElfGroup<B, E> &group, s
       } else if (const auto id = group.add(std::get<bts::AnyInputElf>(std::move(opened->file)), opened->path); !id)
         return bad_input(diagnostics, input, id.error());
     } else {
-      // parse_scripts() replaces every script with the files it names, so a script here means it was not called.
+      // parse_scripts() replaces every script with its input files, so a script here means it was not called.
       diagnostics.add({Severity::Fatal, LinkCode::UnparsedScript, input});
       return false;
     }
@@ -154,7 +153,7 @@ bool populate(Diagnostics &diagnostics, bts::PackedInputElfGroup<B, E> &group, s
   return true;
 }
 
-// The name GNU ld gives a file in messages. In-memory files have no name, so are shown as <memory>.
+// Returns the name of a file matching ld's formatting. An in-memory file has no path and prints as <memory>.
 template <bts::ElfBits B, bts::ElfEndian E>
 std::string file_name(const bts::PackedInputElfGroup<B, E> &group, bts::ElfFileID file) {
   const auto &provenance = group.provenance(file);
@@ -237,7 +236,7 @@ std::string pepp::link::describe(const LinkContext &context, const Diagnostic &d
 pepp::link::LinkContext pepp::link::do_link(LinkConfig &&config) {
   LinkContext ret;
   // Parse scripts prior to creating group so that OUTPUT_* directives can determine ELF type.
-  // Scripts are replaced by the files the contain via INPUT/GROUP directives, preserving input order.
+  // Replace scripts with the files of their INPUT/GROUP commands, preserving input order.
   auto [inputs, script] = parse_scripts(ret.diagnostics, std::move(config.inputs));
   ret.script = std::move(script);
   for (const auto &input : inputs) ret.input_names.push_back(input_file_name(input.source));
@@ -249,7 +248,7 @@ pepp::link::LinkContext pepp::link::do_link(LinkConfig &&config) {
   // TODO: remove files named by -exclude-libs
   // TODO: create a dummy file containing linker-synthesized symbols. This file must be at the highest priority
   auto detected = detect_group_type(inputs);
-  // Without an ELF, every input is empty or bad. Just choose an arbitrary input type to a void a null group.
+  // Without an ELF, every input is empty or bad. Choose an arbitrary input type to avoid a null group.
   if (detected) ret.group = std::move(*detected);
   else ret.group = std::make_unique<bts::PackedInputElfGroup<bts::ElfBits::b32, bts::ElfEndian::le>>();
   auto f = [&](auto &ptr) {
@@ -274,13 +273,13 @@ void pepp::link::close_output(LinkContext &context, const std::optional<std::fil
 
 pepp::link::ParsedScripts pepp::link::parse_scripts(Diagnostics &diagnostics, std::vector<LinkInput> inputs) {
   ParsedScripts ret;
-  // Unless a explicit linker script was provided (LinkerInput::Script via -T), insert a default script at the front of
-  // the input list. A script provided posiitonally via filename does not replace the default script.
+  // Unless -T provided a linker script (LinkInput::Script), insert a default script at the front of the inputs. A
+  // script given positionally as a file name does not replace the default script.
+  // TODO: on closer inspect of ld manual, I think this is wrong and default script should be last?
   const auto is_script = [](const LinkInput &input) { return std::holds_alternative<LinkInput::Script>(input.source); };
   if (std::ranges::none_of(inputs, is_script))
     inputs.insert(inputs.begin(), LinkInput{.source = LinkInput::Script{default_pep_script()}});
-  // Unparsed scripts and other inputs. When a script is parsed, the files of its INPUT/GROUP
-  // commands are placed at the front so that input order is preserved.
+  // Parsing a script pushes the files of its INPUT/GROUP commands to the front, which preserves input order.
   std::deque<LinkInput> pending(std::make_move_iterator(inputs.begin()), std::make_move_iterator(inputs.end()));
   while (!pending.empty()) {
     auto next = std::move(pending.front());

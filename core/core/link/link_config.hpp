@@ -36,7 +36,7 @@ struct LinkInput {
   struct Script {
     std::variant<std::filesystem::path, tc::ldscript::Script> source;
   };
-  // A file that has already been mapped into memory. std::filesystem::path should be replaced by this on first open.
+  // A file already mapped into memory. Replaces a std::filesystem::path on first open.
   struct Opened {
     std::filesystem::path path;
     bts::OpenedInput file;
@@ -47,7 +47,7 @@ struct LinkInput {
   bool just_symbols = false;
 };
 
-// Configuration options for the linker that are shared between command-line and library usage.
+// Linker options shared between command line and library usage.
 struct LinkConfig {
   std::vector<LinkInput> inputs;
   // -o
@@ -58,17 +58,16 @@ struct LinkConfig {
   std::vector<std::pair<std::string, u64>> section_start;
   // -m. Set the class+byte-order before reading input files.
   std::optional<std::string> emulation;
-  // Archive file names whose symbols are inelligible for resolution. ALL excludes every archive.
+  // Archive file names whose symbols are ineligible for resolution. ALL excludes every archive.
   std::vector<std::string> exclude_libs;
-  // Keep only the symbols in this list if present. Otherwise, all symbols are kept.
+  // If present, keep only these symbols. Otherwise, keep every symbol.
   std::optional<std::vector<std::string>> retain_symbols;
 };
 
-// The default linker script for Pep8..10
 // TODO: Replace with the built-in Pep default script.
 tc::ldscript::Script default_pep_script();
-// Read a text file as whitespace-separated symbol names, as GNU ld does. nullopt if the file cannot be read.
+// Read whitespace-separated symbol names from a text file. Returns nullopt if the file cannot be read.
 std::optional<std::vector<std::string>> read_symbol_list(const std::filesystem::path &path);
-// Try to parse as `name=address`, where address is a hex value . nullopt if malformed.
+// Parse `name=address`, where address is hexadecimal. Returns nullopt if it is malformed.
 std::optional<std::pair<std::string, u64>> parse_section_start(std::string_view arg);
 } // namespace pepp::link

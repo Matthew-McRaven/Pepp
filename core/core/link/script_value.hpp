@@ -26,8 +26,9 @@
 namespace pepp::link {
 using tc::ldscript::OutputSectionID;
 
-// Represents the value of a linker script expression. ld treats numbers, absolute addresses, and addresses relative to
-// an output section differently (see "The Section of an Expression" in the ld manual).
+// The value of a linker script expression. ld treats numbers, absolute addresses, and addresses relative to an output
+// section differently (see "The Section of an Expression" in the ld manual). We imitate those semantics here.
+// We do not support SANE_EXPR, which I guess means these are technically insane expressions?
 struct ScriptValue {
   enum class Kind : u8 { Number, Absolute, Relative } kind = Kind::Number;
   u64 value = 0;
@@ -35,13 +36,13 @@ struct ScriptValue {
   bool operator==(const ScriptValue &) const = default;
 };
 
-// Represents the state to which a linker script expression may refer.
+// State needed to evaluate linker script expressions.
 struct ScriptContext {
   // The address of the location counter.
   u64 dot = 0;
-  // The output section being laid out, if any. Within it, the location counter is relative to it.
+  // The output section being laid out, if any. Inside it, the location counter is relative to its address.
   OutputSectionID current;
-  // Returns the address of an output section that has already been assigned.
+  // Returns the address of an output section already placed by layout.
   std::function<u64(OutputSectionID)> address_of;
 };
 
@@ -49,7 +50,7 @@ struct ScriptContext {
 ScriptValue location_counter(const ScriptContext &context);
 // Returns the absolute address of a value, with numbers treated as addresses.
 u64 absolute(const ScriptValue &value, const ScriptContext &context);
-// Apply a binary operator, choosing the result.
+// Apply a binary operator and choose the kind of the result.
 std::expected<ScriptValue, tc::expr::NullaryError> combine(tc::expr::BinaryOp op, ScriptValue lhs, ScriptValue rhs,
                                                            const ScriptContext &context);
 // Evaluate a linker script expression. A symbol reference is Symbol_NoValue, since symbols have no values yet.
