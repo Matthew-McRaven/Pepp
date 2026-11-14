@@ -25,6 +25,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <tuple>
 #include <vector>
 #include "./helpers.hpp"
 #include "core/formats/elf/packed_io.hpp"
@@ -66,6 +67,14 @@ ElfFileID add_from_path(PackedInputElfGroupLE32 &group, const std::string &path,
   auto elf = object(names);
   link_test::write_bytes(path, elf_bytes(elf));
   return std::get<ElfFileID>(group.add(std::filesystem::path(path)).value());
+}
+
+// Returns the members of an output section, in order.
+std::vector<InputElfSectionHandle> members_of(const SectionPlacements &placements, OutputSectionID output) {
+  std::vector<InputElfSectionHandle> ret;
+  const auto members = placements.members();
+  for (const auto position : members.members(output)) ret.push_back(placements.sections().handle(position));
+  return ret;
 }
 } // namespace
 
@@ -124,10 +133,8 @@ TEST_CASE("place_sections", "[scope:core][scope:core.link][kind:unit][arch:*]") 
   CHECK_FALSE(placements.sections().contains({a, 1}));
 
   // Members are sorted by description, then by file, then by section index.
-  const auto members = placements.members();
-  const auto text = members.members(OutputSectionID{1});
-  CHECK(Handles(text.begin(), text.end()) == Handles{{a, 3}, {memory, 2}, {a, 2}, {a, 5}});
-  CHECK(members.members(OutputSectionID{}).empty());
+  CHECK(members_of(placements, OutputSectionID{1}) == Handles{{a, 3}, {memory, 2}, {a, 2}, {a, 5}});
+  CHECK(members_of(placements, OutputSectionID{}).empty());
 
   CHECK_THROWS_AS(placements.assign({a, 2}, OutputSectionID{}, InputSectionDescriptionID{2}), std::invalid_argument);
   CHECK_THROWS_AS((placements.assignment_of({excluded, 2})), std::out_of_range);
@@ -175,9 +182,7 @@ SECTIONS {
                                                           ".data", ".zz_awx", ".bss", ".mybss", ".mydata",
                                                           ".debug_info"});
     // Orphans with the same name share an output section, and an orphan joins an empty output section with its name.
-    const auto members = placements.members();
-    const auto mycode = members.members(OutputSectionID{4});
-    CHECK(std::vector(mycode.begin(), mycode.end()) == std::vector<InputElfSectionHandle>{{a, 3}, {b, 2}});
+    CHECK(members_of(placements, OutputSectionID{4}) == std::vector<InputElfSectionHandle>{{a, 3}, {b, 2}});
     CHECK(placements.assignment_of({a, 7}) == SectionAssignment{OutputSectionID{3}, InputSectionDescriptionID{7}});
     // The empty .mydata takes its flags and type from the orphan that joined it.
     const auto named = [&](std::string_view name) {
@@ -237,17 +242,23 @@ TEST_CASE("section layout", "[scope:core][scope:core.link][kind:unit][arch:*]") 
   auto &sections = pepp::tc::ldscript::merge_sections(script);
   auto placements = place_sections(group, files, sections);
   Diagnostics diagnostics;
-  const auto layout = lay_out_sections(diagnostics, group, placements, sections);
+  lay_out_sections(diagnostics, group, placements, sections);
+  using Memory = std::tuple<u64, u64, u64, bool>;
+  const auto outputs = output_sections(sections);
+  const auto memory_of = [&](u32 id) {
+    const auto &output = *outputs.at(id);
+    return Memory{output.vma, output.size, output.alignment, output.empty};
+  };
 
   // .text holds members with alignments 1 and 2, and ALIGN(8) pads .data to 8 bytes. .empty has no members and .bss
   // has only an empty one, so both are left out. Moving the location counter backwards within .back is an error.
-  CHECK(layout.output(OutputSectionID{1}) == OutputRange{0x100, 0x10, 2, false});
-  CHECK(layout.output(OutputSectionID{2}) == OutputRange{0x110, 8, 1, false});
-  CHECK(layout.output(OutputSectionID{3}).empty);
-  CHECK(layout.output(OutputSectionID{4}).empty);
-  CHECK(layout.output(OutputSectionID{5}) == OutputRange{0x118, 0x10, 1, false});
-  CHECK(layout.address_of(placements, {a, 2}) == 0x100);
-  CHECK(layout.address_of(placements, {b, 2}) == 0x108);
+  CHECK(memory_of(1) == Memory{0x100, 0x10, 2, false});
+  CHECK(memory_of(2) == Memory{0x110, 8, 1, false});
+  CHECK(outputs.at(3)->empty);
+  CHECK(outputs.at(4)->empty);
+  CHECK(memory_of(5) == Memory{0x118, 0x10, 1, false});
+  CHECK(placements.assignment_of({a, 2}).offset == 0);
+  CHECK(placements.assignment_of({b, 2}).offset == 8);
   const auto entries = link_test::entries_of(diagnostics);
   REQUIRE(entries.size() == 1);
   CHECK(entries[0].code == DiagnosticCode{LinkCode::LocationCounterBackwards});

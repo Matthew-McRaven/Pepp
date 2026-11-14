@@ -132,7 +132,6 @@ u32 pepp::link::SectionPlacements::position_of(InputElfSectionHandle handle) con
 
 pepp::link::SectionMembers::SectionMembers(const SectionPlacements &placements) {
   const auto assignments = placements.assignments();
-  const auto handles = placements.sections().handles();
   // Collect the indices of all assigned sections and track total number of output sections.
   std::vector<u32> positions;
   u32 outputs = 0;
@@ -143,7 +142,9 @@ pepp::link::SectionMembers::SectionMembers(const SectionPlacements &placements) 
   }
   // Sort by output section then description. Ties within a description preserve the group's order,
   // which gives us sorting by file order and section index order within a file for free.
-  std::ranges::stable_sort(positions, {}, [&](u32 position) { return assignments[position]; });
+  std::ranges::stable_sort(positions, {}, [&](u32 position) {
+    return std::pair{assignments[position].output, assignments[position].description};
+  });
 
   // For each id members span [_offsets[id], _offsets[id + 1]).
   _members.reserve(positions.size());
@@ -152,7 +153,7 @@ pepp::link::SectionMembers::SectionMembers(const SectionPlacements &placements) 
   _offsets.assign(outputs + 2, 0);
   // Count the total number of members in each output section.
   for (const auto position : positions) {
-    _members.push_back(handles[position]);
+    _members.push_back(position);
     ++_offsets[assignments[position].output.value];
   }
   // Converts from a count at each output section to an offset in our _members array.
@@ -160,7 +161,7 @@ pepp::link::SectionMembers::SectionMembers(const SectionPlacements &placements) 
   std::exclusive_scan(_offsets.begin(), _offsets.end(), _offsets.begin(), 0u);
 }
 
-std::span<const pepp::bts::InputElfSectionHandle> pepp::link::SectionMembers::members(OutputSectionID output) const {
+std::span<const u32> pepp::link::SectionMembers::members(OutputSectionID output) const {
   if (!output || output.value >= _offsets.size() - 1) return {};
   const u32 first = _offsets[output.value];
   return std::span(_members).subspan(first, _offsets[output.value + 1] - first);

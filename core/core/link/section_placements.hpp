@@ -40,11 +40,12 @@ using bts::InputElfSectionHandle;
 using tc::ldscript::OutputSectionID;
 using tc::ldscript::InputSectionDescriptionID;
 
-// Record to which output section an input section is mapped plus a key by which to sort the output(description). The
-// input section is implicit.
+// The placement of an input section within the output. The input section is implicit.
 struct SectionAssignment {
   OutputSectionID output;
   InputSectionDescriptionID description;
+  // The input section's offset within its output section. Set by lay_out_sections.
+  u64 offset = 0;
 
   auto operator<=>(const SectionAssignment &) const = default;
   bool operator==(const SectionAssignment &) const = default;
@@ -72,6 +73,8 @@ public:
 
   // Assign a section that is not yet assigned. Throws std::invalid_argument if output is invalid.
   void assign(InputElfSectionHandle handle, OutputSectionID output, InputSectionDescriptionID description);
+  // position indexes sections().
+  void set_offset(u32 position, u64 offset) { _assignments.at(position).offset = offset; }
   // The assigned sections, grouped by output section. Build it once every description is matched.
   SectionMembers members() const;
 
@@ -81,23 +84,23 @@ private:
   std::vector<SectionAssignment> _assignments;
 };
 
-// The sorted input sections of each output section. Sorted first by description, then by file order in group, then by
-// section index within their file. This should match GNU ld's sorting.
+// The input sections of each output section, as positions in SectionPlacements::sections(). They sort by description,
+// then by file order in group, then by section index, which matches GNU ld.
 class SectionMembers {
 public:
   // Empty for an unknown ID.
-  std::span<const InputElfSectionHandle> members(OutputSectionID output) const;
+  std::span<const u32> members(OutputSectionID output) const;
 
 private:
   friend class SectionPlacements;
   explicit SectionMembers(const SectionPlacements &placements);
-  std::vector<InputElfSectionHandle> _members;
+  std::vector<u32> _members;
   // _members[_offsets[id], _offsets[id + 1]) are output section id's members. Index 0 is unused.
   std::vector<u32> _offsets;
 };
 
-// Merge a member's flags and type into those of its output section description. The type becomes SHT_PROGBITS if
-// members' types differ.
+// Merge a member's flags, type, alignment, and whether it has contents into those of its output section description.
+// The type becomes SHT_PROGBITS if members' types differ.
 template <ElfBits B, ElfEndian E>
 void merge_member(tc::ldscript::OutputSectionDescription &output, const bts::PackedInputElfGroup<B, E> &group,
                   InputElfSectionHandle member) {
@@ -105,6 +108,8 @@ void merge_member(tc::ldscript::OutputSectionDescription &output, const bts::Pac
   const auto &header = group.file(member.file).section_headers[member.index];
   const auto type = static_cast<bts::SectionTypes>(u32(header.sh_type));
   output.flags |= bts::word<B>(header.sh_flags);
+  output.alignment = std::max<u64>(output.alignment, bts::word<B>(header.sh_addralign));
+  output.has_contents |= header.sh_size != 0;
   if (output.type == SHT_NULL) output.type = type;
   else if (output.type != type) output.type = SHT_PROGBITS;
 }

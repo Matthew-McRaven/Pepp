@@ -45,8 +45,6 @@ struct LinkContext {
   ResolvedSymbols symbols;
   // The output section of each placeable input section. Empty when the link stopped before placement.
   std::optional<SectionPlacements> placements;
-  // The memory layout of the output. Empty when the link stopped before layout.
-  std::optional<SectionLayout> layout;
 
   // True if the link produced no Error or Fatal diagnostics.
   bool ok() const { return diagnostics.count(Severity::Error) == 0; }
@@ -148,7 +146,7 @@ void link_group(LinkContext &context, const bts::PackedInputElfGroup<B, E> &grou
     // TODO: sort output sections to minimize segment count
     // TODO: separate debug info??
     // Compute layout of output sections and construct a map of in->out
-    context.layout = lay_out_sections(diagnostics, group, *context.placements, sections);
+    lay_out_sections(diagnostics, group, *context.placements, sections);
     // TODO: linker-generated section contents
     // TODO: emit relocations, symtab, strtab, shstrtab, etc
     // TODO: apply linker relaxation, remove redundant thunks. This can adjust the output layout

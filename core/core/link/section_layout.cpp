@@ -65,14 +65,12 @@ void apply_assignment(pepp::link::Diagnostics &diagnostics, ScriptContext &conte
   context.dot = next;
 }
 
-// Place an output section and its members in memory while recording them in layout.
-void place_output(pepp::link::Diagnostics &diagnostics, ScriptContext &context, pepp::link::SectionLayout &layout,
-                  const pepp::link::SectionPlacements &placements,
-                  std::span<const pepp::bts::InputElfSectionHandle> members,
+// Place an output section and its members in memory.
+void place_output(pepp::link::Diagnostics &diagnostics, ScriptContext &context,
+                  pepp::link::SectionPlacements &placements, std::span<const u32> members,
                   const std::function<pepp::link::SectionExtent(pepp::bts::InputElfSectionHandle)> &extent_of,
-                  const ld::OutputSectionDescription &output) {
+                  ld::OutputSectionDescription &output) {
   using enum pepp::bts::SectionTypes;
-  auto &range = layout.output(output.id);
   const auto is_assignment_to = [](const ld::OutputSectionDescription::Command &command, bool dot) {
     const auto *assignment = std::get_if<ld::Assignment>(&command);
     return assignment && (assignment->symbol == ".") == dot;
@@ -83,28 +81,26 @@ void place_output(pepp::link::Diagnostics &diagnostics, ScriptContext &context, 
       std::ranges::any_of(output.commands, [&](const auto &it) { return is_assignment_to(it, false); });
   // An output section whose members are all size 0 is discared, and its address is ignored
   // unless it defines symbols.
-  const bool empty = std::ranges::all_of(members, [&](auto member) { return extent_of(member).size == 0; });
-  if (empty && !assigns_dot) {
-    range.empty = true;
+  if (!output.has_contents && !assigns_dot) {
+    output.empty = true;
     if (!defines_symbols) return;
   }
 
-  for (const auto member : members) range.alignment = std::max(range.alignment, extent_of(member).alignment);
   // Non-allocated output sections are not part of the program's memory, so they start at 0 and do not move `.`.
   const auto alloc = static_cast<u64>(pepp::bts::SectionFlags::SHF_ALLOC);
   const bool allocated = output.type == SHT_NULL || (output.flags & alloc) != 0;
   const u64 saved_dot = context.dot;
   if (!allocated) context.dot = 0;
-  range.address = bits::align_up(context.dot, range.alignment);
+  output.vma = bits::align_up(context.dot, output.alignment);
   if (output.address) {
-    if (const auto address = evaluate(*output.address, context)) range.address = absolute(*address, context);
+    if (const auto address = evaluate(*output.address, context)) output.vma = absolute(*address, context);
     else {
       const ScriptMessage at{{}, output.source_interval, address.error().message()};
       diagnostics.add({Severity::Error, LinkCode::BadExpression, at});
     }
   }
 
-  context.dot = range.address;
+  context.dot = output.vma;
   context.current = output.id;
   auto next = members.begin();
   for (const auto &command : output.commands) {
@@ -113,51 +109,43 @@ void place_output(pepp::link::Diagnostics &diagnostics, ScriptContext &context, 
     else {
       // Members are sorted by description, so this description's members come next.
       const auto id = std::get<ld::InputSectionDescription>(command).id;
-      for (; next != members.end() && placements.assignment_of(*next).description == id; ++next) {
-        const auto extent = extent_of(*next);
+      for (; next != members.end(); ++next) {
+        if (placements.assignments()[*next].description != id) break;
+        const auto extent = extent_of(placements.sections().handle(*next));
         context.dot = bits::align_up(context.dot, extent.alignment);
-        layout.set_offset(*placements.sections().position(*next), context.dot - range.address);
+        placements.set_offset(*next, context.dot - output.vma);
         context.dot += extent.size;
       }
     }
   }
-  range.size = context.dot - range.address;
+  output.size = context.dot - output.vma;
   context.current = {};
   if (!allocated) context.dot = saved_dot;
 }
 } // namespace
 
-pepp::link::SectionLayout::SectionLayout(u32 outputs, const SectionPlacements &placements)
-    : _outputs(outputs + 1), _offsets(placements.sections().size()) {}
-
-u64 pepp::link::SectionLayout::offset_of(const SectionPlacements &placements, InputElfSectionHandle handle) const {
-  const auto position = placements.sections().position(handle);
-  if (!position) throw std::out_of_range("SectionLayout: section not covered");
-  return _offsets.at(*position);
+std::vector<ld::OutputSectionDescription *> pepp::link::output_sections(tc::ldscript::Sections &sections) {
+  std::vector<ld::OutputSectionDescription *> ret(1, nullptr);
+  for (auto &command : sections.commands)
+    if (auto *output = std::get_if<ld::OutputSectionDescription>(&command)) {
+      if (output->id.value >= ret.size()) ret.resize(output->id.value + 1, nullptr);
+      ret[output->id.value] = output;
+    }
+  return ret;
 }
 
-u64 pepp::link::SectionLayout::address_of(const SectionPlacements &placements, InputElfSectionHandle handle) const {
-  return output(placements.assignment_of(handle).output).address + offset_of(placements, handle);
-}
-
-pepp::link::SectionLayout
-pepp::link::lay_out_sections(Diagnostics &diagnostics, const SectionPlacements &placements,
-                             const std::function<SectionExtent(InputElfSectionHandle)> &extent_of,
-                             const tc::ldscript::Sections &sections) {
-  u32 outputs = 0;
-  for (const auto &command : sections.commands)
-    if (const auto *output = std::get_if<ld::OutputSectionDescription>(&command))
-      outputs = std::max(outputs, output->id.value);
-  SectionLayout ret(outputs, placements);
+void pepp::link::lay_out_sections(Diagnostics &diagnostics, SectionPlacements &placements,
+                                  const std::function<SectionExtent(InputElfSectionHandle)> &extent_of,
+                                  tc::ldscript::Sections &sections) {
+  const auto outputs = output_sections(sections);
   const auto members = placements.members();
-  ScriptContext context{.address_of = [&ret](OutputSectionID id) { return ret.output(id).address; }};
-  for (const auto &command : sections.commands) {
+  ScriptContext context{.address_of = [&outputs](OutputSectionID id) { return outputs.at(id.value)->vma; }};
+  for (auto &command : sections.commands) {
     if (const auto *assignment = std::get_if<ld::Assignment>(&command))
       apply_assignment(diagnostics, context, *assignment);
     else {
-      const auto &output = std::get<ld::OutputSectionDescription>(command);
-      place_output(diagnostics, context, ret, placements, members.members(output.id), extent_of, output);
+      auto &output = std::get<ld::OutputSectionDescription>(command);
+      place_output(diagnostics, context, placements, members.members(output.id), extent_of, output);
     }
   }
-  return ret;
 }
