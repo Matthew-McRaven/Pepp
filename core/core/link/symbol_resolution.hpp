@@ -195,6 +195,8 @@ public:
   const Symbol &symbol(SymbolID id) const;
   // The merged size and alignment of id if its owner is a common definition, or nullopt.
   std::optional<CommonSize> common(SymbolID id) const;
+  // Search all symbols to find a definition matching name, otherwise return STN_UNDEF.
+  SymbolID find(std::string_view name) const;
   // The best ranked foo@@V definition that a foo@V or foo entry forwards to. STN_UNDEF if not forwarded.
   InputSymbolID provider(InputSymbolID id) const;
 

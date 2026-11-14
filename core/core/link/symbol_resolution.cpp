@@ -339,6 +339,14 @@ pepp::link::InputSymbolID pepp::link::ResolvedSymbols::provider(InputSymbolID id
   return _forward.empty() ? InputSymbolID{} : _forward[_of[id.value].value].provider;
 }
 
+pepp::link::SymbolID pepp::link::ResolvedSymbols::find(std::string_view name) const {
+  // Skip STN_UNDEF by offseting by 1, since it has no name.
+  const auto it = std::find(_names.begin() + 1, _names.end(), name);
+  if (it == _names.end()) return SymbolID{};
+  const SymbolID symbol(static_cast<u32>(it - _names.begin()));
+  return _forward.empty() || !_forward[symbol.value].into ? symbol : _forward[symbol.value].into;
+}
+
 std::string_view pepp::link::ResolvedSymbols::name(SymbolID id) const {
   if (id.value >= _names.size()) throw std::out_of_range("ResolvedSymbols: no symbol with this ID");
   return _names[id.value];
