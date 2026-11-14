@@ -46,6 +46,8 @@ enum class LinkCode : u8 {
   BadExpression,
   // An assignment moved the location counter backwards within an output section. The subject is a ScriptMessage.
   LocationCounterBackwards,
+  // The output file could not be created or mapped. The subject is a ScriptMessage with the offending file.
+  CannotWriteOutput,
 };
 
 // Errors during symbol resolution.

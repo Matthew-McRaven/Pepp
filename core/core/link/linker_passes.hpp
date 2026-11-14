@@ -17,6 +17,8 @@
 
 #pragma once
 #include <algorithm>
+#include <filesystem>
+#include <memory>
 #include <optional>
 #include <string>
 #include <utility>
@@ -25,6 +27,8 @@
 #include "core/formats/elf/packed_input_group.hpp"
 #include "core/link/diagnostics.hpp"
 #include "core/link/link_config.hpp"
+#include "core/link/link_view.hpp"
+#include "core/link/output_file.hpp"
 #include "core/link/section_layout.hpp"
 #include "core/link/section_placements.hpp"
 #include "core/link/symbol_resolution.hpp"
@@ -45,6 +49,9 @@ struct LinkContext {
   ResolvedSymbols symbols;
   // The output section of each placeable input section. Empty when the link stopped before placement.
   std::optional<SectionPlacements> placements;
+  // The linked executable. It is the file at LinkConfig::output, or an anonymous mapping otherwise. Null when
+  // the link stopped before it was created, or had errors.
+  std::shared_ptr<bts::MappedFile> output;
 
   // True if the link produced no Error or Fatal diagnostics.
   bool ok() const { return diagnostics.count(Severity::Error) == 0; }
@@ -81,10 +88,13 @@ struct ParsedScripts {
 // as Fatal error.
 ParsedScripts parse_scripts(Diagnostics &diagnostics, std::vector<LinkInput> inputs);
 
+// Mark the output at path as executable if the link has no errors. Otherwise, release the output and delete it.
+void close_output(LinkContext &context, const std::optional<std::filesystem::path> &path);
+
 // The steps of do_link that run once the inputs are in a group.
 // TODO: still missing many steps.
 template <bts::ElfBits B, bts::ElfEndian E>
-void link_group(LinkContext &context, const bts::PackedInputElfGroup<B, E> &group) {
+void link_group(LinkContext &context, const bts::PackedInputElfGroup<B, E> &group, const LinkConfig &config) {
   auto &diagnostics = context.diagnostics;
   auto &inputs = context.inputs;
   auto &files = context.files;
@@ -153,7 +163,13 @@ void link_group(LinkContext &context, const bts::PackedInputElfGroup<B, E> &grou
     // Memory layout fixed / all symbol addresses are correct
     // TODO: compress relevant sections, ensure thunks are coalesced
     // Memory layout and file layout are fixed
-    // TODO: begin the bit copying, apply relocations as we go
+    // Compute the file layout, then copy the input sections into the output file.
+    // TODO: apply relocations as we go
+    if (!context.ok()) return;
+    const auto outputs = output_sections(sections);
+    const LinkView<B, E> link{group, files, inputs, context.symbols, *context.placements, outputs};
+    context.output = create_executable_output(diagnostics, link, sections, config.output);
+    close_output(context, config.output);
   }
 }
 } // namespace pepp::link

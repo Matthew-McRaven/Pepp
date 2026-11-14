@@ -139,6 +139,8 @@ struct OutputSectionDescription {
   bool empty = false;
   // Input sections assigned to this section (/DISCARD/) shall not be placed in the output file. Set during layout.
   bool discard = false;
+  // The section header index in the output file. 0 if not included in thr output.
+  u16 shndx = 0;
 };
 
 // The SECTIONS command, which maps input sections into output sections.

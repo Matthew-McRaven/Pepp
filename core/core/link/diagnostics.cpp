@@ -28,6 +28,7 @@ std::string_view to_string(LinkCode code) {
   case LinkCode::UnparsedScript: return "linker script was not parsed";
   case LinkCode::BadExpression: return "invalid linker script expression";
   case LinkCode::LocationCounterBackwards: return "cannot move location counter backwards";
+  case LinkCode::CannotWriteOutput: return "cannot write output file";
   }
   return "unknown error";
 }

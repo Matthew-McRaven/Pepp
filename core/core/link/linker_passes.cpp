@@ -247,10 +247,21 @@ pepp::link::LinkContext pepp::link::do_link(LinkConfig &&config) {
   auto f = [&](auto &ptr) {
     if (!populate(ret.diagnostics, *ptr, std::move(inputs))) return;
     else if (!detected) ret.diagnostics.add({Severity::Fatal, LinkCode::NoInputs});
-    else link_group(ret, *ptr);
+    else link_group(ret, *ptr, config);
   };
   std::visit(f, ret.group);
   return ret;
+}
+
+void pepp::link::close_output(LinkContext &context, const std::optional<std::filesystem::path> &path) {
+  namespace fs = std::filesystem;
+  static const auto out_perms = fs::perms::owner_exec | fs::perms::group_exec | fs::perms::others_exec;
+  std::error_code ignored;
+  if (!context.ok()) {
+    // Must release the file before deleting it, else Windows will fail for memory-mapped files.
+    context.output.reset();
+    if (path) fs::remove(*path, ignored);
+  } else if (path) fs::permissions(*path, out_perms, fs::perm_options::add, ignored);
 }
 
 pepp::link::ParsedScripts pepp::link::parse_scripts(Diagnostics &diagnostics, std::vector<LinkInput> inputs) {
