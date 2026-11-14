@@ -24,6 +24,7 @@
 #include <string_view>
 #include <vector>
 #include "core/formats/ar/packed_archive.hpp"
+#include "core/formats/elf/packed_access_relocations.hpp"
 #include "core/formats/elf/packed_io.hpp"
 #include "core/formats/elf/packed_ops.hpp"
 #include "core/link/symbol_resolution.hpp"
@@ -103,12 +104,23 @@ struct SymbolSpec {
   u32 value = 0;
 };
 
+// A relocation of the section at index target.
+struct RelaSpec {
+  u16 target;
+  u32 offset;
+  RelocationsPep type;
+  std::string_view symbol;
+  i32 addend = 0;
+};
+
 // Returns an object with null, .shstrtab, then a section for each spec, so that the first spec is section 2. A symbol
-// table follows.
-inline AnyInputElf object_with(std::initializer_list<SectionSpec> specs, std::initializer_list<SymbolSpec> symbols) {
+// table and relocation sections follow.
+inline AnyInputElf object_with(std::initializer_list<SectionSpec> specs, std::initializer_list<SymbolSpec> symbols,
+                               std::initializer_list<RelaSpec> relocations = {}) {
   auto elf = elf_with(specs);
   const auto strtab = add_named_section(elf, ".strtab", SectionTypes::SHT_STRTAB);
-  PackedSymbolWriter<ElfBits::b32, ElfEndian::le> writer(elf, add_named_symtab(elf, ".symtab", strtab));
+  const auto symtab = add_named_symtab(elf, ".symtab", strtab);
+  PackedSymbolWriter<ElfBits::b32, ElfEndian::le> writer(elf, symtab);
   for (const auto &spec : symbols) {
     PackedElfSymbol<ElfBits::b32, ElfEndian::le> symbol;
     symbol.set_bind(SymbolBinding::STB_GLOBAL);
@@ -116,6 +128,11 @@ inline AnyInputElf object_with(std::initializer_list<SectionSpec> specs, std::in
     writer.add_symbol(std::move(symbol), spec.name, spec.section);
   }
   writer.arrange_local_symbols();
+  for (const auto &spec : relocations) {
+    const auto name = ".rela" + std::string(section_name(elf, spec.target));
+    PackedRelocationWriter<ElfBits::b32, ElfEndian::le> rela(elf, add_named_rela(elf, name, symtab, spec.target));
+    rela.add_rela(spec.offset, bits::to_underlying(spec.type), writer.find_symbol(spec.symbol), spec.addend);
+  }
   return to_input_elf(elf);
 }
 

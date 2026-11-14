@@ -23,8 +23,8 @@
 
 namespace pepp::link {
 
-// Create a symbol definition in the output file for a given input definition. False if undefined, common, or if its'
-// containing section is discarded.
+// Return the symbol definition in the output file for a given input definition.
+// False if undefined, common, or if its' containing section is discarded.
 // TODO: common symbols have no address until they are allocated in .bss.
 template <ElfBits B, ElfEndian E>
 OutputSymbolDefinition input_symbol_definition(const LinkView<B, E> &link, bts::ElfFileID file,

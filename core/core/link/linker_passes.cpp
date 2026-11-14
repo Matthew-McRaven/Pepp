@@ -200,6 +200,11 @@ template <class Group> struct Describe {
     else if (is(SymbolCode::Undefined)) return fmt::format("{}: undefined reference to `{}'", file_of(id), name_of(id));
     return fmt::format("{}: {}", file_of(id), code());
   }
+  std::string operator()(const RelocationSite &at) const {
+    if (!group) return std::string(code());
+    const auto name = bts::section_name(group->file(at.section.file), at.section.index);
+    return fmt::format("{}:({}+{:#x}): {}", file_name(*group, at.section.file), name, at.offset, code());
+  }
   std::string operator()(const EntryFallback &entry) const {
     return fmt::format("{} {}; defaulting to {:#x}", code(), entry.symbol, entry.address);
   }

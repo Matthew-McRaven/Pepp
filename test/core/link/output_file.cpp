@@ -32,8 +32,11 @@
 namespace {
 using namespace link_test;
 
-// Link two objects with a script, which has both a gap between members and padding after the last one.
-LinkContext link(std::optional<std::string> entry) {
+// Link two objects with a script, which has both a gap between members and padding after the last one. The first
+// object's .text is relocated against symbol. The second object defines value in .data, none in an empty section, and
+// dead in a discarded one.
+LinkContext link(std::optional<std::string> entry, RelocationsPep type = RelocationsPep::R_PEP10_ABS16,
+                 std::string_view symbol = "value") {
   using enum SectionFlags;
   using enum SectionTypes;
   using namespace bits;
@@ -44,6 +47,7 @@ SECTIONS {
   .data : { *(.data) }
   .none : { *(.none) }
   .bss : { *(.bss) }
+  /DISCARD/ : { *(.gone) }
 })");
   REQUIRE(diag.count() == 0);
   LinkConfig config;
@@ -51,10 +55,12 @@ SECTIONS {
   config.inputs.push_back({LinkInput::Script{std::move(script)}});
   config.inputs.push_back({object_with({{".text", SHT_PROGBITS, SHF_ALLOC | SHF_EXECINSTR, 0, 1, {1, 2, 3}},
                                         {".bss", SHT_NOBITS, SHF_ALLOC | SHF_WRITE, 4}},
-                                       {{"main", 2, 1}})});
+                                       {{"main", 2, 1}, {"value"}, {"none"}, {"dead"}}, {{2, 1, type, symbol, 2}})});
   config.inputs.push_back({object_with({{".text", SHT_PROGBITS, SHF_ALLOC | SHF_EXECINSTR, 0, 4, {4, 5}},
-                                        {".data", SHT_PROGBITS, SHF_ALLOC | SHF_WRITE, 0, 1, {6}}},
-                                       {{"value", 3, 0}})});
+                                        {".data", SHT_PROGBITS, SHF_ALLOC | SHF_WRITE, 0, 1, {6}},
+                                        {".none", SHT_PROGBITS, SHF_ALLOC | SHF_WRITE},
+                                        {".gone", SHT_PROGBITS, SHF_ALLOC | SHF_WRITE, 0, 1, {9}}},
+                                       {{"value", 3, 0}, {"none", 4, 0}, {"dead", 5, 0}})});
   return do_link(std::move(config));
 }
 
@@ -98,9 +104,10 @@ TEST_CASE("Executable linker outputs", "[scope:core][scope:core.link][kind:int][
                         {".bss", to_underlying(SHT_NOBITS), to_underlying(SHF_ALLOC | SHF_WRITE), 0x109, 4},
                     });
   CHECK(elf.section_headers[2].sh_addralign == 4);
-  // The second member is aligned to 4, and ALIGN(8) pads the end of the section.
+  // The second member is aligned to 4, and ALIGN(8) pads the end of the section. The relocation wrote value + 2,
+  // which is 0x10a, over bytes 1 and 2 in the file's byte order.
   const auto text = section_bytes(elf, 2);
-  CHECK(std::vector<u8>(text.begin(), text.end()) == std::vector<u8>{1, 2, 3, 0, 4, 5, 0, 0});
+  CHECK(std::vector<u8>(text.begin(), text.end()) == std::vector<u8>{1, 0x0a, 0x01, 0, 4, 5, 0, 0});
 
   // .text is loaded on its own. .bss extends the memory of .data's segment.
   std::vector<Segment> segments;
@@ -138,4 +145,18 @@ TEST_CASE("Executable linker outputs", "[scope:core][scope:core.link][kind:int][
   CHECK(entry_point(fallback) == 0x100);
   // An entry that is not a symbol is read as an integer literal.
   CHECK(entry_point(link("10")) == 10);
+
+  // Truncated values are errors.
+  auto truncated = link(std::nullopt, RelocationsPep::R_PEP10_ABS8);
+  CHECK(entries_of(truncated.diagnostics) ==
+        std::vector<Diagnostic>{{Severity::Error, RelocationCode::Truncated, RelocationSite{{ElfFileID{1}, 2}, 1}}});
+
+  // Though the symbol is in an empty output section it still has an address of of 0x109. Relocation adds plus 2.
+  auto empty = link(std::nullopt, RelocationsPep::R_PEP10_ABS16, "none");
+  const auto relocated = reread<ElfBits::b32, ElfEndian::le>(empty);
+  CHECK(section_bytes(relocated, 2)[1] == 0x0b);
+  // A symbol in a discarded section has no address.
+  auto discarded = link(std::nullopt, RelocationsPep::R_PEP10_ABS16, "dead");
+  CHECK(entries_of(discarded.diagnostics) == std::vector<Diagnostic>{{Severity::Error, RelocationCode::NoSymbolAddress,
+                                                                      RelocationSite{{ElfFileID{1}, 2}, 1}}});
 }

@@ -22,7 +22,7 @@ DATA = pathlib.Path(__file__).parent / "data/ld-lazy-member"
 
 # Each case is the command-line arguments and whether the command should succeed. {out} is a scratch output file.
 CASES = {
-    # Every option is accepted, though the linker ignores most of them for now.
+    # Every option is accepted, though the linker ignores most of them for now. main.o needs an R_RISCV_32.
     "every option": (["-o", "{out}", "-e", "_start", "--section-start=.text=0x100", "--exclude-libs", "a.a,b.a",
                       "--exclude-libs", "ALL", "--retain-symbols-file", "retained.txt", "-R", "lib.a", "main.o",
                       "lib.a"], True),

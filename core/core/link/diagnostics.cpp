@@ -53,9 +53,11 @@ std::string_view to_string(SymbolCode code) {
 std::string_view to_string(RelocationCode code) {
   using enum RelocationCode;
   switch (code) {
+  case NotRela: return "relocations without addends are not supported";
   case UnsupportedType: return "unsupported relocation type";
   case Truncated: return "relocation truncated to fit";
   case BadOffset: return "relocation offset is outside of its section";
+  case NoSymbolAddress: return "relocation against a symbol without an address";
   }
   return "unknown error";
 }

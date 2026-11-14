@@ -30,15 +30,18 @@
 #include "core/langs/ldscript/ir.hpp"
 #include "core/link/diagnostics.hpp"
 #include "core/link/link_view.hpp"
+#include "core/link/section_relocations.hpp"
 #include "core/link/symtab.hpp"
 
 namespace pepp::link {
 
 // Assign views over file to each output section's data. Then copy all input sections' data into the corresponding
-// output sections.
+// output sections, applying relocations to members as they are copied.
 template <ElfBits B, ElfEndian E>
-void write_sections(const LinkView<B, E> &link, bts::PackedGrowableElfFile<B, E> &elf, bts::MappedFile &file) {
+void write_sections(Diagnostics &diagnostics, const LinkView<B, E> &link, bts::PackedGrowableElfFile<B, E> &elf,
+                    bts::MappedFile &file) {
   const auto members = link.placements.members();
+  const auto relocations = relocation_section_indices(link);
   for (u32 id = 1; id < link.outputs.size(); ++id) {
     const auto index = link.outputs[id]->shndx;
     const auto &header = elf.section_headers[index];
@@ -54,14 +57,17 @@ void write_sections(const LinkView<B, E> &link, bts::PackedGrowableElfFile<B, E>
       const auto to = data->get(link.placements.assignments()[position].offset, from.size());
       if (to.size() != from.size()) throw std::runtime_error("could not map an output section");
       std::ranges::copy(from, to.begin());
+      if (relocations[position] != 0)
+        apply_relocations(diagnostics, link, {member.file, relocations[position]}, member, to);
     }
     slice->flush();
   }
 }
 
-// Write an ET_EXEC with each output section that has contents, in script order. A PT_LOAD is created for each
-// run of allocated sections. Path is the destination executable file. If path is nullopt, the mapping is anonymous.
-// Returns nullptr if the output cannot be mapped.
+// Write an ET_EXEC with a section for each output section that has contents, in script order, a PT_LOAD for each run
+// of allocated sections, and a symbol table. The data of each output section is a mapping of the file at path, so
+// members are copied once and relocated in place. If path is nullopt, the mapping is anonymous. Returns nullptr if the
+// output cannot be mapped.
 template <ElfBits B, ElfEndian E>
 std::shared_ptr<bts::MappedFile> create_executable_output(Diagnostics &diagnostics, const LinkView<B, E> &link,
                                                           tc::ldscript::Sections &sections, u64 entry,
@@ -123,7 +129,7 @@ std::shared_ptr<bts::MappedFile> create_executable_output(Diagnostics &diagnosti
       image->flush();
     }
     // A new file and an anonymous mapping both read as 0, which fills the gaps between members.
-    write_sections(link, *elf, *ret);
+    write_sections(diagnostics, link, *elf, *ret);
     return ret;
   } catch (const std::runtime_error &) {
     const ScriptMessage at{path ? path->string() : std::string()};

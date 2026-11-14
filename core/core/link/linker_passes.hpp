@@ -165,8 +165,7 @@ void link_group(LinkContext &context, const bts::PackedInputElfGroup<B, E> &grou
     // Memory layout fixed / all symbol addresses are correct
     // TODO: compress relevant sections, ensure thunks are coalesced
     // Memory layout and file layout are fixed
-    // Compute the file layout, then copy the input sections into the output file.
-    // TODO: apply relocations as we go
+    // Compute the file layout, copy the input sections into the output file, then apply relocations there.
     if (!context.ok()) return;
     const auto outputs = output_sections(sections);
     LinkView<B, E> link{group, files, inputs, context.symbols, *context.placements, outputs};

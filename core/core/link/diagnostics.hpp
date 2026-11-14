@@ -70,14 +70,17 @@ enum class SymbolCode : u8 {
   Undefined,
 };
 
-// Errors while applying relocations.
+// Errors while applying relocations. The subject is a RelocationSite.
 enum class RelocationCode : u8 {
+  NotRela,
   // The relocation type is unknown for the file's machine.
   UnsupportedType,
   // The value does not fit in the bytes that the relocation writes.
   Truncated,
   // r_offset is outside of the section.
   BadOffset,
+  // The symbol has no address (e.g., it is in a section that is not part of the output).
+  NoSymbolAddress,
 };
 
 // Errors could stem from the linker itself, our attempt to open files as a group or archive.
@@ -114,10 +117,18 @@ struct EntryFallback {
   bool operator==(const EntryFallback &) const = default;
 };
 
+// The target offset of a relocation applied to an input section. For NotRela, section is the relocation section.
+struct RelocationSite {
+  bts::InputElfSectionHandle section;
+  u64 offset = 0;
+  bool operator==(const RelocationSite &) const = default;
+};
+
 // What entity caused the error? monostate means the diagnostic can't be narrowed down to an item like a symbol or a
 // file offset.
 using DiagnosticSubject = std::variant<std::monostate, ConfigInputID, ConfigInputOffset, ScriptMessage,
-                                       bts::InputElfSymbolHandle, InputSymbolID, SymbolConflict, EntryFallback>;
+                                       bts::InputElfSymbolHandle, InputSymbolID, SymbolConflict, EntryFallback,
+                                       RelocationSite>;
 
 struct Diagnostic {
   Severity severity;
