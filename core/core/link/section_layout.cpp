@@ -79,13 +79,8 @@ void place_output(pepp::link::Diagnostics &diagnostics, ScriptContext &context,
       std::ranges::any_of(output.commands, [&](const auto &it) { return is_assignment_to(it, true); });
   const bool defines_symbols =
       std::ranges::any_of(output.commands, [&](const auto &it) { return is_assignment_to(it, false); });
-  // An output section whose members are all size 0 is discared, and its address is ignored
-  // unless it defines symbols.
-  if (!output.has_contents && !assigns_dot) {
-    output.empty = true;
-    if (!defines_symbols) return;
-  }
-
+  // Omit an output section whose members are all size 0, unless it assigns to the location counter.
+  output.empty = !assigns_dot && !output.has_contents;
   // Non-allocated output sections are not part of the program's memory, so they start at 0 and do not move `.`.
   const auto alloc = static_cast<u64>(pepp::bts::SectionFlags::SHF_ALLOC);
   const bool allocated = output.type == SHT_NULL || (output.flags & alloc) != 0;
@@ -102,6 +97,13 @@ void place_output(pepp::link::Diagnostics &diagnostics, ScriptContext &context,
       const ScriptMessage at{{}, output.source_interval, address.error().message()};
       diagnostics.add({Severity::Error, LinkCode::BadExpression, at});
     }
+  }
+
+  // Empty output sections retain their addresses for the benefit of their defined symbols.. Bail early for empty output
+  // sections that don't interact with symbol assignment.
+  if (output.empty && !defines_symbols) {
+    context.dot = saved_dot;
+    return;
   }
 
   context.dot = output.vma;

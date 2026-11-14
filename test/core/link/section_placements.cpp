@@ -253,11 +253,12 @@ TEST_CASE("section layout", "[scope:core][scope:core.link][kind:unit][arch:*]") 
   };
 
   // .text holds members with alignments 1 and 2, and ALIGN(8) pads .data to 8 bytes. .empty has no members and .bss
-  // has only an empty one, so both are left out. Moving the location counter backwards within .back is an error.
+  // has only an empty one, so both are left out, but keep the address they would have had. Moving the location
+  // counter backwards within .back is an error.
   CHECK(memory_of(1) == Memory{0x100, 0x10, 2, false});
   CHECK(memory_of(2) == Memory{0x110, 8, 1, false});
-  CHECK(outputs.at(3)->empty);
-  CHECK(outputs.at(4)->empty);
+  CHECK(memory_of(3) == Memory{0x118, 0, 1, true});
+  CHECK(memory_of(4) == Memory{0x118, 0, 1, true});
   CHECK(memory_of(5) == Memory{0x118, 0x10, 1, false});
   // An explicit address is kept even when it is less aligned than the members, and the alignment is lowered to match.
   // The member is still aligned to 4 within the section, which pads it by 2 bytes.
