@@ -96,6 +96,29 @@ PackedGrowableElfFile<B, E> elf_with(std::initializer_list<SectionSpec> specs) {
   return elf;
 }
 
+// A global symbol to add to an object. It is undefined if section is 0.
+struct SymbolSpec {
+  std::string_view name;
+  u16 section = 0;
+  u32 value = 0;
+};
+
+// Returns an object with null, .shstrtab, then a section for each spec, so that the first spec is section 2. A symbol
+// table follows.
+inline AnyInputElf object_with(std::initializer_list<SectionSpec> specs, std::initializer_list<SymbolSpec> symbols) {
+  auto elf = elf_with(specs);
+  const auto strtab = add_named_section(elf, ".strtab", SectionTypes::SHT_STRTAB);
+  PackedSymbolWriter<ElfBits::b32, ElfEndian::le> writer(elf, add_named_symtab(elf, ".symtab", strtab));
+  for (const auto &spec : symbols) {
+    PackedElfSymbol<ElfBits::b32, ElfEndian::le> symbol;
+    symbol.set_bind(SymbolBinding::STB_GLOBAL);
+    symbol.st_value = spec.value;
+    writer.add_symbol(std::move(symbol), spec.name, spec.section);
+  }
+  writer.arrange_local_symbols();
+  return to_input_elf(elf);
+}
+
 template <ElfBits B = ElfBits::b32, ElfEndian E = ElfEndian::le> AnyInputElf object_of(Symbols symbols) {
   auto elf = elf_of<B, E>(symbols);
   return to_input_elf(elf);

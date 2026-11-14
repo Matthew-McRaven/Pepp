@@ -31,6 +31,7 @@
 #include "core/link/output_file.hpp"
 #include "core/link/section_layout.hpp"
 #include "core/link/section_placements.hpp"
+#include "core/link/symbol_definitions.hpp"
 #include "core/link/symbol_resolution.hpp"
 
 namespace pepp::link {
@@ -167,7 +168,8 @@ void link_group(LinkContext &context, const bts::PackedInputElfGroup<B, E> &grou
     // TODO: apply relocations as we go
     if (!context.ok()) return;
     const auto outputs = output_sections(sections);
-    const LinkView<B, E> link{group, files, inputs, context.symbols, *context.placements, outputs};
+    LinkView<B, E> link{group, files, inputs, context.symbols, *context.placements, outputs};
+    link.definitions = resolved_symbol_definitions(link);
     context.output = create_executable_output(diagnostics, link, sections, config.output);
     close_output(context, config.output);
   }

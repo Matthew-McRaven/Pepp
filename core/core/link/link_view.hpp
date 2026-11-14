@@ -18,12 +18,22 @@
 
 #pragma once
 #include <span>
+#include <vector>
 #include "core/formats/elf/packed_input_group.hpp"
 #include "core/langs/ldscript/ir.hpp"
 #include "core/link/section_placements.hpp"
 #include "core/link/symbol_resolution.hpp"
 
 namespace pepp::link {
+
+struct OutputSymbolDefinition {
+  // Invalid/false for an absolute and undefined symbols.
+  OutputSectionID section;
+  u64 address = 0;
+  bool absolute = false;
+  // False for undefined symbols.
+  constexpr explicit operator bool() const { return absolute || bool(section); }
+};
 
 // LinkContext's state after layout. Must not outlive the LinkContext.
 template <ElfBits B, ElfEndian E> struct LinkView {
@@ -36,5 +46,7 @@ template <ElfBits B, ElfEndian E> struct LinkView {
   // Indexed by OutputSectionID. Index 0 is null. Creating the output sets each shndx, so the descriptions cannot be
   // const.
   std::span<tc::ldscript::OutputSectionDescription *const> outputs;
+  // Indexed by SymbolID. Empty until it is set from resolved_symbol_definitions.
+  std::vector<OutputSymbolDefinition> definitions = {};
 };
 } // namespace pepp::link
