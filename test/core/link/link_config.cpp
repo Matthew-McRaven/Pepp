@@ -18,6 +18,7 @@
 #include "core/link/link_config.hpp"
 #include <catch.hpp>
 #include <filesystem>
+#include <fstream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -33,6 +34,8 @@ LinkConfig config_of(auto &&...inputs) {
   (ret.inputs.push_back({std::forward<decltype(inputs)>(inputs)}), ...);
   return ret;
 }
+
+void write_text(const std::string &fname, std::string_view text) { std::ofstream(fname) << text; }
 
 std::vector<std::string> messages_of(const LinkContext &context) {
   std::vector<std::string> ret;
@@ -69,4 +72,36 @@ TEST_CASE("e2e linking", "[scope:core][scope:core.link][kind:unit][arch:*]") {
   CHECK(messages_of(do_link(config_of(path("link_config_missing.o")))) ==
         std::vector<std::string>{"link_config_missing.o: cannot open file"});
   CHECK(messages_of(do_link(config_of())) == std::vector<std::string>{"no ELF input files"});
+}
+
+TEST_CASE("linker scripts", "[scope:core][scope:core.link][kind:unit][arch:*]") {
+  write_bytes("link_script_a.o", bytes_of({{"a", true}}));
+  write_bytes("link_script_b.o", bytes_of({{"a", true}, {"b", true}}));
+  write_text("link_script_t.ld", "ENTRY(b) GROUP(link_script_b.o)");
+  write_text("link_script_plain.ld", "INPUT(link_script_a.o)\nENTRY(a)");
+
+  // A -T script and a plain script are each replaced INPUT/GROUP files.
+  const auto result = do_link(config_of(LinkInput::Script{path("link_script_t.ld")}, path("link_script_plain.ld")));
+  // Both objects define a; b.o must be linked first.
+  CHECK(messages_of(result) ==
+        std::vector<std::string>{"link_script_a.o: multiple definition of `a'; link_script_b.o: first defined here"});
+  CHECK(result.input_names == std::vector<std::string>{"link_script_b.o", "link_script_a.o"});
+  // Commands are kept in input order, including INPUT and GROUP.
+  CHECK(to_string(result.script) == "ENTRY(b)\nGROUP(link_script_b.o)\nINPUT(link_script_a.o)\nENTRY(a)\n"
+                                    "SECTIONS\n{\n  .text :\n  {\n    *(.text)\n  }\n}\n");
+
+  // A nested script's files take the place of its INPUT, but its commands follow the outer script's.
+  write_text("link_script_outer.ld", "y = 1; INPUT(link_script_nested.ld) y = 3;");
+  write_text("link_script_nested.ld", "y = 2; INPUT(link_script_a.o)");
+  Diagnostics diagnostics;
+  const auto parsed =
+      parse_scripts(diagnostics, config_of(path("link_script_b.o"), path("link_script_outer.ld")).inputs);
+  CHECK(diagnostics.size() == 0);
+  REQUIRE(parsed.inputs.size() == 2);
+  CHECK(std::get<LinkInput::Opened>(parsed.inputs[1].source).path == path("link_script_a.o"));
+  CHECK(to_string(parsed.script) == "y = 1;\nINPUT(link_script_nested.ld)\ny = 3;\ny = 2;\nINPUT(link_script_a.o)\n");
+
+  write_text("link_script_bad.ld", "ENTRY(");
+  CHECK(messages_of(do_link(config_of(path("link_script_bad.ld")))) ==
+        std::vector<std::string>{"link_script_bad.ld:1:7: Expected a name"});
 }

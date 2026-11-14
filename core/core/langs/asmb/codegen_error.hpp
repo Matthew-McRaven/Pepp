@@ -32,6 +32,7 @@ public:
     Expression_Invalid,
     Section_FlagsChanged, // The argument is the section's name.
     Symbol_MultiplyDefined,
+    Directive_NotRelocatable, // The argument is the directive, e.g. ".ORG".
   };
 
   static const std::string to_string(NullaryError);

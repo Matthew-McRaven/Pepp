@@ -93,9 +93,14 @@ public:
 
   static std::shared_ptr<MappedFile> open_readonly(std::string path);
   static std::shared_ptr<MappedFile> open_readwrite(std::string path);
+  // open_readwrite and truncate to 0 bytes if it exists.
+  static std::shared_ptr<MappedFile> open_truncated(std::string path);
+  // Create a fixed-size, zeroed, memory-mapped allocation not backed by a file.
+  // Slices may overlap, and flush() is a no-op.
+  static std::shared_ptr<MappedFile> open_anonymous(size_t size);
 
-  // Byte size of the backing file or throws a std::filesystem::filesystem_error if the file's size cannot be
-  // determined.
+  // Byte size of the backing file or anonymous mapping. Throws a std::filesystem::filesystem_error if the file's size
+  // cannot be determined.
   u64 size() const;
   std::shared_ptr<Slice> slice(size_t off, size_t len) noexcept;
   std::shared_ptr<const Slice> slice(size_t off, size_t len) const noexcept;
@@ -103,7 +108,12 @@ public:
 private:
   bool _readonly = false;
   mutable bool _opened = false, _use_fallback = false;
+  // True if the next open_file() call must truncate the file.
+  mutable bool _truncate = false;
   std::string _path = "";
+  // The mapping made by open_anonymous, which is null for a file.
+  u8 *_anonymous = nullptr;
+  size_t _anonymous_len = 0;
 
 #if defined(_WIN32)
   mutable void *_hFile = nullptr;

@@ -15,13 +15,13 @@
  */
 
 #include <algorithm>
-#include <array>
 #include <catch.hpp>
 #include <elfio/elfio.hpp>
 #include <optional>
 #include <set>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <vector>
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_empty.hpp"
@@ -40,7 +40,7 @@ namespace {
 // Numbering a listing needs no source text.
 std::string no_text(const pepp::tc::LinearIR &) { return {}; }
 
-// Read what would actually be written, rather than the in-memory model of it.
+// Serialize to bytes and re-read via ELFIO
 ELFIO::elfio read_back(pepp::tc::ElfResult &result) {
   const auto bytes = pepp::tc::elf_bytes(result);
   std::istringstream in(std::string(reinterpret_cast<const char *>(bytes.data()), bytes.size()));
@@ -70,13 +70,19 @@ std::vector<Symbol> symbols_of(ELFIO::elfio &elf) {
   return ret;
 }
 
+// Find a symbol by name, asserting that it exists.
+const Symbol &symbol_named(const std::vector<Symbol> &symbols, std::string_view name) {
+  const auto it = std::ranges::find(symbols, name, &Symbol::name);
+  REQUIRE(it != symbols.end());
+  return *it;
+}
+
 // A section with a known address and size, without going through the assembler's address assignment.
 struct Spec {
   std::string name;
   bool r, w, x, z;
   u32 low, size;
   u16 align = 1;
-  u32 overstate = 0; // How far the descriptor's address range runs past the data, as .ORG can leave it.
 };
 
 pepp::tc::ElfResult from_specs(const std::vector<Spec> &specs) {
@@ -94,7 +100,7 @@ pepp::tc::ElfResult from_specs(const std::vector<Spec> &specs) {
     const auto &spec = specs[i];
     SectionDescriptor desc{
         .name = spec.name, .flags = SectionFlags(spec.r, spec.w, spec.x, spec.z), .alignment = spec.align};
-    desc.low_address = spec.low, desc.high_address = spec.low + spec.size + spec.overstate;
+    desc.low_address = spec.low, desc.high_address = spec.low + spec.size;
     desc.section_index = SectionDescriptor::section_base_index + i;
     prog.emplace_back(desc, IRProgram{});
     const u32 size = spec.z ? 0 : spec.size;
@@ -174,8 +180,7 @@ struct Assembled {
   pepp::tc::ElfResult elf;
 };
 struct Options {
-  bool listing = false;     // Write the listing line program.
-  bool relocatable = false; // Write ET_REL, so the debug sections carry relocations.
+  bool listing = false; // Write the listing line program.
 };
 
 Assembled assemble(const char *source, Options options = {}) {
@@ -194,19 +199,8 @@ Assembled assemble(const char *source, Options options = {}) {
 
   ret.layout = layout_listing(ret.code, ret.addresses, pep_listing_bytes_per_line, no_text);
   const auto *listing = options.listing ? &ret.layout.rows : nullptr;
-  auto &sections = ret.split.grouped_ir;
-  if (!options.relocatable) {
-    ret.elf = pepp_to_elf(sections, ret.addresses, ret.object_code, *ret.symbols, ret.split.mmios, {}, {},
-                          ElfMachineType::EM_PEP10, listing);
-    return ret;
-  }
-  // pepp_to_elf writes ET_EXEC, and write_debug_line only adds relocations to an ET_REL.
-  ret.elf = sections_to_elf(ElfBits::b32, ElfEndian::be, ElfMachineType::EM_PEP10, sections, ret.object_code,
-                            *ret.symbols);
-  std::get<std::unique_ptr<PackedGrowableElfBE32>>(ret.elf.elf)->header.e_type =
-      bits::to_underlying(ElfFileType::ET_REL);
-  write_debug_line(ret.elf.elf, 2, bits::to_underlying(RelocationsPep::R_PEP10_ABS16),
-                   bits::to_underlying(RelocationsPep::R_PEP10_ABS32), sections, ret.addresses, listing);
+  ret.elf = pepp_to_elf(ret.split.grouped_ir, ret.addresses, ret.object_code, *ret.symbols, ret.split.mmios, {}, {},
+                        ElfMachineType::EM_PEP10, listing);
   return ret;
 }
 } // namespace
@@ -277,83 +271,6 @@ TEST_CASE("Pepp ASM codegen elf", "[scope:core][scope:core.langs][level:asmb3][l
     CHECK(elf.sections[".rela.debug_line"] == nullptr);
     CHECK(elf.sections[std::string(".rela") + pepp::tc::debugListingLineSection] == nullptr);
   }
-  SECTION("ET_REL .debug_line relocates one sequence per section") {
-    const auto txt = R"(
-.SECTION ".text","rx"
-LDWA 1,i
-LDWA 2,i
-.SECTION ".data","rw"
-.WORD 5
-)";
-    auto a = assemble(txt, {.listing = true, .relocatable = true});
-    REQUIRE(a.split.grouped_ir.size() == 2);
-    using namespace pepp::bts;
-    const auto abs16 = bits::to_underlying(RelocationsPep::R_PEP10_ABS16);
-    const auto abs32 = bits::to_underlying(RelocationsPep::R_PEP10_ABS32);
-    auto elf = read_back(a.elf);
-    const auto symbols = symbols_of(elf);
-    // The source and listing units each have one sequence per section, and each DW_LNE_set_address is relocated.
-    for (const auto *name : {debugLineSection, debugListingLineSection}) {
-      INFO(name);
-      const auto *lines = elf.sections[name];
-      REQUIRE(lines != nullptr);
-      const auto rela = std::string(".rela") + name;
-      REQUIRE(elf.sections[rela] != nullptr);
-      CHECK(elf.sections[rela]->get_info() == lines->get_index());
-      const auto relocations = relocations_of(elf, rela, symbols);
-      const std::array<std::string, 2> targets{".text", ".data"};
-      REQUIRE(relocations.size() == targets.size());
-      for (size_t it = 0; it < targets.size(); ++it) {
-        CHECK(relocations[it] == Rela{relocations[it].offset, targets[it], abs16, 0});
-        // S + A is the address already written into the operand.
-        const auto *operand = reinterpret_cast<const u8 *>(lines->get_data()) + relocations[it].offset;
-        CHECK(elf.sections[targets[it]]->get_address() == (u32(operand[0]) << 8 | operand[1]));
-      }
-    }
-    // One range per section, each a DW_RLE_start_length after the 12-byte table header.
-    CHECK(relocations_of(elf, ".rela.debug_rnglists", symbols) ==
-          std::vector<Rela>{{13, ".text", abs16, 0}, {17, ".data", abs16, 0}});
-    // The unit header's abbreviation offset, then DW_AT_stmt_list, DW_AT_ranges, and DW_AT_macros.
-    CHECK(relocations_of(elf, ".rela.debug_info", symbols) ==
-          std::vector<Rela>{{8, debugAbbrevSection, abs32, 0},
-                            {13, debugLineSection, abs32, 0},
-                            {17, debugRnglistsSection, abs32, sizeof(PackedRangeListHeader<ElfEndian::be>)},
-                            {21, debugMacroSection, abs32, 0}});
-    // The macro unit's debug_line_offset follows its version and flags.
-    CHECK(relocations_of(elf, ".rela.debug_macro", symbols) == std::vector<Rela>{{3, debugLineSection, abs32, 0}});
-
-    // Reading the relocations back tags each row with its section.
-    const auto input = to_input_elf(a.elf);
-    const auto mappings = std::visit([](const auto &file) { return read_line_mappings(*file); }, input);
-    REQUIRE(mappings.has_value());
-    std::set<u16> tagged;
-    for (const auto &mapping : *mappings) tagged.insert(mapping.section);
-    CHECK(tagged == std::set<u16>{static_cast<u16>(elf.sections[".text"]->get_index()),
-                                  static_cast<u16>(elf.sections[".data"]->get_index())});
-  }
-  SECTION("Generating line number programs for ET_REL") {
-    const auto txt = R"(.SECTION ".text","rx"
-LDWA 1,i
-x:
-LDWA 2,i
-.SECTION ".data","rw"
-.WORD 5
-)";
-    auto a = assemble(txt, {.listing = true, .relocatable = true});
-    REQUIRE(a.split.grouped_ir.size() == 2);
-    auto elf = read_back(a.elf);
-    const auto text = static_cast<u16>(elf.sections[".text"]->get_index());
-    const auto data_section = static_cast<u16>(elf.sections[".data"]->get_index());
-
-    const auto input = to_input_elf(a.elf);
-    const auto rows = std::visit([](const auto &file) { return read_listing_rows(*file); }, input);
-    REQUIRE(rows.has_value());
-    // .SECTION has no address, so no row. x: has an address, but it is 0-sized.
-    CHECK(*rows == std::vector<ListingRow>{{2, text, 0x0, 0x3},
-                                           {3, text, 0x3, 0x3},
-                                           {4, text, 0x3, 0x6},
-                                           {6, data_section, 0x6, 0x8}});
-  }
   SECTION("A leading .SECTION does not create an empty implicit section") {
     auto a = assemble(R"(
       .SECTION ".data","rwx"
@@ -400,10 +317,7 @@ LDWA 2,i
     const auto *data = elf.sections[".data"];
     REQUIRE(data != nullptr);
     // Skipping empty sections used to shift every later index; val must still point at .data.
-    const auto symbols = symbols_of(elf);
-    const auto val = std::find_if(symbols.begin(), symbols.end(), [](const auto &sym) { return sym.name == "val"; });
-    REQUIRE(val != symbols.end());
-    CHECK(val->shndx == data->get_index());
+    CHECK(symbol_named(symbols_of(elf), "val").shndx == data->get_index());
   }
   SECTION("relocations with undefined symbols") {
     auto a = assemble(R"(
@@ -614,13 +528,18 @@ TEST_CASE("Pepp ASM segments derive from sections",
     CHECK(segs[1].vaddr == 6);
   }
 
-  SECTION("An address gap starts a new segment") {
-    auto result = from_specs({{"lo", true, true, false, false, 0x10, 2}, {"hi", true, true, false, false, 0x100, 2}});
+  SECTION("Small gaps between sections do not start a new segment") {
+    // mid ends at 0x102. Start far 1 byte beyond the maximum gap, causing it to start a new segment.
+    const u32 far = 0x102 + pepp::bts::DEFAULT_MAX_PTLOAD_GAP + 1;
+    auto result = from_specs({{"lo", true, true, false, false, 0x10, 2},
+                              {"mid", true, true, false, false, 0x100, 2},
+                              {"hi", true, true, false, false, far, 2}});
     const auto segs = segments_of(result);
     REQUIRE(segs.size() == 2);
-    CHECK(segs[0].filesz == 2);
+    CHECK(segs[0].filesz == 0xF2);
+    CHECK(segs[0].memsz == 0xF2);
+    CHECK(segs[1].vaddr == far);
     CHECK(segs[1].filesz == 2);
-    CHECK(segs[1].offset - segs[0].offset == 2);
   }
 
   SECTION("Alignment/padding does not break contiguity") {
@@ -733,5 +652,115 @@ TEST_CASE("Listings are dervied from ELF", "[scope:core][scope:core.langs][kind:
       const u16 address = (bytes[offset] << 8 | bytes[offset + 1]) + 0x100;
       bytes[offset] = address >> 8, bytes[offset + 1] = address & 0xFF;
     }
+  }
+}
+
+TEST_CASE("Relocatable assembler output", "[scope:core][scope:core.langs][kind:int][arch:*]") {
+  using namespace pepp::tc;
+  using namespace pepp::bts;
+  const auto rel = ElfFileType::ET_REL;
+
+  SECTION("Pep/10") {
+    auto result = assemble_pep10(Pep10DriverConfig{.output_type = rel}, {.listing = true}, R"(.SECTION ".text","rx"
+main:LDWA 1,i
+mid:
+loop:BR loop
+LDWA x,d
+.SECTION ".data","rw"
+.BLOCK 2
+x:.WORD loop
+)");
+    REQUIRE(result.ok());
+    auto elf = read_back(*result.elf());
+    CHECK(elf.get_type() == bits::to_underlying(rel));
+    CHECK(elf.segments.size() == 0);
+    const auto text = static_cast<u16>(elf.sections[".text"]->get_index());
+    const auto data_section = static_cast<u16>(elf.sections[".data"]->get_index());
+    // If ET_EXEC, .data would be at 0x9.
+    CHECK(elf.sections[".text"]->get_address() == 0);
+    CHECK(elf.sections[".data"]->get_address() == 0);
+
+    const auto symbols = symbols_of(elf);
+    const auto offset_of = [&](std::string_view name) {
+      const auto &symbol = symbol_named(symbols, name);
+      return std::pair{symbol.shndx, symbol.value};
+    };
+    CHECK(offset_of("main") == std::pair{text, ELFIO::Elf64_Addr{0}});
+    CHECK(offset_of("loop") == std::pair{text, ELFIO::Elf64_Addr{3}});
+    CHECK(offset_of("x") == std::pair{data_section, ELFIO::Elf64_Addr{2}});
+    for (const auto &symbol : symbols)
+      if (symbol.type == ELFIO::STT_SECTION) CHECK(symbol.value == 0);
+
+    const auto abs16 = bits::to_underlying(RelocationsPep::R_PEP10_ABS16);
+    const auto abs32 = bits::to_underlying(RelocationsPep::R_PEP10_ABS32);
+    CHECK(relocations_of(elf, ".rela.text", symbols) ==
+          std::vector<Rela>{{4, ".text", abs16, 3}, {7, ".data", abs16, 2}});
+    CHECK(relocations_of(elf, ".rela.data", symbols) == std::vector<Rela>{{2, ".text", abs16, 3}});
+
+    // Each line unit has one sequence per section. That seqyence sets its address to 0, an
+    for (const auto *name : {debugLineSection, debugListingLineSection}) {
+      INFO(name);
+      const auto rela = std::string(".rela") + name;
+      REQUIRE(elf.sections[rela] != nullptr);
+      CHECK(elf.sections[rela]->get_info() == elf.sections[name]->get_index());
+      const auto relocations = relocations_of(elf, rela, symbols);
+      REQUIRE(relocations.size() == 2);
+      CHECK(relocations[0] == Rela{relocations[0].offset, ".text", abs16, 0});
+      CHECK(relocations[1] == Rela{relocations[1].offset, ".data", abs16, 0});
+    }
+    // One range per section, each a DW_RLE_start_length after the 12-byte table header.
+    CHECK(relocations_of(elf, ".rela.debug_rnglists", symbols) ==
+          std::vector<Rela>{{13, ".text", abs16, 0}, {17, ".data", abs16, 0}});
+    // The unit header's abbreviation offset, then DW_AT_stmt_list, DW_AT_ranges, and DW_AT_macros.
+    CHECK(relocations_of(elf, ".rela.debug_info", symbols) ==
+          std::vector<Rela>{{8, debugAbbrevSection, abs32, 0},
+                            {13, debugLineSection, abs32, 0},
+                            {17, debugRnglistsSection, abs32, sizeof(PackedRangeListHeader<ElfEndian::be>)},
+                            {21, debugMacroSection, abs32, 0}});
+    // The macro unit's debug_line_offset follows its version and flags.
+    CHECK(relocations_of(elf, ".rela.debug_macro", symbols) == std::vector<Rela>{{3, debugLineSection, abs32, 0}});
+
+    // Ensure that the listing rows are assigned section-relative offsets.
+    const auto input = to_input_elf(*result.elf());
+    const auto rows = std::visit([](const auto &file) { return read_listing_rows(*file); }, input);
+    REQUIRE(rows.has_value());
+    CHECK(*rows == std::vector<ListingRow>{{2, text, 0, 3},
+                                           {3, text, 3, 3},
+                                           {4, text, 3, 6},
+                                           {5, text, 6, 9},
+                                           {7, data_section, 0, 2},
+                                           {8, data_section, 2, 4}});
+    const auto mappings = std::visit([](const auto &file) { return read_line_mappings(*file); }, input);
+    REQUIRE(mappings.has_value());
+    const auto word = std::ranges::find(*mappings, 8u, &LineMapping::source_line);
+    REQUIRE(word != mappings->end());
+    CHECK(word->section == data_section);
+    CHECK(word->address == 2);
+  }
+  // RISC-V shares the writer. Validate that the output type is respected.
+  SECTION("RISC-V") {
+    auto rv = assemble_riscv(RISCVDriverConfig{.output_type = rel}, {}, R"(.SECTION ".text", "rx"
+addi x0, x0, 0
+.SECTION ".data", "rw"
+y: .word 1
+)");
+    REQUIRE(rv.ok());
+    auto rv_elf = read_back(*rv.elf());
+    CHECK(rv_elf.get_type() == bits::to_underlying(rel));
+    CHECK(rv_elf.segments.size() == 0);
+    CHECK(rv_elf.sections[".data"]->get_address() == 0);
+  }
+  // Absolute placement cannot be expressed in an ET_REL yet.
+  SECTION("Disallow .ORG and .BURN") {
+    const auto only_error = [](const DriverResult &result, std::string_view directive) {
+      CHECK(!result.ok());
+      REQUIRE(result.diagnostics.count() == 1);
+      const auto &[_, diagnostic] = *result.diagnostics.cbegin();
+      CHECK(diagnostic.severity == Severity::Fatal);
+      CHECK(diagnostic.message.starts_with(directive));
+    };
+    only_error(assemble_pep10(Pep10DriverConfig{.output_type = rel}, {}, ".ORG 0x100\nLDWA 1,i\n"), ".ORG");
+    only_error(assemble_pep9(Pep9DriverConfig{.output_type = rel}, {}, "LDWA 1,i\n.BURN 0xFFFF\nRET\n"), ".BURN");
+    only_error(assemble_riscv(RISCVDriverConfig{.output_type = rel}, {}, ".ORG 0x100\naddi x0, x0, 0\n"), ".ORG");
   }
 }

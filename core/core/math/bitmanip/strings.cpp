@@ -84,3 +84,66 @@ std::optional<std::vector<u8>> bits::asciiHexToByte(span<const char> in) {
   }
   return ret;
 }
+
+std::optional<bits::ParsedInteger> bits::c_integer(std::string_view word) {
+  const bool hex = word.starts_with("0x") || word.starts_with("0X");
+  const u8 base = hex ? 16 : 10;
+  if (const auto value = from_chars_exact<u64>(hex ? word.substr(2) : word, base)) return ParsedInteger{*value, base};
+  return std::nullopt;
+}
+
+namespace {
+char lower(char c) { return static_cast<char>(c | 0x20); }
+
+// LD supports the following integer literal suffixes.
+std::optional<u8> suffix_base(char c) {
+  switch (lower(c)) {
+  case 'h': [[fallthrough]];
+  case 'x': return 16;
+  case 'b': return 2;
+  case 'o': return 8;
+  case 'd': return 10;
+  default: return std::nullopt;
+  }
+}
+
+// The following suffixes multiply the result by 2<<result
+std::optional<int> multiplier_shift(std::string_view rest) {
+  if (rest.empty()) return 0;
+  else if (rest.size() != 1) return std::nullopt;
+  switch (lower(rest[0])) {
+  case 'k': return 10;
+  case 'm': return 20;
+  default: return std::nullopt;
+  }
+}
+
+// $1F, 0x1F, 17, 017 (octal), each optionally followed by K or M.
+std::optional<bits::ParsedInteger> ld_prefixed(std::string_view word) {
+  u8 base = 10;
+  if (word.starts_with('$')) base = 16, word.remove_prefix(1);
+  else if (word.starts_with("0x") || word.starts_with("0X")) base = 16, word.remove_prefix(2);
+  else if (word.size() > 1 && word[0] == '0') base = 8;
+  u64 value = 0;
+  const char *const end = word.data() + word.size();
+  // Parse the integer minus the $/0x prefix, accounting for the multiplie suffix if present
+  const auto [last, ec] = std::from_chars(word.data(), end, value, base);
+  const auto shift = ec == std::errc{} ? multiplier_shift(std::string_view(last, end)) : std::nullopt;
+  if (!shift || value > (~u64{0} >> *shift)) return std::nullopt;
+  return bits::ParsedInteger{value << *shift, base};
+}
+
+// 1Fh, 1Fx, 101b, 17o, 25d. Suffixes b/o/d need a leading digit, since `bad` is a name.
+std::optional<bits::ParsedInteger> ld_suffixed(std::string_view word) {
+  const auto base = word.size() < 2 ? std::nullopt : suffix_base(word.back());
+  if (!base || (*base != 16 && (word[0] < '0' || word[0] > '9'))) return std::nullopt;
+  const auto value = bits::from_chars_exact<u64>(word.substr(0, word.size() - 1), *base);
+  if (!value) return std::nullopt;
+  return bits::ParsedInteger{*value, *base};
+}
+} // namespace
+
+std::optional<bits::ParsedInteger> bits::ld_integer(std::string_view word) {
+  if (const auto prefixed = ld_prefixed(word)) return prefixed;
+  return ld_suffixed(word);
+}

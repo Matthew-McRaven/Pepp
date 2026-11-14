@@ -19,20 +19,32 @@
 #include <filesystem>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <variant>
 #include <vector>
 #include "core/formats/ar/packed_archive.hpp"
+#include "core/formats/elf/packed_elf.hpp"
+#include "core/formats/elf/packed_input_group.hpp"
+#include "core/langs/ldscript/ir.hpp"
 
 namespace pepp::link {
 
 // Input files to the linker in command-line order.
 struct LinkInput {
+  // A linker script provided via -T/--script or one built in C++ (e.g., the default script).
   struct Script {
-    std::variant<std::filesystem::path, std::string> source;
+    std::variant<std::filesystem::path, tc::ldscript::Script> source;
+  };
+  // A file that has already been mapped into memory. std::filesystem::path should be replaced by this on first open.
+  struct Opened {
+    std::filesystem::path path;
+    bts::OpenedInput file;
   };
 
-  std::variant<std::filesystem::path, bts::PackedInputArchive, Script, bts::AnyInputElf> source;
+  std::variant<std::filesystem::path, bts::PackedInputArchive, Script, bts::AnyInputElf, Opened> source;
+  // Allow resolution of symbols in this file, but do not include its sections in the output.
+  bool just_symbols = false;
 };
 
 // Configuration options for the linker that are shared between command-line and library usage.
@@ -46,5 +58,17 @@ struct LinkConfig {
   std::vector<std::pair<std::string, u64>> section_start;
   // -m. Set the class+byte-order before reading input files.
   std::optional<std::string> emulation;
+  // Archive file names whose symbols are inelligible for resolution. ALL excludes every archive.
+  std::vector<std::string> exclude_libs;
+  // Keep only the symbols in this list if present. Otherwise, all symbols are kept.
+  std::optional<std::vector<std::string>> retain_symbols;
 };
+
+// The default linker script for Pep8..10
+// TODO: Replace with the built-in Pep default script.
+tc::ldscript::Script default_pep_script();
+// Read a text file as whitespace-separated symbol names, as GNU ld does. nullopt if the file cannot be read.
+std::optional<std::vector<std::string>> read_symbol_list(const std::filesystem::path &path);
+// Try to parse as `name=address`, where address is a hex value . nullopt if malformed.
+std::optional<std::pair<std::string, u64>> parse_section_start(std::string_view arg);
 } // namespace pepp::link

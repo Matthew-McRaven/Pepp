@@ -47,3 +47,35 @@ TEST_CASE("Extract C strings from span", "[scope:core][scope:core.math][kind:uni
   CHECK(view("\0abc"sv).empty());
   CHECK(view(""sv).empty());
 }
+
+TEST_CASE("Integer literals", "[scope:core][scope:core.math][kind:unit][arch:*]") {
+  SECTION("C") {
+    CHECK(bits::c_integer("42") == bits::ParsedInteger{42, 10});
+    CHECK(bits::c_integer("0XfF") == bits::ParsedInteger{0xFF, 16});
+    CHECK(bits::c_integer("0xFFFFFFFFFFFFFFFF") == bits::ParsedInteger{~u64{0}, 16});
+    CHECK(bits::c_integer("010") == bits::ParsedInteger{10, 10});
+    for (const auto *word : {"", "0x", "12ab", "-5", "18446744073709551616"}) {
+      INFO(word);
+      CHECK(!bits::c_integer(word));
+    }
+  }
+  SECTION("ld") {
+    CHECK(bits::ld_integer("$10K") == bits::ParsedInteger{0x4000, 16});
+    CHECK(bits::ld_integer("0x10M") == bits::ParsedInteger{0x1000000, 16});
+    CHECK(bits::ld_integer("4k") == bits::ParsedInteger{4096, 10});
+    CHECK(bits::ld_integer("010") == bits::ParsedInteger{8, 8});
+    CHECK(bits::ld_integer("10h") == bits::ParsedInteger{0x10, 16});
+    CHECK(bits::ld_integer("ax") == bits::ParsedInteger{0xA, 16});
+    CHECK(bits::ld_integer("deadh") == bits::ParsedInteger{0xDEAD, 16});
+    CHECK(bits::ld_integer("101b") == bits::ParsedInteger{5, 2});
+    CHECK(bits::ld_integer("17o") == bits::ParsedInteger{15, 8});
+    CHECK(bits::ld_integer("25d") == bits::ParsedInteger{25, 10});
+    CHECK(bits::ld_integer("1bh") == bits::ParsedInteger{0x1B, 16});
+    CHECK(bits::ld_integer("0x") == bits::ParsedInteger{0, 16}); // 0 with an x suffix.
+    // Names, invalid digits for the base, and values past 64 bits.
+    for (const auto *word : {"bad", "fade", "08", "0b11", "12b", "1fd", "19o", "$", "17592186044416M"}) {
+      INFO(word);
+      CHECK(!bits::ld_integer(word));
+    }
+  }
+}

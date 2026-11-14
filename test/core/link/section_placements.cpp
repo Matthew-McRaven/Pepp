@@ -15,78 +15,261 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "core/link/section_layout.hpp"
 #include "core/link/section_placements.hpp"
+#include <algorithm>
 #include <catch.hpp>
+#include <filesystem>
 #include <initializer_list>
+#include <memory>
+#include <string>
 #include <string_view>
+#include <utility>
+#include <tuple>
 #include <vector>
+#include "./helpers.hpp"
 #include "core/formats/elf/packed_io.hpp"
+#include "core/langs/asmb/diagnostic_table.hpp"
+#include "core/langs/ldscript/parser.hpp"
 
 namespace {
 using namespace pepp::bts;
 using namespace pepp::link;
+using Elf = PackedGrowableElfFile<ElfBits::b32, ElfEndian::le>;
 
-// An in-memory object with null, .shstrtab, then a PROGBITS section for each name, in order.
-AnyInputElf object(std::initializer_list<std::string_view> names) {
-  PackedGrowableElfFile<ElfBits::b32, ElfEndian::le> elf(ElfFileType::ET_REL, ElfMachineType::EM_PEP10,
-                                                         ElfABI::ELFOSABI_NONE);
+// An object with null, .shstrtab, then a PROGBITS section for each name, in order.
+Elf object(std::initializer_list<std::string_view> names) {
+  Elf elf(ElfFileType::ET_REL, ElfMachineType::EM_PEP10, ElfABI::ELFOSABI_NONE);
   ensure_section_header_table(elf);
   for (const auto name : names) add_named_section(elf, name, SectionTypes::SHT_PROGBITS);
-  return to_input_elf(elf);
+  return elf;
+}
+
+// Returns the name of each output section and assigned symbol in a SECTIONS command, in order.
+std::vector<std::string> layout_of(const pepp::tc::ldscript::Sections &sections) {
+  std::vector<std::string> ret;
+  for (const auto &command : sections.commands)
+    if (const auto *output = std::get_if<pepp::tc::ldscript::OutputSectionDescription>(&command))
+      ret.push_back(output->name);
+    else ret.push_back(std::get<pepp::tc::ldscript::Assignment>(command).symbol);
+  return ret;
+}
+
+// Add an object that is held in memory, and so has no name for a file pattern to match.
+ElfFileID add_in_memory(PackedInputElfGroupLE32 &group, std::initializer_list<std::string_view> names) {
+  auto elf = object(names);
+  return group.add(to_input_elf(elf)).value();
+}
+
+// Write an object to path, then add it to group.
+ElfFileID add_from_path(PackedInputElfGroupLE32 &group, const std::string &path,
+                        std::initializer_list<std::string_view> names) {
+  auto elf = object(names);
+  link_test::write_bytes(path, elf_bytes(elf));
+  return std::get<ElfFileID>(group.add(std::filesystem::path(path)).value());
+}
+
+// Returns the members of an output section, in order.
+std::vector<InputElfSectionHandle> members_of(const SectionPlacements &placements, OutputSectionID output) {
+  std::vector<InputElfSectionHandle> ret;
+  const auto members = placements.members();
+  for (const auto position : members.members(output)) ret.push_back(placements.sections().handle(position));
+  return ret;
 }
 } // namespace
 
-TEST_CASE("SectionPlacements", "[scope:core][scope:core.link][kind:unit][arch:*]") {
+TEST_CASE("place_sections", "[scope:core][scope:core.link][kind:unit][arch:*]") {
   using Handles = std::vector<InputElfSectionHandle>;
   PackedInputElfGroupLE32 group;
-  // a is .text = 2, .text.hot = 3, .comment = 4, .text.unlikely = 5; b is .text = 2, .comment = 3.
-  const auto a = group.add(object({".text", ".text.hot", ".comment", ".text.unlikely"})).value();
-  const auto b = group.add(object({".text", ".comment"})).value();
-  SectionPlacements<ElfBits::b32, ElfEndian::le> placements(group);
-  Glob hot, comment, text;
-  REQUIRE(hot.add(".text.hot", 0));
-  REQUIRE(comment.add(".comment", 0));
-  REQUIRE(text.add(".text*", 0));
+  // Section indices start at 2, after the null section and .shstrtab.
+  const auto a = add_from_path(group, "place_a.o", {".text", ".text.hot", ".comment", ".text.unlikely", ".data"});
+  const auto b = add_from_path(group, "place_b.o", {".text", ".comment", ".rodata"});
+  link_test::write_bytes("place_lib.a", link_test::archive_bytes_of({{{"x", true}}}));
+  const auto lib = std::get<ElfArchiveID>(group.add(std::filesystem::path("place_lib.a")).value());
+  const auto first_member = *group.archive(lib).members().begin();
+  REQUIRE(first_member);
+  const auto member = group.add_member(lib, *first_member).value();
+  const auto memory = add_in_memory(group, {".text.hot"});
+  const auto excluded = add_in_memory(group, {".text"});
+  std::vector<Liveness> files(group.size() + 1, Liveness::Live);
+  files[excluded.value] = Liveness::Excluded;
 
-  // Emulate the script `.text : { *(.text.hot) } /DISCARD/ : { *(.comment) } .text : { *(.text*) }`.
-  const OutputSectionID text_out{1}, discard_out{2};
-  // First text pattern matches only hot. Second text pattern matches any text.
-  const InputSectionDescriptionID hot_desc{10}, comment_desc{20}, text_desc{30};
-  const auto hot_count = placements.claim(select_unclaimed(group, hot, placements), text_out, hot_desc);
-  const auto comment_count = placements.claim(select_unclaimed(group, comment, placements), discard_out, comment_desc);
-  const auto text_count = placements.claim(select_by_name(group, text), text_out, text_desc);
+  // A plain file name matches a file that is not in an archive, :name only such a file, and archive: any of the
+  // archive's members.
+  pepp::tc::DiagnosticTable diag;
+  auto script = pepp::tc::ldscript::parse(diag, R"(SECTIONS {
+  .text : { *(.text.hot) place_a.o(.text*) }
+  .text : { :place_b.o(.text) place_lib.a:(.text) }
+  /DISCARD/ : { *(.comment) }
+  .data 0x1000 : { *(.data .rodata) }
+})");
+  REQUIRE(diag.count() == 0);
+  auto &sections = pepp::tc::ldscript::merge_sections(script);
+  auto placements = place_sections(group, files, sections);
 
-  SECTION("Claim respect previously claimed sections") {
-    // Only a has a hot
-    CHECK(hot_count == 1);
-    // Both a and b have comment
-    CHECK(comment_count == 2);
-    // .text* matches a's .text.hot too, but it was already claimed by hot_desc
-    CHECK(text_count == 3);
+  // Descriptions are numbered in script order, and a repeated name gets its own output section.
+  const auto output = [&](u32 index) -> const auto & {
+    return std::get<pepp::tc::ldscript::OutputSectionDescription>(sections.commands[index]);
+  };
+  CHECK(output(1).id == OutputSectionID{2});
+  CHECK(output(3).id == OutputSectionID{4});
+  CHECK(std::get<pepp::tc::ldscript::InputSectionDescription>(output(3).commands[0]).id ==
+        InputSectionDescriptionID{6});
+
+  const auto assigned = [](u32 output, u32 description) {
+    return SectionAssignment{OutputSectionID{output}, InputSectionDescriptionID{description}};
+  };
+  // place_a.o(.text*) also matches a's .text.hot, but *(.text.hot) matched it first.
+  CHECK(placements.assignment_of({a, 3}) == assigned(1, 1));
+  CHECK(placements.assignment_of({memory, 2}) == assigned(1, 1));
+  CHECK(placements.assignment_of({a, 2}) == assigned(1, 2));
+  CHECK(placements.assignment_of({b, 2}) == assigned(2, 3));
+  CHECK(placements.assignment_of({member, 2}) == assigned(2, 4));
+  CHECK(placements.assignment_of({b, 3}) == assigned(3, 5));
+  CHECK(placements.assignment_of({b, 4}) == assigned(4, 6));
+  // Only live files' sections are placeable. null sections and string table are never assigned.
+  CHECK_FALSE(placements.sections().contains({excluded, 2}));
+  CHECK_FALSE(placements.sections().contains({a, 0}));
+  CHECK_FALSE(placements.sections().contains({a, 1}));
+
+  // Members are sorted by description, then by file, then by section index.
+  CHECK(members_of(placements, OutputSectionID{1}) == Handles{{a, 3}, {memory, 2}, {a, 2}, {a, 5}});
+  CHECK(members_of(placements, OutputSectionID{}).empty());
+
+  CHECK_THROWS_AS(placements.assign({a, 2}, OutputSectionID{}, InputSectionDescriptionID{2}), std::invalid_argument);
+  CHECK_THROWS_AS((placements.assignment_of({excluded, 2})), std::out_of_range);
+}
+
+TEST_CASE("orphan sections", "[scope:core][scope:core.link][kind:unit][arch:*]") {
+  using namespace bits;
+  using enum SectionFlags;
+  using enum SectionTypes;
+  PackedInputElfGroupLE32 group;
+  // Section indices start at 2, after the null section and .shstrtab.
+  auto first = link_test::elf_with({{".text", SHT_PROGBITS, SHF_ALLOC | SHF_EXECINSTR},
+                                    {".mycode", SHT_PROGBITS, SHF_ALLOC | SHF_EXECINSTR},
+                                    {".rodata", SHT_PROGBITS, SHF_ALLOC},
+                                    {".data", SHT_PROGBITS, SHF_ALLOC | SHF_WRITE},
+                                    {".bss", SHT_NOBITS, SHF_ALLOC | SHF_WRITE},
+                                    {".mydata", SHT_PROGBITS, SHF_ALLOC | SHF_WRITE},
+                                    {".zz_awx", SHT_PROGBITS, SHF_ALLOC | SHF_WRITE | SHF_EXECINSTR},
+                                    {".debug_info", SHT_PROGBITS},
+                                    {".mybss", SHT_NOBITS, SHF_ALLOC | SHF_WRITE}});
+  auto second = link_test::elf_with(
+      {{".mycode", SHT_PROGBITS, SHF_ALLOC | SHF_EXECINSTR}, {".b_ro", SHT_PROGBITS, SHF_ALLOC}});
+  const auto a = group.add(to_input_elf(first)).value();
+  const auto b = group.add(to_input_elf(second)).value();
+  const std::vector<Liveness> files(group.size() + 1, Liveness::Live);
+  // Parse text, merge its SECTIONS commands, then assign input sections to outputs.
+  const auto placed_by = [&](std::string_view text) {
+    pepp::tc::DiagnosticTable diag;
+    auto script = pepp::tc::ldscript::parse(diag, text);
+    REQUIRE(diag.count() == 0);
+    auto sections = std::move(pepp::tc::ldscript::merge_sections(script));
+    auto placements = place_sections(group, files, sections);
+    return std::pair{std::move(sections), std::move(placements)};
+  };
+
+  SECTION("with output sections") {
+    auto [sections, placements] = placed_by(R"(SECTIONS { .text 0x1000 : { *(.text) } }
+_etext = .;
+SECTIONS {
+  . = 0x2000;
+  .data : { *(.data) }
+  .mydata : { *(.none) }
+})");
+    CHECK(layout_of(sections) == std::vector<std::string>{".text", "_etext", ".mycode", ".rodata", ".b_ro", ".",
+                                                          ".data", ".zz_awx", ".bss", ".mybss", ".mydata",
+                                                          ".debug_info"});
+    // Orphans with the same name share an output section, and an orphan joins an empty output section with its name.
+    CHECK(members_of(placements, OutputSectionID{4}) == std::vector<InputElfSectionHandle>{{a, 3}, {b, 2}});
+    CHECK(placements.assignment_of({a, 7}) == SectionAssignment{OutputSectionID{3}, InputSectionDescriptionID{7}});
+    // The empty .mydata takes its flags and type from the orphan that joined it.
+    const auto named = [&](std::string_view name) {
+      return &std::get<pepp::tc::ldscript::OutputSectionDescription>(
+          sections.commands[*find_output_section(sections.commands, name)]);
+    };
+    CHECK(named(".text")->flags == to_underlying(SHF_ALLOC | SHF_EXECINSTR));
+    CHECK(named(".mydata")->flags == to_underlying(SHF_ALLOC | SHF_WRITE));
+    CHECK(named(".mydata")->type == SHT_PROGBITS);
+    CHECK(named(".bss")->type == SHT_NOBITS);
+    // Only the output sections and input section descriptions added for orphans are marked.
+    CHECK(named(".mycode")->orphan);
+    CHECK_FALSE(named(".mydata")->orphan);
+    CHECK_FALSE(std::get<pepp::tc::ldscript::InputSectionDescription>(named(".mydata")->commands[0]).orphan);
+    CHECK(std::get<pepp::tc::ldscript::InputSectionDescription>(named(".mydata")->commands[1]).orphan);
   }
-  SECTION("Input sections record which output section claimed them") {
-    CHECK(placements.claim_of(InputElfSectionHandle{a, 3}) == SectionClaim{text_out, hot_desc});
-    CHECK(placements.claim_of(InputElfSectionHandle{b, 2}) == SectionClaim{text_out, text_desc});
-    CHECK(placements.claim_of(InputElfSectionHandle{b, 3}) == SectionClaim{discard_out, comment_desc});
-    // Neither .shstrtab nor the null section were matched.
-    CHECK_FALSE(placements.claimed(InputElfSectionHandle{a, 1}));
-    CHECK_FALSE(placements.claimed(InputElfSectionHandle{a, 0}));
+
+  // Without output sections, every section is an orphan, placed after the first location counter assignment.
+  SECTION("without output sections") {
+    auto [sections, placements] = placed_by("SECTIONS { . = 0x3000; }");
+    CHECK(layout_of(sections) == std::vector<std::string>{".", ".text", ".mycode", ".rodata", ".b_ro", ".data",
+                                                          ".mydata", ".zz_awx", ".bss", ".mybss", ".debug_info"});
   }
-  SECTION("Sort by description, then by file, then section index") {
-    const auto members = placements.members();
-    const auto text_members = members.members(text_out);
-    // Grouped by description: a:.text.hot (3) before a:.text (2).
-    // Then by file: a:.text.unlikely (5) before b:.text (2).
-    // Then by section index: a:.text (2) before a:.text.unlikely (5).
-    CHECK(Handles(text_members.begin(), text_members.end()) == Handles{{a, 3}, {a, 2}, {a, 5}, {b, 2}});
-    const auto discarded = members.members(discard_out);
-    CHECK(Handles(discarded.begin(), discarded.end()) == Handles{{a, 4}, {b, 3}});
-    CHECK(members.members(OutputSectionID{}).empty());
+  SECTION("without SECTIONS") {
+    auto [sections, placements] = placed_by("");
+    CHECK(layout_of(sections).front() == ".text");
   }
-  SECTION("Invalid claims and lookups") {
-    CHECK(placements.claim(select_by_name(group, text), text_out, text_desc) == 0);
-    CHECK_THROWS_AS(placements.claim(select_by_name(group, text), OutputSectionID{}, text_desc), std::invalid_argument);
-    // Parenthesized, because the macro would split at the handle's comma.
-    CHECK_THROWS_AS((placements.claim_of(InputElfSectionHandle{ElfFileID{3}, 0})), std::out_of_range);
-  }
+}
+
+TEST_CASE("section layout", "[scope:core][scope:core.link][kind:unit][arch:*]") {
+  using enum SectionFlags;
+  using enum SectionTypes;
+  using namespace bits;
+  PackedInputElfGroupLE32 group;
+  auto first = link_test::elf_with({
+      {".text", SHT_PROGBITS, SHF_ALLOC | SHF_EXECINSTR, 8, 1},
+      {".data", SHT_PROGBITS, SHF_ALLOC | SHF_WRITE, 4, 1},
+      {".bss", SHT_NOBITS, SHF_ALLOC | SHF_WRITE, 0, 1},
+      {".odd", SHT_PROGBITS, SHF_ALLOC, 1, 4},
+  });
+  auto second = link_test::elf_with({
+      {".text", SHT_PROGBITS, SHF_ALLOC | SHF_EXECINSTR, 8, 2},
+  });
+  const auto a = group.add(to_input_elf(first)).value();
+  const auto b = group.add(to_input_elf(second)).value();
+  std::vector<Liveness> files(group.size() + 1, Liveness::Live);
+
+  pepp::tc::DiagnosticTable diag;
+  auto script = pepp::tc::ldscript::parse(diag, R"(SECTIONS {
+  .text 0x100 : { *(.text) }
+  . = ALIGN(0x10);
+  .data : { *(.data) . = ALIGN(8); }
+  .empty : { *(.none) }
+  .bss : { *(.bss) }
+  .back : { . = 0x10; . = 0; }
+  .odd 0x232 : { *(.odd) }
+  /DISCARD/ : { *(.none) }
+})");
+  REQUIRE(diag.count() == 0);
+  auto &sections = pepp::tc::ldscript::merge_sections(script);
+  auto placements = place_sections(group, files, sections);
+  Diagnostics diagnostics;
+  lay_out_sections(diagnostics, group, placements, sections);
+  using Memory = std::tuple<u64, u64, u64, bool>;
+  const auto outputs = output_sections(sections);
+  const auto memory_of = [&](u32 id) {
+    const auto &output = *outputs.at(id);
+    return Memory{output.vma, output.size, output.alignment, output.empty};
+  };
+
+  // .text holds members with alignments 1 and 2, and ALIGN(8) pads .data to 8 bytes. .empty has no members and .bss
+  // has only an empty one, so both are left out, but keep the address they would have had. Moving the location
+  // counter backwards within .back is an error.
+  CHECK(memory_of(1) == Memory{0x100, 0x10, 2, false});
+  CHECK(memory_of(2) == Memory{0x110, 8, 1, false});
+  CHECK(memory_of(3) == Memory{0x118, 0, 1, true});
+  CHECK(memory_of(4) == Memory{0x118, 0, 1, true});
+  CHECK(memory_of(5) == Memory{0x118, 0x10, 1, false});
+  // An explicit address is kept even when it is less aligned than the members, and the alignment is lowered to match.
+  // The member is still aligned to 4 within the section, which pads it by 2 bytes.
+  CHECK(memory_of(6) == Memory{0x232, 3, 2, false});
+  CHECK(outputs.at(7)->discard);
+  CHECK(placements.assignment_of({a, 2}).offset == 0);
+  CHECK(placements.assignment_of({b, 2}).offset == 8);
+  const auto entries = link_test::entries_of(diagnostics);
+  REQUIRE(entries.size() == 1);
+  CHECK(entries[0].code == DiagnosticCode{LinkCode::LocationCounterBackwards});
+  CHECK(std::get<ScriptMessage>(entries[0].subject).message ==
+        "cannot move location counter backwards (from 0x128 to 0x118)");
 }

@@ -438,6 +438,8 @@ bool validate_argument(DiagnosticTable &diag, const LinearIR &line, pepp::ast::I
                        ArgumentConstraint constraint, u8 address_bits, bool narrowing_relocation = false);
 // As above, for a value computed at codegen, e.g. a branch's offset to its target.
 bool validate_value(DiagnosticTable &diag, const LinearIR &line, expr::Value value, ArgumentConstraint constraint);
+// Due to limitations of current assembler, relocatable outputs must disallow .ORG and .BURN
+void reject_absolute_placement(DiagnosticTable &diag, const IRProgram &prog);
 
 struct ProgramObjectCodeResult {
   IR2ObjectCodeMap ir_to_object_code;

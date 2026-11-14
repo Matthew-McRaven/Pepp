@@ -195,6 +195,11 @@ void write_debug_line(pepp::bts::AnyGrowableElf &elf, u8 address_size, u32 addre
     const auto info_index = section(debugInfoSection), rnglists_index = section(debugRnglistsSection);
     const auto listing_index = section(debugListingLineSection), macro_index = section(debugMacroSection);
 
+    // An assembler address minus this is the address written for the section, which is an offset in an ET_REL.
+    // TODO: remove section_bias when linker exists. At that point, all sections will be addressed from 0.
+    const auto bias = [&](const SectionDescriptor &desc) -> u64 {
+      return desc.low_address - static_cast<u64>(file->section_headers[desc.section_index].sh_addr);
+    };
     std::vector<detail::SectionRelocation> line_relocations, listing_relocations;
     const auto write_unit = [&](u16 target, std::vector<detail::SectionRelocation> &relocations, std::string_view name,
                                 bool for_listing) {
@@ -202,17 +207,18 @@ void write_debug_line(pepp::bts::AnyGrowableElf &elf, u8 address_size, u32 addre
                                              detail::debug_line_header(address_size, directory, name));
       for (const auto &[desc, lines] : prog) {
         const auto first_operand = writer.address_operands().size();
+        const u64 section_bias = bias(desc), section_address = desc.low_address - section_bias;
         for (const auto &line : lines) {
           const auto extent = detail::row_extent(addrs, *line, for_listing);
           if (!extent) continue;
           const u32 number = for_listing ? detail::listing_line(*listing, *line) : detail::source_line(*line);
-          if (number != 0) writer.row(extent->first, extent->second, 1, number);
+          if (number != 0) writer.row(extent->first - section_bias, extent->second, 1, number);
         }
         // A linker places each section on its own, so a sequence must not continue into the next one.
         writer.end_sequence();
         const auto &operands = writer.address_operands();
         for (auto it = first_operand; it < operands.size(); ++it)
-          relocations.push_back({operands[it].offset, desc.section_index, operands[it].address - desc.low_address});
+          relocations.push_back({operands[it].offset, desc.section_index, operands[it].address - section_address});
       }
       return writer.finish();
     };
@@ -228,7 +234,7 @@ void write_debug_line(pepp::bts::AnyGrowableElf &elf, u8 address_size, u32 addre
       const u64 size =
           desc.flags.z ? desc.high_address - desc.low_address : file->section_data[desc.section_index]->size();
       if (size == 0) continue;
-      range_relocations.push_back({ranges.start_length(desc.low_address, size), desc.section_index, 0});
+      range_relocations.push_back({ranges.start_length(desc.low_address - bias(desc), size), desc.section_index, 0});
     }
     ranges.end_list();
     ranges.finish();

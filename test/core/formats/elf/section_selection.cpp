@@ -23,7 +23,8 @@
 
 namespace {
 using namespace pepp::bts;
-using Selection = PackedSectionSelection<ElfBits::b32, ElfEndian::le>;
+using Selection = PackedSectionSelection;
+using Ref = InputElfSectionRef<ElfBits::b32, ElfEndian::le>;
 
 // An in-memory object with null, .shstrtab, an allocated .text, and an unallocated .comment.
 AnyInputElf object() {
@@ -36,7 +37,7 @@ AnyInputElf object() {
   return to_input_elf(elf);
 }
 
-bool allocated(const Selection::Ref &ref) {
+bool allocated(const Ref &ref) {
   const u64 flags = ref.header.sh_flags;
   return (flags & bits::to_underlying(SectionFlags::SHF_ALLOC)) != 0;
 }
@@ -77,20 +78,9 @@ TEST_CASE("PackedSectionSelection", "[scope:core][scope:core.formats][kind:unit]
     for (u32 it = 0; it < before.size(); ++it) CHECK(after.handle(it) == before.handle(it));
     CHECK(after.position(InputElfSectionHandle{c, 2}) == 2u);
   }
-  SECTION("Select sections by name") {
+  SECTION("Section names") {
     CHECK(section_name(group.file(b), 3) == ".comment");
     CHECK(section_name(group.file(b), 0).empty());
     CHECK(section_name(group.file(b), 4).empty());
-    Glob text;
-    REQUIRE(text.add(".text*", 0));
-    const auto texts = select_by_name(group, text);
-    REQUIRE(texts.size() == 2);
-    CHECK(texts.handle(1) == InputElfSectionHandle{b, 2});
-    // * matches section 0's empty name. select_by_name explicitly ignores 0.
-    Glob all;
-    REQUIRE(all.add("*", 0));
-    const auto named = select_by_name(group, all);
-    CHECK(named.size() == 6);
-    CHECK_FALSE(named.contains(InputElfSectionHandle{a, 0}));
   }
 }

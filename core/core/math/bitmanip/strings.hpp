@@ -194,4 +194,18 @@ template <std::integral T> std::optional<T> from_chars_exact(std::string_view te
   return value;
 }
 
+// An integer literal in a specific base.
+struct ParsedInteger {
+  u64 value = 0;
+  u8 base = 10;
+  bool operator==(const ParsedInteger &) const = default;
+};
+// Parse an integer literal as recognized by C/C++ (e.g., 10, 0x1F), or nullopt if parsing does not consume the whole
+// string.
+std::optional<ParsedInteger> c_integer(std::string_view word);
+// As above, but under GNU ld's rules for integers (e.g., 0x1F, $1F, 1Fh, 101b, 17o, 010, 4K) or nullopt.
+// Leading 0s are octal, unless followed by a x. Suffixes b/o/h force a specific base. k/m multiply by 1024 to the
+// 1/2 power respectively.
+std::optional<ParsedInteger> ld_integer(std::string_view word);
+
 } // namespace bits

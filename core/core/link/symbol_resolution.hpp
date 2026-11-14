@@ -63,6 +63,10 @@ public:
   CommonSize common(InputSymbolID id) const;
   // The ID of symbol index of file id: STN_UNDEF for index 0, or nullopt if the symbol is local or does not exist.
   std::optional<InputSymbolID> find(bts::ElfFileID id, u32 index) const;
+  // Returns the file and symbol table index of symbol id. Throws std::out_of_range for STN_UNDEF or if id >= size().
+  bts::InputElfSymbolHandle handle_of(InputSymbolID id) const;
+  // Returns the section index of a file's symbol table, or 0 if it has none.
+  u16 symtab_of(bts::ElfFileID id) const;
   // The file that symbol id belongs to. Throws std::out_of_range for STN_UNDEF, which belongs to every file, or if
   // id >= size().
   bts::ElfFileID file_of(InputSymbolID id) const;
@@ -84,6 +88,8 @@ private:
     u32 first_global = 0;
     // How many non-local symbols does the file contain?
     u32 count = 0;
+    // The section index of the file's symbol table, or 0 if it has none.
+    u16 symtab = 0;
   };
   // Indexed by file ID. Index 0 is unused.
   std::vector<NonLocalRange> _non_locals = std::vector<NonLocalRange>(1);
@@ -118,6 +124,7 @@ std::optional<InputSymbols> gather_symbols(Diagnostics &diagnostics, const bts::
       if (shdr.sh_type != bits::to_underlying(SectionTypes::SHT_SYMTAB)) continue;
       else if (shdr.sh_link >= elf.section_headers.size()) return fail(id, BadStringTable, 0);
       const PackedSymbolReader<B, E> symtab(elf, sec);
+      range.symtab = sec;
       // The null symbol at index 0 is always local. In that case, round up to 1.
       range.first_global = std::max<u32>(shdr.sh_info, 1);
       if (range.first_global > symtab.symbol_count()) return fail(id, BadFirstGlobal, 0);
@@ -188,6 +195,8 @@ public:
   const Symbol &symbol(SymbolID id) const;
   // The merged size and alignment of id if its owner is a common definition, or nullopt.
   std::optional<CommonSize> common(SymbolID id) const;
+  // Search all symbols to find a definition matching name, otherwise return STN_UNDEF.
+  SymbolID find(std::string_view name) const;
   // The best ranked foo@@V definition that a foo@V or foo entry forwards to. STN_UNDEF if not forwarded.
   InputSymbolID provider(InputSymbolID id) const;
 

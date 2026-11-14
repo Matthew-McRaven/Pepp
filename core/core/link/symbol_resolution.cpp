@@ -55,6 +55,17 @@ pepp::bts::ElfFileID pepp::link::InputSymbols::file_of(InputSymbolID id) const {
   return bts::ElfFileID(static_cast<u32>(it - _non_locals.begin() - 1));
 }
 
+pepp::bts::InputElfSymbolHandle pepp::link::InputSymbols::handle_of(InputSymbolID id) const {
+  const auto file = file_of(id);
+  const auto &range = _non_locals[file.value];
+  return {file, range.first_global + (id.value - range.first_id.value)};
+}
+
+u16 pepp::link::InputSymbols::symtab_of(bts::ElfFileID id) const {
+  if (!id || id.value >= _non_locals.size()) throw std::out_of_range("InputSymbols: no file with this ID");
+  return _non_locals[id.value].symtab;
+}
+
 std::pair<pepp::link::InputSymbolID, pepp::link::InputSymbolID>
 pepp::link::InputSymbols::ids_of(bts::ElfFileID id) const {
   if (!id || id.value >= _non_locals.size()) throw std::out_of_range("InputSymbols: no file with this ID");
@@ -326,6 +337,14 @@ pepp::link::SymbolID pepp::link::ResolvedSymbols::of(InputSymbolID id) const {
 pepp::link::InputSymbolID pepp::link::ResolvedSymbols::provider(InputSymbolID id) const {
   if (id.value >= _of.size()) throw std::out_of_range("ResolvedSymbols: no entry with this ID");
   return _forward.empty() ? InputSymbolID{} : _forward[_of[id.value].value].provider;
+}
+
+pepp::link::SymbolID pepp::link::ResolvedSymbols::find(std::string_view name) const {
+  // Skip STN_UNDEF by offseting by 1, since it has no name.
+  const auto it = std::find(_names.begin() + 1, _names.end(), name);
+  if (it == _names.end()) return SymbolID{};
+  const SymbolID symbol(static_cast<u32>(it - _names.begin()));
+  return _forward.empty() || !_forward[symbol.value].into ? symbol : _forward[symbol.value].into;
 }
 
 std::string_view pepp::link::ResolvedSymbols::name(SymbolID id) const {

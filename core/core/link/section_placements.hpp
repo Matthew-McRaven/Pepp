@@ -17,155 +17,230 @@
 
 #pragma once
 #include <algorithm>
+#include <array>
 #include <numeric>
+#include <optional>
 #include <span>
 #include <stdexcept>
+#include <string>
+#include <string_view>
+#include <utility>
 #include <vector>
 #include "core/ds/glob/glob.hpp"
-#include "core/ds/opaque_handle.hpp"
 #include "core/formats/elf/packed_ops.hpp"
 #include "core/formats/elf/packed_section_selection.hpp"
+#include "core/langs/ldscript/ir.hpp"
+#include "core/link/symbol_resolution.hpp"
 
 namespace pepp::link {
 using bts::ElfBits;
 using bts::ElfEndian;
 using bts::InputElfSectionHandle;
 
-// Identifies one output section. Numbered from 1 in output section allocation order.
-using OutputSectionID = pepp::OpaqueHandle<struct OutputSectionTag, u32>;
-// Identifies one input section match, such as `*(.text)` in a linker script and used to order input sections within an
-// output section.
-using InputSectionDescriptionID = pepp::OpaqueHandle<struct InputSectionDescriptionTag, u32>;
+using tc::ldscript::OutputSectionID;
+using tc::ldscript::InputSectionDescriptionID;
 
-// Record to which output section an input section is mapped plus a key by which to sort the output(description). The
-// input section is implicit.
-struct SectionClaim {
+// The placement of an input section within the output. The input section is implicit.
+struct SectionAssignment {
   OutputSectionID output;
   InputSectionDescriptionID description;
+  // The input section's offset within its output section. Set by lay_out_sections.
+  u64 offset = 0;
 
-  auto operator<=>(const SectionClaim &) const = default;
-  bool operator==(const SectionClaim &) const = default;
-  // An invalid output means unclaimed.
+  auto operator<=>(const SectionAssignment &) const = default;
+  bool operator==(const SectionAssignment &) const = default;
+  // An invalid output means unassigned.
   constexpr explicit operator bool() const { return bool(output); }
 };
 
-template <ElfBits B, ElfEndian E> class SectionMembers;
+class SectionMembers;
 
-// Given a selection over input sections (usually constructed via a glob), record which input section description first
-// claimed each input section. The first selection to cover an input section prevents later selections from claiming it,
-// which matches the typical linker rules. If the InputGroup changes, this class needs to be re-generated.
-template <ElfBits B, ElfEndian E> class SectionPlacements {
+// For a selection of input sections, record the output section to which it is assigned. Like the underlying
+// PackedSectionSelection, this class needs to be regenerated if the InputElfGroup changes.
+class SectionPlacements {
 public:
-  using Group = bts::PackedInputElfGroup<B, E>;
-  using Selection = bts::PackedSectionSelection<B, E>;
+  using Selection = bts::PackedSectionSelection;
 
-  explicit SectionPlacements(const Group &group) : _sections(group), _claims(_sections.size()) {}
+  // Covers only the sections of the selection.
+  explicit SectionPlacements(Selection sections) : _sections(std::move(sections)), _assignments(_sections.size()) {}
 
   // All input sections covered by this table.
   const Selection &sections() const noexcept { return _sections; }
-  // The set of claimed input sections, which share an index with _sections.
-  std::span<const SectionClaim> claims() const noexcept { return _claims; }
+  // The assignment of each input section, which shares an index with _sections.
+  std::span<const SectionAssignment> assignments() const noexcept { return _assignments; }
   // Throws std::out_of_range if this table does not cover the section.
-  SectionClaim claim_of(InputElfSectionHandle handle) const { return _claims[position_of(handle)]; }
-  bool claimed(InputElfSectionHandle handle) const { return bool(claim_of(handle)); }
+  SectionAssignment assignment_of(InputElfSectionHandle handle) const { return _assignments[position_of(handle)]; }
 
-  // Claim every section of selection that is still unclaimed, skipping the rest, and return how many were claimed.
-  // Throws std::invalid_argument if output is invalid.
-  u32 claim(const Selection &selection, OutputSectionID output, InputSectionDescriptionID description);
-  // The claimed sections, grouped by output section. Build it once every description is matched.
-  SectionMembers<B, E> members() const;
+  // Assign a section that is not yet assigned. Throws std::invalid_argument if output is invalid.
+  void assign(InputElfSectionHandle handle, OutputSectionID output, InputSectionDescriptionID description);
+  // position indexes sections().
+  void set_offset(u32 position, u64 offset) { _assignments.at(position).offset = offset; }
+  // The assigned sections, grouped by output section. Build it once every description is matched.
+  SectionMembers members() const;
 
 private:
   u32 position_of(InputElfSectionHandle handle) const;
   Selection _sections;
-  std::vector<SectionClaim> _claims;
+  std::vector<SectionAssignment> _assignments;
 };
 
-// The sorted input sections of each output section. Sorted first by description, then by file order in group, then by
-// section index within their file. This should match GNU ld's sorting.
-template <ElfBits B, ElfEndian E> class SectionMembers {
+// The input sections of each output section, as positions in SectionPlacements::sections(). They sort by description,
+// then by file order in group, then by section index, which matches GNU ld.
+class SectionMembers {
 public:
   // Empty for an unknown ID.
-  std::span<const InputElfSectionHandle> members(OutputSectionID output) const;
+  std::span<const u32> members(OutputSectionID output) const;
 
 private:
-  friend class SectionPlacements<B, E>;
-  explicit SectionMembers(const SectionPlacements<B, E> &placements);
-  std::vector<InputElfSectionHandle> _members;
+  friend class SectionPlacements;
+  explicit SectionMembers(const SectionPlacements &placements);
+  std::vector<u32> _members;
   // _members[_offsets[id], _offsets[id + 1]) are output section id's members. Index 0 is unused.
   std::vector<u32> _offsets;
 };
 
+// Merge a member's flags, type, alignment, and whether it has contents into those of its output section description.
+// The type becomes SHT_PROGBITS if members' types differ.
 template <ElfBits B, ElfEndian E>
-u32 SectionPlacements<B, E>::claim(const Selection &selection, OutputSectionID output,
-                                   InputSectionDescriptionID description) {
-  if (!output) throw std::invalid_argument("SectionPlacements: output must be valid");
-  u32 claimed = 0;
-  for (const auto handle : selection.handles()) {
-    auto &claim = _claims[position_of(handle)];
-    if (claim) continue;
-    claim = {output, description};
-    ++claimed;
-  }
-  return claimed;
+void merge_member(tc::ldscript::OutputSectionDescription &output, const bts::PackedInputElfGroup<B, E> &group,
+                  InputElfSectionHandle member) {
+  using enum bts::SectionTypes;
+  const auto &header = group.file(member.file).section_headers[member.index];
+  const auto type = static_cast<bts::SectionTypes>(u32(header.sh_type));
+  output.flags |= bts::word<B>(header.sh_flags);
+  output.alignment = std::max<u64>(output.alignment, bts::word<B>(header.sh_addralign));
+  output.has_contents |= header.sh_size != 0;
+  if (output.type == SHT_NULL) output.type = type;
+  else if (output.type != type) output.type = SHT_PROGBITS;
 }
 
-template <ElfBits B, ElfEndian E> SectionMembers<B, E> SectionPlacements<B, E>::members() const {
-  return SectionMembers<B, E>(*this);
-}
+// The rules used by GNU ld to place orphans (i.e., input sections that no input section description matches) after
+// output sections with the same attributes.
+enum class OrphanAttributes : u8 { Text, Rodata, Data, Bss, NonAlloc };
+// Returns the attributes of a section with these flags and type. A writable section is Data even if executable.
+OrphanAttributes orphan_attributes(u64 flags, bts::SectionTypes type);
 
-template <ElfBits B, ElfEndian E> u32 SectionPlacements<B, E>::position_of(InputElfSectionHandle handle) const {
-  const auto position = _sections.position(handle);
-  if (!position) throw std::out_of_range("SectionPlacements: section not covered");
-  return *position;
-}
-
-template <ElfBits B, ElfEndian E> SectionMembers<B, E>::SectionMembers(const SectionPlacements<B, E> &placements) {
-  const auto claims = placements.claims();
-  const auto handles = placements.sections().handles();
-  // Collect the indices of all claimed sections and track total number of output sections.
-  std::vector<u32> positions;
-  u32 outputs = 0;
-  for (u32 position = 0; position < claims.size(); ++position) {
-    if (!claims[position]) continue;
-    positions.push_back(position);
-    outputs = std::max(outputs, claims[position].output.value);
-  }
-  // Sort by output section then description. Ties within a description preserve the group's order,
-  // which gives us sorting by file order and section index order within a file for free.
-  std::ranges::stable_sort(positions, {}, [&](u32 position) { return claims[position]; });
-
-  // For each id members span [_offsets[id], _offsets[id + 1]).
-  _members.reserve(positions.size());
-  // Slot 0 is unused, and we need id+1 entries to prevent an buffer overrun when accessing the maximum id, so we need
-  // to zero a total of outputs+2 elements.
-  _offsets.assign(outputs + 2, 0);
-  // Count the total number of members in each output section.
-  for (const auto position : positions) {
-    _members.push_back(handles[position]);
-    ++_offsets[claims[position].output.value];
-  }
-  // Converts from a count at each output section to an offset in our _members array.
-  // _offsets[i] becomes the sum of the counts before it, _offsets[0..i), which is where output i starts.
-  std::exclusive_scan(_offsets.begin(), _offsets.end(), _offsets.begin(), 0u);
-}
-
+// Select the sections of live files, except null sections and linker-only sections like symbol tables.
 template <ElfBits B, ElfEndian E>
-std::span<const InputElfSectionHandle> SectionMembers<B, E>::members(OutputSectionID output) const {
-  if (!output || output.value >= _offsets.size() - 1) return {};
-  const u32 first = _offsets[output.value];
-  return std::span(_members).subspan(first, _offsets[output.value + 1] - first);
-}
-
-// The sections whose names match glob and which placements has not claimed yet. The null section is never selected.
-// The glob is mutable because it compiles itself on first use.
-template <ElfBits B, ElfEndian E>
-bts::PackedSectionSelection<B, E> select_unclaimed(const bts::PackedInputElfGroup<B, E> &group, Glob &glob,
-                                                   const SectionPlacements<B, E> &placements) {
+bts::PackedSectionSelection placeable_sections(const bts::PackedInputElfGroup<B, E> &group,
+                                               std::span<const Liveness> files) {
   auto f = [&](const bts::InputElfSectionRef<B, E> &ref) {
-    return ref.handle.index != 0 && !placements.claimed(ref.handle) &&
-           glob.find(bts::section_name(ref.file, ref.handle.index)) >= 0;
+    using enum bts::SectionTypes;
+    switch (static_cast<bts::SectionTypes>(u32(ref.header.sh_type))) {
+    case SHT_NULL: [[fallthrough]];
+    case SHT_SYMTAB: [[fallthrough]];
+    case SHT_STRTAB: [[fallthrough]];
+    case SHT_RELA: [[fallthrough]];
+    case SHT_REL: [[fallthrough]];
+    case SHT_GROUP: [[fallthrough]];
+    case SHT_SYMTAB_SHNDX: return false;
+    default: return files[ref.handle.file.value] == Liveness::Live;
+    }
   };
-  return bts::PackedSectionSelection<B, E>(group, f);
+  return bts::PackedSectionSelection(group, f);
+}
+
+// Represents an input section description whose file and section patterns have been compiled.
+class InputSectionDescriptionMatcher {
+public:
+  explicit InputSectionDescriptionMatcher(const tc::ldscript::InputSectionDescription &description);
+  // Returns true if both the section's file and its name match.
+  // TODO: if file matching consumes a large fraction of runtime, implement a filename cache at the place_sections
+  // level.
+  template <ElfBits B, ElfEndian E>
+  bool matches(const bts::PackedInputElfGroup<B, E> &group, InputElfSectionHandle section) const {
+    return matches_file(group, section.file) &&
+           _sections.find(bts::section_name(group.file(section.file), section.index)) >= 0;
+  }
+
+private:
+  // Returns true if the file pattern matches the file's name or an archive's member.
+  template <ElfBits B, ElfEndian E>
+  bool matches_file(const bts::PackedInputElfGroup<B, E> &group, bts::ElfFileID file) const {
+    using enum tc::ldscript::FilePattern::Match;
+    const auto &provenance = group.provenance(file);
+    if (const auto *member = std::get_if<bts::ElfFromArchive>(&provenance)) {
+      const auto &archive = group.archive(member->archive);
+      const auto archive_path = archive.path() ? archive.path()->string() : std::string();
+      if (_match == WholeArchive) return _file.find(archive_path) >= 0;
+      return _match == Name && _file.find(archive_path + ":" + std::string(archive.name(member->member))) >= 0;
+    }
+    // A file in memory has an empty name.
+    const auto *path = std::get_if<bts::ElfFromPath>(&provenance);
+    return _match != WholeArchive && _file.find(path ? path->path.string() : std::string()) >= 0;
+  }
+
+  tc::ldscript::FilePattern::Match _match;
+  // Glob compiles itself on first use, but I want this class to act as-if const.
+  mutable Glob _file, _sections;
+};
+
+// Iterate over the live input sections. If the descriptor matches a given (section+file) and the section is unassigned,
+// map the input section to the current output section.
+template <ElfBits B, ElfEndian E>
+void assign_matching(const bts::PackedInputElfGroup<B, E> &group, SectionPlacements &placements,
+                     const tc::ldscript::InputSectionDescription &description,
+                     tc::ldscript::OutputSectionDescription &output) {
+  InputSectionDescriptionMatcher matcher(description);
+  for (const auto section : placements.sections().handles()) {
+    if (placements.assignment_of(section) || !matcher.matches(group, section)) continue;
+    placements.assign(section, output.id, description.id);
+    merge_member(output, group, section);
+  }
+}
+
+// Returns the index of the first output section with a matching name, or nullopt if there is no match.
+std::optional<size_t> find_output_section(std::span<const tc::ldscript::Sections::Command> commands,
+                                          std::string_view name);
+// Insert an orphan's output section into commands where GNU ld would put it (i.e., after output sections with the same
+// OrphanAttributes), and return its index. The orphan's flags and type must already be merged into it.
+size_t insert_orphan(std::vector<tc::ldscript::Sections::Command> &commands,
+                     tc::ldscript::OutputSectionDescription orphan);
+// Returns the ID of the input section description that holds an output section's orphans. If there is none, append a
+// `*(name)` description and number it with ++descriptions. Such a description is never matched.
+InputSectionDescriptionID orphan_description(tc::ldscript::OutputSectionDescription &output, u32 &descriptions);
+
+// Number the output and input section descriptions of a merged SECTIONS command (see tc::ldscript::merge_sections),
+// then assign each placeable section to the first input section description that matches it. Output sections with
+// duplicate names receive unique IDs. Give each remaining section (i.e., an orphan) to the output section with its
+// name, or else to one inserted for it.
+// TODO: /DISCARD/ is treated as an ordinary output section. Its members should be dropped from the output.
+template <ElfBits B, ElfEndian E>
+SectionPlacements place_sections(const bts::PackedInputElfGroup<B, E> &group, std::span<const Liveness> files,
+                                 tc::ldscript::Sections &sections) {
+  namespace ld = tc::ldscript;
+  auto &commands = sections.commands;
+  SectionPlacements ret(placeable_sections(group, files));
+  u32 outputs = 0, descriptions = 0;
+  // Assign input sections to output sections by matching their file and section patterns.
+  for (auto &command : commands) {
+    auto *output = std::get_if<ld::OutputSectionDescription>(&command);
+    if (!output) continue;
+    output->id = OutputSectionID{++outputs};
+    for (auto &inner : output->commands)
+      if (auto *input = std::get_if<ld::InputSectionDescription>(&inner)) {
+        input->id = InputSectionDescriptionID{++descriptions};
+        assign_matching(group, ret, *input, *output);
+      }
+  }
+
+  // Place the orphans in group order.
+  for (const auto section : ret.sections().handles()) {
+    if (ret.assignment_of(section)) continue;
+    const auto name = bts::section_name(group.file(section.file), section.index);
+    // If an output section has the orphan's name, the orphan joins it.
+    auto at = find_output_section(commands, name);
+    if (at) merge_member(std::get<ld::OutputSectionDescription>(commands[*at]), group, section);
+    else {
+      // Otherwise, insert an output section to hold the orphan.
+      ld::OutputSectionDescription orphan{
+          .name = std::string(name), .id = OutputSectionID{++outputs}, .orphan = true};
+      merge_member(orphan, group, section);
+      at = insert_orphan(commands, std::move(orphan));
+    }
+    auto &output = std::get<ld::OutputSectionDescription>(commands[*at]);
+    ret.assign(section, output.id, orphan_description(output, descriptions));
+  }
+  return ret;
 }
 } // namespace pepp::link

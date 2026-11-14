@@ -17,6 +17,9 @@
 
 #pragma once
 #include <algorithm>
+#include <filesystem>
+#include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <variant>
@@ -24,6 +27,10 @@
 #include "core/formats/elf/packed_input_group.hpp"
 #include "core/link/diagnostics.hpp"
 #include "core/link/link_config.hpp"
+#include "core/link/link_view.hpp"
+#include "core/link/output_file.hpp"
+#include "core/link/section_layout.hpp"
+#include "core/link/section_placements.hpp"
 #include "core/link/symbol_resolution.hpp"
 
 namespace pepp::link {
@@ -34,10 +41,17 @@ struct LinkContext {
   Diagnostics diagnostics;
   // Indexed by ConfigInputID. Each input's path, or <memory>.
   std::vector<std::string> input_names;
+  // Concatenated contents of parsed input linker scripts in input order.
+  tc::ldscript::Script script;
   InputSymbols inputs;
   // Indexed by file ID. Index 0 is unused.
   std::vector<Liveness> files;
   ResolvedSymbols symbols;
+  // The output section of each placeable input section. Empty when the link stopped before placement.
+  std::optional<SectionPlacements> placements;
+  // The linked executable. It is the file at LinkConfig::output, or an anonymous mapping otherwise. Null when
+  // the link stopped before it was created, or had errors.
+  std::shared_ptr<bts::MappedFile> output;
 
   // True if the link produced no Error or Fatal diagnostics.
   bool ok() const { return diagnostics.count(Severity::Error) == 0; }
@@ -60,10 +74,27 @@ LinkContext do_link(LinkConfig &&config);
 // Pretty-print a description of a diagnostic message.
 std::string describe(const LinkContext &context, const Diagnostic &diagnostic);
 
+struct ParsedScripts {
+  // The effective inputs to the linker, with scripts replaced by their input files.
+  std::vector<LinkInput> inputs;
+  // The effective linker script, which is every script's commands concatenated in input order.
+  tc::ldscript::Script script;
+};
+
+// Parse every linker script in inputs, returning the effective linker script and an updated input list. That list
+// replaces each script with the files of its INPUT/GROUP commands. If a path is it is neither an ELF file nor an
+// archive, it is treated as a script. If no input is a LinkInput::Script (from -T), a default script is prepended to
+// the inputs. Stops at the first script that cannot be read or parsed, reporting it
+// as Fatal error.
+ParsedScripts parse_scripts(Diagnostics &diagnostics, std::vector<LinkInput> inputs);
+
+// Mark the output at path as executable if the link has no errors. Otherwise, release the output and delete it.
+void close_output(LinkContext &context, const std::optional<std::filesystem::path> &path);
+
 // The steps of do_link that run once the inputs are in a group.
 // TODO: still missing many steps.
 template <bts::ElfBits B, bts::ElfEndian E>
-void link_group(LinkContext &context, const bts::PackedInputElfGroup<B, E> &group) {
+void link_group(LinkContext &context, const bts::PackedInputElfGroup<B, E> &group, const LinkConfig &config) {
   auto &diagnostics = context.diagnostics;
   auto &inputs = context.inputs;
   auto &files = context.files;
@@ -85,10 +116,11 @@ void link_group(LinkContext &context, const bts::PackedInputElfGroup<B, E> &grou
     std::ranges::replace(files, Liveness::Lazy, Liveness::Excluded);
   }
   // TODO: Merge COMDAT groups.
-  // TODO: Create a selection for only-live files/sections.
   // In the second pass, do not include archive members that are now marked as excluded, which helps avoid undefined
   // symbol errors.
   context.symbols = resolve_symbols(diagnostics, inputs, files);
+  //
+
   /*
    * Inspect special sections
    */
@@ -108,7 +140,10 @@ void link_group(LinkContext &context, const bts::PackedInputElfGroup<B, E> &grou
     // TODO: create synthetic sections for the output, synthetic symbols
     // TODO: validate no undefined symbols (if shlib), multiple definitions
     // TODO: garbage collection, identical-code-folding
-    // TODO: assign input sections to output sections
+    // Needed so that orphans can be inserted among assignments from any SECTIONS command.
+    auto &sections = tc::ldscript::merge_sections(context.script);
+    // Assign the live files' sections to the output sections, inserting output sections for orphans.
+    context.placements = place_sections(group, files, sections);
     // Output sections are now frozen
     // TODO: handle --section-align for over-aligning sections
     // TODO: mark undefined symbols as imports
@@ -120,14 +155,21 @@ void link_group(LinkContext &context, const bts::PackedInputElfGroup<B, E> &grou
     // TODO: extra got/plt/dynsym/etc entries from relocations
     // TODO: sort output sections to minimize segment count
     // TODO: separate debug info??
-    // TODO: compute layout of output sections and construct a map of in->out
+    // Compute layout of output sections and construct a map of in->out
+    lay_out_sections(diagnostics, group, *context.placements, sections);
     // TODO: linker-generated section contents
     // TODO: emit relocations, symtab, strtab, shstrtab, etc
     // TODO: apply linker relaxation, remove redundant thunks. This can adjust the output layout
     // Memory layout fixed / all symbol addresses are correct
     // TODO: compress relevant sections, ensure thunks are coalesced
     // Memory layout and file layout are fixed
-    // TODO: begin the bit copying, apply relocations as we go
+    // Compute the file layout, then copy the input sections into the output file.
+    // TODO: apply relocations as we go
+    if (!context.ok()) return;
+    const auto outputs = output_sections(sections);
+    const LinkView<B, E> link{group, files, inputs, context.symbols, *context.placements, outputs};
+    context.output = create_executable_output(diagnostics, link, sections, config.output);
+    close_output(context, config.output);
   }
 }
 } // namespace pepp::link

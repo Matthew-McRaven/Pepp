@@ -82,6 +82,12 @@ int pepp::tc::lex::InlineComment::type() const { return TYPE; }
 
 std::string pepp::tc::lex::InlineComment::type_name() const { return "InlineComment"; }
 
+pepp::tc::lex::BlockComment::BlockComment(support::LocationInterval loc, std::string const *v) : Identifier(loc, v) {}
+
+int pepp::tc::lex::BlockComment::type() const { return TYPE; }
+
+std::string pepp::tc::lex::BlockComment::type_name() const { return "BlockComment"; }
+
 pepp::tc::lex::Literal::Literal(support::LocationInterval loc, std::string literal) : Token(loc), literal(literal) {}
 
 int pepp::tc::lex::Literal::type() const { return TYPE; }
@@ -89,3 +95,25 @@ int pepp::tc::lex::Literal::type() const { return TYPE; }
 std::string pepp::tc::lex::Literal::type_name() const { return "Literal"; }
 
 std::string pepp::tc::lex::Literal::to_string() const { return literal; }
+
+pepp::tc::lex::CharacterConstant::CharacterConstant(support::LocationInterval loc, std::string value)
+    : Token(loc), value(value) {}
+
+int pepp::tc::lex::CharacterConstant::type() const { return TYPE; }
+
+std::string pepp::tc::lex::CharacterConstant::type_name() const { return "CharacterConstant"; }
+
+std::string pepp::tc::lex::CharacterConstant::to_string() const { return fmt::format("'{}'", value); }
+
+std::string pepp::tc::lex::CharacterConstant::repr() const { return fmt::format("{}({})", type_name(), value); }
+
+pepp::tc::lex::StringConstant::StringConstant(support::LocationInterval loc, std::string const *v)
+    : Identifier(loc, v) {}
+
+int pepp::tc::lex::StringConstant::type() const { return TYPE; }
+
+std::string pepp::tc::lex::StringConstant::type_name() const { return "StringConstant"; }
+
+std::string pepp::tc::lex::StringConstant::to_string() const { return fmt::format("\"{}\"", view()); }
+
+std::string pepp::tc::lex::StringConstant::repr() const { return fmt::format("{}({})", type_name(), view()); }

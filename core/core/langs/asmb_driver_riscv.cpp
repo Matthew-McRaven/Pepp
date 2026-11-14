@@ -40,6 +40,7 @@ DriverResult assemble_riscv(const RISCVDriverConfig &cfg, const FormattingConfig
   std::optional<parser::MacroComments> comments;
   if (fmtcfg.listing) comments = parser::MacroComments{riscv_format_as_columns, '#'};
   auto flattened = parser::flatten_macros(program, comments);
+  if (cfg.output_type == bts::ElfFileType::ET_REL) reject_absolute_placement(result.diagnostics, flattened);
   auto split = riscv_split_to_sections(result.diagnostics, flattened);
   if (result.diagnostics.count(Severity::Fatal) > 0) return result;
 
@@ -54,7 +55,7 @@ DriverResult assemble_riscv(const RISCVDriverConfig &cfg, const FormattingConfig
   }
   // After flattening, so that a definition inside an expansion has its instantiation's line.
   result.set_elf(riscv_to_elf(split.grouped_ir, addresses, object_code, *rv_parser.symbol_table(), cfg.debug_files,
-                              parser::defined_macros(program), layout ? &layout->rows : nullptr));
+                              parser::defined_macros(program), layout ? &layout->rows : nullptr, cfg.output_type));
   if (layout)
     result.unformatted_listing = DriverResult::UnformattedListing{std::move(layout->text), riscv_listing_style};
   return result;

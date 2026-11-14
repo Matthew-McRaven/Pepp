@@ -32,13 +32,6 @@
 namespace {
 using namespace pepp::bts;
 
-// The segment being grown, if any. A constraint names an index range with ascending addresses, so a section may only
-// join when it starts exactly where the segment ends; that also keeps address gaps out of the file.
-struct Run {
-  u32 flags, end;
-  bool has_nobits;
-};
-
 // An undefined symbol must be defined by another object file, so it must be visible to them.
 SymbolBinding binding_of(const pepp::core::symbol::Entry &entry) {
   switch (entry.binding) {
@@ -84,6 +77,15 @@ struct WrittenSymbols {
   std::vector<u32> section; // Section symbol index in symtab for each section header index or 0 if non-existent.
 };
 
+using Program = std::vector<std::pair<pepp::tc::SectionDescriptor, pepp::tc::IRProgram>>;
+
+// The address assigned to the section by the assembler. Nullopt for constant & undefined symbols.
+std::optional<u64> section_low_address(const pepp::core::symbol::Entry &entry, const Program &prog) {
+  const u16 shndx = shndx_of(entry), base = pepp::tc::SectionDescriptor::section_base_index;
+  if (shndx < base || shndx - base >= prog.size()) return std::nullopt;
+  return prog[shndx - base].first.low_address;
+}
+
 // Symbols that must not be replaced with section-relative relocation entries.
 std::set<const pepp::core::symbol::Entry *> preserved_symbols(const pepp::tc::ProgramObjectCodeResult &object_code) {
   std::set<const pepp::core::symbol::Entry *> ret;
@@ -96,7 +98,7 @@ std::set<const pepp::core::symbol::Entry *> preserved_symbols(const pepp::tc::Pr
 // Must be written after all sections which define symbols to avoid having to update st_shndx values later.
 template <ElfBits B, ElfEndian E>
 WrittenSymbols write_symbols(PackedGrowableElfFile<B, E> &elf, const pepp::core::symbol::LeafTable &table,
-                             const std::set<const pepp::core::symbol::Entry *> &preserved) {
+                             const std::set<const pepp::core::symbol::Entry *> &preserved, const Program &prog) {
   using namespace pepp::core::symbol;
   using Symbol = PackedElfSymbol<B, E>;
   std::vector<LeafTable::entry_ptr_t> symbols;
@@ -138,7 +140,11 @@ WrittenSymbols write_symbols(PackedGrowableElfFile<B, E> &elf, const pepp::core:
   for (const auto &ptr : symbols) {
     const auto &entry = *ptr;
     Symbol symbol;
-    symbol.st_value = static_cast<word<B>>(value_of(entry));
+    u64 value = value_of(entry);
+    // Convert the symbol into a section-relative offset.
+    if (const auto low = section_low_address(entry, prog); low)
+      value = static_cast<u64>(elf.section_headers[shndx_of(entry)].sh_addr) + (value - *low);
+    symbol.st_value = static_cast<word<B>>(value);
     symbol.st_size = static_cast<word<B>>(size_of(entry));
     symbol.st_shndx = shndx_of(entry);
     symbol.set_type(type_of(entry));
@@ -153,8 +159,7 @@ WrittenSymbols write_symbols(PackedGrowableElfFile<B, E> &elf, const pepp::core:
 
 // Must follow write_symbols, since relocations name their symbol by index.
 template <ElfBits B, ElfEndian E>
-void write_relocations(PackedGrowableElfFile<B, E> &elf,
-                       const std::vector<std::pair<pepp::tc::SectionDescriptor, pepp::tc::IRProgram>> &prog,
+void write_relocations(PackedGrowableElfFile<B, E> &elf, const Program &prog,
                        const pepp::tc::ProgramObjectCodeResult &object_code, const WrittenSymbols &symbols) {
   for (u32 it = 0; it < prog.size(); it++) {
     const auto &relocs = object_code.relocations[it];
@@ -174,8 +179,9 @@ void write_relocations(PackedGrowableElfFile<B, E> &elf,
       if (symbol == 0) throw std::logic_error("No symbol to relocate against");
       sword<B> addend = 0;
       if (local) {
-        const word<B> base = elf.section_headers[entry.section_index].sh_addr;
-        addend = static_cast<sword<B>>(value_of(entry) - base);
+        if (const auto low = section_low_address(entry, prog); !low)
+          throw std::logic_error("Local relocation target has no section");
+        else addend = static_cast<sword<B>>(value_of(entry) - *low);
       }
       addend += static_cast<sword<B>>(rel.target.addend); // From `symbol + constant`.
       writer.add_rela(rel.section_offset, rel.type, symbol, addend);
@@ -184,8 +190,7 @@ void write_relocations(PackedGrowableElfFile<B, E> &elf,
 }
 
 template <ElfBits B, ElfEndian E>
-pepp::tc::ElfResult build(ElfMachineType machine,
-                          const std::vector<std::pair<pepp::tc::SectionDescriptor, pepp::tc::IRProgram>> &prog,
+pepp::tc::ElfResult build(ElfFileType type, ElfMachineType machine, const Program &prog,
                           const pepp::tc::ProgramObjectCodeResult &object_code,
                           const pepp::core::symbol::LeafTable &symbols) {
   pepp::tc::ElfResult ret;
@@ -193,17 +198,18 @@ pepp::tc::ElfResult build(ElfMachineType machine,
   using enum ElfFileType;
   using enum ElfABI;
   // emplace returns the alternative it built, so the variant owns the file and we keep a typed pointer to fill it.
-  auto *elf = ret.elf.emplace<std::unique_ptr<File>>(std::make_unique<File>(ET_EXEC, machine, ELFOSABI_NONE)).get();
+  auto *elf = ret.elf.emplace<std::unique_ptr<File>>(std::make_unique<File>(type, machine, ELFOSABI_NONE)).get();
   // The null section and .shstrtab come first; SectionDescriptor::section_base_index accounts for them.
   ensure_section_header_table(*elf);
 
-  std::optional<Run> run;
+  // An ET_REL's sections start at 0
+  const bool relocatable = type == ET_REL;
 
   for (u32 it = 0; it < prog.size(); it++) {
     const auto &desc = prog[it].first;
     SPDLOG_INFO("{} creating", desc.name);
-    const auto type = desc.flags.z ? SectionTypes::SHT_NOBITS : SectionTypes::SHT_PROGBITS;
-    const auto index = add_named_section(*elf, desc.name, type);
+    const auto sh_type = desc.flags.z ? SectionTypes::SHT_NOBITS : SectionTypes::SHT_PROGBITS;
+    const auto index = add_named_section(*elf, desc.name, sh_type);
     if (index != desc.section_index) throw std::logic_error("Mismatch in pre-computed section index");
 
     auto &shdr = elf->section_headers[index];
@@ -212,47 +218,19 @@ pepp::tc::ElfResult build(ElfMachineType machine,
     if (desc.flags.x) flags |= bits::to_underlying(SectionFlags::SHF_EXECINSTR);
     if (desc.flags.w) flags |= bits::to_underlying(SectionFlags::SHF_WRITE);
     shdr.sh_flags = flags;
-    shdr.sh_addr = desc.low_address;
+    shdr.sh_addr = relocatable ? 0 : desc.low_address;
     shdr.sh_addralign = desc.alignment;
     // Layout sizes sections from their data, which NOBITS has none of.
-    // Extent as every reader sees it. high_address - low_address can overstate a section once .ORG is involved.
-    u32 extent = 0;
-    if (desc.flags.z) {
-      extent = desc.high_address - desc.low_address;
-      shdr.sh_size = extent;
-    } else {
-      // Shares the assembler's object code rather than copying it.
-      const auto &slice = object_code.section_slices[it];
-      elf->section_data[index] = std::make_shared<BlockStorage::BlockStorageSlice>(slice);
-      extent = static_cast<u32>(slice.size());
-    }
-    const u32 end = desc.low_address + extent;
-
-    u32 load_flags = 0;
-    if (desc.flags.r) load_flags |= bits::to_underlying(SegmentFlags::PF_R);
-    if (desc.flags.w) load_flags |= bits::to_underlying(SegmentFlags::PF_W);
-    if (desc.flags.x) load_flags |= bits::to_underlying(SegmentFlags::PF_X);
-    const u16 align = std::max<u16>(desc.alignment, 1);
-    const bool occupies_memory = extent > 0;
-    // File data after a NOBITS would sit past p_filesz. A trailing NOBITS is fine.
-    const bool blocked = run && run->has_nobits && !desc.flags.z && occupies_memory;
-    // We can extend the run if: matching flags, contiguous  addresses, and no intervening NOBITS.
-    if (run && run->flags == load_flags && !blocked && desc.low_address == bits::align_up(run->end, align)) {
-      auto &segment = ret.segments.back();
-      segment.to_sec = index;
-      segment.alignment = std::max(segment.alignment, align);
-      run->end = end;
-      run->has_nobits |= desc.flags.z;
-    } else if (occupies_memory) {
-      SegmentLayoutConstraint segment;
-      segment.alignment = align;
-      segment.from_sec = segment.to_sec = index;
-      segment.update_sec_addrs = false; // Addresses come from assign_addresses.
-      elf->add_segment(SegmentType::PT_LOAD, static_cast<SegmentFlags>(load_flags));
-      ret.segments.push_back(segment);
-      run = Run{load_flags, end, desc.flags.z};
-    } else { // A section with no memory usage cannot be part of a segment.
-      run.reset();
+    if (desc.flags.z) shdr.sh_size = desc.high_address - desc.low_address;
+    // Shares the assembler's object code rather than copying it.
+    else elf->section_data[index] = std::make_shared<BlockStorage::BlockStorageSlice>(object_code.section_slices[it]);
+  }
+  // Program headers are not needed for ET_REL files.
+  if (!relocatable) {
+    const auto from = pepp::tc::SectionDescriptor::section_base_index;
+    for (const auto &[flags, constraint] : group_load_segments(*elf, from, static_cast<u16>(from + prog.size()))) {
+      elf->add_segment(SegmentType::PT_LOAD, flags);
+      ret.segments.push_back(constraint);
     }
   }
 
@@ -261,7 +239,7 @@ pepp::tc::ElfResult build(ElfMachineType machine,
     const auto index = add_named_section(*elf, name, SectionTypes::SHT_PROGBITS);
     elf->section_headers[index].sh_addralign = 1;
   }
-  const auto written = write_symbols(*elf, symbols, preserved_symbols(object_code));
+  const auto written = write_symbols(*elf, symbols, preserved_symbols(object_code), prog);
   write_relocations(*elf, prog, object_code, written);
   return ret;
 }
@@ -270,13 +248,15 @@ pepp::tc::ElfResult build(ElfMachineType machine,
 pepp::tc::ElfResult pepp::tc::sections_to_elf(ElfBits bits, ElfEndian endian, ElfMachineType machine,
                                               const std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
                                               const ProgramObjectCodeResult &object_code,
-                                              const pepp::core::symbol::LeafTable &symbols) {
+                                              const pepp::core::symbol::LeafTable &symbols, ElfFileType type) {
   using enum ElfBits;
   using enum ElfEndian;
-  if (bits == b32 && endian == le) return build<b32, le>(machine, prog, object_code, symbols);
-  else if (bits == b32) return build<b32, be>(machine, prog, object_code, symbols);
-  else if (endian == le) return build<b64, le>(machine, prog, object_code, symbols);
-  else return build<b64, be>(machine, prog, object_code, symbols);
+  if (type != ElfFileType::ET_EXEC && type != ElfFileType::ET_REL)
+    throw std::logic_error("sections_to_elf: only supports ET_EXEC and ET_REL");
+  else if (bits == b32 && endian == le) return build<b32, le>(type, machine, prog, object_code, symbols);
+  else if (bits == b32) return build<b32, be>(type, machine, prog, object_code, symbols);
+  else if (endian == le) return build<b64, le>(type, machine, prog, object_code, symbols);
+  else return build<b64, be>(type, machine, prog, object_code, symbols);
 }
 
 std::vector<u8> pepp::tc::elf_bytes(ElfResult &result) { return pepp::bts::elf_bytes(result.elf, &result.segments); }

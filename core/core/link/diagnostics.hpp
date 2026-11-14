@@ -22,6 +22,7 @@
 #include <variant>
 #include <vector>
 #include "core/compile/diagnostic/severity.hpp"
+#include "core/compile/source/location.hpp"
 #include "core/ds/opaque_handle.hpp"
 #include "core/formats/elf/packed_input_group.hpp"
 
@@ -37,8 +38,16 @@ consteval void allow_opaque_handle_increment(InputSymbolID);
 enum class LinkCode : u8 {
   // No input provides an ELF file from which to take the class and byte order.
   NoInputs,
-  // A config field or input kind that is not implemented yet.
-  Unsupported,
+  // A linker script failed to parse. The subject is a ScriptMessage.
+  BadScript,
+  // An unparsed linker script reached a pass that requires it to have already been parsed.
+  UnparsedScript,
+  // A linker script expression could not be evaluated. The subject is a ScriptMessage.
+  BadExpression,
+  // An assignment moved the location counter backwards within an output section. The subject is a ScriptMessage.
+  LocationCounterBackwards,
+  // The output file could not be created or mapped. The subject is a ScriptMessage with the offending file.
+  CannotWriteOutput,
 };
 
 // Errors during symbol resolution.
@@ -72,6 +81,14 @@ struct ConfigInputOffset {
   bool operator==(const ConfigInputOffset &) const = default;
 };
 
+// A problem with a linker script, which has no ConfigInputID. If location is invalid, the problem is with the whole
+// file. If message is empty, the diagnostic's code describes the problem.
+struct ScriptMessage {
+  std::string file;
+  tc::support::LocationInterval location;
+  std::string message;
+  bool operator==(const ScriptMessage &) const = default;
+};
 struct SymbolConflict {
   InputSymbolID symbol, first;
   bool operator==(const SymbolConflict &) const = default;
@@ -79,9 +96,8 @@ struct SymbolConflict {
 
 // What entity caused the error? monostate means the diagnostic can't be narrowed down to an item like a symbol or a
 // file offset.
-using DiagnosticSubject =
-    std::variant<std::monostate, ConfigInputID, ConfigInputOffset, bts::InputElfSymbolHandle, InputSymbolID,
-                 SymbolConflict>;
+using DiagnosticSubject = std::variant<std::monostate, ConfigInputID, ConfigInputOffset, ScriptMessage,
+                                       bts::InputElfSymbolHandle, InputSymbolID, SymbolConflict>;
 
 struct Diagnostic {
   Severity severity;

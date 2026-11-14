@@ -25,11 +25,13 @@
 #include <iosfwd>
 #include <optional>
 #include <stdexcept>
+#include <vector>
 #include "core/math/bitmanip/log2.hpp"
 
 namespace pepp::bts {
 
 template <ElfBits B, ElfEndian E> void ensure_section_header_table(PackedGrowableElfFile<B, E> &elf);
+
 // Assumes .shstrtab already exists
 template <ElfBits B, ElfEndian E>
 u16 add_named_section(PackedGrowableElfFile<B, E> &, std::string_view name, SectionTypes type, u16 link = 0);
@@ -43,16 +45,19 @@ template <ElfBits B, ElfEndian E>
 u16 add_named_rel(PackedGrowableElfFile<B, E> &, std::string_view name, u16 symtab_idx, u16 section_idx);
 template <ElfBits B, ElfEndian E>
 u16 add_named_rela(PackedGrowableElfFile<B, E> &, std::string_view name, u16 symtab_idx, u16 section_idx);
+
 // A section's name from the section header string table. Empty if section is missing or sh_name is out of range.
 template <ElfBits B, ElfEndian E> std::string_view section_name(const PackedElf<B, E> &, u32 index);
 // Index of the first section named `name`, or 0 if there is none.
 template <ElfBits B, ElfEndian E> u16 find_named_section(const PackedElf<B, E> &, std::string_view name);
+
 // All of section `index`'s bytes. Empty for index 0 or if section's bytes are non-contiguous in memory.
 template <ElfBits B, ElfEndian E> bits::span<const u8> section_bytes(const PackedElf<B, E> &, u16 index);
 // Return a subspan of the sections bytes, or nullopt if the (offset, length) would overflow the span of if the
 // section_bytes(index) returns nullopt.
 template <ElfBits B, ElfEndian E>
 std::optional<bits::span<const u8>> section_bytes(const PackedElf<B, E> &, u16 index, u64 offset, u64 length);
+
 // Index of the first SHF_ALLOC section whose memory holds `address`, or 0 if there is none. NOBITS sections count.
 // For ET_REL files, this is essentially meaningless, since sections in relocatable files tend to start at 0.
 template <ElfBits B, ElfEndian E> u16 section_at_address(const PackedElf<B, E> &, u64 address);
@@ -62,10 +67,6 @@ template <ElfBits B, ElfEndian E> u32 symbol_count(const PackedElfShdr<B, E> &sh
   const u32 size = shdr.sh_size, entsize = shdr.sh_entsize;
   return size / entsize;
 }
-
-// Lay out the ELF header and program header table at a given offset, returning the next available offset.
-// Inserts corresponding LayoutItems into the layout vector.
-template <ElfBits B, ElfEndian E> u64 place_header_tables_at(PackedElf<B, E> &, std::vector<LayoutItem> &, u64 off);
 
 // Helper to update memory addresses for contiguous sections in a segment automatically.
 struct SegmentLayoutConstraint {
@@ -81,14 +82,43 @@ struct SegmentLayoutConstraint {
   bool update_sec_addrs = true;
   u64 base_address = 0;
 };
-// Returns an iovec-like vector of LayoutItems representing the final ELF file layout and associated data.
-// The [i]th constraint is for the [ith] segment. If nullptr, no constraints and sh_addr will not be assigned.
-// There should never be overlapping [offset, offset+data.size()] entries in a layout, otherwise you have concocted a
-// cursed ELF file with illegal offsets and sizes, but this function does not check for those cases.
+
+struct LoadSegment {
+  SegmentFlags flags = SegmentFlags::PF_NONE;
+  SegmentLayoutConstraint constraint;
+};
+
+// group_load_segments will combine adjacent sections within this distance into a single PT_LOAD, assuming the flags are
+// compatible. Chosen to be 1/2 a typical page size (4KiB).
+inline constexpr u64 DEFAULT_MAX_PTLOAD_GAP = 2048;
+// Organize contiguous sections (by sh_ndx) into PT_LOAD'able segments by forming "runs" of sections with compatible
+// flags. Gaps between sections, up to max_gap, are inserted into the file to minimize the number of segments.
+// Unallocated  and empty sections end a run, as do changes in flags, a decreasing sh_addr, or a gap larger than
+// max_gap.
+template <ElfBits B, ElfEndian E>
+std::vector<LoadSegment> group_load_segments(const PackedElf<B, E> &elf, u16 from, u16 to,
+                                             u64 max_gap = DEFAULT_MAX_PTLOAD_GAP);
+// Set the sh_size of each section to its data's size. NOBITS sections and sections with null data are unmodified.
+template <ElfBits B, ElfEndian E> void update_section_sizes(PackedElf<B, E> &);
+
+// Assign a file offset to the header tables, and to each section before creating segments. sh_size must already be
+// correct. The [i]th constraint is for the [ith] segment. If nullptr, no constraints will be created, and sh_addr will
+// not be assigned. Returns the size of the file.
+template <ElfBits B, ElfEndian E>
+u64 assign_file_offsets(PackedElf<B, E> &, const std::vector<SegmentLayoutConstraint> * = nullptr);
+
+// Returns an iovec-like vector of LayoutItems for the headers and for each section's data. There should never be
+// overlapping [offset, offset+data.size()] entries in a layout, otherwise you have concocted a cursed ELF file with
+// illegal offsets and sizes. This function does not check for those cases.
+template <ElfBits B, ElfEndian E> std::vector<LayoutItem> layout_items(PackedElf<B, E> &);
+
+// Combine update_section_sizes, assign_file_offsets, and layout_items.
 template <ElfBits B, ElfEndian E>
 std::vector<LayoutItem> calculate_layout(PackedElf<B, E> &, const std::vector<SegmentLayoutConstraint> * = nullptr);
+
 // Compute the maximum offset+data.size() in a layout.
 u64 size_for_layout(const std::vector<pepp::bts::LayoutItem> &layout) noexcept;
+
 void write(std::span<u8> out, const std::vector<LayoutItem> &layout);
 // As above, but streamed in offset order with gaps zero-filled.
 void write(std::ostream &out, std::vector<LayoutItem> layout);
@@ -211,6 +241,56 @@ template <ElfBits B, ElfEndian E> u16 find_named_section(const PackedElf<B, E> &
   return 0;
 }
 
+template <ElfBits B, ElfEndian E>
+std::vector<LoadSegment> group_load_segments(const PackedElf<B, E> &elf, u16 from, u16 to, u64 max_gap) {
+  std::vector<LoadSegment> ret;
+  // The segment being grown, if any. Addresses must ascend, and a gap wider than max_gap starts a new segment.
+  struct Run {
+    u64 end;
+    bool has_nobits;
+  };
+  std::optional<Run> run;
+  for (u16 index = from; index < to; ++index) {
+    const auto &shdr = elf.section_headers[index];
+    const word<B> sh_flags = shdr.sh_flags;
+    if ((sh_flags & bits::to_underlying(SectionFlags::SHF_ALLOC)) == 0) {
+      run.reset();
+      continue;
+    }
+    // Mark all allocated segments are readable
+    u32 pf = bits::to_underlying(SegmentFlags::PF_R);
+    if (sh_flags & bits::to_underlying(SectionFlags::SHF_WRITE)) pf |= bits::to_underlying(SegmentFlags::PF_W);
+    if (sh_flags & bits::to_underlying(SectionFlags::SHF_EXECINSTR)) pf |= bits::to_underlying(SegmentFlags::PF_X);
+    const auto flags = static_cast<SegmentFlags>(pf);
+    const bool nobits = shdr.sh_type == bits::to_underlying(SectionTypes::SHT_NOBITS);
+    // A growable file's sh_size is only set at layout, except for NOBITS.
+    const auto &data = elf.section_data[index];
+    const u64 extent = nobits || !data ? static_cast<u64>(shdr.sh_size) : data->size();
+    const u64 address = shdr.sh_addr;
+    const u16 align = std::max<u16>(static_cast<u16>(shdr.sh_addralign), 1);
+    const bool occupies_memory = extent > 0;
+    // File data after a NOBITS would sit past p_filesz. A trailing NOBITS is fine.
+    const bool blocked = run && run->has_nobits && !nobits && occupies_memory;
+    // We can extend the run if: matching flags, a gap of at most max_gap, and no intervening NOBITS.
+    const u64 start = run ? bits::align_up(run->end, align) : 0;
+    if (run && ret.back().flags == flags && !blocked && address >= start && address - start <= max_gap) {
+      auto &constraint = ret.back().constraint;
+      constraint.to_sec = index;
+      constraint.alignment = std::max(constraint.alignment, align);
+      run->end = address + extent;
+      run->has_nobits |= nobits;
+    } else if (occupies_memory) {
+      SegmentLayoutConstraint constraint;
+      constraint.alignment = align;
+      constraint.from_sec = constraint.to_sec = index;
+      constraint.update_sec_addrs = false; // The sections already carry their addresses.
+      ret.push_back({flags, constraint});
+      run = Run{address + extent, nobits};
+    } else run.reset();
+  }
+  return ret;
+}
+
 template <ElfBits B, ElfEndian E> bits::span<const u8> section_bytes(const PackedElf<B, E> &elf, u16 index) {
   if (index == 0 || index >= elf.section_data.size()) return {};
   const auto &data = elf.section_data[index];
@@ -240,44 +320,41 @@ template <ElfBits B, ElfEndian E> u16 section_at_address(const PackedElf<B, E> &
   return 0;
 }
 
-// Place the section header followed by the program header table at the given offset
-template <ElfBits B, ElfEndian E>
-u64 place_header_tables_at(PackedElf<B, E> &elf, std::vector<LayoutItem> &layout, u64 off) {
-  using PackedElf = PackedElf<B, E>;
-  // Then place section header table
-  if (!elf.section_headers.empty()) {
-    elf.header.e_shoff = off;
-    layout.emplace_back(LayoutItem{off, std::span<u8>(reinterpret_cast<u8 *>(elf.section_headers.data()),
-                                                      sizeof(typename PackedElf::Shdr) * elf.section_headers.size())});
-    off += elf.header.e_shentsize * elf.header.e_shnum;
+template <ElfBits B, ElfEndian E> void update_section_sizes(PackedElf<B, E> &elf) {
+  for (size_t i = 1; i < elf.section_headers.size(); ++i) {
+    auto &shdr = elf.section_headers[i];
+    // Per TIS ELF 1.2 sh_size is a filesize. For NOBITS, it is the memory size.
+    // Our storage reports file size, so special-case NOBITS.
+    if (elf.section_data[i] && shdr.sh_type != bits::to_underlying(SectionTypes::SHT_NOBITS))
+      shdr.sh_size = elf.section_data[i]->size();
   }
-  // Followed by program header table
-  if (!elf.program_headers.empty()) {
-    elf.header.e_phoff = off;
-    layout.emplace_back(LayoutItem{off, std::span<u8>(reinterpret_cast<u8 *>(elf.program_headers.data()),
-                                                      sizeof(typename PackedElf::Phdr) * elf.program_headers.size())});
-    off += elf.header.e_phentsize * elf.header.e_phnum;
-  }
-  return off;
 }
 
 template <ElfBits B, ElfEndian E>
-std::vector<LayoutItem> calculate_layout(PackedElf<B, E> &elf,
-                                         const std::vector<SegmentLayoutConstraint> *constraints) {
+u64 assign_file_offsets(PackedElf<B, E> &elf, const std::vector<SegmentLayoutConstraint> *constraints) {
   // Sentinel value if a section does not belong to any segment constraint
   static constexpr u16 NO_OWNER = 0xFFFF;
   using PackedElf = PackedElf<B, E>;
+  // Returns the number of bytes a section occupies in the file.
+  const auto file_size = [&elf](size_t index) -> u64 {
+    const auto &shdr = elf.section_headers[index];
+    return shdr.sh_type == bits::to_underlying(SectionTypes::SHT_NOBITS) ? 0 : u64(shdr.sh_size);
+  };
 
-  // The ith constraint is for the ith segment, so there cannot be more constraints than segments.
+  // The ith constraint is for the ith segment, so they must be the same size.
   if (constraints && constraints->size() > elf.program_headers.size())
     throw std::logic_error("calculate_layout: more segment constraints than segments");
 
-  // 3 is a magic constant including: ehdr, shdr, and phdr
-  std::vector<LayoutItem> ret;
-  ret.reserve(elf.section_headers.size() + 3);
-  ret.emplace_back(LayoutItem{0, std::span<u8>(reinterpret_cast<u8 *>(&elf.header), sizeof(typename PackedElf::Ehdr))});
-  // Allocate section, program headers in the ELF file.
-  u64 rolling_offset = place_header_tables_at(elf, ret, sizeof(typename PackedElf::Ehdr));
+  // Place the section header table after the ELF header, followed by the program header table.
+  u64 rolling_offset = sizeof(typename PackedElf::Ehdr);
+  if (!elf.section_headers.empty()) {
+    elf.header.e_shoff = rolling_offset;
+    rolling_offset += elf.header.e_shentsize * elf.header.e_shnum;
+  }
+  if (!elf.program_headers.empty()) {
+    elf.header.e_phoff = rolling_offset;
+    rolling_offset += elf.header.e_phentsize * elf.header.e_phnum;
+  }
 
   // Record which constraint (an index) first place a section so that no section can be placed twice.
   std::vector<u16> owner(elf.section_headers.size(), NO_OWNER);
@@ -305,7 +382,7 @@ std::vector<LayoutItem> calculate_layout(PackedElf<B, E> &elf,
     // Count how many sections have already been claimed by an earlier segment.
     size_t already_claimed = 0;
     for (u16 jt = constraint.from_sec; jt <= constraint.to_sec; ++jt) {
-      if (seen_nobits && elf.section_data[jt]->size() != 0)
+      if (seen_nobits && file_size(jt) != 0)
         throw std::logic_error("calculate_layout: a segment has file data after a NOBITS section");
       else if (elf.section_headers[jt].sh_addralign > constraint.alignment)
         throw std::logic_error("calculate_layout: a segment is less aligned than one of its sections");
@@ -358,11 +435,7 @@ std::vector<LayoutItem> calculate_layout(PackedElf<B, E> &elf,
       rolling_offset = bits::align_up(rolling_offset, align);
 
     shdr.sh_offset = rolling_offset;
-    // Per TIS ELF 1.2 on sh_size, sh_size is usually filesize, except for NOBITS where it is memory size.
-    // Our storage reports file size, so we need a special case.
-    if (shdr.sh_type != bits::to_underlying(SectionTypes::SHT_NOBITS))
-      shdr.sh_size = elf.section_data[i]->size();
-    rolling_offset = elf.section_data[i]->calculate_layout(ret, shdr.sh_offset);
+    rolling_offset += file_size(i);
   }
 
   // Apply segment layout constraints if provided
@@ -372,8 +445,8 @@ std::vector<LayoutItem> calculate_layout(PackedElf<B, E> &elf,
 
     auto &phdr = elf.program_headers[it];
     phdr.p_offset = elf.section_headers[constraint.from_sec].sh_offset;
-    // Do not use sh_size, because it reports memory size for NOBITS. Ask the underlying storage for actual size.
-    phdr.p_filesz = elf.section_headers[constraint.to_sec].sh_offset + elf.section_data[constraint.to_sec]->size() -
+    // Do not use sh_size directly, because it reports memory size for NOBITS.
+    phdr.p_filesz = elf.section_headers[constraint.to_sec].sh_offset + file_size(constraint.to_sec) -
                     elf.section_headers[constraint.from_sec].sh_offset;
     phdr.p_align = constraint.alignment;
 
@@ -398,7 +471,34 @@ std::vector<LayoutItem> calculate_layout(PackedElf<B, E> &elf,
     phdr.p_memsz = end_to - phdr.p_vaddr;
   }
 
+  return rolling_offset;
+}
+
+template <ElfBits B, ElfEndian E> std::vector<LayoutItem> layout_items(PackedElf<B, E> &elf) {
+  using PackedElf = PackedElf<B, E>;
+  // 3 is a magic constant including ehdr, shdr, and phdr
+  std::vector<LayoutItem> ret;
+  auto &shdrs = elf.section_headers;
+  ret.reserve(shdrs.size() + 3);
+  ret.emplace_back(LayoutItem{0, std::span<u8>(reinterpret_cast<u8 *>(&elf.header), sizeof(typename PackedElf::Ehdr))});
+  if (!shdrs.empty())
+    ret.emplace_back(LayoutItem{elf.header.e_shoff, std::span<u8>(reinterpret_cast<u8 *>(shdrs.data()),
+                                                                  sizeof(typename PackedElf::Shdr) * shdrs.size())});
+  if (!elf.program_headers.empty())
+    ret.emplace_back(
+        LayoutItem{elf.header.e_phoff, std::span<u8>(reinterpret_cast<u8 *>(elf.program_headers.data()),
+                                                     sizeof(typename PackedElf::Phdr) * elf.program_headers.size())});
+  for (size_t i = 1; i < shdrs.size(); ++i)
+    if (elf.section_data[i]) elf.section_data[i]->calculate_layout(ret, shdrs[i].sh_offset);
   return ret;
+}
+
+template <ElfBits B, ElfEndian E>
+std::vector<LayoutItem> calculate_layout(PackedElf<B, E> &elf,
+                                         const std::vector<SegmentLayoutConstraint> *constraints) {
+  update_section_sizes(elf);
+  assign_file_offsets(elf, constraints);
+  return layout_items(elf);
 }
 
 } // namespace pepp::bts

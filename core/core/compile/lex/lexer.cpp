@@ -39,3 +39,24 @@ pepp::tc::support::LocationInterval pepp::tc::lex::ALexer::synchronize() {
 }
 
 pepp::tc::support::Location pepp::tc::lex::ALexer::current_location() const { return _cursor.location(); }
+
+bool pepp::tc::lex::ALexer::match_advance(const std::regex &pattern) {
+  const auto match = _cursor.matchView(pattern);
+  if (!match.empty()) _cursor.advance(match.length(0));
+  return !match.empty();
+}
+
+pepp::tc::support::LocationInterval pepp::tc::lex::ALexer::since(support::Location start) const {
+  return {start, _cursor.location()};
+}
+
+bool pepp::tc::lex::ALexer::skip_block_comment() {
+  const auto rest = _cursor.rest();
+  const auto close = rest.starts_with("/*") ? rest.find("*/", 2) : rest.npos;
+  if (close == rest.npos) return false;
+  for (const char c : rest.substr(0, close + 2)) {
+    _cursor.skip(1);
+    if (c == '\n') _cursor.newline();
+  }
+  return true;
+}

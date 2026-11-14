@@ -43,6 +43,8 @@ public:
     std::string arch_variant = "";
     // Symbols defined with --symdef, in command-line order.
     std::vector<std::pair<std::string, u32>> symdefs;
+    // Write ET_REL instead of ET_EXEC.
+    bool relocatable = false;
   };
   struct RISCVOptions {};
   struct PEP10Options {
@@ -94,6 +96,7 @@ void registerAs(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
       as_clone->add_option("--format", opts.file_fmt_source, "Output formatted source file name")
           ->option_text("<file>");
 
+  as_clone->add_flag("--relocatable", opts.relocatable, "Write a relocatable object (ET_REL) instead of an ET_EXEC");
   as_clone->add_option("-e,--errors", opts.file_errs, "Output errors file name. Defaults to cerr")
       ->option_text("<file>");
   // One value per occurrence, so a following source file is not taken as a second definition.

@@ -47,6 +47,13 @@ struct ALexer {
   bool print_tokens = false;
 
 protected:
+  // On a match, advance the cursor over it and return true. _cursor.select() is then the match.
+  bool match_advance(const std::regex &pattern);
+  // Interval spanning from start to _cursor.
+  support::LocationInterval since(support::Location start) const;
+  // Skip a closed /* */ comment at the cursor, counting its newlines. False if none starts there.
+  bool skip_block_comment();
+
   support::SeekableData _cursor;
   std::shared_ptr<std::unordered_set<std::string>> _pool;
 };
