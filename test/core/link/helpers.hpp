@@ -130,8 +130,10 @@ inline AnyInputElf object_with(std::initializer_list<SectionSpec> specs, std::in
   writer.arrange_local_symbols();
   for (const auto &spec : relocations) {
     const auto name = ".rela" + std::string(section_name(elf, spec.target));
+    // Adding a section may reallocate the section tables, which invalidates writer. Look the symbol up afresh.
     PackedRelocationWriter<ElfBits::b32, ElfEndian::le> rela(elf, add_named_rela(elf, name, symtab, spec.target));
-    rela.add_rela(spec.offset, bits::to_underlying(spec.type), writer.find_symbol(spec.symbol), spec.addend);
+    const PackedSymbolReader<ElfBits::b32, ElfEndian::le> symbols(elf, symtab);
+    rela.add_rela(spec.offset, bits::to_underlying(spec.type), symbols.find_symbol(spec.symbol), spec.addend);
   }
   return to_input_elf(elf);
 }
