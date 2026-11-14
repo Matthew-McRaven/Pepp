@@ -28,6 +28,7 @@
 #include "core/link/diagnostics.hpp"
 #include "core/link/entry.hpp"
 #include "core/link/link_config.hpp"
+#include "core/link/link_context.hpp"
 #include "core/link/link_view.hpp"
 #include "core/link/output_file.hpp"
 #include "core/link/section_layout.hpp"
@@ -36,28 +37,6 @@
 #include "core/link/symbol_resolution.hpp"
 
 namespace pepp::link {
-// The inputs of a link and the state shared between its passes.
-struct LinkContext {
-  // Null if the link stopped before reading its inputs.
-  bts::AnyElfGroup group;
-  Diagnostics diagnostics;
-  // Indexed by ConfigInputID. Each input's path, or <memory>.
-  std::vector<std::string> input_names;
-  // Concatenated contents of parsed input linker scripts in input order.
-  tc::ldscript::Script script;
-  InputSymbols inputs;
-  // Indexed by file ID. Index 0 is unused.
-  std::vector<Liveness> files;
-  ResolvedSymbols symbols;
-  // The output section of each placeable input section. Empty when the link stopped before placement.
-  std::optional<SectionPlacements> placements;
-  // The linked executable. It is the file at LinkConfig::output, or an anonymous mapping otherwise. Null when
-  // the link stopped before it was created, or had errors.
-  std::shared_ptr<bts::MappedFile> output;
-
-  // True if the link produced no Error or Fatal diagnostics.
-  bool ok() const { return diagnostics.count(Severity::Error) == 0; }
-};
 
 // Returns Lazy for each archive member and Live for every other file, indexed by file ID.
 template <bts::ElfBits B, bts::ElfEndian E>
