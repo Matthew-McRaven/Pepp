@@ -55,6 +55,17 @@ pepp::bts::ElfFileID pepp::link::InputSymbols::file_of(InputSymbolID id) const {
   return bts::ElfFileID(static_cast<u32>(it - _non_locals.begin() - 1));
 }
 
+pepp::bts::InputElfSymbolHandle pepp::link::InputSymbols::handle_of(InputSymbolID id) const {
+  const auto file = file_of(id);
+  const auto &range = _non_locals[file.value];
+  return {file, range.first_global + (id.value - range.first_id.value)};
+}
+
+u16 pepp::link::InputSymbols::symtab_of(bts::ElfFileID id) const {
+  if (!id || id.value >= _non_locals.size()) throw std::out_of_range("InputSymbols: no file with this ID");
+  return _non_locals[id.value].symtab;
+}
+
 std::pair<pepp::link::InputSymbolID, pepp::link::InputSymbolID>
 pepp::link::InputSymbols::ids_of(bts::ElfFileID id) const {
   if (!id || id.value >= _non_locals.size()) throw std::out_of_range("InputSymbols: no file with this ID");

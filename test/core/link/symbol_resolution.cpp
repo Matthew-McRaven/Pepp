@@ -101,6 +101,10 @@ TEST_CASE("Collect globals / undefineds", "[scope:core][scope:core.link][kind:un
     CHECK(table->file_of(InputSymbolID{4}) == a);
     CHECK_THROWS_AS(table->file_of(InputSymbolID{0}), std::out_of_range);
     CHECK_THROWS_AS(table->file_of(InputSymbolID{5}), std::out_of_range);
+    // Each ID also maps back to its symbol table entry. a's symbol table is section 4, and b has none.
+    CHECK(table->handle_of(InputSymbolID{3}) == InputElfSymbolHandle{a, 5});
+    CHECK(table->symtab_of(a) == 4);
+    CHECK(table->symtab_of(b) == 0);
   }
   SECTION("Reject malformed symbol tables") {
     using enum SymbolCode;
