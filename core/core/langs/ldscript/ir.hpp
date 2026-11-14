@@ -128,7 +128,7 @@ struct OutputSectionDescription {
   u64 flags = 0;
   // SHT_NULL if there are no members. Otherwise, the members' type, or SHT_PROGBITS if their types differ.
   bts::SectionTypes type = bts::SectionTypes::SHT_NULL;
-  // The largest sh_addralign of the members.
+  // The largest sh_addralign of the members. Layout lowers it to match an explicit address that is less aligned.
   u64 alignment = 1;
   // True if any member has a size other than 0.
   bool has_contents = false;

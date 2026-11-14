@@ -221,6 +221,7 @@ TEST_CASE("section layout", "[scope:core][scope:core.link][kind:unit][arch:*]") 
       {".text", SHT_PROGBITS, SHF_ALLOC | SHF_EXECINSTR, 8, 1},
       {".data", SHT_PROGBITS, SHF_ALLOC | SHF_WRITE, 4, 1},
       {".bss", SHT_NOBITS, SHF_ALLOC | SHF_WRITE, 0, 1},
+      {".odd", SHT_PROGBITS, SHF_ALLOC, 1, 4},
   });
   auto second = link_test::elf_with({
       {".text", SHT_PROGBITS, SHF_ALLOC | SHF_EXECINSTR, 8, 2},
@@ -237,6 +238,7 @@ TEST_CASE("section layout", "[scope:core][scope:core.link][kind:unit][arch:*]") 
   .empty : { *(.none) }
   .bss : { *(.bss) }
   .back : { . = 0x10; . = 0; }
+  .odd 0x232 : { *(.odd) }
 })");
   REQUIRE(diag.count() == 0);
   auto &sections = pepp::tc::ldscript::merge_sections(script);
@@ -257,6 +259,9 @@ TEST_CASE("section layout", "[scope:core][scope:core.link][kind:unit][arch:*]") 
   CHECK(outputs.at(3)->empty);
   CHECK(outputs.at(4)->empty);
   CHECK(memory_of(5) == Memory{0x118, 0x10, 1, false});
+  // An explicit address is kept even when it is less aligned than the members, and the alignment is lowered to match.
+  // The member is still aligned to 4 within the section, which pads it by 2 bytes.
+  CHECK(memory_of(6) == Memory{0x232, 3, 2, false});
   CHECK(placements.assignment_of({a, 2}).offset == 0);
   CHECK(placements.assignment_of({b, 2}).offset == 8);
   const auto entries = link_test::entries_of(diagnostics);

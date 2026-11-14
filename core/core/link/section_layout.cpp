@@ -93,8 +93,12 @@ void place_output(pepp::link::Diagnostics &diagnostics, ScriptContext &context,
   if (!allocated) context.dot = 0;
   output.vma = bits::align_up(context.dot, output.alignment);
   if (output.address) {
-    if (const auto address = evaluate(*output.address, context)) output.vma = absolute(*address, context);
-    else {
+    if (const auto address = evaluate(*output.address, context)) {
+      output.vma = absolute(*address, context);
+      // ld does not round an explicit address up for alignment. Lower the section's alignment to the largest power of
+      // 2 that divides the address. Later passes can complain about under-alignment.
+      if (output.vma % output.alignment != 0) output.alignment = output.vma & (~output.vma + 1);
+    } else {
       const ScriptMessage at{{}, output.source_interval, address.error().message()};
       diagnostics.add({Severity::Error, LinkCode::BadExpression, at});
     }
