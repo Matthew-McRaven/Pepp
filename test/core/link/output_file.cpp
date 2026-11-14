@@ -16,6 +16,7 @@
  */
 #include "core/link/output_file.hpp"
 #include <catch.hpp>
+#include <map>
 #include <memory>
 #include <optional>
 #include <string>
@@ -26,6 +27,7 @@
 #include "./helpers.hpp"
 #include "core/formats/elf/packed_io.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
+#include "core/langs/asmb_driver.hpp"
 #include "core/langs/ldscript/parser.hpp"
 #include "core/link/linker_passes.hpp"
 
@@ -64,6 +66,12 @@ SECTIONS {
   return do_link(std::move(config));
 }
 
+// Returns the serialized output re-read as an input file.
+template <ElfBits B, ElfEndian E> PackedInputElfFile<B, E> reread(pepp::bts::AnyGrowableElf &elf, auto &segments) {
+  const auto bytes = elf_bytes(elf, &segments);
+  return PackedInputElfFile<B, E>(std::make_shared<BufferSource>(std::vector<char>(bytes.begin(), bytes.end())));
+}
+
 // Returns the output of a link as an input file.
 template <ElfBits B, ElfEndian E> PackedInputElfFile<B, E> reread(const LinkContext &context) {
   REQUIRE(context.output);
@@ -72,6 +80,20 @@ template <ElfBits B, ElfEndian E> PackedInputElfFile<B, E> reread(const LinkCont
 
 // Returns the entry point of a link's output.
 u32 entry_point(const LinkContext &context) { return reread<ElfBits::b32, ElfEndian::le>(context).header.e_entry; }
+
+// Returns the value of each symbol that has a name and is not a section symbol.
+template <ElfBits B, ElfEndian E> std::map<std::string, u64> symbol_values(const PackedInputElfFile<B, E> &elf) {
+  std::map<std::string, u64> ret;
+  const auto index = find_named_section(elf, ".symtab");
+  REQUIRE(index != 0);
+  const PackedSymbolReader<B, E> symtab(elf, index);
+  for (u32 it = 1; it < symtab.symbol_count(); ++it) {
+    const auto name = symtab.get_symbol_name(it);
+    if (const auto symbol = symtab.get_symbol(it); symbol.st_type() != SymbolType::STT_SECTION && !name.empty())
+      ret[std::string(name.data(), name.size())] = symbol.st_value;
+  }
+  return ret;
+}
 } // namespace
 
 TEST_CASE("Executable linker outputs", "[scope:core][scope:core.link][kind:int][arch:*]") {
@@ -159,4 +181,49 @@ TEST_CASE("Executable linker outputs", "[scope:core][scope:core.link][kind:int][
   auto discarded = link(std::nullopt, RelocationsPep::R_PEP10_ABS16, "dead");
   CHECK(entries_of(discarded.diagnostics) == std::vector<Diagnostic>{{Severity::Error, RelocationCode::NoSymbolAddress,
                                                                       RelocationSite{{ElfFileID{1}, 2}, 1}}});
+}
+
+// test that the assembler in "executable" mode produces the same result as "reloctable" mode with a link step.
+// Linking the object must give the executable's addresses, contents, and symbol values, debug sections included.
+TEST_CASE("linked object matches assembled executable", "[scope:core][scope:core.link][kind:e2e][arch:pep10]") {
+  using namespace pepp::tc;
+  const std::string source = R"(.SECTION ".text","rx"
+main:LDWA num,d
+ADDA 2,i
+loop:STWA num,d
+LDBA msg,d
+BR loop
+.SECTION ".data","rw"
+num:.WORD 7
+msg:.ASCII "Hi\x00"
+ptr:.WORD loop
+)";
+  auto assembled = assemble_pep10(Pep10DriverConfig{}, {}, source);
+  auto object = assemble_pep10(Pep10DriverConfig{.output_type = ElfFileType::ET_REL}, {}, source);
+  REQUIRE(assembled.ok());
+  REQUIRE(object.ok());
+  const auto expected = reread<ElfBits::b32, ElfEndian::be>(assembled.elf()->elf, assembled.elf()->segments);
+
+  LinkConfig config;
+  config.inputs.push_back({to_input_elf(object.elf()->elf, &object.elf()->segments)});
+  auto result = do_link(std::move(config));
+  CHECK(result.diagnostics.size() == 0);
+  const auto linked = reread<ElfBits::b32, ElfEndian::be>(result);
+
+  u32 compared = 0;
+  for (u16 index = 2; index < linked.section_headers.size(); ++index) {
+    const auto name = section_name(linked, index);
+    if (name == ".strtab" || name == ".symtab") continue;
+    CAPTURE(name);
+    const auto other = find_named_section(expected, name);
+    REQUIRE(other != 0);
+    CHECK(linked.section_headers[index].sh_addr == expected.section_headers[other].sh_addr);
+    const auto ours = section_bytes(linked, index), theirs = section_bytes(expected, other);
+    CHECK(std::vector<u8>(ours.begin(), ours.end()) == std::vector<u8>(theirs.begin(), theirs.end()));
+    ++compared;
+  }
+  // .text, .data, and the debug sections which are not empty.
+  CHECK(compared >= 6);
+  CHECK(symbol_values(linked) == symbol_values(expected));
+  CHECK(linked.header.e_entry == expected.header.e_entry);
 }
