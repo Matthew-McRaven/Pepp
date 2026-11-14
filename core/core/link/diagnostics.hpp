@@ -46,6 +46,8 @@ enum class LinkCode : u8 {
   BadExpression,
   // An assignment moved the location counter backwards within an output section. The subject is a ScriptMessage.
   LocationCounterBackwards,
+  // The entry symbol is not defined, so the entry point is another address. The subject is an EntryFallback.
+  NoEntrySymbol,
   // The output file could not be created or mapped. The subject is a ScriptMessage with the offending file.
   CannotWriteOutput,
 };
@@ -94,10 +96,17 @@ struct SymbolConflict {
   bool operator==(const SymbolConflict &) const = default;
 };
 
+// An entry point chosen because the entry symbol is missing.
+struct EntryFallback {
+  std::string symbol;
+  u64 address = 0;
+  bool operator==(const EntryFallback &) const = default;
+};
+
 // What entity caused the error? monostate means the diagnostic can't be narrowed down to an item like a symbol or a
 // file offset.
 using DiagnosticSubject = std::variant<std::monostate, ConfigInputID, ConfigInputOffset, ScriptMessage,
-                                       bts::InputElfSymbolHandle, InputSymbolID, SymbolConflict>;
+                                       bts::InputElfSymbolHandle, InputSymbolID, SymbolConflict, EntryFallback>;
 
 struct Diagnostic {
   Severity severity;

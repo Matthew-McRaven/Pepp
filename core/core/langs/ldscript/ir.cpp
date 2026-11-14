@@ -173,6 +173,13 @@ std::string pepp::tc::ldscript::to_string(const Script &script) {
   return ret;
 }
 
+std::optional<std::string> pepp::tc::ldscript::entry_symbol(const Script &script) {
+  std::optional<std::string> ret;
+  for (const auto &command : script.commands)
+    if (const auto *entry = std::get_if<Entry>(&command)) ret = entry->symbol;
+  return ret;
+}
+
 pepp::tc::ldscript::Sections &pepp::tc::ldscript::merge_sections(Script &script) {
   Sections merged;
   std::vector<Script::Command> kept;

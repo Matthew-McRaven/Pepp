@@ -17,6 +17,8 @@
 #include "core/link/output_file.hpp"
 #include <catch.hpp>
 #include <memory>
+#include <optional>
+#include <string>
 #include <string_view>
 #include <tuple>
 #include <utility>
@@ -30,19 +32,14 @@
 namespace {
 using namespace link_test;
 
-// Returns an object with null, .shstrtab, then a section for each spec, so that the first spec is section 2.
-AnyInputElf object(std::initializer_list<SectionSpec> specs) {
-  auto elf = elf_with(specs);
-  return to_input_elf(elf);
-}
-
 // Link two objects with a script, which has both a gap between members and padding after the last one.
-LinkContext link() {
+LinkContext link(std::optional<std::string> entry) {
   using enum SectionFlags;
   using enum SectionTypes;
   using namespace bits;
   pepp::tc::DiagnosticTable diag;
-  auto script = pepp::tc::ldscript::parse(diag, R"(SECTIONS {
+  auto script = pepp::tc::ldscript::parse(diag, R"(ENTRY(main)
+SECTIONS {
   .text 0x100 : { *(.text) . = ALIGN(8); }
   .data : { *(.data) }
   .none : { *(.none) }
@@ -50,11 +47,14 @@ LinkContext link() {
 })");
   REQUIRE(diag.count() == 0);
   LinkConfig config;
+  config.entry = std::move(entry);
   config.inputs.push_back({LinkInput::Script{std::move(script)}});
-  config.inputs.push_back({object({{".text", SHT_PROGBITS, SHF_ALLOC | SHF_EXECINSTR, 0, 1, {1, 2, 3}},
-                                   {".bss", SHT_NOBITS, SHF_ALLOC | SHF_WRITE, 4}})});
-  config.inputs.push_back({object({{".text", SHT_PROGBITS, SHF_ALLOC | SHF_EXECINSTR, 0, 4, {4, 5}},
-                                   {".data", SHT_PROGBITS, SHF_ALLOC | SHF_WRITE, 0, 1, {6}}})});
+  config.inputs.push_back({object_with({{".text", SHT_PROGBITS, SHF_ALLOC | SHF_EXECINSTR, 0, 1, {1, 2, 3}},
+                                        {".bss", SHT_NOBITS, SHF_ALLOC | SHF_WRITE, 4}},
+                                       {{"main", 2, 1}})});
+  config.inputs.push_back({object_with({{".text", SHT_PROGBITS, SHF_ALLOC | SHF_EXECINSTR, 0, 4, {4, 5}},
+                                        {".data", SHT_PROGBITS, SHF_ALLOC | SHF_WRITE, 0, 1, {6}}},
+                                       {{"value", 3, 0}})});
   return do_link(std::move(config));
 }
 
@@ -63,6 +63,9 @@ template <ElfBits B, ElfEndian E> PackedInputElfFile<B, E> reread(const LinkCont
   REQUIRE(context.output);
   return PackedInputElfFile<B, E>(context.output);
 }
+
+// Returns the entry point of a link's output.
+u32 entry_point(const LinkContext &context) { return reread<ElfBits::b32, ElfEndian::le>(context).header.e_entry; }
 } // namespace
 
 TEST_CASE("Executable linker outputs", "[scope:core][scope:core.link][kind:int][arch:*]") {
@@ -72,12 +75,14 @@ TEST_CASE("Executable linker outputs", "[scope:core][scope:core.link][kind:int][
   using namespace bits;
   using Section = std::tuple<std::string_view, u32, u32, u32, u32>;
   using Segment = std::tuple<u32, u32, u32, u32>;
-  auto result = link();
+  auto result = link(std::nullopt);
   CHECK(result.diagnostics.size() == 0);
   const auto elf = reread<ElfBits::b32, ElfEndian::le>(result);
 
   CHECK(elf.header.e_type == to_underlying(ElfFileType::ET_EXEC));
   CHECK(elf.header.e_machine == to_underlying(ElfMachineType::EM_PEP10));
+  // main is 1 byte into the first object's .text.
+  CHECK(elf.header.e_entry == 0x101);
 
   // The empty .none is discarded.
   std::vector<Section> sections;
@@ -103,4 +108,12 @@ TEST_CASE("Executable linker outputs", "[scope:core][scope:core.link][kind:int][
                         {to_underlying(PF_R | PF_X), 0x100, 8, 8},
                         {to_underlying(PF_R | PF_W), 0x108, 1, 5},
                     });
+
+  // A missing entry symbol from -e is a warning, and the entry point becomes the address of .text.
+  auto fallback = link("missing");
+  CHECK(entries_of(fallback.diagnostics) ==
+        std::vector<Diagnostic>{{Severity::Warning, LinkCode::NoEntrySymbol, EntryFallback{"missing", 0x100}}});
+  CHECK(entry_point(fallback) == 0x100);
+  // An entry that is not a symbol is read as an integer literal.
+  CHECK(entry_point(link("10")) == 10);
 }

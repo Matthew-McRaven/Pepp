@@ -26,6 +26,7 @@
 #include <vector>
 #include "core/formats/elf/packed_input_group.hpp"
 #include "core/link/diagnostics.hpp"
+#include "core/link/entry.hpp"
 #include "core/link/link_config.hpp"
 #include "core/link/link_view.hpp"
 #include "core/link/output_file.hpp"
@@ -170,7 +171,8 @@ void link_group(LinkContext &context, const bts::PackedInputElfGroup<B, E> &grou
     const auto outputs = output_sections(sections);
     LinkView<B, E> link{group, files, inputs, context.symbols, *context.placements, outputs};
     link.definitions = resolved_symbol_definitions(link);
-    context.output = create_executable_output(diagnostics, link, sections, config.output);
+    const auto entry = entry_address(diagnostics, link, context.script, config.entry, sections);
+    context.output = create_executable_output(diagnostics, link, sections, entry, config.output);
     close_output(context, config.output);
   }
 }

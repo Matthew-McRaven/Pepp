@@ -63,7 +63,7 @@ void write_sections(const LinkView<B, E> &link, bts::PackedGrowableElfFile<B, E>
 // Returns nullptr if the output cannot be mapped.
 template <ElfBits B, ElfEndian E>
 std::shared_ptr<bts::MappedFile> create_executable_output(Diagnostics &diagnostics, const LinkView<B, E> &link,
-                                                          tc::ldscript::Sections &sections,
+                                                          tc::ldscript::Sections &sections, u64 entry,
                                                           const std::optional<std::filesystem::path> &path) {
   using namespace bts;
   using enum SectionTypes;
@@ -72,6 +72,7 @@ std::shared_ptr<bts::MappedFile> create_executable_output(Diagnostics &diagnosti
   auto elf = std::make_unique<PackedGrowableElfFile<B, E>>(
       ElfFileType::ET_EXEC, static_cast<ElfMachineType>(u16(first.e_machine)), first.ei_osabi());
   elf->header.e_flags = first.e_flags;
+  elf->header.e_entry = static_cast<word<B>>(entry);
   ensure_section_header_table(*elf);
 
   // Create section headers for every output section.

@@ -200,6 +200,9 @@ template <class Group> struct Describe {
     else if (is(SymbolCode::Undefined)) return fmt::format("{}: undefined reference to `{}'", file_of(id), name_of(id));
     return fmt::format("{}: {}", file_of(id), code());
   }
+  std::string operator()(const EntryFallback &entry) const {
+    return fmt::format("{} {}; defaulting to {:#x}", code(), entry.symbol, entry.address);
+  }
   std::string operator()(const SymbolConflict &pair) const {
     const auto &inputs = context.inputs;
     if (!group) return std::string(code());
@@ -234,7 +237,7 @@ pepp::link::LinkContext pepp::link::do_link(LinkConfig &&config) {
   ret.script = std::move(script);
   for (const auto &input : inputs) ret.input_names.push_back(input_file_name(input.source));
   if (ret.diagnostics.count(Severity::Fatal) > 0) return ret;
-  // TODO: config's options other than inputs are ignored until their passes exist.
+  // TODO: config's options other than inputs and entry are ignored until their passes exist.
   /*
    * Construct PackedInputElfGroup
    */

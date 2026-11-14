@@ -161,5 +161,7 @@ std::string to_string(const Script &script);
 // Merge all top-level assignments and all SECTIONS commands into a single SECTIONS, preserving script order, and return
 // it. If no SECTIONS exists, appends one to the end of the script.
 Sections &merge_sections(Script &script);
+// The value of the last ENTRY command or nullopt.
+std::optional<std::string> entry_symbol(const Script &script);
 
 } // namespace pepp::tc::ldscript
