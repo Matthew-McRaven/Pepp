@@ -79,6 +79,11 @@ void place_output(pepp::link::Diagnostics &diagnostics, ScriptContext &context,
       std::ranges::any_of(output.commands, [&](const auto &it) { return is_assignment_to(it, true); });
   const bool defines_symbols =
       std::ranges::any_of(output.commands, [&](const auto &it) { return is_assignment_to(it, false); });
+  // TODO: Sections placed in /DISCARD/ should not have been placed at all.
+  if (output.name == "/DISCARD/") {
+    output.empty = output.discard = true;
+    return;
+  }
   // Omit an output section whose members are all size 0, unless it assigns to the location counter.
   output.empty = !assigns_dot && !output.has_contents;
   // Non-allocated output sections are not part of the program's memory, so they start at 0 and do not move `.`.

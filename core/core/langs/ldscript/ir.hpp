@@ -132,11 +132,13 @@ struct OutputSectionDescription {
   u64 alignment = 1;
   // True if any member has a size other than 0.
   bool has_contents = false;
-  // The memory address (VMA) and size of the section. Set by layout.
+  // The memory address (VMA) and size of the section. Set during layout.
   u64 vma = 0;
   u64 size = 0;
-  // True if the section has no contents, so the output file omits it. Set by layout.
+  // True if the section has no contents, so the output file omits it. Set during layout.
   bool empty = false;
+  // Input sections assigned to this section (/DISCARD/) shall not be placed in the output file. Set during layout.
+  bool discard = false;
 };
 
 // The SECTIONS command, which maps input sections into output sections.

@@ -239,6 +239,7 @@ TEST_CASE("section layout", "[scope:core][scope:core.link][kind:unit][arch:*]") 
   .bss : { *(.bss) }
   .back : { . = 0x10; . = 0; }
   .odd 0x232 : { *(.odd) }
+  /DISCARD/ : { *(.none) }
 })");
   REQUIRE(diag.count() == 0);
   auto &sections = pepp::tc::ldscript::merge_sections(script);
@@ -263,6 +264,7 @@ TEST_CASE("section layout", "[scope:core][scope:core.link][kind:unit][arch:*]") 
   // An explicit address is kept even when it is less aligned than the members, and the alignment is lowered to match.
   // The member is still aligned to 4 within the section, which pads it by 2 bytes.
   CHECK(memory_of(6) == Memory{0x232, 3, 2, false});
+  CHECK(outputs.at(7)->discard);
   CHECK(placements.assignment_of({a, 2}).offset == 0);
   CHECK(placements.assignment_of({b, 2}).offset == 8);
   const auto entries = link_test::entries_of(diagnostics);
