@@ -304,12 +304,12 @@ IRMemoryAddressTable<Address> assign_addresses(DiagnosticTable &diag,
     } else {
       direction = Direction::Backward;
       // Backward placement counts down from the last free address, which is the byte just below the next section.
+      // With .BURN, the last section has no next section (previous == prog.size()) and counts down from the burn address.
       const auto previous = static_cast<size_t>(sec_idx.previous);
-      const auto prev_addr = prog[previous].first.low_address;
-      // While sec_idx.index == first_org_section should gaurd against the case where there is only one section and it
-      // contains an .ORG, explicitly be defensive around accessing optional's value.
-      const auto burn_or_previous = burn ? *burn + 1 : prev_addr;
-      const u32 next_low = previous == prog.size() ? burn_or_previous : prev_addr;
+      u32 next_low = 0;
+      if (previous < prog.size()) next_low = prog[previous].first.low_address;
+      else if (burn) next_low = u32(*burn) + 1;
+      else throw std::logic_error("Backward section placement has no following section or .BURN");
       base_address = next_low - 1;
     }
 
