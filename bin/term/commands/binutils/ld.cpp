@@ -22,6 +22,7 @@ LdTask::LdTask(pepp::link::LinkConfig &config, QObject *parent) : Task(parent), 
 
 void LdTask::run() {
   using pepp::link::Severity;
+  if (!_config.output) _config.output = "a.out";
   const auto context = pepp::link::do_link(std::move(_config));
   for (const auto &diagnostic : context.diagnostics)
     fmt::print("ld: {}{}\n", diagnostic.severity == Severity::Warning ? "warning: " : "",
