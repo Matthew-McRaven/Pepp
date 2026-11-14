@@ -72,9 +72,11 @@ TEST_CASE("Executable linker outputs", "[scope:core][scope:core.link][kind:int][
   using enum SectionFlags;
   using enum SectionTypes;
   using enum SegmentFlags;
+  using enum SymbolType;
   using namespace bits;
   using Section = std::tuple<std::string_view, u32, u32, u32, u32>;
   using Segment = std::tuple<u32, u32, u32, u32>;
+  using Symbol = std::tuple<std::string_view, SymbolType, u16, u32>;
   auto result = link(std::nullopt);
   CHECK(result.diagnostics.size() == 0);
   const auto elf = reread<ElfBits::b32, ElfEndian::le>(result);
@@ -84,7 +86,7 @@ TEST_CASE("Executable linker outputs", "[scope:core][scope:core.link][kind:int][
   // main is 1 byte into the first object's .text.
   CHECK(elf.header.e_entry == 0x101);
 
-  // The empty .none is discarded.
+  // The empty .none is discarded. The output sections come before .strtab and .symtab.
   std::vector<Section> sections;
   for (u16 index = 2; index < 5; ++index) {
     const auto &header = elf.section_headers[index];
@@ -108,6 +110,26 @@ TEST_CASE("Executable linker outputs", "[scope:core][scope:core.link][kind:int][
                         {to_underlying(PF_R | PF_X), 0x100, 8, 8},
                         {to_underlying(PF_R | PF_W), 0x108, 1, 5},
                     });
+
+  // A section symbol for each output section, then each global.
+  const auto index = find_named_section(elf, ".symtab");
+  REQUIRE(index != 0);
+  CHECK(elf.section_headers[index].sh_info == 4);
+  const PackedSymbolReader<ElfBits::b32, ElfEndian::le> symtab(elf, index);
+  std::vector<Symbol> symbols;
+  for (u32 it = 1; it < symtab.symbol_count(); ++it) {
+    const auto symbol = symtab.get_symbol(it);
+    const auto name = symtab.get_symbol_name(it);
+    symbols.emplace_back(std::string_view(name.data(), name.size()), symbol.st_type(), symbol.st_shndx,
+                         symbol.st_value);
+  }
+  CHECK(symbols == std::vector<Symbol>{
+                       {"", STT_SECTION, 2, 0x100},
+                       {"", STT_SECTION, 3, 0x108},
+                       {"", STT_SECTION, 4, 0x109},
+                       {"main", STT_NOTYPE, 2, 0x101},
+                       {"value", STT_NOTYPE, 3, 0x108},
+                   });
 
   // A missing entry symbol from -e is a warning, and the entry point becomes the address of .text.
   auto fallback = link("missing");

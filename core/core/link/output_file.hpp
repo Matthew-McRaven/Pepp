@@ -30,6 +30,7 @@
 #include "core/langs/ldscript/ir.hpp"
 #include "core/link/diagnostics.hpp"
 #include "core/link/link_view.hpp"
+#include "core/link/symtab.hpp"
 
 namespace pepp::link {
 
@@ -106,13 +107,14 @@ std::shared_ptr<bts::MappedFile> create_executable_output(Diagnostics &diagnosti
   }
 
   // linker-synthesized sections, such as string tables and symbol tables have non-null data need updated sh_size.
+  write_symtab(*elf, link);
   update_section_sizes(*elf);
   const u64 size = assign_file_offsets(*elf, &segments);
 
   try {
     auto ret = path ? MappedFile::open_truncated(path->string()) : MappedFile::open_anonymous(size);
-    // Write the headers. Must release this mapping before the output sections are mapped, since live mappings which
-    // overlap lose writes when MappedFile falls back to buffers.
+    // Write the headers and the symbol table. Must release this mapping before the output sections are mapped, since
+    // live mappings which overlap lose writes when MappedFile falls back to buffers.
     {
       const auto image = ret->slice(0, size);
       const auto bytes = image->get();
