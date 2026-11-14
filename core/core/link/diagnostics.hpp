@@ -70,8 +70,19 @@ enum class SymbolCode : u8 {
   Undefined,
 };
 
+// Errors while applying relocations.
+enum class RelocationCode : u8 {
+  // The relocation type is unknown for the file's machine.
+  UnsupportedType,
+  // The value does not fit in the bytes that the relocation writes.
+  Truncated,
+  // r_offset is outside of the section.
+  BadOffset,
+};
+
 // Errors could stem from the linker itself, our attempt to open files as a group or archive.
-using DiagnosticCode = std::variant<LinkCode, bts::InputGroupError::Code, bts::ArchiveError::Code, SymbolCode>;
+using DiagnosticCode =
+    std::variant<LinkCode, bts::InputGroupError::Code, bts::ArchiveError::Code, SymbolCode, RelocationCode>;
 std::string_view to_string(const DiagnosticCode &code);
 
 // Index of an input in LinkConfig::inputs, for problems found before the input has a file ID.

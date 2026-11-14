@@ -62,4 +62,11 @@ constexpr u64 signed_bitcount(i64 value) noexcept {
   return std::bit_width(static_cast<u64>(value ^ (value >> 63))) + 1;
 };
 constexpr u64 signed_bytecount(i64 value) noexcept { return (signed_bitcount(value) + 7) / 8; }
+
+constexpr u64 min_bitcount(i64 value) noexcept {
+  if (value < 0) return signed_bitcount(value);
+  else return unsigned_bitcount(static_cast<u64>(value));
+}
+
+constexpr bool int_fits(u64 value, u8 bytecount) noexcept { return min_bitcount(value) <= bytecount * 8; }
 } // namespace bits

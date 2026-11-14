@@ -50,6 +50,15 @@ std::string_view to_string(SymbolCode code) {
   }
   return "unknown error";
 }
+std::string_view to_string(RelocationCode code) {
+  using enum RelocationCode;
+  switch (code) {
+  case UnsupportedType: return "unsupported relocation type";
+  case Truncated: return "relocation truncated to fit";
+  case BadOffset: return "relocation offset is outside of its section";
+  }
+  return "unknown error";
+}
 
 } // namespace
 
