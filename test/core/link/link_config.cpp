@@ -24,6 +24,7 @@
 #include <vector>
 #include "./helpers.hpp"
 #include "core/link/linker_passes.hpp"
+#include "core/link/script_inputs.hpp"
 
 namespace {
 using namespace link_test;

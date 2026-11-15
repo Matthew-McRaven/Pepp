@@ -26,6 +26,7 @@
 #include <type_traits>
 #include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/langs/ldscript/parser.hpp"
+#include "core/link/script_inputs.hpp"
 #include "link_config.hpp"
 
 namespace {
@@ -69,36 +70,6 @@ std::optional<bts::AnyElfGroup> detect_group_type(const std::vector<LinkInput> &
   for (const auto &input : inputs)
     if (auto ret = std::visit([](const auto &source) { return detect_group_type(source); }, input.source)) return ret;
   return std::nullopt;
-}
-
-// Read and parse a linker script. Returns nullopt if it cannot be read or parsed. Returns a built-in script unchanged.
-std::optional<tc::ldscript::Script> read_script(Diagnostics &diagnostics, const LinkInput::Script &source) {
-  if (const auto *built_in = std::get_if<tc::ldscript::Script>(&source.source)) return *built_in;
-  const auto &path = std::get<std::filesystem::path>(source.source);
-  std::ifstream file(path, std::ios::binary);
-  if (!file) {
-    diagnostics.add({Severity::Fatal, InputGroupError::Code::CannotOpen, ScriptMessage{path.string()}});
-    return std::nullopt;
-  }
-  const auto text = std::string(std::istreambuf_iterator<char>(file), {});
-  tc::DiagnosticTable table;
-  auto ret = tc::ldscript::parse(table, text);
-  for (auto it = table.cbegin(); it != table.cend(); ++it)
-    diagnostics.add(
-        {it->second.severity, LinkCode::BadScript, ScriptMessage{path.string(), it->first, it->second.message}});
-  if (table.count() > 0) return std::nullopt;
-  return ret;
-}
-
-// Open a path input and replace it with the opened file, so that later passes need not open it again. Leave a path that
-// cannot be opened alone so populate() reports a more specific error.
-void open_path(LinkInput &input) {
-  const auto *path = std::get_if<std::filesystem::path>(&input.source);
-  if (!path) return;
-  auto opened = bts::open_input(*path);
-  if (opened) input.source = LinkInput::Opened{*path, std::move(*opened)};
-  // Treat a file that is neither an ELF file nor an archive as a linker script.
-  else if (opened.error().code == InputGroupError::Code::UnknownFormat) input.source = LinkInput::Script{*path};
 }
 
 std::string input_file_name(const decltype(LinkInput::source) &source) {
@@ -271,35 +242,3 @@ void pepp::link::close_output(LinkContext &context, const std::optional<std::fil
   } else if (path) fs::permissions(*path, out_perms, fs::perm_options::add, ignored);
 }
 
-pepp::link::ParsedScripts pepp::link::parse_scripts(Diagnostics &diagnostics, std::vector<LinkInput> inputs) {
-  ParsedScripts ret;
-  // Unless -T provided a linker script (LinkInput::Script), insert a default script at the front of the inputs. A
-  // script given positionally as a file name does not replace the default script.
-  // TODO: on closer inspect of ld manual, I think this is wrong and default script should be last?
-  const auto is_script = [](const LinkInput &input) { return std::holds_alternative<LinkInput::Script>(input.source); };
-  if (std::ranges::none_of(inputs, is_script))
-    inputs.insert(inputs.begin(), LinkInput{.source = LinkInput::Script{default_pep_script()}});
-  // Parsing a script pushes the files of its INPUT/GROUP commands to the front, which preserves input order.
-  std::deque<LinkInput> pending(std::make_move_iterator(inputs.begin()), std::make_move_iterator(inputs.end()));
-  while (!pending.empty()) {
-    auto next = std::move(pending.front());
-    pending.pop_front();
-    open_path(next);
-    // If not a script, treat it as normal linker input.
-    if (const auto *script_src = std::get_if<LinkInput::Script>(&next.source); !script_src)
-      ret.inputs.push_back(std::move(next));
-    else {
-      auto script = read_script(diagnostics, *script_src);
-      if (!script) break;
-      // Extract the input files in reverse order so that we only ever push to the front of the pending list.
-      // Must occur before commands are extracted to the returned script.
-      for (auto command = script->commands.rbegin(); command != script->commands.rend(); ++command)
-        if (const auto *named = std::get_if<tc::ldscript::InputFiles>(&*command))
-          for (auto file = named->files.rbegin(); file != named->files.rend(); ++file)
-            pending.push_front(LinkInput{.source = std::filesystem::path(*file)});
-      // Extract all commands from the script to construct the effective output script.
-      for (auto &command : script->commands) ret.script.commands.push_back(std::move(command));
-    }
-  }
-  return ret;
-}

@@ -55,19 +55,6 @@ LinkContext do_link(LinkConfig &&config);
 // Format a diagnostic as a message for the user.
 std::string describe(const LinkContext &context, const Diagnostic &diagnostic);
 
-struct ParsedScripts {
-  // The effective inputs to the linker, with scripts replaced by their input files.
-  std::vector<LinkInput> inputs;
-  // The effective linker script, which is every script's commands concatenated in input order.
-  tc::ldscript::Script script;
-};
-
-// Parse every linker script in inputs. Returns the effective linker script and the updated inputs, with each script
-// replaced by the files of its INPUT/GROUP commands. Treats a path that is neither an ELF file nor an archive as a
-// script. Prepends a default script if no input is a LinkInput::Script (from -T). Stops at the first script that cannot
-// be read or parsed and reports it as Fatal error.
-ParsedScripts parse_scripts(Diagnostics &diagnostics, std::vector<LinkInput> inputs);
-
 // Mark the output at path as executable if the link has no errors. Otherwise, release the output and delete it.
 void close_output(LinkContext &context, const std::optional<std::filesystem::path> &path);
 
