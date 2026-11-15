@@ -18,6 +18,7 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 #include "core/integers.h"
 #include "core/math/bitmanip/span.hpp"
@@ -52,7 +53,7 @@ public:
     ~Slice();
     Slice(const Slice &) = delete;
     Slice &operator=(const Slice &) = delete;
-    Slice(Slice &&o) noexcept = default;
+    Slice(Slice &&o) noexcept { *this = std::move(o); }
     Slice &operator=(Slice &&o) noexcept;
 
     // Methods that do not trigger a load.
@@ -88,7 +89,7 @@ public:
   ~MappedFile();
   MappedFile(const MappedFile &) = delete;
   MappedFile &operator=(const MappedFile &) = delete;
-  MappedFile(MappedFile &&o) noexcept = default;
+  MappedFile(MappedFile &&o) noexcept { *this = std::move(o); }
   MappedFile &operator=(MappedFile &&o) noexcept;
 
   static std::shared_ptr<MappedFile> open_readonly(std::string path);
