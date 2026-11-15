@@ -49,11 +49,21 @@ std::vector<Liveness> default_liveness(const bts::PackedInputElfGroup<B, E> &gro
   return ret;
 }
 
+// Returns the name of a file matching ld's formatting. An in-memory file has no path and prints as <memory>.
+template <bts::ElfBits B, bts::ElfEndian E>
+std::string file_name(const bts::PackedInputElfGroup<B, E> &group, bts::ElfFileID file) {
+  const auto &provenance = group.provenance(file);
+  if (const auto *path = std::get_if<bts::ElfFromPath>(&provenance)) return path->path.string();
+  else if (const auto *member = std::get_if<bts::ElfFromArchive>(&provenance)) {
+    const auto &archive = group.archive(member->archive);
+    return fmt::format("{}({})", archive.path() ? archive.path()->string() : "<memory>", archive.name(member->member));
+  }
+  return "<memory>";
+}
+
 // Run every step of the linker for a given config, stopping at the first Fatal diagnostic.
 // Check ok() before using the result.
 LinkContext do_link(LinkConfig &&config);
-// Format a diagnostic as a message for the user.
-std::string describe(const LinkContext &context, const Diagnostic &diagnostic);
 
 // Mark the output at path as executable if the link has no errors. Otherwise, release the output and delete it.
 void close_output(LinkContext &context, const std::optional<std::filesystem::path> &path);

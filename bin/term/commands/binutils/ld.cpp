@@ -16,6 +16,7 @@
 
 #include "ld.hpp"
 #include <fmt/format.h>
+#include "core/link/diagnostics_describe.hpp"
 #include "core/link/linker_passes.hpp"
 
 LdTask::LdTask(pepp::link::LinkConfig &config, QObject *parent) : Task(parent), _config(config) {}

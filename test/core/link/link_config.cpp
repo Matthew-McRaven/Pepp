@@ -23,6 +23,7 @@
 #include <utility>
 #include <vector>
 #include "./helpers.hpp"
+#include "core/link/diagnostics_describe.hpp"
 #include "core/link/linker_passes.hpp"
 #include "core/link/script_inputs.hpp"
 
