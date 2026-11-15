@@ -70,7 +70,7 @@ template <ElfBits B, ElfEndian E> u32 symbol_count(const PackedElfShdr<B, E> &sh
 
 // Helper to update memory addresses for contiguous sections in a segment automatically.
 struct SegmentLayoutConstraint {
-  u16 alignment = 0;            // Memory alignment for the segment, must be power-of-two.
+  u64 alignment = 0;            // Memory alignment for the segment, must be power-of-two.
   u16 from_sec = 0, to_sec = 0; // File offsets / size will be calculated for these contiguous sections.
   // If true, assign the affected sections' addresses from base_address upwards, and each section's
   // sh_addr may only be assigned once. Sections will be padded to their own sh_addralign, and the first section will be
@@ -267,7 +267,7 @@ std::vector<LoadSegment> group_load_segments(const PackedElf<B, E> &elf, u16 fro
     const auto &data = elf.section_data[index];
     const u64 extent = nobits || !data ? static_cast<u64>(shdr.sh_size) : data->size();
     const u64 address = shdr.sh_addr;
-    const u16 align = std::max<u16>(static_cast<u16>(shdr.sh_addralign), 1);
+    const u64 align = std::max<u64>(shdr.sh_addralign, 1);
     const bool occupies_memory = extent > 0;
     // File data after a NOBITS would sit past p_filesz. A trailing NOBITS is fine.
     const bool blocked = run && run->has_nobits && !nobits && occupies_memory;
