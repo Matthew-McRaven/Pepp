@@ -23,7 +23,7 @@
 #include <vector>
 #include "core/compile/macro/macro_registry.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
-#include "core/langs/asmb/elf_symtab.hpp"
+#include "core/langs/asmb/elf_output.hpp"
 #include "core/langs/asmb/listing.hpp"
 
 namespace pepp::tc {

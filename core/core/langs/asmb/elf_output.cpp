@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "elf_symtab.hpp"
+#include "core/langs/asmb/elf_output.hpp"
 #include <algorithm>
 #include <map>
 #include <optional>

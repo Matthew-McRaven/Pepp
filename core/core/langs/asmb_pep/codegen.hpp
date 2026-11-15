@@ -18,7 +18,7 @@
 #pragma once
 #include "core/compile/ir_linear/line_macro.hpp"
 #include "core/integers.h"
-#include "core/langs/asmb/elf_symtab.hpp"
+#include "core/langs/asmb/elf_output.hpp"
 #include "core/langs/asmb/ir_constraints.hpp"
 #include "core/langs/asmb/ir_program.hpp"
 #include "core/langs/asmb/mmio.hpp"

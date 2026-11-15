@@ -41,7 +41,7 @@
 #include "core/formats/elf/packed_ops.hpp"
 #include "core/integers.h"
 #include "core/langs/asmb/codegen.hpp"
-#include "core/langs/asmb/elf_symtab.hpp"
+#include "core/langs/asmb/elf_output.hpp"
 #include "core/langs/asmb/ir_program.hpp"
 
 namespace pepp::tc {

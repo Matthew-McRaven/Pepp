@@ -24,7 +24,7 @@
 #include "core/compile/ir_linear/attr_comment.hpp"
 #include "core/formats/elf/packed_access_headers.hpp"
 #include "core/integers.h"
-#include "core/langs/asmb/elf_symtab.hpp"
+#include "core/langs/asmb/elf_output.hpp"
 #include "core/langs/asmb/ir_program.hpp"
 
 namespace pepp::tc {
