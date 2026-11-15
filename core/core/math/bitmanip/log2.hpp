@@ -52,6 +52,12 @@ template <std::unsigned_integral T> constexpr T align_up(T x, std::size_t a) noe
   if (a <= 1) return x;
   else return (x + (a - 1)) & ~(T(a) - 1);
 }
+// Round x up to a multiple of a, which need not be a power of two. Returns x if a is 0.
+constexpr u64 round_up(u64 x, u64 a) noexcept {
+  if (a == 0) return x;
+  const u64 remainder = x % a;
+  return remainder == 0 ? x : x + (a - remainder);
+}
 static constexpr bool is_aligned(u64 x, std::size_t a) { return a <= 1 || (x & (u64(a) - 1)) == 0; }
 
 constexpr u64 unsigned_bitcount(u64 value) noexcept { return std::bit_width(value); }

@@ -71,17 +71,16 @@ struct ExpresionEvalutionVisitor {
     return *value;
   }
   // ALIGN is the only function. ALIGN(align) aligns the location counter's address, and ALIGN(exp, align) aligns
-  // exp's value without changing its kind. Alignments must be powers of two.
+  // exp's address without changing its kind.
   std::expected<ScriptValue, expr::EvaluationError> operator()(const expr::Call &call) const {
     const auto &alignment = values[call.arguments.back()];
     if (!alignment) return alignment;
-    else if (call.arguments.size() == 1) {
-      const u64 address = bits::align_up(absolute(location_counter(context), context), alignment->value);
-      if (!context.current) return ScriptValue{Absolute, address};
-      return ScriptValue{Relative, address - context.address_of(context.current), context.current};
-    }
-    auto aligned = values[call.arguments.front()];
-    if (aligned) aligned->value = bits::align_up(aligned->value, alignment->value);
+    std::expected<ScriptValue, expr::EvaluationError> aligned = location_counter(context);
+    if (call.arguments.size() == 2) aligned = values[call.arguments.front()];
+    if (!aligned) return aligned;
+    // A relative value is an offset, so align the address of the section plus the offset.
+    const u64 base = aligned->kind == Relative ? context.address_of(aligned->section) : 0;
+    aligned->value = bits::round_up(base + aligned->value, alignment->value) - base;
     return aligned;
   }
 };
