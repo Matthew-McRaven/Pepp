@@ -24,7 +24,14 @@ using namespace pepp::link;
 std::string_view to_string(LinkCode code) {
   switch (code) {
   case LinkCode::NoInputs: return "no ELF input files";
-  case LinkCode::Unsupported: return "option or input is not supported yet";
+  case LinkCode::BadScript: return "malformed linker script";
+  case LinkCode::UnparsedScript: return "linker script was not parsed";
+  case LinkCode::BadExpression: return "invalid linker script expression";
+  case LinkCode::LocationCounterBackwards: return "cannot move location counter backwards";
+  case LinkCode::NoEntrySymbol: return "cannot find entry symbol";
+  case LinkCode::CannotWriteOutput: return "cannot write output file";
+  case LinkCode::BadLayout: return "cannot lay out the output's segments";
+  case LinkCode::AddressOverflow: return "address does not fit in the output's ELF class";
   }
   return "unknown error";
 }
@@ -42,6 +49,17 @@ std::string_view to_string(SymbolCode code) {
   case MultipleDefinition: return "multiple definition";
   case TlsMismatch: return "thread-local and non-thread-local symbols share a name";
   case Undefined: return "undefined symbol";
+  }
+  return "unknown error";
+}
+std::string_view to_string(RelocationCode code) {
+  using enum RelocationCode;
+  switch (code) {
+  case NotRela: return "relocations without addends are not supported";
+  case UnsupportedType: return "unsupported relocation type";
+  case Truncated: return "relocation truncated to fit";
+  case BadOffset: return "relocation offset is outside of its section";
+  case NoSymbolAddress: return "relocation against a symbol without an address";
   }
   return "unknown error";
 }

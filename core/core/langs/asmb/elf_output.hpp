@@ -58,9 +58,11 @@ struct ElfResult {
 
 // One section per entry of `prog`, written straight into a packed file, then the symbol table once every section a
 // symbol can name exists. Shared by every architecture, since only the file header differs between them.
+// ET_REL generates no program headers and sets the address of each section to 0.
 ElfResult sections_to_elf(pepp::bts::ElfBits bits, pepp::bts::ElfEndian endian, pepp::bts::ElfMachineType machine,
                           const std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
-                          const ProgramObjectCodeResult &object_code, const pepp::core::symbol::LeafTable &symbols);
+                          const ProgramObjectCodeResult &object_code, const pepp::core::symbol::LeafTable &symbols,
+                          pepp::bts::ElfFileType type = pepp::bts::ElfFileType::ET_EXEC);
 
 // Lay the file out and return its bytes. Empty if there is no file.
 std::vector<u8> elf_bytes(ElfResult &result);

@@ -168,10 +168,10 @@ TEST_CASE("Expression parser", "[scope:core][scope:core.langs][kind:unit][arch:*
     }
   }
   SECTION("location counter") {
-    using Dot = Options::Dot;
+    const Options leading_dot{.identifiers = Options::Identifiers::LeadingDot};
     int named = 0;
     const NameLocationCounter name = [&] { return "<." + std::to_string(named++) + ">"; };
-    const auto result = parse(". + 4 - .", Location(0, 0), nullptr, {.dot = Dot::Identifier}, name);
+    const auto result = parse(". + 4 - .", Location(0, 0), nullptr, leading_dot, name);
     const auto &tree = parsed(result).tree;
     CHECK(to_postfix(tree) == ". 4 + . -");
     CHECK(to_infix(tree) == ". + 4 - .");
@@ -182,12 +182,9 @@ TEST_CASE("Expression parser", "[scope:core][scope:core.langs][kind:unit][arch:*
 
     // . is conditionally enabled in the grammar
     CHECK(std::holds_alternative<NoExpression>(parse(".")));
-    const auto unnamed = parse(".", Location(0, 0), nullptr, {.dot = Dot::Identifier});
+    const auto unnamed = parse(".", Location(0, 0), nullptr, leading_dot);
     REQUIRE(std::holds_alternative<Error>(unnamed));
     CHECK(std::get<Error>(unnamed).matches(NullaryError::LocationCounter_Unavailable));
-    const auto member = parse("a.b", Location(0, 0), nullptr, {.dot = Dot::Operator});
-    REQUIRE(std::holds_alternative<Error>(member));
-    CHECK(std::get<Error>(member).matches(NullaryError::Syntax_MemberAccess));
   }
   SECTION("Function calls") {
     const Options options{.percent_identifiers = true, .functions = functions};

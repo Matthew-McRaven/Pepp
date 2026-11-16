@@ -101,6 +101,10 @@ TEST_CASE("Collect globals / undefineds", "[scope:core][scope:core.link][kind:un
     CHECK(table->file_of(InputSymbolID{4}) == a);
     CHECK_THROWS_AS(table->file_of(InputSymbolID{0}), std::out_of_range);
     CHECK_THROWS_AS(table->file_of(InputSymbolID{5}), std::out_of_range);
+    // Each ID also maps back to its symbol table entry. a's symbol table is section 4, and b has none.
+    CHECK(table->handle_of(InputSymbolID{3}) == InputElfSymbolHandle{a, 5});
+    CHECK(table->symtab_of(a) == 4);
+    CHECK(table->symtab_of(b) == 0);
   }
   SECTION("Reject malformed symbol tables") {
     using enum SymbolCode;
@@ -178,6 +182,8 @@ TEST_CASE("Resolve symbols between files", "[scope:core][scope:core.link][kind:u
     CHECK(symbols.name(of(b, 1)) == "foo");
     CHECK(of(a, 1) == of(b, 1));
     CHECK(of(a, 2) == of(b, 1));
+    // Find follows forwarding
+    CHECK(symbols.find("foo@V2") == of(b, 1));
   }
   SECTION("Non-default versions do not forward") {
     CHECK(symbols.name(of(a, 3)) == "foo@V1");
@@ -191,6 +197,8 @@ TEST_CASE("Resolve symbols between files", "[scope:core][scope:core.link][kind:u
   SECTION("Unversioned matches by name") {
     CHECK(of(a, 4) == of(b, 3));
     CHECK(symbols.name(of(a, 4)) == "bar");
+    CHECK(symbols.find("bar") == of(a, 4));
+    CHECK_FALSE(symbols.find("missing"));
   }
   SECTION("Invalid IDs") {
     CHECK_THROWS_AS(symbols.of(InputSymbolID{table->size()}), std::out_of_range);

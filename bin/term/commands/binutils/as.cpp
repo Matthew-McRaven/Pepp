@@ -50,6 +50,10 @@ void add_os_macros(pepp::tc::MacroRegistry &registry) {
   }
 }
 
+pepp::bts::ElfFileType output_type(const AsTask::Options &opts) {
+  return opts.relocatable ? pepp::bts::ElfFileType::ET_REL : pepp::bts::ElfFileType::ET_EXEC;
+}
+
 void add_pep10_os_symbols(std::vector<std::pair<std::string, u32>> &symdefs) {
   symdefs.push_back({"DECI", 0x0000});
   symdefs.push_back({"DECO", 0x0001});
@@ -156,7 +160,7 @@ void AsTask::run() {
 }
 
 pepp::tc::DriverConfig AsTask::prepare(const RISCVOptions &) {
-  return pepp::tc::RISCVDriverConfig{.symdefs = _opts.symdefs};
+  return pepp::tc::RISCVDriverConfig{.symdefs = _opts.symdefs, .output_type = output_type(_opts)};
 }
 
 pepp::tc::DriverConfig AsTask::prepare(const PEP10Options &arch) {
@@ -167,9 +171,9 @@ pepp::tc::DriverConfig AsTask::prepare(const PEP10Options &arch) {
     if (arch.os_macros) add_os_macros(*macros);
     if (arch.os_symbols) add_pep10_os_symbols(_opts.symdefs);
   }
-  return pepp::tc::Pep10DriverConfig{.symdefs = _opts.symdefs, .macros = macros};
+  return pepp::tc::Pep10DriverConfig{.symdefs = _opts.symdefs, .macros = macros, .output_type = output_type(_opts)};
 }
 
 pepp::tc::DriverConfig AsTask::prepare(const PEP9Options &) {
-  return pepp::tc::Pep9DriverConfig{.symdefs = _opts.symdefs};
+  return pepp::tc::Pep9DriverConfig{.symdefs = _opts.symdefs, .output_type = output_type(_opts)};
 }

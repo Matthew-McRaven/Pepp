@@ -12,9 +12,13 @@ enum class CommonTokenType {
   Integer = 1 << 3,
   Identifier = 1 << 4,
   InlineComment = 1 << 5,
-  SymbolDeclaration = 1 << 6,
-  Literal = 1 << 7,
-  _FirstUser = 1 << 8,
+  BlockComment = 1 << 6,
+  SymbolDeclaration = 1 << 7,
+  Literal = 1 << 8,
+  CharacterConstant = 1 << 9,
+  StringConstant = 1 << 10,
+  ParsedExpression = 1 << 11, // See core/langs/expr/nested.hpp
+  _FirstUser = 1 << 12,
 };
 
 struct Token {
@@ -102,6 +106,14 @@ struct InlineComment : public Identifier {
   std::string type_name() const override;
 };
 
+// For comments of the form "/* hi */", which may span more than one line
+struct BlockComment : public Identifier {
+  BlockComment(support::LocationInterval loc, std::string const *v);
+  static constexpr int TYPE = static_cast<int>(CommonTokenType::BlockComment);
+  int type() const override;
+  std::string type_name() const override;
+};
+
 // Used for single / very short character literals, like <|=>
 struct Literal : public Token {
   Literal(support::LocationInterval loc, std::string literal);
@@ -111,6 +123,28 @@ struct Literal : public Token {
   std::string to_string() const override;
 
   std::string literal;
+};
+
+struct CharacterConstant : public Token {
+  CharacterConstant(support::LocationInterval loc, std::string value);
+  static constexpr int TYPE = static_cast<int>(CommonTokenType::CharacterConstant);
+  int type() const override;
+  std::string type_name() const override;
+  std::string to_string() const override;
+  std::string repr() const override;
+
+  std::string value;
+};
+
+// We are going to cheat with string constants. You should drop the quotes when making an ID out of this.
+// While the lexer MUST check that escape sequences are valid, it does NOT need to convert them into bytes.
+struct StringConstant : public Identifier {
+  StringConstant(support::LocationInterval loc, std::string const *v);
+  static constexpr int TYPE = static_cast<int>(CommonTokenType::StringConstant);
+  int type() const override;
+  std::string type_name() const override;
+  std::string to_string() const override;
+  std::string repr() const override;
 };
 
 } // namespace pepp::tc::lex

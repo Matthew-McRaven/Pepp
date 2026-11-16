@@ -33,6 +33,7 @@ const std::string pepp::tc::CodegenError::to_string(UnaryError err, const std::s
   case UnaryError::Expression_Invalid: return fmt::format("Invalid expression: {}", arg);
   case UnaryError::Section_FlagsChanged: return fmt::format("Modifying flags for existing section {}", arg);
   case UnaryError::Symbol_MultiplyDefined: return fmt::format("Multiply defined symbol {}", arg);
+  case UnaryError::Directive_NotRelocatable: return fmt::format("{} cannot be used in a relocatable object", arg);
   }
   PEPP_UNREACHABLE();
 }

@@ -1,5 +1,5 @@
 # Regenerates golden test outputs
-# Uses RISC-V binutils by default (e.g. Homebrew's riscv64-elf-binutils); override PREFIX for another one.
+# Override PREFIX to select a different binutils
 PREFIX ?= riscv64-elf-
 AS := $(PREFIX)as
 AR := $(PREFIX)ar

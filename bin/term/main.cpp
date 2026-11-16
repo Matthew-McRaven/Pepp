@@ -28,6 +28,7 @@
 #include "commands/binutils/ardump.hpp"
 #include "commands/binutils/as.hpp"
 #include "commands/binutils/emu.hpp"
+#include "commands/binutils/ld.hpp"
 #include "commands/binutils/readelf.hpp"
 #include "commands/dumpbooks.hpp"
 #include "commands/dumptex.hpp"
@@ -96,6 +97,7 @@ int main(int argc, char **argv) {
   registerAr(app, task, shared_flags);
   registerArDump(app, task, shared_flags);
   registerAs(app, task, shared_flags);
+  registerLd(app, task, shared_flags);
   registerReadelf(app, task, shared_flags);
   registerEmu(app, task, shared_flags);
 

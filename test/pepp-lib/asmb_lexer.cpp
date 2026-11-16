@@ -59,7 +59,7 @@ auto check_next_hex(pepp::tc::lex::AsmbLexer &l, uint64_t val) {
 auto check_char_sequence(pepp::tc::lex::AsmbLexer &l, QString body) {
   auto next = l.next_token();
   REQUIRE(next);
-  CHECK(next->type() == (int)pepp::tc::lex::AsmTokenType::CharacterConstant);
+  CHECK(next->type() == (int)pepp::tc::lex::CommonTokenType::CharacterConstant);
   auto charconst = std::dynamic_pointer_cast<pepp::tc::lex::CharacterConstant>(next);
   REQUIRE(charconst);
   CHECK(charconst->value == body.toStdString());
@@ -68,7 +68,7 @@ auto check_char_sequence(pepp::tc::lex::AsmbLexer &l, QString body) {
 auto check_str_sequence(pepp::tc::lex::AsmbLexer &l, QString body) {
   auto next = l.next_token();
   REQUIRE(next);
-  CHECK(next->type() == (int)pepp::tc::lex::AsmTokenType::StringConstant);
+  CHECK(next->type() == (int)pepp::tc::lex::CommonTokenType::StringConstant);
   auto strconst = std::dynamic_pointer_cast<pepp::tc::lex::StringConstant>(next);
   REQUIRE(strconst);
   CHECK(strconst->view() == body.toStdString());

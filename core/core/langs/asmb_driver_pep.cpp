@@ -34,7 +34,7 @@ namespace {
 DriverResult assemble_pep(const pep::Dialect &dialect, bts::ElfMachineType machine,
                           const std::vector<std::pair<std::string, u32>> &symdefs,
                           std::shared_ptr<MacroRegistry> macros, const DebugLineFiles &debug_files,
-                          const FormattingConfig &fmtcfg, std::string source) {
+                          bts::ElfFileType output_type, const FormattingConfig &fmtcfg, std::string source) {
   DriverResult result;
   if (!macros) macros = std::make_shared<MacroRegistry>();
   auto pep_parser = parser::PepParser(support::SeekableData{std::move(source)}, macros, dialect);
@@ -46,6 +46,7 @@ DriverResult assemble_pep(const pep::Dialect &dialect, bts::ElfMachineType machi
   if (fmtcfg.source) result.formatted_source = format_source(dialect, program);
 
   auto flattened = parser::flatten_macros(program, fmtcfg.listing);
+  if (output_type == bts::ElfFileType::ET_REL) reject_absolute_placement(result.diagnostics, flattened);
   auto split = pepp_split_to_sections(result.diagnostics, flattened);
   if (result.diagnostics.count(Severity::Fatal) > 0) return result;
 
@@ -60,7 +61,8 @@ DriverResult assemble_pep(const pep::Dialect &dialect, bts::ElfMachineType machi
   }
   // After flattening, so that a definition inside an expansion has its instantiation's line.
   result.set_elf(pepp_to_elf(split.grouped_ir, addresses, object_code, *pep_parser.symbol_table(), split.mmios,
-                             debug_files, parser::defined_macros(program), machine, layout ? &layout->rows : nullptr));
+                             debug_files, parser::defined_macros(program), machine, layout ? &layout->rows : nullptr,
+                             output_type));
   if (layout) result.unformatted_listing = DriverResult::UnformattedListing{std::move(layout->text), pep_listing_style};
   return result;
 }
@@ -68,12 +70,12 @@ DriverResult assemble_pep(const pep::Dialect &dialect, bts::ElfMachineType machi
 
 DriverResult assemble_pep10(const Pep10DriverConfig &cfg, const FormattingConfig &fmtcfg, std::string source) {
   return assemble_pep(pep::pep10::dialect(), bts::ElfMachineType::EM_PEP10, cfg.symdefs, cfg.macros, cfg.debug_files,
-                      fmtcfg, std::move(source));
+                      cfg.output_type, fmtcfg, std::move(source));
 }
 
 DriverResult assemble_pep9(const Pep9DriverConfig &cfg, const FormattingConfig &fmtcfg, std::string source) {
-  return assemble_pep(pep::pep9::dialect(), bts::ElfMachineType::EM_PEP9, cfg.symdefs, nullptr, cfg.debug_files, fmtcfg,
-                      std::move(source));
+  return assemble_pep(pep::pep9::dialect(), bts::ElfMachineType::EM_PEP9, cfg.symdefs, nullptr, cfg.debug_files,
+                      cfg.output_type, fmtcfg, std::move(source));
 }
 
 } // namespace pepp::tc

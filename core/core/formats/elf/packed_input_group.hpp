@@ -116,6 +116,8 @@ public:
   // Takes ownership of elf, returning the ID that its handles will use.
   // Fails if its class, byte order, or machine differs from this group's.
   Result<ElfFileID> add(AnyInputElf elf);
+  // Like add(elf), but records that elf was opened from fs path.
+  Result<ElfFileID> add(AnyInputElf elf, std::filesystem::path path);
   // Adds an archive to the group, whose members cant be extracted manually via add_member.
   Result<ElfArchiveID> add(PackedInputArchive archive);
   // Open a file or archive as determined by its file magic.
@@ -162,6 +164,11 @@ AnyElfGroup to_input_group(AnyInputElf elf);
 
 template <ElfBits B, ElfEndian E> auto PackedInputElfGroup<B, E>::add(AnyInputElf elf) -> Result<ElfFileID> {
   return insert(std::move(elf), ElfInMemory{});
+}
+
+template <ElfBits B, ElfEndian E>
+auto PackedInputElfGroup<B, E>::add(AnyInputElf elf, std::filesystem::path path) -> Result<ElfFileID> {
+  return insert(std::move(elf), ElfFromPath{std::move(path)});
 }
 
 template <ElfBits B, ElfEndian E>

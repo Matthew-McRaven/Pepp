@@ -18,7 +18,7 @@
 #pragma once
 #include "core/compile/ir_linear/line_macro.hpp"
 #include "core/integers.h"
-#include "core/langs/asmb/elf_symtab.hpp"
+#include "core/langs/asmb/elf_output.hpp"
 #include "core/langs/asmb/ir_constraints.hpp"
 #include "core/langs/asmb/ir_program.hpp"
 #include "core/langs/asmb/mmio.hpp"
@@ -80,5 +80,6 @@ ElfResult pepp_to_elf(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog
                       const DebugLineFiles &files = {},
                       const std::vector<std::shared_ptr<const InlineMacroDefinition>> &macros = {},
                       pepp::bts::ElfMachineType machine = pepp::bts::ElfMachineType::EM_PEP10,
-                      const IR2ListingLineMap *listing = nullptr);
+                      const IR2ListingLineMap *listing = nullptr,
+                      pepp::bts::ElfFileType type = pepp::bts::ElfFileType::ET_EXEC);
 } // namespace pepp::tc

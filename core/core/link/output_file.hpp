@@ -1,0 +1,179 @@
+/*
+ * Copyright (c) 2026 J. Stanley Warford, Matthew McRaven
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+
+#pragma once
+#include <algorithm>
+#include <filesystem>
+#include <limits>
+#include <memory>
+#include <optional>
+#include <stdexcept>
+#include <variant>
+#include <vector>
+#include <fmt/format.h>
+#include "core/formats/elf/packed_access_headers.hpp"
+#include "core/formats/elf/packed_ops.hpp"
+#include "core/io/mapped_file.hpp"
+#include "core/langs/ldscript/ir.hpp"
+#include "core/link/diagnostics.hpp"
+#include "core/link/link_view.hpp"
+#include "core/link/section_relocations.hpp"
+#include "core/link/symtab.hpp"
+
+namespace pepp::link {
+
+// Assign views over file to each output section's data. Then copy all input sections' data into the corresponding
+// output sections, applying relocations to members as they are copied.
+template <ElfBits B, ElfEndian E>
+void write_sections(Diagnostics &diagnostics, const LinkView<B, E> &link, bts::PackedGrowableElfFile<B, E> &elf,
+                    bts::MappedFile &file) {
+  const auto members = link.placements.members();
+  const auto relocations = relocation_section_indices(link);
+  for (u32 id = 1; id < link.outputs.size(); ++id) {
+    const auto index = link.outputs[id]->shndx;
+    const auto &header = elf.section_headers[index];
+    // Skip output sections that were not written, which have header 0, and those with no bytes in the file.
+    if (index == 0 || header.sh_size == 0 || header.sh_type == bits::to_underlying(bts::SectionTypes::SHT_NOBITS))
+      continue;
+    const auto slice = file.slice(header.sh_offset, header.sh_size);
+    auto &data = elf.section_data[index] = std::make_shared<bts::MemoryMapped>(slice);
+    for (const auto position : members.members(OutputSectionID{id})) {
+      const auto member = link.placements.sections().handle(position);
+      const auto contents = link.group.data(member);
+      const auto from = contents->get(0, contents->size());
+      const auto to = data->get(link.placements.assignments()[position].offset, from.size());
+      if (to.size() != from.size()) throw std::runtime_error("could not map an output section");
+      std::ranges::copy(from, to.begin());
+      if (relocations[position] != 0)
+        apply_relocations(diagnostics, link, {member.file, relocations[position]}, member, to);
+    }
+    slice->flush();
+  }
+}
+
+// Report a Fatal diagnostic for each output section or entry point that doesn't fit within a word size. Return false on
+// error.
+template <ElfBits B>
+bool fits_output_class(Diagnostics &diagnostics, const tc::ldscript::Sections &sections, u64 entry) {
+  if (B == ElfBits::b64) return true;
+  constexpr u64 limit = u64(1) << 32;
+  bool ret = true;
+  for (const auto &command : sections.commands) {
+    const auto *output = std::get_if<tc::ldscript::OutputSectionDescription>(&command);
+    if (!output || output->empty) continue;
+    else if (output->vma < limit && output->size <= limit - output->vma && output->alignment < limit) continue;
+    const auto message =
+        fmt::format("section {} at {:#x} with size {:#x} too large for ELF32", output->name, output->vma, output->size);
+    diagnostics.add({Severity::Fatal, LinkCode::AddressOverflow, ScriptMessage{{}, output->source_interval, message}});
+    ret = false;
+  }
+  if (entry >= limit) {
+    const auto message = fmt::format("entry point {:#x} too large for ELF32", entry);
+    diagnostics.add({Severity::Fatal, LinkCode::AddressOverflow, ScriptMessage{{}, {}, message}});
+    ret = false;
+  }
+  return ret;
+}
+
+// Write an ET_EXEC with a section for each output section that has contents, in script order, a PT_LOAD for each run
+// of allocated sections, and a symbol table. The data of each output section is a mapping of the file at path, so
+// members are copied once and relocated in place. If path is nullopt, the mapping is anonymous. Returns nullptr if the
+// output cannot be mapped.
+template <ElfBits B, ElfEndian E>
+std::shared_ptr<bts::MappedFile> create_executable_output(Diagnostics &diagnostics, const LinkView<B, E> &link,
+                                                          tc::ldscript::Sections &sections, u64 entry,
+                                                          const std::optional<std::filesystem::path> &path) {
+  using namespace bts;
+  using enum SectionTypes;
+  if (!fits_output_class<B>(diagnostics, sections, entry)) return nullptr;
+  // The first file decided the group's machine, so it decides the output's too.
+  const auto &first = link.group.file(ElfFileID(1)).header;
+  auto elf = std::make_unique<PackedGrowableElfFile<B, E>>(
+      ElfFileType::ET_EXEC, static_cast<ElfMachineType>(u16(first.e_machine)), first.ei_osabi());
+  elf->header.e_flags = first.e_flags;
+  elf->header.e_entry = static_cast<word<B>>(entry);
+  ensure_section_header_table(*elf);
+
+  // Create section headers for every output section.
+  const auto from = static_cast<u16>(elf->section_headers.size());
+  for (auto &command : sections.commands) {
+    auto *output = std::get_if<tc::ldscript::OutputSectionDescription>(&command);
+    if (!output || output->empty) continue;
+    // An output section without members still occupies memory when it moved the location counter.
+    const bool no_members = output->type == SHT_NULL;
+    const auto type = no_members ? SHT_PROGBITS : output->type;
+    const u64 flags = no_members ? bits::to_underlying(SectionFlags::SHF_ALLOC) : output->flags;
+    const auto index = add_named_section(*elf, output->name, type);
+    output->shndx = index;
+    auto &header = elf->section_headers[index];
+    // An executable keeps no section groups.
+    header.sh_flags = static_cast<word<B>>(flags & ~u64(bits::to_underlying(SectionFlags::SHF_GROUP)));
+    header.sh_addr = static_cast<word<B>>(output->vma);
+    header.sh_addralign = static_cast<word<B>>(output->alignment);
+
+    // write_sections maps the section's data later, so set its size here.
+    header.sh_size = static_cast<word<B>>(output->size);
+    elf->section_data[index] = nullptr;
+  }
+
+  // Compute the minimum set of segments to cover allocated sections.
+  std::vector<SegmentLayoutConstraint> segments;
+  const auto to = static_cast<u16>(elf->section_headers.size());
+  for (const auto &[flags, constraint] : group_load_segments(*elf, from, to)) {
+    elf->add_segment(SegmentType::PT_LOAD, flags);
+    segments.push_back(constraint);
+  }
+
+  // linker-synthesized sections, such as string tables and symbol tables have non-null data need updated sh_size.
+  write_symtab(*elf, link);
+  update_section_sizes(*elf);
+  const ScriptMessage at{path ? path->string() : std::string()};
+  u64 size = 0;
+  try {
+    size = assign_file_offsets(*elf, &segments);
+  } catch (const std::logic_error &error) {
+    diagnostics.add({Severity::Fatal, LinkCode::BadLayout, ScriptMessage{at.file, {}, error.what()}});
+    return nullptr;
+  }
+  // File offsets are word<B> too, so a file larger than 4 GiB truncates them.
+  if (B == ElfBits::b32 && size > std::numeric_limits<u32>::max()) {
+    const auto message = fmt::format("output size {:#x} does not fit in ELF32", size);
+    diagnostics.add({Severity::Fatal, LinkCode::AddressOverflow, ScriptMessage{at.file, {}, message}});
+    return nullptr;
+  }
+
+  try {
+    auto ret = path ? MappedFile::open_truncated(path->string()) : MappedFile::open_anonymous(size);
+    // Write the headers and the symbol table. Must release this mapping before the output sections are mapped, since
+    // live mappings which overlap lose writes when MappedFile falls back to buffers.
+    {
+      const auto image = ret->slice(0, size);
+      const auto bytes = image->get();
+      if (bytes.size() < size) throw std::runtime_error("could not map the output");
+      write(bytes, layout_items(*elf));
+      image->flush();
+    }
+    // A new file and an anonymous mapping both read as 0, which fills the gaps between members.
+    write_sections(diagnostics, link, *elf, *ret);
+    return ret;
+  } catch (const std::runtime_error &) {
+    diagnostics.add({Severity::Fatal, LinkCode::CannotWriteOutput, at});
+    return nullptr;
+  }
+}
+} // namespace pepp::link

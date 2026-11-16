@@ -24,6 +24,7 @@
 #include <string_view>
 #include <vector>
 #include "core/formats/ar/packed_archive.hpp"
+#include "core/formats/elf/packed_access_relocations.hpp"
 #include "core/formats/elf/packed_io.hpp"
 #include "core/formats/elf/packed_ops.hpp"
 #include "core/link/symbol_resolution.hpp"
@@ -67,6 +68,76 @@ template <ElfBits B = ElfBits::b32, ElfEndian E = ElfEndian::le> PackedGrowableE
   writer.arrange_local_symbols();
   return elf;
 }
+// Represents a section to add to an object. A NOBITS section is size bytes long. Other sections hold bytes, or size 0s
+// if bytes is empty.
+struct SectionSpec {
+  std::string_view name;
+  SectionTypes type = SectionTypes::SHT_PROGBITS;
+  SectionFlags flags{};
+  u64 size = 0;
+  u64 alignment = 1;
+  std::vector<char> bytes = {};
+};
+
+// An object with null, .shstrtab, then a section for each spec, in order.
+template <ElfBits B = ElfBits::b32, ElfEndian E = ElfEndian::le>
+PackedGrowableElfFile<B, E> elf_with(std::initializer_list<SectionSpec> specs) {
+  PackedGrowableElfFile<B, E> elf(ElfFileType::ET_REL, ElfMachineType::EM_PEP10, ElfABI::ELFOSABI_NONE);
+  ensure_section_header_table(elf);
+  for (const auto &spec : specs) {
+    const auto index = add_named_section(elf, spec.name, spec.type);
+    auto &header = elf.section_headers[index];
+    header.sh_flags = bits::to_underlying(spec.flags);
+    header.sh_size = spec.size;
+    header.sh_addralign = spec.alignment;
+    if (spec.type == SectionTypes::SHT_NOBITS) continue;
+    auto bytes = spec.bytes.empty() ? std::vector<char>(spec.size) : spec.bytes;
+    elf.section_data[index] = std::make_shared<BlockStorage>(std::move(bytes));
+  }
+  return elf;
+}
+
+// A global symbol to add to an object. It is undefined if section is 0.
+struct SymbolSpec {
+  std::string_view name;
+  u16 section = 0;
+  u32 value = 0;
+};
+
+// A relocation of the section at index target.
+struct RelaSpec {
+  u16 target;
+  u32 offset;
+  RelocationsPep type;
+  std::string_view symbol;
+  i32 addend = 0;
+};
+
+// Returns an object with null, .shstrtab, then a section for each spec, so that the first spec is section 2. A symbol
+// table and relocation sections follow.
+inline AnyInputElf object_with(std::initializer_list<SectionSpec> specs, std::initializer_list<SymbolSpec> symbols,
+                               std::initializer_list<RelaSpec> relocations = {}) {
+  auto elf = elf_with(specs);
+  const auto strtab = add_named_section(elf, ".strtab", SectionTypes::SHT_STRTAB);
+  const auto symtab = add_named_symtab(elf, ".symtab", strtab);
+  PackedSymbolWriter<ElfBits::b32, ElfEndian::le> writer(elf, symtab);
+  for (const auto &spec : symbols) {
+    PackedElfSymbol<ElfBits::b32, ElfEndian::le> symbol;
+    symbol.set_bind(SymbolBinding::STB_GLOBAL);
+    symbol.st_value = spec.value;
+    writer.add_symbol(std::move(symbol), spec.name, spec.section);
+  }
+  writer.arrange_local_symbols();
+  for (const auto &spec : relocations) {
+    const auto name = ".rela" + std::string(section_name(elf, spec.target));
+    // Adding a section may reallocate the section tables, which invalidates writer. Look the symbol up afresh.
+    PackedRelocationWriter<ElfBits::b32, ElfEndian::le> rela(elf, add_named_rela(elf, name, symtab, spec.target));
+    const PackedSymbolReader<ElfBits::b32, ElfEndian::le> symbols(elf, symtab);
+    rela.add_rela(spec.offset, bits::to_underlying(spec.type), symbols.find_symbol(spec.symbol), spec.addend);
+  }
+  return to_input_elf(elf);
+}
+
 template <ElfBits B = ElfBits::b32, ElfEndian E = ElfEndian::le> AnyInputElf object_of(Symbols symbols) {
   auto elf = elf_of<B, E>(symbols);
   return to_input_elf(elf);

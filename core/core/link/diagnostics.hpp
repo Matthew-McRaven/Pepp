@@ -22,6 +22,7 @@
 #include <variant>
 #include <vector>
 #include "core/compile/diagnostic/severity.hpp"
+#include "core/compile/source/location.hpp"
 #include "core/ds/opaque_handle.hpp"
 #include "core/formats/elf/packed_input_group.hpp"
 
@@ -33,12 +34,26 @@ using InputSymbolID = pepp::OpaqueHandle<struct InputSymbolTag, u32>;
 consteval void allow_opaque_handle_add(InputSymbolID);
 consteval void allow_opaque_handle_increment(InputSymbolID);
 
-// Procedural errors encountered during the linking process.
+// Errors from the linker's own passes.
 enum class LinkCode : u8 {
   // No input provides an ELF file from which to take the class and byte order.
   NoInputs,
-  // A config field or input kind that is not implemented yet.
-  Unsupported,
+  // A linker script failed to parse. The subject is a ScriptMessage.
+  BadScript,
+  // A pass received a linker script not parsed by parse_scripts().
+  UnparsedScript,
+  // A linker script expression could not be evaluated. The subject is a ScriptMessage.
+  BadExpression,
+  // An assignment moved the location counter backwards within an output section. The subject is a ScriptMessage.
+  LocationCounterBackwards,
+  // The entry symbol is not defined, so the entry point is another address. The subject is an EntryFallback.
+  NoEntrySymbol,
+  // The output file could not be created or mapped. The subject is a ScriptMessage with the offending file.
+  CannotWriteOutput,
+  // The output sections cannot be arranged into segments. The subject is a ScriptMessage with the output file.
+  BadLayout,
+  // An address, size, or entry point does not fit in the output's ELF class. The subject is a ScriptMessage.
+  AddressOverflow,
 };
 
 // Errors during symbol resolution.
@@ -59,8 +74,21 @@ enum class SymbolCode : u8 {
   Undefined,
 };
 
-// Errors could stem from the linker itself, our attempt to open files as a group or archive.
-using DiagnosticCode = std::variant<LinkCode, bts::InputGroupError::Code, bts::ArchiveError::Code, SymbolCode>;
+// Errors while applying relocations. The subject is a RelocationSite.
+enum class RelocationCode : u8 {
+  NotRela,
+  // The relocation type is unknown for the file's machine.
+  UnsupportedType,
+  // The value does not fit in the bytes that the relocation writes.
+  Truncated,
+  // r_offset is outside of the section.
+  BadOffset,
+  // The symbol has no address (e.g., it is in a section that is not part of the output).
+  NoSymbolAddress,
+};
+
+using DiagnosticCode =
+    std::variant<LinkCode, bts::InputGroupError::Code, bts::ArchiveError::Code, SymbolCode, RelocationCode>;
 std::string_view to_string(const DiagnosticCode &code);
 
 // Index of an input in LinkConfig::inputs, for problems found before the input has a file ID.
@@ -72,16 +100,38 @@ struct ConfigInputOffset {
   bool operator==(const ConfigInputOffset &) const = default;
 };
 
+// A problem with a linker script, which has no ConfigInputID. If location is invalid, the problem is with the whole
+// file. If message is empty, the diagnostic's code describes the problem.
+struct ScriptMessage {
+  std::string file;
+  tc::support::LocationInterval location;
+  std::string message;
+  bool operator==(const ScriptMessage &) const = default;
+};
 struct SymbolConflict {
   InputSymbolID symbol, first;
   bool operator==(const SymbolConflict &) const = default;
 };
 
+// An entry point chosen because the entry symbol is missing.
+struct EntryFallback {
+  std::string symbol;
+  u64 address = 0;
+  bool operator==(const EntryFallback &) const = default;
+};
+
+// The target offset of a relocation applied to an input section. For NotRela, section is the relocation section.
+struct RelocationSite {
+  bts::InputElfSectionHandle section;
+  u64 offset = 0;
+  bool operator==(const RelocationSite &) const = default;
+};
+
 // What entity caused the error? monostate means the diagnostic can't be narrowed down to an item like a symbol or a
 // file offset.
-using DiagnosticSubject =
-    std::variant<std::monostate, ConfigInputID, ConfigInputOffset, bts::InputElfSymbolHandle, InputSymbolID,
-                 SymbolConflict>;
+using DiagnosticSubject = std::variant<std::monostate, ConfigInputID, ConfigInputOffset, ScriptMessage,
+                                       bts::InputElfSymbolHandle, InputSymbolID, SymbolConflict, EntryFallback,
+                                       RelocationSite>;
 
 struct Diagnostic {
   Severity severity;
@@ -95,7 +145,6 @@ class Diagnostics {
 public:
   void add(Diagnostic diagnostic) { _entries.push_back(std::move(diagnostic)); }
   std::size_t size() const noexcept { return _entries.size(); }
-  // Number of diagnostics at or above a given severity.
   std::size_t count(Severity minimum) const;
   auto begin() const { return _entries.cbegin(); }
   auto end() const { return _entries.cend(); }

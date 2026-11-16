@@ -18,9 +18,9 @@ Each case starts from the same member files in two scratch directories, one per 
 The tools must agree on each command's exit status and stdout, and on every file left behind, byte for byte.
 stderr is not compared, since the two word their messages differently.
 
-The test reads PEPP_TERM (the pepp-term executable) and PEPP_AR_MEMBERS (an archive holding the member files) from
-the environment. GNU ar is $PEPP_TEST_AR, or else the first of AR_NAMES on PATH that reports itself as GNU ar. Without
-a valid GNU ar, the test is skipped.
+The test reads PEPP_TERM (the pepp-term executable) from the environment, and the member files from
+data/ar-mixed-members/regular.a. GNU ar is $PEPP_TEST_AR, or else the first of AR_NAMES on PATH that reports itself
+as GNU ar. Without a valid GNU ar, the test is skipped.
 """
 
 import os
@@ -134,7 +134,7 @@ class ArMatchesGnu(unittest.TestCase):
         # The member files come out of a GNU-built archive, so both tools start from the same bytes.
         cls.seed = pathlib.Path(cls.scratch.name) / "seed"
         cls.seed.mkdir()
-        members = pathlib.Path(os.environ["PEPP_AR_MEMBERS"]).resolve()
+        members = pathlib.Path(__file__).parent / "data/ar-mixed-members/regular.a"
         subprocess.run([cls.gnu_ar, "x", members], cwd=cls.seed, check=True)
 
     @classmethod

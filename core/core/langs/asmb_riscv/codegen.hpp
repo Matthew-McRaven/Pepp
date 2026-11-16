@@ -22,7 +22,7 @@
 #include "core/compile/ir_linear/attr_section.hpp"
 #include "core/compile/ir_linear/line_macro.hpp"
 #include "core/integers.h"
-#include "core/langs/asmb/elf_symtab.hpp"
+#include "core/langs/asmb/elf_output.hpp"
 #include "core/langs/asmb/ir_constraints.hpp"
 #include "core/langs/asmb/ir_program.hpp"
 #include "core/math/bitmanip/leb128.hpp"
@@ -75,6 +75,7 @@ ElfResult riscv_to_elf(std::vector<std::pair<SectionDescriptor, IRProgram>> &pro
                        const IRMemoryAddressTable<RISCVAddress> &addrs, const ProgramObjectCodeResult &object_code,
                        const pepp::core::symbol::LeafTable &symbols, const DebugLineFiles &files = {},
                        const std::vector<std::shared_ptr<const InlineMacroDefinition>> &macros = {},
-                       const IR2ListingLineMap *listing = nullptr);
+                       const IR2ListingLineMap *listing = nullptr,
+                       pepp::bts::ElfFileType type = pepp::bts::ElfFileType::ET_EXEC);
 
 } // namespace pepp::tc

@@ -61,11 +61,8 @@ void pepp::bts::write(std::ostream &out, std::vector<LayoutItem> layout) {
 
 std::shared_ptr<pepp::bts::MappedFile> pepp::bts::write_mmap(const std::string &path,
                                                              const std::vector<LayoutItem> &layout) {
-  // Truncate first: a mapping only ever grows its file, so a longer previous image would leave a stale tail behind.
-  if (std::ofstream create(path, std::ios::binary | std::ios::trunc); !create)
-    throw std::runtime_error("Elf::write_image: could not open " + path);
   const u64 size = size_for_layout(layout);
-  auto file = MappedFile::open_readwrite(path);
+  auto file = MappedFile::open_truncated(path);
   if (size == 0) return file;
 
   auto slice = file->slice(0, size);

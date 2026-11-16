@@ -96,8 +96,10 @@ pepp::bts::MappedFile &pepp::bts::MappedFile::operator=(MappedFile &&o) noexcept
   if (this != &o) {
     release();
     _path = std::move(o._path);
-    _readonly = o._readonly, _opened = o._opened, _use_fallback = o._use_fallback;
+    _readonly = o._readonly, _truncate = o._truncate, _opened = o._opened, _use_fallback = o._use_fallback;
     o._opened = false, o._use_fallback = false;
+    _anonymous = o._anonymous, _anonymous_len = o._anonymous_len;
+    o._anonymous = nullptr, o._anonymous_len = 0;
 #if defined(_WIN32)
     _hFile = o._hFile;
     o._hFile = INVALID_HANDLE_VALUE;
@@ -122,7 +124,30 @@ std::shared_ptr<pepp::bts::MappedFile> pepp::bts::MappedFile::open_readwrite(std
   return std::make_shared<MappedFile>(private_ctor_tag{}, path, false);
 }
 
-u64 pepp::bts::MappedFile::size() const { return std::filesystem::file_size(_path); }
+std::shared_ptr<pepp::bts::MappedFile> pepp::bts::MappedFile::open_truncated(std::string path) {
+  auto ret = open_readwrite(std::move(path));
+  ret->_truncate = true;
+  return ret;
+}
+
+std::shared_ptr<pepp::bts::MappedFile> pepp::bts::MappedFile::open_anonymous(size_t size) {
+  auto ret = std::make_shared<MappedFile>(private_ctor_tag{}, "", false);
+  // Neither mmap nor VirtualAlloc accept a length of 0.
+  const size_t length = std::max<size_t>(size, 1);
+#if defined(_WIN32)
+  void *base = ::VirtualAlloc(nullptr, length, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+  if (!base) throw std::system_error(::GetLastError(), std::system_category(), "VirtualAlloc");
+#elif defined(__unix__) || defined(__APPLE__)
+  void *base = ::mmap(nullptr, length, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
+  if (base == MAP_FAILED) throw std::system_error(errno, std::generic_category(), "mmap");
+#else
+  void *base = new u8[length]();
+#endif
+  ret->_anonymous = static_cast<u8 *>(base), ret->_anonymous_len = size;
+  return ret;
+}
+
+u64 pepp::bts::MappedFile::size() const { return _anonymous ? _anonymous_len : std::filesystem::file_size(_path); }
 
 std::shared_ptr<pepp::bts::MappedFile::Slice> pepp::bts::MappedFile::slice(size_t file_offset,
                                                                            size_t file_len) noexcept {
@@ -161,29 +186,40 @@ void pepp::bts::MappedFile::open_file() const {
     _hFile = ::CreateFileA(_path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL,
                            nullptr);
   else
-    _hFile = ::CreateFileA(_path.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL,
-                           nullptr);
+    _hFile = ::CreateFileA(_path.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr,
+                           _truncate ? CREATE_ALWAYS : OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
 
   if (_hFile == INVALID_HANDLE_VALUE) {
     spdlog::warn("Failed to CreateFileA file '{}' with {}", _path, ::GetLastError());
     _use_fallback = true;
-    return;
   } else _opened = true;
 
 #elif defined(__unix__) || defined(__APPLE__)
   if (_readonly) _fd = ::open(_path.c_str(), O_RDONLY);
-  else _fd = ::open(_path.c_str(), O_RDWR | O_CREAT, 0644);
+  else _fd = ::open(_path.c_str(), O_RDWR | O_CREAT | (_truncate ? O_TRUNC : 0), 0644);
   if (_fd < 0) {
     spdlog::warn("Failed to open file '{}' with errno {}", _path, errno);
     _use_fallback = true;
-    return;
   } else _opened = true;
 #else
   _use_fallback = true;
 #endif
+  // fallback does not hold file open, so truncate it here.
+  if (_use_fallback && _truncate) std::ofstream(_path, std::ios::binary | std::ios::trunc);
+  _truncate = false;
 }
 
 void pepp::bts::MappedFile::release() noexcept {
+  if (_anonymous) {
+#if defined(_WIN32)
+    ::VirtualFree(_anonymous, 0, MEM_RELEASE);
+#elif defined(__unix__) || defined(__APPLE__)
+    ::munmap(_anonymous, std::max<size_t>(_anonymous_len, 1));
+#else
+    delete[] _anonymous;
+#endif
+    _anonymous = nullptr, _anonymous_len = 0;
+  }
 #if defined(_WIN32)
   if (_hFile != INVALID_HANDLE_VALUE) {
     ::CloseHandle(_hFile);
@@ -199,6 +235,13 @@ void pepp::bts::MappedFile::release() noexcept {
 
 void pepp::bts::MappedFile::load_mapped(Slice &slice) const {
   if (slice._loaded) return;
+  // Anonymous mapping is eagerly loaded and shared between all slices.
+  if (_anonymous) {
+    const size_t offset = std::min(slice._file_offset, _anonymous_len);
+    slice._data_view = {_anonymous + offset, std::min(slice._file_len, _anonymous_len - offset)};
+    slice._loaded = true;
+    return;
+  }
   ensure_opened();
   if (_use_fallback) {
     load_fallback(slice);

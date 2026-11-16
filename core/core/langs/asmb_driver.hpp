@@ -23,7 +23,7 @@
 #include <vector>
 #include "core/compile/macro/macro_registry.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
-#include "core/langs/asmb/elf_symtab.hpp"
+#include "core/langs/asmb/elf_output.hpp"
 #include "core/langs/asmb/listing.hpp"
 
 namespace pepp::tc {
@@ -45,16 +45,19 @@ struct RISCVDriverConfig {
   std::vector<std::pair<std::string, u32>> symdefs;
   std::shared_ptr<pepp::tc::MacroRegistry> macros = nullptr;
   DebugLineFiles debug_files;
+  bts::ElfFileType output_type = bts::ElfFileType::ET_EXEC;
 };
 struct Pep10DriverConfig {
   std::vector<std::pair<std::string, u32>> symdefs;
   std::shared_ptr<pepp::tc::MacroRegistry> macros = nullptr;
   DebugLineFiles debug_files;
+  bts::ElfFileType output_type = bts::ElfFileType::ET_EXEC;
 };
 // Pep/9 does not support macros.
 struct Pep9DriverConfig {
   std::vector<std::pair<std::string, u32>> symdefs;
   DebugLineFiles debug_files;
+  bts::ElfFileType output_type = bts::ElfFileType::ET_EXEC;
 };
 using DriverConfig = std::variant<RISCVDriverConfig, Pep10DriverConfig, Pep9DriverConfig>;
 

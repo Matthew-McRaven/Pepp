@@ -118,3 +118,13 @@ std::optional<SymbolOffset> pepp::tc::match_symbol_operand(pepp::ast::IRValue &v
     return match(simplified(*expression), *expression, pattern);
   return std::nullopt;
 }
+
+void pepp::tc::reject_absolute_placement(DiagnosticTable &diag, const IRProgram &prog) {
+  using E = CodegenError;
+  for (const auto &line : prog) {
+    if (line->type() != DotOrg::TYPE) continue;
+    const bool burn = static_cast<const DotOrg &>(*line).behavior == DotOrg::Behavior::BURN;
+    const E error(E::UnaryError::Directive_NotRelocatable, burn ? ".BURN" : ".ORG", line->source_interval);
+    diag.add_message(error.loc, error.what(), Severity::Fatal);
+  }
+}

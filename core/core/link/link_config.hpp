@@ -19,23 +19,35 @@
 #include <filesystem>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <variant>
 #include <vector>
 #include "core/formats/ar/packed_archive.hpp"
+#include "core/formats/elf/packed_elf.hpp"
+#include "core/formats/elf/packed_input_group.hpp"
+#include "core/langs/ldscript/ir.hpp"
 
 namespace pepp::link {
 
 // Input files to the linker in command-line order.
 struct LinkInput {
+  // A linker script provided via -T/--script or one built in C++ (e.g., the default script).
   struct Script {
-    std::variant<std::filesystem::path, std::string> source;
+    std::variant<std::filesystem::path, tc::ldscript::Script> source;
+  };
+  // A file already mapped into memory. Replaces a std::filesystem::path on first open.
+  struct Opened {
+    std::filesystem::path path;
+    bts::OpenedInput file;
   };
 
-  std::variant<std::filesystem::path, bts::PackedInputArchive, Script, bts::AnyInputElf> source;
+  std::variant<std::filesystem::path, bts::PackedInputArchive, Script, bts::AnyInputElf, Opened> source;
+  // Allow resolution of symbols in this file, but do not include its sections in the output.
+  bool just_symbols = false;
 };
 
-// Configuration options for the linker that are shared between command-line and library usage.
+// Linker options shared between command line and library usage.
 struct LinkConfig {
   std::vector<LinkInput> inputs;
   // -o
@@ -46,5 +58,16 @@ struct LinkConfig {
   std::vector<std::pair<std::string, u64>> section_start;
   // -m. Set the class+byte-order before reading input files.
   std::optional<std::string> emulation;
+  // Archive file names whose symbols are ineligible for resolution. ALL excludes every archive.
+  std::vector<std::string> exclude_libs;
+  // If present, keep only these symbols. Otherwise, keep every symbol.
+  std::optional<std::vector<std::string>> retain_symbols;
 };
+
+// TODO: Replace with the built-in Pep default script.
+tc::ldscript::Script default_pep_script();
+// Read whitespace-separated symbol names from a text file. Returns nullopt if the file cannot be read.
+std::optional<std::vector<std::string>> read_symbol_list(const std::filesystem::path &path);
+// Parse `name=address`, where address is hexadecimal. Returns nullopt if it is malformed.
+std::optional<std::pair<std::string, u64>> parse_section_start(std::string_view arg);
 } // namespace pepp::link

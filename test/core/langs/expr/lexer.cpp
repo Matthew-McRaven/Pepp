@@ -36,7 +36,7 @@ std::vector<std::shared_ptr<lex::Token>> lex_all(std::shared_ptr<std::unordered_
   do {
     ret.push_back(lexer.next_token());
     REQUIRE(ret.back() != nullptr);
-    REQUIRE(ret.size() < 100); // Guarantee forward progress.
+    REQUIRE(ret.size() < 100); // Fail instead of looping forever if the lexer stops advancing.
   } while (ret.back()->type() != lex::EoF::TYPE);
   return ret;
 }
@@ -53,17 +53,12 @@ std::vector<std::string> reprs(const std::string &text, pepp::tc::expr::Options 
 TEST_CASE("Expression lexer", "[scope:core][scope:core.langs][kind:unit][arch:*]") {
   using V = std::vector<std::string>;
   SECTION("full-stop/. depends on the lexer's options") {
-    using Dot = pepp::tc::expr::Options::Dot;
+    using Identifiers = pepp::tc::expr::Options::Identifiers;
     // Disabled
     CHECK(reprs("a.b .") == V{"Identifier(a)", "Invalid(.)", "Identifier(b)", "Invalid(.)", "EoF()"});
-    // As an identifier character
-    CHECK(reprs("a.b .", {.dot = Dot::Identifier}) ==
-          V{"Identifier(a)", "Literal(.)", "Identifier(b)", "Literal(.)", "EoF()"});
-    // As an operator
-    CHECK(reprs("a.b", {.dot = Dot::Operator}) == V{"Identifier(a)", "Literal(.)", "Identifier(b)", "EoF()"});
-    // Local labels
-    CHECK(reprs(".Lx .", {.dot = Dot::Identifier, .local_labels = true}) == V{"Identifier(.Lx)", "Literal(.)", "EoF()"});
-    CHECK(reprs(".Lx", {.dot = Dot::Identifier}) == V{"Literal(.)", "Identifier(Lx)", "EoF()"});
+    // Only leading, so a lone . is the location counter and .Lx a GNU local label.
+    CHECK(reprs("a.b . .Lx %hi", {.identifiers = Identifiers::LeadingDot, .percent_identifiers = true}) ==
+          V{"Identifier(a)", "Identifier(.b)", "Literal(.)", "Identifier(.Lx)", "Identifier(%hi)", "EoF()"});
   }
   SECTION("% may start an identifier depending on lexer options") {
     CHECK(reprs("%hi a%b", {.percent_identifiers = true}) ==

@@ -21,47 +21,6 @@
 #include <unordered_map>
 #include "core/link/symbol_versions.hpp"
 
-std::string_view pepp::link::InputSymbols::name(InputSymbolID id) const {
-  if (id.value >= _names.size()) throw std::out_of_range("InputSymbols: no symbol with this ID");
-  return _names[id.value];
-}
-
-pepp::link::SymbolAttributes pepp::link::InputSymbols::attributes(InputSymbolID id) const {
-  if (id.value >= _attributes.size()) throw std::out_of_range("InputSymbols: no symbol with this ID");
-  return _attributes[id.value];
-}
-
-pepp::link::CommonSize pepp::link::InputSymbols::common(InputSymbolID id) const {
-  const auto it = _commons.find(id);
-  if (it == _commons.end()) throw std::out_of_range("InputSymbols: not a common symbol");
-  return it->second;
-}
-
-std::optional<pepp::link::InputSymbolID> pepp::link::InputSymbols::find(bts::ElfFileID id, u32 index) const {
-  if (!id || id.value >= _non_locals.size()) return std::nullopt;
-  else if (index == 0) return InputSymbolID(0);
-  // ELF puts a file's locals before its non-locals, which start at sh_info, so the non-locals are one contiguous span.
-  const auto &range = _non_locals[id.value];
-  if (index < range.first_global || index - range.first_global >= range.count) return std::nullopt;
-  return range.first_id + (index - range.first_global);
-}
-
-pepp::bts::ElfFileID pepp::link::InputSymbols::file_of(InputSymbolID id) const {
-  if (!id || id.value >= _names.size()) throw std::out_of_range("InputSymbols: no symbol with this ID");
-  // Files' first IDs ascend. A file without non-locals shares its first ID with the next file, so take the last range
-  // starting at or before id, which is the one holding it.
-  const auto starts_after = [](InputSymbolID target, const NonLocalRange &range) { return target < range.first_id; };
-  const auto it = std::upper_bound(_non_locals.begin() + 1, _non_locals.end(), id, starts_after);
-  return bts::ElfFileID(static_cast<u32>(it - _non_locals.begin() - 1));
-}
-
-std::pair<pepp::link::InputSymbolID, pepp::link::InputSymbolID>
-pepp::link::InputSymbols::ids_of(bts::ElfFileID id) const {
-  if (!id || id.value >= _non_locals.size()) throw std::out_of_range("InputSymbols: no file with this ID");
-  const auto &range = _non_locals[id.value];
-  return {range.first_id, range.first_id + range.count};
-}
-
 namespace {
 using pepp::link::InputSymbolID;
 using pepp::link::Liveness;
@@ -93,7 +52,7 @@ u64 rank_of(pepp::link::SymbolAttributes attributes, pepp::bts::ElfFileID file, 
 Tier tier_of(u64 rank) { return static_cast<Tier>(rank >> 32); }
 bool is_common(Tier tier) { return tier == Tier::Common || tier == Tier::CommonArchive; }
 
-// Provide a ranking of how constrainining the visibility value is. Higher values are more constraining, and the highest
+// Provide a ranking of how constraining the visibility value is. Higher values are more constraining, and the highest
 // value is selected. Unlike mold, internal is not combined with hidden.
 u8 constraint_of(u8 visibility) {
   using enum pepp::bts::SymbolVisibility;
@@ -137,7 +96,7 @@ Candidate candidate_of(const pepp::link::InputSymbols &table, InputSymbolID id, 
 pepp::link::Diagnostic conflict(pepp::link::SymbolCode code, InputSymbolID lhs, InputSymbolID rhs) {
   return {pepp::link::Severity::Error, code, pepp::link::SymbolConflict{std::max(lhs, rhs), std::min(lhs, rhs)}};
 }
-// Reutrn the symbol ID of a diagnostic. If it contains multiple symbols, return the latest one.
+// Return the symbol ID of a diagnostic. If it contains multiple symbols, return the latest one.
 InputSymbolID later_of(const pepp::link::Diagnostic &diagnostic) {
   if (const auto *pair = std::get_if<pepp::link::SymbolConflict>(&diagnostic.subject)) return pair->symbol;
   return std::get<InputSymbolID>(diagnostic.subject);
@@ -175,7 +134,7 @@ void merge(pepp::link::Symbol &into, Ranking &ranking, const Candidate &from,
 struct SymbolMap {
   // De-duplicate all symbols which share the same name
   std::unordered_map<std::string_view, SymbolID> ids;
-  // Every defined default version, and the definition that a reference to it needs.
+  // Every defined default version and the definition needed by a reference to it.
   std::unordered_map<pepp::link::VersionedName, InputSymbolID, pepp::link::BaseVersionHash,
                      pepp::link::BaseVersionEqual>
       default_versions;
@@ -185,7 +144,7 @@ struct SymbolMap {
 };
 
 // Map an input symbol to an output SymbolID, substituting for default versions where possible, i.e., foo@@V is foo.
-// Like mold's get_symbol (input-files.cc), a new key is added to the map, and appended to names.
+// Adds a new key to the map and appends it to names.
 SymbolID get_symbol(SymbolMap &map, std::vector<std::string_view> &names, const pepp::link::InputSymbols &table,
                     InputSymbolID id, bool live) {
   using Kind = pepp::link::VersionedName::Kind;
@@ -326,6 +285,14 @@ pepp::link::SymbolID pepp::link::ResolvedSymbols::of(InputSymbolID id) const {
 pepp::link::InputSymbolID pepp::link::ResolvedSymbols::provider(InputSymbolID id) const {
   if (id.value >= _of.size()) throw std::out_of_range("ResolvedSymbols: no entry with this ID");
   return _forward.empty() ? InputSymbolID{} : _forward[_of[id.value].value].provider;
+}
+
+pepp::link::SymbolID pepp::link::ResolvedSymbols::find(std::string_view name) const {
+  // Skip STN_UNDEF by offseting by 1, since it has no name.
+  const auto it = std::find(_names.begin() + 1, _names.end(), name);
+  if (it == _names.end()) return SymbolID{};
+  const SymbolID symbol(static_cast<u32>(it - _names.begin()));
+  return _forward.empty() || !_forward[symbol.value].into ? symbol : _forward[symbol.value].into;
 }
 
 std::string_view pepp::link::ResolvedSymbols::name(SymbolID id) const {

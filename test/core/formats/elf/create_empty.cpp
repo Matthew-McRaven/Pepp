@@ -367,6 +367,22 @@ TEST_CASE("Test custom ELF library, 32-bit", "[scope:elf][kind:unit][arch:*]") {
     write(data, layout);
     write("ehdr_array.elf", data);
   }
+  SECTION("Section with no data") {
+    using namespace pepp::bts;
+    PackedGrowableElfLE32 elf(ElfFileType::ET_EXEC, ElfMachineType::EM_PEP10, ElfABI::ELFOSABI_NONE);
+    ensure_section_header_table(elf);
+    const auto reserved = add_named_section(elf, ".reserved", SectionTypes::SHT_PROGBITS);
+    const auto after = add_named_section(elf, ".after", SectionTypes::SHT_PROGBITS);
+    elf.section_headers[reserved].sh_size = 12;
+    elf.section_data[reserved] = nullptr;
+    elf.section_data[after] = std::make_shared<BlockStorage>(std::vector<char>{1, 2});
+
+    // The section keeps its sh_size and occupies space in the file file.
+    const auto layout = calculate_layout(elf);
+    CHECK(elf.section_headers[reserved].sh_size == 12);
+    CHECK(elf.section_headers[after].sh_offset == elf.section_headers[reserved].sh_offset + 12);
+    CHECK(size_for_layout(layout) == elf.section_headers[after].sh_offset + 2);
+  }
 }
 
 TEST_CASE("Test custom ELF library, 64-bit", "[scope:elf][kind:unit][arch:*]") {
