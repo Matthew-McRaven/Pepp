@@ -61,6 +61,8 @@ std::string file_name(const bts::PackedInputElfGroup<B, E> &group, bts::ElfFileI
   return "<memory>";
 }
 
+std::string input_file_name(const decltype(LinkInput::source) &source);
+
 // Run every step of the linker for a given config, stopping at the first Fatal diagnostic.
 // Check ok() before using the result.
 LinkContext do_link(LinkConfig &&config);

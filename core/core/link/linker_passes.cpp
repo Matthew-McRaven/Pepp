@@ -25,17 +25,16 @@
 #include "core/link/script_inputs.hpp"
 #include "link_config.hpp"
 
-namespace {
 using namespace pepp;
 using namespace pepp::link;
-std::string input_file_name(const decltype(LinkInput::source) &source) {
+
+std::string pepp::link::input_file_name(const decltype(LinkInput::source) &source) {
   if (const auto *path = std::get_if<std::filesystem::path>(&source)) return path->string();
   else if (const auto *opened = std::get_if<LinkInput::Opened>(&source)) return opened->path.string();
   else if (const auto *script = std::get_if<LinkInput::Script>(&source))
     if (const auto *path = std::get_if<std::filesystem::path>(&script->source)) return path->string();
   return "<memory>";
 }
-} // namespace
 
 pepp::link::LinkContext pepp::link::do_link(LinkConfig &&config) {
   LinkContext ret;

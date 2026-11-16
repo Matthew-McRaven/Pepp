@@ -24,6 +24,7 @@ using namespace pepp::link;
 std::string_view to_string(LinkCode code) {
   switch (code) {
   case LinkCode::NoInputs: return "no ELF input files";
+  case LinkCode::MaxDepthExceeded: return "linker script INCLUDE depth exceeded";
   case LinkCode::BadScript: return "malformed linker script";
   case LinkCode::UnparsedScript: return "linker script was not parsed";
   case LinkCode::BadExpression: return "invalid linker script expression";

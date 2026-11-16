@@ -40,6 +40,8 @@ enum class LinkCode : u8 {
   NoInputs,
   // A linker script failed to parse. The subject is a ScriptMessage.
   BadScript,
+  // parse_scripts() likely has a cycle amongsts its linker scripts. The subject is a ScriptMessage.
+  MaxDepthExceeded,
   // A pass received a linker script not parsed by parse_scripts().
   UnparsedScript,
   // A linker script expression could not be evaluated. The subject is a ScriptMessage.
