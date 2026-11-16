@@ -115,7 +115,14 @@ std::shared_ptr<bts::MappedFile> create_executable_output(Diagnostics &diagnosti
   // linker-synthesized sections, such as string tables and symbol tables have non-null data need updated sh_size.
   write_symtab(*elf, link);
   update_section_sizes(*elf);
-  const u64 size = assign_file_offsets(*elf, &segments);
+  const ScriptMessage at{path ? path->string() : std::string()};
+  u64 size = 0;
+  try {
+    size = assign_file_offsets(*elf, &segments);
+  } catch (const std::logic_error &error) {
+    diagnostics.add({Severity::Fatal, LinkCode::BadLayout, ScriptMessage{at.file, {}, error.what()}});
+    return nullptr;
+  }
 
   try {
     auto ret = path ? MappedFile::open_truncated(path->string()) : MappedFile::open_anonymous(size);
@@ -132,7 +139,6 @@ std::shared_ptr<bts::MappedFile> create_executable_output(Diagnostics &diagnosti
     write_sections(diagnostics, link, *elf, *ret);
     return ret;
   } catch (const std::runtime_error &) {
-    const ScriptMessage at{path ? path->string() : std::string()};
     diagnostics.add({Severity::Fatal, LinkCode::CannotWriteOutput, at});
     return nullptr;
   }

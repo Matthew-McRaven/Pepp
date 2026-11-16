@@ -50,6 +50,8 @@ enum class LinkCode : u8 {
   NoEntrySymbol,
   // The output file could not be created or mapped. The subject is a ScriptMessage with the offending file.
   CannotWriteOutput,
+  // The output sections cannot be arranged into segments. The subject is a ScriptMessage with the output file.
+  BadLayout,
 };
 
 // Errors during symbol resolution.

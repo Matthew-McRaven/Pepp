@@ -47,7 +47,7 @@ template <class Group> struct Describe {
   }
   std::string operator()(const ScriptMessage &at) const {
     const auto message = at.message.empty() ? std::string(code()) : at.message;
-    if (!at.location.valid()) return fmt::format("{}: {}", at.file, message);
+    if (!at.location.valid()) return at.file.empty() ? message : fmt::format("{}: {}", at.file, message);
     const auto lower = at.location.lower();
     // Merged scripts do not record which file a command came from.
     if (at.file.empty()) return fmt::format("{}:{}: {}", lower.row + 1, lower.column + 1, message);
