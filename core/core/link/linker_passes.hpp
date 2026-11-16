@@ -65,7 +65,8 @@ std::string file_name(const bts::PackedInputElfGroup<B, E> &group, bts::ElfFileI
 // Check ok() before using the result.
 LinkContext do_link(LinkConfig &&config);
 
-// Mark the output at path as executable if the link has no errors. Otherwise, release the output and delete it.
+// If the link has no errors, close the inputs, mark the output executable. Otherwise, release the
+// output and delete it..
 void close_output(LinkContext &context, const std::optional<std::filesystem::path> &path);
 
 // The steps of do_link that run once the inputs are in a group.

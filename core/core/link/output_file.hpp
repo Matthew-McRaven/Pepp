@@ -90,10 +90,17 @@ bool fits_output_class(Diagnostics &diagnostics, const tc::ldscript::Sections &s
   return ret;
 }
 
+// Add extra characters to the end of a path to avoid clobbering an existing file.
+inline std::filesystem::path temporary_output(const std::filesystem::path &path) {
+  auto ret = path;
+  ret += ".pld.tmp";
+  return ret;
+}
+
 // Write an ET_EXEC with a section for each output section that has contents, in script order, a PT_LOAD for each run
-// of allocated sections, and a symbol table. The data of each output section is a mapping of the file at path, so
-// members are copied once and relocated in place. If path is nullopt, the mapping is anonymous. Returns nullptr if the
-// output cannot be mapped.
+// of allocated sections, and a symbol table. The data of each output section is a mapping of temporary_output(path),
+// so members are copied once and relocated in place. If path is nullopt, the mapping is anonymous. Returns nullptr if
+// the output cannot be mapped.
 template <ElfBits B, ElfEndian E>
 std::shared_ptr<bts::MappedFile> create_executable_output(Diagnostics &diagnostics, const LinkView<B, E> &link,
                                                           tc::ldscript::Sections &sections, u64 entry,
@@ -158,7 +165,7 @@ std::shared_ptr<bts::MappedFile> create_executable_output(Diagnostics &diagnosti
   }
 
   try {
-    auto ret = path ? MappedFile::open_truncated(path->string()) : MappedFile::open_anonymous(size);
+    auto ret = path ? MappedFile::open_truncated(temporary_output(*path).string()) : MappedFile::open_anonymous(size);
     // Write the headers and the symbol table. Must release this mapping before the output sections are mapped, since
     // live mappings which overlap lose writes when MappedFile falls back to buffers.
     {

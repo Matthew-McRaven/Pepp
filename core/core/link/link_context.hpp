@@ -30,7 +30,7 @@
 namespace pepp::link {
 // The inputs of a link and the state shared between its passes.
 struct LinkContext {
-  // Null if the link stopped before reading its inputs.
+  // Null if the link stopped before reading its inputs or after close_output() for non-anonymous outputs.
   bts::AnyElfGroup group;
   Diagnostics diagnostics;
   // Indexed by ConfigInputID. Each input's path, or <memory>.
@@ -43,8 +43,9 @@ struct LinkContext {
   ResolvedSymbols symbols;
   // The output section of each placeable input section. Empty when the link stopped before placement.
   std::optional<SectionPlacements> placements;
-  // The linked executable. It is the file at LinkConfig::output, or an anonymous mapping otherwise. Null when
-  // the link stopped before it was created, or had errors.
+  // The linked executable as a mapping of the file at LinkConfig::output, or an anonymous mapping
+  // otherwise. Null if errors occured prior to writing the output. May be read-only or read-write, but you should only
+  // use it as-if read-only.
   std::shared_ptr<bts::MappedFile> output;
 
   // True if the link produced no Error or Fatal diagnostics.

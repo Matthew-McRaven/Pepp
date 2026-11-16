@@ -76,6 +76,20 @@ TEST_CASE("e2e linking", "[scope:core][scope:core.link][kind:unit][arch:*]") {
   CHECK(messages_of(do_link(config_of())) == std::vector<std::string>{"no ELF input files"});
 }
 
+TEST_CASE("Existing files don't break the temporary+rewrite trick", "[scope:core][scope:core.link][kind:int][arch:*]") {
+  namespace fs = std::filesystem;
+  write_bytes("link_output_a.o", bytes_of({{"main", true}}));
+  write_text("link_output_a.o.pld.tmp", "stale");
+  LinkConfig config = config_of(path("link_output_a.o"));
+  config.output = path("link_output_a.o");
+  const auto result = do_link(std::move(config));
+  CHECK_FALSE(fs::exists("link_output_a.o.pld.tmp"));
+  CHECK(result.ok());
+  REQUIRE(result.output);
+  CHECK(PackedInputElfFile<ElfBits::b32, ElfEndian::le>(result.output).header.e_type ==
+        bits::to_underlying(ElfFileType::ET_EXEC));
+}
+
 TEST_CASE("linker scripts", "[scope:core][scope:core.link][kind:unit][arch:*]") {
   write_bytes("link_script_a.o", bytes_of({{"a", true}}));
   write_bytes("link_script_b.o", bytes_of({{"a", true}, {"b", true}}));
