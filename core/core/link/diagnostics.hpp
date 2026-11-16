@@ -52,6 +52,8 @@ enum class LinkCode : u8 {
   CannotWriteOutput,
   // The output sections cannot be arranged into segments. The subject is a ScriptMessage with the output file.
   BadLayout,
+  // An address, size, or entry point does not fit in the output's ELF class. The subject is a ScriptMessage.
+  AddressOverflow,
 };
 
 // Errors during symbol resolution.

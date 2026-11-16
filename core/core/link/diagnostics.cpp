@@ -31,6 +31,7 @@ std::string_view to_string(LinkCode code) {
   case LinkCode::NoEntrySymbol: return "cannot find entry symbol";
   case LinkCode::CannotWriteOutput: return "cannot write output file";
   case LinkCode::BadLayout: return "cannot lay out the output's segments";
+  case LinkCode::AddressOverflow: return "address does not fit in the output's ELF class";
   }
   return "unknown error";
 }

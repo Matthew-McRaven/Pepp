@@ -19,11 +19,13 @@
 #pragma once
 #include <algorithm>
 #include <filesystem>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <stdexcept>
 #include <variant>
 #include <vector>
+#include <fmt/format.h>
 #include "core/formats/elf/packed_access_headers.hpp"
 #include "core/formats/elf/packed_ops.hpp"
 #include "core/io/mapped_file.hpp"
@@ -64,6 +66,30 @@ void write_sections(Diagnostics &diagnostics, const LinkView<B, E> &link, bts::P
   }
 }
 
+// Report a Fatal diagnostic for each output section or entry point that doesn't fit within a word size. Return false on
+// error.
+template <ElfBits B>
+bool fits_output_class(Diagnostics &diagnostics, const tc::ldscript::Sections &sections, u64 entry) {
+  if (B == ElfBits::b64) return true;
+  constexpr u64 limit = u64(1) << 32;
+  bool ret = true;
+  for (const auto &command : sections.commands) {
+    const auto *output = std::get_if<tc::ldscript::OutputSectionDescription>(&command);
+    if (!output || output->empty) continue;
+    else if (output->vma < limit && output->size <= limit - output->vma && output->alignment < limit) continue;
+    const auto message =
+        fmt::format("section {} at {:#x} with size {:#x} too large for ELF32", output->name, output->vma, output->size);
+    diagnostics.add({Severity::Fatal, LinkCode::AddressOverflow, ScriptMessage{{}, output->source_interval, message}});
+    ret = false;
+  }
+  if (entry >= limit) {
+    const auto message = fmt::format("entry point {:#x} too large for ELF32", entry);
+    diagnostics.add({Severity::Fatal, LinkCode::AddressOverflow, ScriptMessage{{}, {}, message}});
+    ret = false;
+  }
+  return ret;
+}
+
 // Write an ET_EXEC with a section for each output section that has contents, in script order, a PT_LOAD for each run
 // of allocated sections, and a symbol table. The data of each output section is a mapping of the file at path, so
 // members are copied once and relocated in place. If path is nullopt, the mapping is anonymous. Returns nullptr if the
@@ -74,6 +100,7 @@ std::shared_ptr<bts::MappedFile> create_executable_output(Diagnostics &diagnosti
                                                           const std::optional<std::filesystem::path> &path) {
   using namespace bts;
   using enum SectionTypes;
+  if (!fits_output_class<B>(diagnostics, sections, entry)) return nullptr;
   // The first file decided the group's machine, so it decides the output's too.
   const auto &first = link.group.file(ElfFileID(1)).header;
   auto elf = std::make_unique<PackedGrowableElfFile<B, E>>(
@@ -121,6 +148,12 @@ std::shared_ptr<bts::MappedFile> create_executable_output(Diagnostics &diagnosti
     size = assign_file_offsets(*elf, &segments);
   } catch (const std::logic_error &error) {
     diagnostics.add({Severity::Fatal, LinkCode::BadLayout, ScriptMessage{at.file, {}, error.what()}});
+    return nullptr;
+  }
+  // File offsets are word<B> too, so a file larger than 4 GiB truncates them.
+  if (B == ElfBits::b32 && size > std::numeric_limits<u32>::max()) {
+    const auto message = fmt::format("output size {:#x} does not fit in ELF32", size);
+    diagnostics.add({Severity::Fatal, LinkCode::AddressOverflow, ScriptMessage{at.file, {}, message}});
     return nullptr;
   }
 
