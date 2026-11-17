@@ -17,6 +17,7 @@
 
 
 #pragma once
+#include <filesystem>
 #include <optional>
 #include <string>
 #include <vector>
@@ -77,6 +78,9 @@ template <ElfBits B, ElfEndian E> InputSummary summarize_inputs(const LinkView<B
 // Returns the "Linker script and memory map" part of GNU ld's -Map, or nullopt if the link stopped before layout.
 // TODO: list assignments, the memory configuration, the members of /DISCARD/, and absolute symbols (e.g., from -R).
 std::optional<std::string> link_map(const LinkContext &context);
+
+// Write link_map(context) to path. Reports an error if writing the mapfile fails.
+void write_link_map(LinkContext &context, const std::filesystem::path &path);
 
 // Returns the address of an input section in the output. nullopt if the section was not assigned.
 std::optional<u64> section_address(const LinkContext &context, bts::InputElfSectionHandle section);

@@ -16,6 +16,8 @@
  */
 #include "core/link/map_file.hpp"
 #include <catch.hpp>
+#include <fstream>
+#include <iterator>
 #include <memory>
 #include <optional>
 #include <string>
@@ -71,6 +73,7 @@ charOut:.BLOCK 1
   config.inputs.push_back({LinkInput::Script{std::move(script)}});
   config.inputs.push_back({LinkInput::Opened{"program.o", to_input_elf(*program.elf())}});
   config.inputs.push_back({LinkInput::Opened{"os.o", to_input_elf(*os.elf())}});
+  config.map = "link_map_os.map";
   auto result = do_link(std::move(config));
   CHECK(result.diagnostics.size() == 0);
   const auto linked = reread<ElfBits::b32, ElfEndian::be>(result);
@@ -88,6 +91,8 @@ charOut:.BLOCK 1
   CHECK(std::vector<u8>{after[0], after[3], after[6]} == std::vector<u8>{before[0], before[3], before[6]});
 
   CHECK(!link_map(result)->empty());
+  std::ifstream written("link_map_os.map", std::ios::binary);
+  CHECK(std::string(std::istreambuf_iterator<char>(written), {}) == link_map(result));
   // program.o is the first ELF file in the link. Its discarded debug information has no address.
   CHECK(section_address(result, {pepp::bts::ElfFileID(1), find_named_section(unlinked, ".debug_line")}) ==
         std::nullopt);

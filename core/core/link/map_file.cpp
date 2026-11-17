@@ -17,6 +17,7 @@
 
 #include "core/link/map_file.hpp"
 #include <algorithm>
+#include <fstream>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -100,6 +101,14 @@ std::optional<std::string> pepp::link::link_map(const LinkContext &context) {
   for (auto &defined : globals) std::ranges::stable_sort(defined, {}, &std::pair<u64, std::string_view>::first);
 
   return memory_map(context, *sections, globals, digits);
+}
+
+void pepp::link::write_link_map(LinkContext &context, const std::filesystem::path &path) {
+  const auto map = link_map(context);
+  std::ofstream file(path, std::ios::binary | std::ios::trunc);
+  if (map) file.write(map->data(), static_cast<std::streamsize>(map->size()));
+  file.close();
+  if (!file) context.diagnostics.add({Severity::Error, LinkCode::CannotWriteOutput, ScriptMessage{path.string()}});
 }
 
 std::optional<u64> pepp::link::section_address(const LinkContext &context, bts::InputElfSectionHandle section) {

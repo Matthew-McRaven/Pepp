@@ -128,6 +128,7 @@ void link_group(LinkContext &context, const bts::PackedInputElfGroup<B, E> &grou
     const auto entry = entry_address(diagnostics, link, context.script, config.entry, sections);
     const auto temporary = config.output ? std::optional(temporary_output(*config.output)) : std::nullopt;
     context.output = create_executable_output(diagnostics, link, sections, entry, temporary);
+    if (config.map) write_link_map(context, *config.map);
     close_output(context, config.output, temporary);
   }
 }

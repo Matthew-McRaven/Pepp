@@ -52,6 +52,8 @@ struct LinkConfig {
   std::vector<LinkInput> inputs;
   // -o. The link writes temporary_output(output), then renames it to output.
   std::optional<std::filesystem::path> output;
+  // -Map
+  std::optional<std::filesystem::path> map;
   // -e / --entry
   std::optional<std::string> entry;
   // --section-start=name=address, and -Ttext as .text.
