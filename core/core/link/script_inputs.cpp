@@ -25,6 +25,7 @@
 #include <variant>
 #include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/langs/ldscript/parser.hpp"
+#include "core/link/linker_passes.hpp"
 
 namespace {
 using namespace pepp;
@@ -61,9 +62,16 @@ void open_path(pepp::link::LinkInput &input) {
   else if (opened.error().code == pepp::bts::InputGroupError::Code::UnknownFormat)
     input.source = pepp::link::LinkInput::Script{*path};
 }
+struct LinkInputWithDepth {
+  LinkInputWithDepth(LinkInput input, int depth = 0) : input(std::move(input)), depth(depth) {}
+  LinkInput input;
+  int depth = 0;
+};
 } // namespace
 
+static constexpr int MAX_DEPTH = 10;
 pepp::link::ParsedScripts pepp::link::parse_scripts(Diagnostics &diagnostics, std::vector<LinkInput> inputs) {
+
   ParsedScripts ret;
   // Unless -T provided a linker script (LinkInput::Script), insert a default script at the front of the inputs. A
   // script given positionally as a file name does not replace the default script.
@@ -72,9 +80,16 @@ pepp::link::ParsedScripts pepp::link::parse_scripts(Diagnostics &diagnostics, st
   if (std::ranges::none_of(inputs, is_script))
     inputs.insert(inputs.begin(), LinkInput{.source = LinkInput::Script{default_pep_script()}});
   // Parsing a script pushes the files of its INPUT/GROUP commands to the front, which preserves input order.
-  std::deque<LinkInput> pending(std::make_move_iterator(inputs.begin()), std::make_move_iterator(inputs.end()));
+  std::deque<LinkInputWithDepth> pending(std::make_move_iterator(inputs.begin()),
+                                         std::make_move_iterator(inputs.end()));
   while (!pending.empty()) {
-    auto next = std::move(pending.front());
+    auto p = std::move(pending.front());
+    if (p.depth > MAX_DEPTH) {
+      const std::string fname = input_file_name(p.input.source);
+      diagnostics.add({Severity::Fatal, LinkCode::MaxDepthExceeded, ScriptMessage{fname}});
+      break;
+    }
+    auto &next = p.input;
     pending.pop_front();
     open_path(next);
     // If not a script, treat it as normal linker input.
@@ -88,7 +103,10 @@ pepp::link::ParsedScripts pepp::link::parse_scripts(Diagnostics &diagnostics, st
       for (auto command = script->commands.rbegin(); command != script->commands.rend(); ++command)
         if (const auto *named = std::get_if<tc::ldscript::InputFiles>(&*command))
           for (auto file = named->files.rbegin(); file != named->files.rend(); ++file)
-            pending.push_front(LinkInput{.source = std::filesystem::path(*file)});
+            pending.push_front({
+                LinkInput{.source = std::filesystem::path(*file)},
+                p.depth + 1,
+            });
       // Extract all commands from the script to construct the effective output script.
       for (auto &command : script->commands) ret.script.commands.push_back(std::move(command));
     }

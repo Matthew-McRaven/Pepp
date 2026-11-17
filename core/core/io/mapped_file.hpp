@@ -17,6 +17,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -24,120 +25,91 @@
 #include "core/math/bitmanip/span.hpp"
 namespace pepp::bts {
 
-/* A class which provide platform-agnostic, RAII style access to memory-mapped files
- * On platforms without memory-mapping support, it falls back fstreams.
- * MappedFile lazily opens a file, which can be viewed in spans (slices).
- * Slices lazily map the file region on first access using information from the original MappedFile instance.
- */
+// A file viewed through slices. The static factories map the whole file into memory if the platform supports it and the
+// file opens. Otherwise, they return a BufferedFile, and throw if it cannot open the file either. Slices may overlap,
+// since they all view the same data.
 class MappedFile : public std::enable_shared_from_this<MappedFile> {
+protected:
   struct private_ctor_tag {};
 
 public:
-  /*
-   * Represents a span of the data in a MappedFile. It is lazily loaded on first access.
-   * On systems which do not support memory-mapping, it falls back to reading the data into a vector.
-   * I think Slices must be released before the containing MappedFile is destroyed because the fd must remain valid for
-   * the lifetime of a mapping, but I'm frankly unsure.
-   *
-   * While it is possible to create multiple Slices that overlap the same region of a MappedFile, I consider that to be
-   * illegal usage and do not guarantee correct behavior in that case. However, I cannot detect or prevent it.
-   */
+  // A span of a MappedFile's data.
   class Slice {
   public:
-    Slice() = default;
-    // Public to only make_shared to work, but should be treated as-if private.
-    // It takes a shared_ptr to a "containing" mapped to ensure that the fd remains open longer than all mappings are
-    // active.
-    Slice(private_ctor_tag, std::shared_ptr<MappedFile> file, size_t file_offset, size_t file_len, bool readonly);
-    // Must release() in dtor.
-    ~Slice();
+    virtual ~Slice() = default;
     Slice(const Slice &) = delete;
     Slice &operator=(const Slice &) = delete;
-    Slice(Slice &&o) noexcept { *this = std::move(o); }
-    Slice &operator=(Slice &&o) noexcept;
 
-    // Methods that do not trigger a load.
-    size_t size() const noexcept;
-    inline bool readonly() const noexcept { return _readonly; }
+    // The length passed to slice(). get() returns fewer bytes if the slice extends past the end of the file.
+    virtual size_t size() const noexcept = 0;
+    virtual bool readonly() const noexcept = 0;
+    virtual bits::span<u8> get() noexcept = 0;
+    virtual bits::span<const u8> get() const noexcept = 0;
+    // Write changes to the file. Does nothing for a readonly or anonymous file.
+    virtual void flush() = 0;
 
-    // Methods that trigger a load.
-    bits::span<u8> get() noexcept;
-    bits::span<const u8> get() const noexcept;
-    // Ensure any changes are flushed to the containing MappedFile.
-    void flush();
-
-  private:
-    inline void ensure_loaded() const {
-      if (!_loaded && _file != nullptr) _file->load_mapped(*const_cast<Slice *>(this));
-    }
-    // Perform platform-specific release of mapped memory within this class.
-    void release() noexcept;
-    friend class MappedFile;
-    bool _readonly = false, _loaded = false;
-    mutable std::size_t _file_offset = 0, _file_len = 0, _map_len = 0;
-#if defined(_WIN32)
-    mutable void *_hMap = nullptr;
-#endif
-    mutable void *_map_base = nullptr;
-    mutable std::shared_ptr<MappedFile> _file = nullptr;
-    mutable std::vector<u8> _fallback_buf{};
-    mutable bits::span<u8> _data_view = {};
+  protected:
+    Slice() = default;
   };
-  MappedFile() = delete;
-  // Public to only make_shared to work, but should be treated as-if private.
-  MappedFile(private_ctor_tag, std::string path, bool readonly);
-  ~MappedFile();
+
+  virtual ~MappedFile() = default;
   MappedFile(const MappedFile &) = delete;
   MappedFile &operator=(const MappedFile &) = delete;
-  MappedFile(MappedFile &&o) noexcept { *this = std::move(o); }
-  MappedFile &operator=(MappedFile &&o) noexcept;
 
   static std::shared_ptr<MappedFile> open_readonly(std::string path);
-  static std::shared_ptr<MappedFile> open_readwrite(std::string path);
-  // open_readwrite and truncate to 0 bytes if it exists.
-  static std::shared_ptr<MappedFile> open_truncated(std::string path);
-  // Create a fixed-size, zeroed, memory-mapped allocation not backed by a file.
-  // Slices may overlap, and flush() is a no-op.
+  // Create the file if it does not exist. If size is given, resize the file to size bytes.
+  static std::shared_ptr<MappedFile> open_readwrite(std::string path, std::optional<u64> size = std::nullopt);
+  // Replace the file's contents with size zero bytes.
+  static std::shared_ptr<MappedFile> open_truncated(std::string path, u64 size);
+  // Create a fixed-size, zeroed allocation not backed by a file. flush() is a no-op.
   static std::shared_ptr<MappedFile> open_anonymous(size_t size);
 
-  // Byte size of the backing file or anonymous mapping. Throws a std::filesystem::filesystem_error if the file's size
-  // cannot be determined.
-  u64 size() const;
-  std::shared_ptr<Slice> slice(size_t off, size_t len) noexcept;
-  std::shared_ptr<const Slice> slice(size_t off, size_t len) const noexcept;
+  // Returns true if slices view a memory mapping, or false if they view a BufferedFile's buffer.
+  virtual bool memory_mapped() const noexcept = 0;
+  // Byte size of the file when it was opened, or of the anonymous allocation.
+  virtual u64 size() const = 0;
+  virtual std::shared_ptr<Slice> slice(size_t off, size_t len) noexcept = 0;
+  virtual std::shared_ptr<const Slice> slice(size_t off, size_t len) const noexcept = 0;
+
+protected:
+  MappedFile() = default;
 
 private:
-  bool _readonly = false;
-  mutable bool _opened = false, _use_fallback = false;
-  // True if the next open_file() call must truncate the file.
-  mutable bool _truncate = false;
-  std::string _path = "";
-  // The mapping made by open_anonymous, which is null for a file.
-  u8 *_anonymous = nullptr;
-  size_t _anonymous_len = 0;
-
-#if defined(_WIN32)
-  mutable void *_hFile = nullptr;
-#elif defined(__unix__) || defined(__APPLE__)
-  mutable int _fd = -1;
-#endif
-  inline void ensure_opened() const {
-    if (!_opened && !_use_fallback) open_file();
-  }
-  // Paltform specific file opening for future memory-mapping of file offsets.
-  void open_file() const;
-  // Close the underlying file. I'm pretty sure this is only safe to call when no mapped regions are active.
-  // So, please only call it from the DTOR.
-  void release() noexcept;
-
-  // Returns the size of an OS page so that we can page-align our loads
-  static std::size_t page_size();
-
-  // Helpers to reach into the guts of a slice and read/write its contents.
-  void load_mapped(Slice &) const;
-  void load_fallback(Slice &) const;
-  void write_fallback(const Slice &);
-  void flush(const Slice &);
+  enum class Mode : u8 { ReadOnly, ReadWrite, Truncate, Anonymous };
+  // Open the file at path with the platform's memory mapping. For an Anonymous file, path is empty and size is
+  // required. Returns nullptr if the platform cannot map memory, or the file cannot be opened, resized, or mapped.
+  //
+  // Implement this method in your _<platform>.cpp file, and update the gaurd conditions of the default implementation
+  // in mapped_file.cpp to avoid linker errors.
+  static std::shared_ptr<MappedFile> open_platform(const std::string &path, Mode mode, std::optional<u64> size);
 };
 
-} // namespace pepp::core
+// A fallback implementation which keeps the entire buffer in memory as a vector.
+// Used on platforms without memory-mapping or when the platform's memory-mapped file cannot be opened or mapped.
+class BufferedFile final : public MappedFile {
+public:
+  // Public only for make_shared. path is empty for an anonymous file.
+  BufferedFile(private_ctor_tag, std::string path, std::vector<u8> data, bool readonly);
+
+  static std::shared_ptr<BufferedFile> open_readonly(std::string path);
+  // Create the file if it does not exist. If size is given, resize the file to size bytes before reading it.
+  static std::shared_ptr<BufferedFile> open_readwrite(std::string path, std::optional<u64> size = std::nullopt);
+  // Replace the file's contents with size zero bytes.
+  static std::shared_ptr<BufferedFile> open_truncated(std::string path, u64 size = 0);
+  static std::shared_ptr<BufferedFile> open_anonymous(size_t size);
+
+  bool memory_mapped() const noexcept override { return false; }
+  u64 size() const override;
+  std::shared_ptr<Slice> slice(size_t off, size_t len) noexcept override;
+  std::shared_ptr<const Slice> slice(size_t off, size_t len) const noexcept override;
+
+private:
+  class BufferedSlice;
+  // Write length bytes of the buffer at offset to the file.
+  void write_back(size_t offset, size_t length) const;
+  std::string _path;
+  bool _readonly = false;
+  std::vector<u8> _data;
+};
+
+} // namespace pepp::bts

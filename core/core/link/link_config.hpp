@@ -50,7 +50,7 @@ struct LinkInput {
 // Linker options shared between command line and library usage.
 struct LinkConfig {
   std::vector<LinkInput> inputs;
-  // -o
+  // -o. The link writes temporary_output(output), then renames it to output.
   std::optional<std::filesystem::path> output;
   // -e / --entry
   std::optional<std::string> entry;

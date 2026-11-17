@@ -31,13 +31,21 @@ OutputSymbolDefinition input_symbol_definition(const LinkView<B, E> &link, bts::
                                                const bts::PackedElfSymbol<B, E> &symbol) {
   if (const u64 value = symbol.st_value; symbol.is_abs()) return {.address = value, .absolute = true};
   else if (symbol.is_undef() || symbol.st_shndx >= bits::to_underlying(bts::SectionIndices::SHN_LORESERVE)) return {};
+  else if (link.files[file.value] == Liveness::JustSymbols) return {.address = value, .absolute = true};
   // Symbol's file is not live.
   else if (const auto pos = link.placements.sections().position({file, symbol.st_shndx}); !pos) return {};
   // Symbol's section was not assigned to an output section.
   else if (const auto assignment = link.placements.assignments()[*pos]; !assignment) return {};
   // Symbol's section was explicitly discarded.
   else if (const auto &output = *link.outputs[assignment.output.value]; output.discard) return {};
-  else return {.section = assignment.output, .address = output.vma + assignment.offset + value};
+  // Per TIS ELF 1.2 st_value is a section offset in an ET_REL file. In other files, it is a virtual address.
+  else if (const auto &elf = link.group.file(file);
+           u16(elf.header.e_type) == bits::to_underlying(bts::ElfFileType::ET_REL))
+    return {.section = assignment.output, .address = output.vma + assignment.offset + value};
+  else {
+    const u64 offset = value - u64(elf.section_headers[symbol.st_shndx].sh_addr);
+    return {.section = assignment.output, .address = output.vma + assignment.offset + offset};
+  }
 }
 
 // Compute all symbol definitions in the output, indexed by SymbolID. Must run after layout.

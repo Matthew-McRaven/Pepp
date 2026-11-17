@@ -38,17 +38,6 @@
 
 namespace pepp::link {
 
-// Returns Lazy for each archive member and Live for every other file, indexed by file ID.
-template <bts::ElfBits B, bts::ElfEndian E>
-std::vector<Liveness> default_liveness(const bts::PackedInputElfGroup<B, E> &group) {
-  std::vector<Liveness> ret(group.size() + 1);
-  for (u32 file = 1; file <= group.size(); ++file) {
-    const bool member = std::holds_alternative<bts::ElfFromArchive>(group.provenance(bts::ElfFileID(file)));
-    ret[file] = member ? Liveness::Lazy : Liveness::Live;
-  }
-  return ret;
-}
-
 // Returns the name of a file matching ld's formatting. An in-memory file has no path and prints as <memory>.
 template <bts::ElfBits B, bts::ElfEndian E>
 std::string file_name(const bts::PackedInputElfGroup<B, E> &group, bts::ElfFileID file) {
@@ -61,12 +50,16 @@ std::string file_name(const bts::PackedInputElfGroup<B, E> &group, bts::ElfFileI
   return "<memory>";
 }
 
+std::string input_file_name(const decltype(LinkInput::source) &source);
+
 // Run every step of the linker for a given config, stopping at the first Fatal diagnostic.
 // Check ok() before using the result.
 LinkContext do_link(LinkConfig &&config);
 
-// Mark the output at path as executable if the link has no errors. Otherwise, release the output and delete it.
-void close_output(LinkContext &context, const std::optional<std::filesystem::path> &path);
+// If the link has no errors, close the inputs, mark the output executable. Otherwise, release the
+// output and delete it..
+void close_output(LinkContext &context, const std::optional<std::filesystem::path> &path,
+                  const std::optional<std::filesystem::path> &temporary);
 
 // The steps of do_link that run once the inputs are in a group.
 // TODO: still missing many steps.
@@ -82,8 +75,7 @@ void link_group(LinkContext &context, const bts::PackedInputElfGroup<B, E> &grou
   if (auto gathered = gather_symbols(diagnostics, group); !gathered) return;
   else inputs = std::move(*gathered);
 
-  // Resolve symbols in two passes.
-  files = default_liveness(group);
+  // Resolve symbols in two passes. populate_group() set each file's initial liveness.
   // The first pass picks the best definition of each symbol and marks an archive member live if a live file uses it.
   // Only archive members can be lazy, so this pass can be skipped without archives. Discard this pass's diagnostics so
   // that an unused lazy member's undefined references are not errors.
@@ -145,8 +137,9 @@ void link_group(LinkContext &context, const bts::PackedInputElfGroup<B, E> &grou
     LinkView<B, E> link{group, files, inputs, context.symbols, *context.placements, outputs};
     link.definitions = resolved_symbol_definitions(link);
     const auto entry = entry_address(diagnostics, link, context.script, config.entry, sections);
-    context.output = create_executable_output(diagnostics, link, sections, entry, config.output);
-    close_output(context, config.output);
+    const auto temporary = config.output ? std::optional(temporary_output(*config.output)) : std::nullopt;
+    context.output = create_executable_output(diagnostics, link, sections, entry, temporary);
+    close_output(context, config.output, temporary);
   }
 }
 } // namespace pepp::link

@@ -183,6 +183,46 @@ TEST_CASE("Executable linker outputs", "[scope:core][scope:core.link][kind:int][
                                                                       RelocationSite{{ElfFileID{1}, 2}, 1}}});
 }
 
+// Link an object whose .text is relocated against call, which an executable defines 3 bytes into its .text at 0x8000.
+TEST_CASE("Executable inputs", "[scope:core][scope:core.link][kind:int][arch:pep10]") {
+  using enum SectionFlags;
+  using enum SectionTypes;
+  using namespace bits;
+  const auto link = [](bool just_symbols, std::initializer_list<SymbolSpec> symbols) {
+    pepp::tc::DiagnosticTable diag;
+    auto script = pepp::tc::ldscript::parse(diag, "SECTIONS { .text 0x100 : { *(.text) } }");
+    REQUIRE(diag.count() == 0);
+    LinkConfig config;
+    config.inputs.push_back({LinkInput::Script{std::move(script)}});
+    config.inputs.push_back({object_with({{".text", SHT_PROGBITS, SHF_ALLOC | SHF_EXECINSTR, 0, 1, {1, 2, 3}}},
+                                         {{"call"}}, {{2, 1, RelocationsPep::R_PEP10_ABS16, "call"}})});
+    config.inputs.push_back(
+        {object_with({{".text", SHT_PROGBITS, SHF_ALLOC | SHF_EXECINSTR, 0, 1, {7, 7, 7, 7}, 0x8000}}, symbols, {},
+                     ElfFileType::ET_EXEC),
+         just_symbols});
+    const auto result = do_link(std::move(config));
+    CHECK(result.diagnostics.size() == 0);
+    return reread<ElfBits::b32, ElfEndian::le>(result);
+  };
+  const auto text_of = [](const auto &elf) {
+    const auto text = section_bytes(elf, 2);
+    return std::vector<u8>(text.begin(), text.end());
+  };
+
+  // The executable's .text follows the object's at 0x103, so call is at 0x106.
+  const auto placed = link(false, {{"call", 2, 0x8003}});
+  CHECK(symbol_values(placed).at("call") == 0x106);
+  CHECK(text_of(placed) == std::vector<u8>{1, 0x06, 0x01, 7, 7, 7, 7});
+
+  // -R does not insert sections but keeps symbols as absolutes. The undefined missing is not an error.
+  const auto just_symbols = link(true, {{"call", 2, 0x8003}, {"missing"}});
+  CHECK(symbol_values(just_symbols).at("call") == 0x8003);
+  CHECK(text_of(just_symbols) == std::vector<u8>{1, 0x03, 0x80});
+  const PackedSymbolReader<ElfBits::b32, ElfEndian::le> symtab(just_symbols,
+                                                                find_named_section(just_symbols, ".symtab"));
+  CHECK(u16(symtab.get_symbol(symtab.find_symbol("call")).st_shndx) == to_underlying(SectionIndices::SHN_ABS));
+}
+
 // test that the assembler in "executable" mode produces the same result as "reloctable" mode with a link step.
 // Linking the object must give the executable's addresses, contents, and symbol values, debug sections included.
 TEST_CASE("linked object matches assembled executable", "[scope:core][scope:core.link][kind:e2e][arch:pep10]") {

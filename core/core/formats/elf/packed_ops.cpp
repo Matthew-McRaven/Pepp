@@ -62,7 +62,7 @@ void pepp::bts::write(std::ostream &out, std::vector<LayoutItem> layout) {
 std::shared_ptr<pepp::bts::MappedFile> pepp::bts::write_mmap(const std::string &path,
                                                              const std::vector<LayoutItem> &layout) {
   const u64 size = size_for_layout(layout);
-  auto file = MappedFile::open_truncated(path);
+  auto file = MappedFile::open_truncated(path, size);
   if (size == 0) return file;
 
   auto slice = file->slice(0, size);

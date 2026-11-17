@@ -21,11 +21,14 @@
 #include "core/formats/elf/packed_input_group.hpp"
 #include "core/link/diagnostics.hpp"
 #include "core/link/link_config.hpp"
+#include "core/link/symbol_resolution.hpp"
 
 namespace pepp::link {
 // Create an empty group type matching the first input ELF file (including archive members).
 // Returns nullopt if no input is an ELF file.
 std::optional<bts::AnyElfGroup> detect_group_type(const std::vector<LinkInput> &inputs);
-// Add every input to group. Returns false after a Fatal error.
-bool populate_group(Diagnostics &diagnostics, bts::AnyElfGroup &group, std::vector<LinkInput> inputs);
+// Add every input to group, and set the liveness of each file it adds, indexed by file ID. Returns false after a Fatal
+// error.
+bool populate_group(Diagnostics &diagnostics, bts::AnyElfGroup &group, std::vector<LinkInput> inputs,
+                    std::vector<Liveness> &files);
 } // namespace pepp::link
