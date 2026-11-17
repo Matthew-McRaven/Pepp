@@ -79,11 +79,12 @@ TEST_CASE("e2e linking", "[scope:core][scope:core.link][kind:unit][arch:*]") {
 TEST_CASE("Existing files don't break the temporary+rewrite trick", "[scope:core][scope:core.link][kind:int][arch:*]") {
   namespace fs = std::filesystem;
   write_bytes("link_output_a.o", bytes_of({{"main", true}}));
-  write_text("link_output_a.o.pld.tmp", "stale");
   LinkConfig config = config_of(path("link_output_a.o"));
   config.output = path("link_output_a.o");
   const auto result = do_link(std::move(config));
-  CHECK_FALSE(fs::exists("link_output_a.o.pld.tmp"));
+  // The rename leaves no temporary output behind.
+  for (const auto &entry : fs::directory_iterator(fs::current_path()))
+    CHECK_FALSE(entry.path().extension() == ".pld");
   CHECK(result.ok());
   REQUIRE(result.output);
   CHECK(PackedInputElfFile<ElfBits::b32, ElfEndian::le>(result.output).header.e_type ==

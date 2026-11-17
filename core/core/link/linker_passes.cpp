@@ -63,17 +63,17 @@ pepp::link::LinkContext pepp::link::do_link(LinkConfig &&config) {
   return ret;
 }
 
-void pepp::link::close_output(LinkContext &context, const std::optional<std::filesystem::path> &path) {
+void pepp::link::close_output(LinkContext &context, const std::optional<std::filesystem::path> &path,
+                              const std::optional<std::filesystem::path> &temporary) {
   namespace fs = std::filesystem;
   static const auto out_perms = fs::perms::owner_exec | fs::perms::group_exec | fs::perms::others_exec;
   // For anonymous outputs, do release output file as the in-memory copy is the only one.
   // This also means we don't need to drop symbols/inputs/groups.
-  if (!path) {
+  if (!path || !temporary) {
     if (!context.ok()) context.output.reset();
     return;
   }
 
-  const auto temporary = temporary_output(*path);
   // Must release the mapping before renaming+removing, since Windows fails for memory-mapped files.
   context.output.reset();
   std::error_code error;
@@ -81,10 +81,10 @@ void pepp::link::close_output(LinkContext &context, const std::optional<std::fil
     // Close the inputs, since path may be one of them and Windows refuses to replace a mapped file. Symbol names point
     // into the inputs' string tables.
     context.symbols = {}, context.inputs = {}, context.group = {};
-    fs::permissions(temporary, out_perms, fs::perm_options::add, error);
-    fs::rename(temporary, *path, error);
+    fs::permissions(*temporary, out_perms, fs::perm_options::add, error);
+    fs::rename(*temporary, *path, error);
     if (!error) context.output = bts::MappedFile::open_readonly(path->string());
     else context.diagnostics.add({Severity::Fatal, LinkCode::CannotWriteOutput, ScriptMessage{path->string()}});
-  } else fs::remove(temporary, error);
+  } else fs::remove(*temporary, error);
 }
 

@@ -58,7 +58,8 @@ LinkContext do_link(LinkConfig &&config);
 
 // If the link has no errors, close the inputs, mark the output executable. Otherwise, release the
 // output and delete it..
-void close_output(LinkContext &context, const std::optional<std::filesystem::path> &path);
+void close_output(LinkContext &context, const std::optional<std::filesystem::path> &path,
+                  const std::optional<std::filesystem::path> &temporary);
 
 // The steps of do_link that run once the inputs are in a group.
 // TODO: still missing many steps.
@@ -136,8 +137,9 @@ void link_group(LinkContext &context, const bts::PackedInputElfGroup<B, E> &grou
     LinkView<B, E> link{group, files, inputs, context.symbols, *context.placements, outputs};
     link.definitions = resolved_symbol_definitions(link);
     const auto entry = entry_address(diagnostics, link, context.script, config.entry, sections);
-    context.output = create_executable_output(diagnostics, link, sections, entry, config.output);
-    close_output(context, config.output);
+    const auto temporary = config.output ? std::optional(temporary_output(*config.output)) : std::nullopt;
+    context.output = create_executable_output(diagnostics, link, sections, entry, temporary);
+    close_output(context, config.output, temporary);
   }
 }
 } // namespace pepp::link

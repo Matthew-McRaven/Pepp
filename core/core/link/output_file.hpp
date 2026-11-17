@@ -22,6 +22,7 @@
 #include <limits>
 #include <memory>
 #include <optional>
+#include <random>
 #include <stdexcept>
 #include <variant>
 #include <vector>
@@ -90,10 +91,11 @@ bool fits_output_class(Diagnostics &diagnostics, const tc::ldscript::Sections &s
   return ret;
 }
 
-// Add extra characters to the end of a path to avoid clobbering an existing file.
+// Returns path with a random suffix (e.g., a.out.3fa9c1.pld), so that concurrent links to one output write different
+// files.
 inline std::filesystem::path temporary_output(const std::filesystem::path &path) {
   auto ret = path;
-  ret += ".pld.tmp";
+  ret += fmt::format(".{:06x}.pld", std::random_device{}() & 0xFFFFFF);
   return ret;
 }
 
@@ -165,8 +167,7 @@ std::shared_ptr<bts::MappedFile> create_executable_output(Diagnostics &diagnosti
   }
 
   try {
-    auto ret =
-        path ? MappedFile::open_truncated(temporary_output(*path).string(), size) : MappedFile::open_anonymous(size);
+    auto ret = path ? MappedFile::open_truncated(path->string(), size) : MappedFile::open_anonymous(size);
     // Write the headers and the symbol table. Must release this mapping before the output sections are mapped, since
     // live mappings which overlap lose writes when MappedFile falls back to buffers.
     {
