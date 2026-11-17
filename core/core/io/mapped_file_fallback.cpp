@@ -49,7 +49,7 @@ public:
   }
 
 private:
-  // Bortion of buffer viewed from this slice. Cannot reach past file end.
+  // Returns the slice clipped to the buffer, which holds the whole file.
   bits::span<u8> view() const noexcept {
     auto &data = _file->_data;
     const size_t from = std::min(_offset, data.size());
