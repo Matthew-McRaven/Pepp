@@ -158,6 +158,8 @@ struct Script {
 
 // Print the script in GNU ld's strict syntax, which matches the output of ld --verbose.
 std::string to_string(const Script &script);
+// Print one input section description in the same syntax (e.g., *(.text .text.*)).
+std::string to_string(const InputSectionDescription &input);
 // Merge all top-level assignments and all SECTIONS commands into a single SECTIONS, preserving script order, and return
 // it. If no SECTIONS exists, appends one to the end of the script.
 Sections &merge_sections(Script &script);
