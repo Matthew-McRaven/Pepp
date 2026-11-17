@@ -145,7 +145,7 @@ struct SymbolMap {
 
 // Map an input symbol to an output SymbolID, substituting for default versions where possible, i.e., foo@@V is foo.
 // Adds a new key to the map and appends it to names.
-SymbolID get_symbol(SymbolMap &map, std::vector<std::string_view> &names, const pepp::link::InputSymbols &table,
+SymbolID get_symbol(SymbolMap &map, std::vector<std::string> &names, const pepp::link::InputSymbols &table,
                     InputSymbolID id, bool live) {
   using Kind = pepp::link::VersionedName::Kind;
   const auto name = table.name(id);
@@ -160,7 +160,7 @@ SymbolID get_symbol(SymbolMap &map, std::vector<std::string_view> &names, const 
   // If not already present, must extend the various vectors to hold a new SymbolID
   const auto [entry, inserted] = map.ids.try_emplace(key, SymbolID(static_cast<u32>(names.size())));
   if (inserted) {
-    names.push_back(key);
+    names.emplace_back(key);
     if (split_name.kind == Kind::NonDefault) map.versioned.push_back(entry->second);
   }
   return entry->second;

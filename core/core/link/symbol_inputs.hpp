@@ -18,6 +18,7 @@
 #pragma once
 #include <algorithm>
 #include <optional>
+#include <string>
 #include <string_view>
 #include <unordered_map>
 #include <utility>
@@ -53,7 +54,7 @@ class InputSymbols {
 public:
   // IDs are [0, size()), with 0 as STN_UNDEF.
   u32 size() const noexcept { return static_cast<u32>(_names.size()); }
-  // All throw std::out_of_range if id >= size(). Name points into the ELF file's string table storage.
+  // All throw std::out_of_range if id >= size(). Name stays valid after the group is released.
   std::string_view name(InputSymbolID id) const;
   bool undefined(InputSymbolID id) const { return attributes(id).undefined; }
   SymbolAttributes attributes(InputSymbolID id) const;
@@ -76,7 +77,7 @@ public:
 
 private:
   // Both are indexed by InputSymbolID. Entry 0 is STN_UNDEF which is both undefined and has no name.
-  std::vector<std::string_view> _names = std::vector<std::string_view>(1);
+  std::vector<std::string> _names = std::vector<std::string>(1);
   std::vector<SymbolAttributes> _attributes = std::vector<SymbolAttributes>(1, SymbolAttributes{.undefined = 1});
 
   // The span of one file's non-local symbols

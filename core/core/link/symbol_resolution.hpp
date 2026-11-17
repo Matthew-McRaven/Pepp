@@ -18,6 +18,7 @@
 #pragma once
 #include <algorithm>
 #include <optional>
+#include <string>
 #include <string_view>
 #include <unordered_map>
 #include <utility>
@@ -81,7 +82,7 @@ private:
   // Indexed by InputSymbolID.
   std::vector<SymbolID> _of;
   // Both are indexed by SymbolID. Entry 0 is STN_UNDEF.
-  std::vector<std::string_view> _names = std::vector<std::string_view>(1);
+  std::vector<std::string> _names = std::vector<std::string>(1);
   std::vector<Symbol> _symbols = std::vector<Symbol>(1);
   // If the symbol collapsed into another (e.g., foo@V into foo), record both the collapsed symbol and the original
   // owner.

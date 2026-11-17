@@ -70,9 +70,8 @@ void pepp::link::close_output(LinkContext &context, const std::optional<std::fil
   context.output.reset();
   std::error_code error;
   if (context.ok()) {
-    // Close the inputs, since path may be one of them and Windows refuses to replace a mapped file. Symbol names point
-    // into the inputs' string tables.
-    context.symbols = {}, context.inputs = {}, context.group = {};
+    // Close the inputs, since path may be one of them and Windows refuses to replace a mapped file.
+    context.group = {};
     fs::permissions(*temporary, out_perms, fs::perm_options::add, error);
     fs::rename(*temporary, *path, error);
     if (!error) context.output = bts::MappedFile::open_readonly(path->string());
