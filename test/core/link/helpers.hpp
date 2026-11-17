@@ -77,12 +77,13 @@ struct SectionSpec {
   u64 size = 0;
   u64 alignment = 1;
   std::vector<char> bytes = {};
+  u64 address = 0;
 };
 
 // An object with null, .shstrtab, then a section for each spec, in order.
 template <ElfBits B = ElfBits::b32, ElfEndian E = ElfEndian::le>
-PackedGrowableElfFile<B, E> elf_with(std::initializer_list<SectionSpec> specs) {
-  PackedGrowableElfFile<B, E> elf(ElfFileType::ET_REL, ElfMachineType::EM_PEP10, ElfABI::ELFOSABI_NONE);
+PackedGrowableElfFile<B, E> elf_with(std::initializer_list<SectionSpec> specs, ElfFileType type = ElfFileType::ET_REL) {
+  PackedGrowableElfFile<B, E> elf(type, ElfMachineType::EM_PEP10, ElfABI::ELFOSABI_NONE);
   ensure_section_header_table(elf);
   for (const auto &spec : specs) {
     const auto index = add_named_section(elf, spec.name, spec.type);
@@ -90,6 +91,7 @@ PackedGrowableElfFile<B, E> elf_with(std::initializer_list<SectionSpec> specs) {
     header.sh_flags = bits::to_underlying(spec.flags);
     header.sh_size = spec.size;
     header.sh_addralign = spec.alignment;
+    header.sh_addr = spec.address;
     if (spec.type == SectionTypes::SHT_NOBITS) continue;
     auto bytes = spec.bytes.empty() ? std::vector<char>(spec.size) : spec.bytes;
     elf.section_data[index] = std::make_shared<BlockStorage>(std::move(bytes));
@@ -116,8 +118,9 @@ struct RelaSpec {
 // Returns an object with null, .shstrtab, then a section for each spec, so that the first spec is section 2. A symbol
 // table and relocation sections follow.
 inline AnyInputElf object_with(std::initializer_list<SectionSpec> specs, std::initializer_list<SymbolSpec> symbols,
-                               std::initializer_list<RelaSpec> relocations = {}) {
-  auto elf = elf_with(specs);
+                               std::initializer_list<RelaSpec> relocations = {},
+                               ElfFileType type = ElfFileType::ET_REL) {
+  auto elf = elf_with(specs, type);
   const auto strtab = add_named_section(elf, ".strtab", SectionTypes::SHT_STRTAB);
   const auto symtab = add_named_symtab(elf, ".symtab", strtab);
   PackedSymbolWriter<ElfBits::b32, ElfEndian::le> writer(elf, symtab);

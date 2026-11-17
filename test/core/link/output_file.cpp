@@ -183,6 +183,29 @@ TEST_CASE("Executable linker outputs", "[scope:core][scope:core.link][kind:int][
                                                                       RelocationSite{{ElfFileID{1}, 2}, 1}}});
 }
 
+TEST_CASE("Executable inputs", "[scope:core][scope:core.link][kind:int][arch:pep10]") {
+  using enum SectionFlags;
+  using enum SectionTypes;
+  using namespace bits;
+  pepp::tc::DiagnosticTable diag;
+  auto script = pepp::tc::ldscript::parse(diag, "SECTIONS { .text 0x100 : { *(.text) } }");
+  REQUIRE(diag.count() == 0);
+  LinkConfig config;
+  config.inputs.push_back({LinkInput::Script{std::move(script)}});
+  config.inputs.push_back({object_with({{".text", SHT_PROGBITS, SHF_ALLOC | SHF_EXECINSTR, 0, 1, {1, 2, 3}}},
+                                       {{"call"}}, {{2, 1, RelocationsPep::R_PEP10_ABS16, "call"}})});
+  // call is 3 bytes into .text, which the executable placed at 0x8000.
+  config.inputs.push_back({object_with({{".text", SHT_PROGBITS, SHF_ALLOC | SHF_EXECINSTR, 0, 1, {7, 7, 7, 7}, 0x8000}},
+                                       {{"call", 2, 0x8003}}, {}, ElfFileType::ET_EXEC)});
+  const auto result = do_link(std::move(config));
+  CHECK(result.diagnostics.size() == 0);
+  const auto elf = reread<ElfBits::b32, ElfEndian::le>(result);
+  // The executable's .text follows the object's at 0x103, so call is at 0x106.
+  CHECK(symbol_values(elf).at("call") == 0x106);
+  const auto text = section_bytes(elf, 2);
+  CHECK(std::vector<u8>(text.begin(), text.end()) == std::vector<u8>{1, 0x06, 0x01, 7, 7, 7, 7});
+}
+
 // test that the assembler in "executable" mode produces the same result as "reloctable" mode with a link step.
 // Linking the object must give the executable's addresses, contents, and symbol values, debug sections included.
 TEST_CASE("linked object matches assembled executable", "[scope:core][scope:core.link][kind:e2e][arch:pep10]") {
