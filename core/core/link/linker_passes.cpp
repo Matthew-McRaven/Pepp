@@ -54,7 +54,7 @@ pepp::link::LinkContext pepp::link::do_link(LinkConfig &&config) {
   // Without an ELF, every input is empty or bad. Choose an arbitrary input type to avoid a null group.
   if (detected) ret.group = std::move(*detected);
   else ret.group = std::make_unique<bts::PackedInputElfGroup<bts::ElfBits::b32, bts::ElfEndian::le>>();
-  if (!populate_group(ret.diagnostics, ret.group, std::move(inputs))) return ret;
+  if (!populate_group(ret.diagnostics, ret.group, std::move(inputs), ret.files)) return ret;
   else if (!detected) {
     ret.diagnostics.add({Severity::Fatal, LinkCode::NoInputs});
     return ret;

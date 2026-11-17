@@ -31,6 +31,7 @@ OutputSymbolDefinition input_symbol_definition(const LinkView<B, E> &link, bts::
                                                const bts::PackedElfSymbol<B, E> &symbol) {
   if (const u64 value = symbol.st_value; symbol.is_abs()) return {.address = value, .absolute = true};
   else if (symbol.is_undef() || symbol.st_shndx >= bits::to_underlying(bts::SectionIndices::SHN_LORESERVE)) return {};
+  else if (link.files[file.value] == Liveness::JustSymbols) return {.address = value, .absolute = true};
   // Symbol's file is not live.
   else if (const auto pos = link.placements.sections().position({file, symbol.st_shndx}); !pos) return {};
   // Symbol's section was not assigned to an output section.

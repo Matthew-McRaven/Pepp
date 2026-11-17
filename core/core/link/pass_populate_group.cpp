@@ -57,9 +57,10 @@ std::optional<bts::AnyElfGroup> group_type_of(const LinkInput::Opened &opened) {
   return std::visit([](const auto &file) { return group_type_of(file); }, opened.file);
 }
 
-// Add every input to group. Returns false after a Fatal error.
+// Add every input to group and set the liveness of each file. Returns false after a Fatal error.
 template <bts::ElfBits B, bts::ElfEndian E>
-bool populate(Diagnostics &diagnostics, bts::PackedInputElfGroup<B, E> &group, std::vector<LinkInput> inputs) {
+bool populate(Diagnostics &diagnostics, bts::PackedInputElfGroup<B, E> &group, std::vector<LinkInput> inputs,
+              std::vector<Liveness> &files) {
   // Eagerly extract archive members (like ELF). Later reachability passes remove unused members from the output.
   const auto add_members = [&](bts::ElfArchiveID archive, ConfigInputID input) {
     for (const auto &member : group.archive(archive).members()) {
@@ -74,9 +75,12 @@ bool populate(Diagnostics &diagnostics, bts::PackedInputElfGroup<B, E> &group, s
     if (!id) return bad_input(diagnostics, input, id.error());
     return add_members(*id, input);
   };
+  // Indexed by ConfigInputID. Each input adds the files from first_file[index] up to first_file[index + 1].
+  std::vector<u32> first_file(inputs.size() + 1);
   // Extract all input files into the group.
   for (u32 index = 0; index < inputs.size(); ++index) {
     const ConfigInputID input{index};
+    first_file[index] = static_cast<u32>(group.size() + 1);
     auto &source = inputs[index].source;
     if (const auto *path = std::get_if<std::filesystem::path>(&source)) {
       const auto added = group.add(*path);
@@ -98,6 +102,14 @@ bool populate(Diagnostics &diagnostics, bts::PackedInputElfGroup<B, E> &group, s
       return false;
     }
   }
+  first_file.back() = static_cast<u32>(group.size() + 1);
+  // Index 0 is unused.
+  files.assign(group.size() + 1, Liveness::Excluded);
+  for (u32 index = 0; index < inputs.size(); ++index)
+    for (u32 file = first_file[index]; file < first_file[index + 1]; ++file) {
+      const bool member = std::holds_alternative<bts::ElfFromArchive>(group.provenance(bts::ElfFileID(file)));
+      files[file] = inputs[index].just_symbols ? Liveness::JustSymbols : member ? Liveness::Lazy : Liveness::Live;
+    }
   return true;
 }
 } // namespace
@@ -108,6 +120,7 @@ std::optional<bts::AnyElfGroup> pepp::link::detect_group_type(const std::vector<
   return std::nullopt;
 }
 
-bool pepp::link::populate_group(Diagnostics &diagnostics, bts::AnyElfGroup &group, std::vector<LinkInput> inputs) {
-  return std::visit([&](auto &ptr) { return populate(diagnostics, *ptr, std::move(inputs)); }, group);
+bool pepp::link::populate_group(Diagnostics &diagnostics, bts::AnyElfGroup &group, std::vector<LinkInput> inputs,
+                                std::vector<Liveness> &files) {
+  return std::visit([&](auto &ptr) { return populate(diagnostics, *ptr, std::move(inputs), files); }, group);
 }

@@ -38,17 +38,6 @@
 
 namespace pepp::link {
 
-// Returns Lazy for each archive member and Live for every other file, indexed by file ID.
-template <bts::ElfBits B, bts::ElfEndian E>
-std::vector<Liveness> default_liveness(const bts::PackedInputElfGroup<B, E> &group) {
-  std::vector<Liveness> ret(group.size() + 1);
-  for (u32 file = 1; file <= group.size(); ++file) {
-    const bool member = std::holds_alternative<bts::ElfFromArchive>(group.provenance(bts::ElfFileID(file)));
-    ret[file] = member ? Liveness::Lazy : Liveness::Live;
-  }
-  return ret;
-}
-
 // Returns the name of a file matching ld's formatting. An in-memory file has no path and prints as <memory>.
 template <bts::ElfBits B, bts::ElfEndian E>
 std::string file_name(const bts::PackedInputElfGroup<B, E> &group, bts::ElfFileID file) {
@@ -85,8 +74,7 @@ void link_group(LinkContext &context, const bts::PackedInputElfGroup<B, E> &grou
   if (auto gathered = gather_symbols(diagnostics, group); !gathered) return;
   else inputs = std::move(*gathered);
 
-  // Resolve symbols in two passes.
-  files = default_liveness(group);
+  // Resolve symbols in two passes. populate_group() set each file's initial liveness.
   // The first pass picks the best definition of each symbol and marks an archive member live if a live file uses it.
   // Only archive members can be lazy, so this pass can be skipped without archives. Discard this pass's diagnostics so
   // that an unused lazy member's undefined references are not errors.

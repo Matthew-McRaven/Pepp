@@ -198,7 +198,8 @@ pepp::link::ResolvedSymbols pepp::link::resolve_symbols(Diagnostics &diagnostics
       ret._of.insert(ret._of.end(), last.value - first.value, SymbolID(0));
       continue;
     }
-    const bool live = files[it] == Liveness::Live;
+    const bool live = files[it] != Liveness::Lazy;
+    const bool just_symbols = files[it] == Liveness::JustSymbols;
     for (auto id = first; id < last; ++id) {
       const auto symbol = get_symbol(map, ret._names, table, id, live);
       // Establishing mapping from input symbol to an already allocated output symbol (entry)
@@ -209,7 +210,7 @@ pepp::link::ResolvedSymbols pepp::link::resolve_symbols(Diagnostics &diagnostics
       // Pick the best input symbol for each output symbol.
       merge(ret._symbols[symbol.value], rankings[symbol.value], candidate_of(table, id, file, live), errors);
       const auto attributes = table.attributes(id);
-      if (attributes.undefined && !attributes.weak) references.push_back(id);
+      if (attributes.undefined && !attributes.weak && !just_symbols) references.push_back(id);
       else if (attributes.common) commons.push_back(id);
     }
   }

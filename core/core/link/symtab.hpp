@@ -40,7 +40,8 @@ void write_symtab(bts::PackedGrowableElfFile<B, E> &elf, const LinkView<B, E> &l
   // Copy an input symbol into the output with the address in at, if its section was written.
   const auto copy = [&](PackedElfSymbol<B, E> symbol, std::string_view name, OutputSymbolDefinition at) {
     if (!at) return;
-    const u16 section = at.absolute ? u16(symbol.st_shndx) : link.outputs[at.section.value]->shndx;
+    const u16 abs = bits::to_underlying(SectionIndices::SHN_ABS);
+    const u16 section = at.absolute ? abs : link.outputs[at.section.value]->shndx;
     // Skip undefined symbols.
     if (section == 0) return;
     symbol.st_value = static_cast<word<B>>(at.address);

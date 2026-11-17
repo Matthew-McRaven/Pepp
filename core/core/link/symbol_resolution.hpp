@@ -49,6 +49,9 @@ enum class Liveness : u8 {
   Lazy,
   // Always included in the link. Lazy files referenced by live files become live.
   Live,
+  // A file whose symbol definitions are eligible for merging (as SHN_ABS) but whose sections will not appear in the
+  // final output. It is treated as a live file. Undefined references are ignored.
+  JustSymbols,
 };
 
 // The non-local symbols of the link, merged from InputSymbols. Where definitions conflict, the highest ranked wins.
