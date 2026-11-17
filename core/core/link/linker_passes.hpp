@@ -31,6 +31,7 @@
 #include "core/link/link_config.hpp"
 #include "core/link/link_context.hpp"
 #include "core/link/link_view.hpp"
+#include "core/link/map_file.hpp"
 #include "core/link/output_file.hpp"
 #include "core/link/section_layout.hpp"
 #include "core/link/section_placements.hpp"
@@ -122,7 +123,8 @@ void link_group(LinkContext &context, const bts::PackedInputElfGroup<B, E> &grou
     if (!context.ok()) return;
     const auto outputs = output_sections(sections);
     LinkView<B, E> link{group, files, inputs, context.symbols, *context.placements, outputs};
-    link.definitions = resolved_symbol_definitions(link);
+    link.definitions = (context.definitions = resolved_symbol_definitions(link));
+    context.summary = std::make_unique<InputSummary>(summarize_inputs(link));
     const auto entry = entry_address(diagnostics, link, context.script, config.entry, sections);
     const auto temporary = config.output ? std::optional(temporary_output(*config.output)) : std::nullopt;
     context.output = create_executable_output(diagnostics, link, sections, entry, temporary);

@@ -27,6 +27,7 @@
 #include "core/formats/elf/packed_access_relocations.hpp"
 #include "core/formats/elf/packed_io.hpp"
 #include "core/formats/elf/packed_ops.hpp"
+#include "core/link/link_context.hpp"
 #include "core/link/symbol_resolution.hpp"
 
 namespace link_test {
@@ -181,4 +182,16 @@ inline auto entry_of(const InputSymbols &table) {
     return *id;
   };
 }
+// Returns the serialized output re-read as an input file.
+template <ElfBits B, ElfEndian E> PackedInputElfFile<B, E> reread(pepp::bts::AnyGrowableElf &elf, auto &segments) {
+  const auto bytes = elf_bytes(elf, &segments);
+  return PackedInputElfFile<B, E>(std::make_shared<BufferSource>(std::vector<char>(bytes.begin(), bytes.end())));
+}
+
+// Returns the output of a link as an input file.
+template <ElfBits B, ElfEndian E> PackedInputElfFile<B, E> reread(const LinkContext &context) {
+  REQUIRE(context.output);
+  return PackedInputElfFile<B, E>(context.output);
+}
+
 } // namespace link_test

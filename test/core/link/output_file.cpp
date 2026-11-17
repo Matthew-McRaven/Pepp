@@ -66,18 +66,6 @@ SECTIONS {
   return do_link(std::move(config));
 }
 
-// Returns the serialized output re-read as an input file.
-template <ElfBits B, ElfEndian E> PackedInputElfFile<B, E> reread(pepp::bts::AnyGrowableElf &elf, auto &segments) {
-  const auto bytes = elf_bytes(elf, &segments);
-  return PackedInputElfFile<B, E>(std::make_shared<BufferSource>(std::vector<char>(bytes.begin(), bytes.end())));
-}
-
-// Returns the output of a link as an input file.
-template <ElfBits B, ElfEndian E> PackedInputElfFile<B, E> reread(const LinkContext &context) {
-  REQUIRE(context.output);
-  return PackedInputElfFile<B, E>(context.output);
-}
-
 // Returns the entry point of a link's output.
 u32 entry_point(const LinkContext &context) { return reread<ElfBits::b32, ElfEndian::le>(context).header.e_entry; }
 
