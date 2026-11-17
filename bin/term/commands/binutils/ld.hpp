@@ -41,6 +41,9 @@ void registerLd(auto &app, task_factory_t &task, detail::SharedFlags &flags) {
       "-o,--output", [](const std::string &path) { config.output = path; },
       "Set output file name")
       ->option_text("FILE");
+  ld->add_option_function<std::string>(
+      "--Map", [](const std::string &path) { config.map = path; }, "Write a link map to FILE")
+      ->option_text("FILE");
   ld->add_option("-e,--entry", config.entry, "Set start address")->option_text("ADDRESS");
   ld->add_option("-m", config.emulation, "Set emulation")->option_text("EMULATION");
   ld->add_option_function<std::vector<std::string>>(

@@ -27,9 +27,11 @@
 #include "core/formats/elf/packed_input_group.hpp"
 #include "core/link/diagnostics.hpp"
 #include "core/link/entry.hpp"
+#include "core/link/file_name.hpp"
 #include "core/link/link_config.hpp"
 #include "core/link/link_context.hpp"
 #include "core/link/link_view.hpp"
+#include "core/link/map_file.hpp"
 #include "core/link/output_file.hpp"
 #include "core/link/section_layout.hpp"
 #include "core/link/section_placements.hpp"
@@ -37,20 +39,6 @@
 #include "core/link/symbol_resolution.hpp"
 
 namespace pepp::link {
-
-// Returns the name of a file matching ld's formatting. An in-memory file has no path and prints as <memory>.
-template <bts::ElfBits B, bts::ElfEndian E>
-std::string file_name(const bts::PackedInputElfGroup<B, E> &group, bts::ElfFileID file) {
-  const auto &provenance = group.provenance(file);
-  if (const auto *path = std::get_if<bts::ElfFromPath>(&provenance)) return path->path.string();
-  else if (const auto *member = std::get_if<bts::ElfFromArchive>(&provenance)) {
-    const auto &archive = group.archive(member->archive);
-    return fmt::format("{}({})", archive.path() ? archive.path()->string() : "<memory>", archive.name(member->member));
-  }
-  return "<memory>";
-}
-
-std::string input_file_name(const decltype(LinkInput::source) &source);
 
 // Run every step of the linker for a given config, stopping at the first Fatal diagnostic.
 // Check ok() before using the result.
@@ -135,10 +123,12 @@ void link_group(LinkContext &context, const bts::PackedInputElfGroup<B, E> &grou
     if (!context.ok()) return;
     const auto outputs = output_sections(sections);
     LinkView<B, E> link{group, files, inputs, context.symbols, *context.placements, outputs};
-    link.definitions = resolved_symbol_definitions(link);
+    link.definitions = (context.definitions = resolved_symbol_definitions(link));
+    context.summary = std::make_unique<InputSummary>(summarize_inputs(link));
     const auto entry = entry_address(diagnostics, link, context.script, config.entry, sections);
     const auto temporary = config.output ? std::optional(temporary_output(*config.output)) : std::nullopt;
     context.output = create_executable_output(diagnostics, link, sections, entry, temporary);
+    if (config.map) write_link_map(context, *config.map);
     close_output(context, config.output, temporary);
   }
 }

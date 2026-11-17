@@ -46,12 +46,11 @@ std::expected<bits::span<const u8>, std::string> row_bytes(const PackedElf<B, E>
 
 template <ElfBits B, ElfEndian E>
 std::expected<std::vector<std::string>, std::string>
-format(const PackedElf<B, E> &elf, const std::vector<std::string> &text, pepp::tc::ListingStyle style) {
-  const auto rows = pepp::tc::read_listing_rows(elf);
-  if (!rows) return std::unexpected(rows.error());
+format(const PackedElf<B, E> &elf, const std::vector<pepp::tc::ListingRow> &rows, const std::vector<std::string> &text,
+       pepp::tc::ListingStyle style) {
   // LNP rows are 1-indexed rather than 0-indexed like text.
   std::map<u32, const pepp::tc::ListingRow *> by_line;
-  for (const auto &row : *rows)
+  for (const auto &row : rows)
     if (!by_line.emplace(row.line, &row).second)
       return std::unexpected(fmt::format("listing line {} has more than one row", row.line));
 
@@ -97,5 +96,17 @@ format(const PackedElf<B, E> &elf, const std::vector<std::string> &text, pepp::t
 
 std::expected<std::vector<std::string>, std::string>
 pepp::tc::format_listing(const pepp::bts::AnyInputElf &elf, const std::vector<std::string> &text, ListingStyle style) {
-  return std::visit([&](const auto &file) { return format(*file, text, style); }, elf);
+  return std::visit(
+      [&](const auto &file) -> std::expected<std::vector<std::string>, std::string> {
+        const auto rows = read_listing_rows(*file);
+        if (!rows) return std::unexpected(rows.error());
+        return format(*file, *rows, text, style);
+      },
+      elf);
+}
+
+std::expected<std::vector<std::string>, std::string>
+pepp::tc::format_listing(const pepp::bts::AnyInputElf &elf, const std::vector<ListingRow> &rows,
+                         const std::vector<std::string> &text, ListingStyle style) {
+  return std::visit([&](const auto &file) { return format(*file, rows, text, style); }, elf);
 }

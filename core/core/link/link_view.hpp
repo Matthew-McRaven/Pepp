@@ -46,7 +46,7 @@ template <ElfBits B, ElfEndian E> struct LinkView {
   // Indexed by OutputSectionID. Index 0 is null. Creating the output sets each shndx, so the descriptions cannot be
   // const.
   std::span<tc::ldscript::OutputSectionDescription *const> outputs;
-  // Indexed by SymbolID. Empty until it is set from resolved_symbol_definitions.
-  std::vector<OutputSymbolDefinition> definitions = {};
+  // Indexed by SymbolID. Set in resolved_symbol_definitions as a view over LinkContext::definitions.
+  std::span<const OutputSymbolDefinition> definitions = {};
 };
 } // namespace pepp::link

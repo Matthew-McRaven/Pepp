@@ -87,12 +87,6 @@ std::string to_string(const FilePattern &file) {
   return name(file.pattern);
 }
 
-std::string to_string(const InputSectionDescription &input) {
-  const auto description =
-      fmt::format("{}({})", to_string(input.file), fmt::join(input.sections | std::views::transform(name), " "));
-  return input.keep ? fmt::format("KEEP({})", description) : description;
-}
-
 std::string to_string(const InputFiles &input) {
   return fmt::format("{}({})", input.kind == InputFiles::Kind::Group ? "GROUP" : "INPUT",
                      fmt::join(input.files | std::views::transform(name), " "));
@@ -132,6 +126,12 @@ std::string to_string(const Sections &sections) {
   return fmt::format("SECTIONS\n{{\n{}}}", lines(sections.commands, "  "));
 }
 } // namespace
+
+std::string pepp::tc::ldscript::to_string(const InputSectionDescription &input) {
+  const auto description =
+      fmt::format("{}({})", ::to_string(input.file), fmt::join(input.sections | std::views::transform(name), " "));
+  return input.keep ? fmt::format("KEEP({})", description) : description;
+}
 
 std::optional<pepp::tc::ldscript::OutputFormat::Format> pepp::tc::ldscript::output_format(std::string_view name) {
   const auto it = std::ranges::find(formats, name, &NamedFormat::name);

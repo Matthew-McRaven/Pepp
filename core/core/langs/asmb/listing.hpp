@@ -61,6 +61,8 @@ ListingLayout layout_listing(const IRProgram &source_order, const IRMemoryAddres
   return ret;
 }
 
+struct ListingRow;
+
 struct ListingStyle {
   u8 address_width;
   u32 bytes_per_row;
@@ -71,5 +73,11 @@ struct ListingStyle {
 // of the text, or if the ELF does not contain the expected address/offsets.
 std::expected<std::vector<std::string>, std::string>
 format_listing(const pepp::bts::AnyInputElf &elf, const std::vector<std::string> &text, ListingStyle style);
+// Formats text as above, but with existing rows from another file. Object code comes from elf. Useful for generating a
+// listing using a linked-files bytes.
+std::expected<std::vector<std::string>, std::string> format_listing(const pepp::bts::AnyInputElf &elf,
+                                                                    const std::vector<ListingRow> &rows,
+                                                                    const std::vector<std::string> &text,
+                                                                    ListingStyle style);
 
 } // namespace pepp::tc

@@ -28,14 +28,6 @@
 using namespace pepp;
 using namespace pepp::link;
 
-std::string pepp::link::input_file_name(const decltype(LinkInput::source) &source) {
-  if (const auto *path = std::get_if<std::filesystem::path>(&source)) return path->string();
-  else if (const auto *opened = std::get_if<LinkInput::Opened>(&source)) return opened->path.string();
-  else if (const auto *script = std::get_if<LinkInput::Script>(&source))
-    if (const auto *path = std::get_if<std::filesystem::path>(&script->source)) return path->string();
-  return "<memory>";
-}
-
 pepp::link::LinkContext pepp::link::do_link(LinkConfig &&config) {
   LinkContext ret;
   // Parse scripts prior to creating group so that OUTPUT_* directives can determine ELF type.
@@ -78,9 +70,8 @@ void pepp::link::close_output(LinkContext &context, const std::optional<std::fil
   context.output.reset();
   std::error_code error;
   if (context.ok()) {
-    // Close the inputs, since path may be one of them and Windows refuses to replace a mapped file. Symbol names point
-    // into the inputs' string tables.
-    context.symbols = {}, context.inputs = {}, context.group = {};
+    // Close the inputs, since path may be one of them and Windows refuses to replace a mapped file.
+    context.group = {};
     fs::permissions(*temporary, out_perms, fs::perm_options::add, error);
     fs::rename(*temporary, *path, error);
     if (!error) context.output = bts::MappedFile::open_readonly(path->string());
