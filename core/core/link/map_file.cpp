@@ -83,10 +83,9 @@ std::string memory_map(const LinkContext &context, const ld::Sections &sections,
 } // namespace
 
 std::optional<std::string> pepp::link::link_map(const LinkContext &context) {
-  const int digits = context.summary->bits == ElfBits::b64 ? 16 : 8;
-
   const auto *sections = sections_of(context.script);
   if (!sections || !context.placements || !context.summary) return std::nullopt;
+  const int digits = context.summary->bits == ElfBits::b64 ? 16 : 8;
 
   // The address and name of each global symbol, grouped by the position of the defining input section.
   std::vector<std::vector<std::pair<u64, std::string_view>>> globals(context.placements->sections().size());
