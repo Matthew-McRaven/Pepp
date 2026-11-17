@@ -165,7 +165,8 @@ std::shared_ptr<bts::MappedFile> create_executable_output(Diagnostics &diagnosti
   }
 
   try {
-    auto ret = path ? MappedFile::open_truncated(temporary_output(*path).string()) : MappedFile::open_anonymous(size);
+    auto ret =
+        path ? MappedFile::open_truncated(temporary_output(*path).string(), size) : MappedFile::open_anonymous(size);
     // Write the headers and the symbol table. Must release this mapping before the output sections are mapped, since
     // live mappings which overlap lose writes when MappedFile falls back to buffers.
     {

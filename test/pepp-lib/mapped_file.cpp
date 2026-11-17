@@ -51,12 +51,6 @@ static std::vector<u8> read_bytes(const fs::path &p) {
   return out;
 }
 
-static void ensure_size(const fs::path &p, std::size_t n) {
-  // Create file of size n filled with 0 if missing or smaller.
-  std::vector<u8> bytes(n, 0);
-  write_bytes(p, bytes);
-}
-
 TEST_CASE("MappedFile::open_readwrite persists modifications", "[kind:unit][arch:*][scope:core]") {
   const auto path = make_temp_path("mmap-rw");
   // Ensure file exists and has known initial content.
@@ -153,12 +147,8 @@ TEST_CASE("MappedFile::open_readwrite can can create && allocate", "[kind:unit][
   fs::remove(path);
 
   {
-    auto mf = MappedFile::open_readwrite(path.string());
+    auto mf = MappedFile::open_readwrite(path.string(), 64);
     REQUIRE(mf);
-
-    // Ensure the file is at least large enough for our slice.
-    // If your open_readwrite does sizing internally, you can remove this.
-    ensure_size(path, 64);
 
     auto s = mf->slice(0, 64);
     REQUIRE(s);
