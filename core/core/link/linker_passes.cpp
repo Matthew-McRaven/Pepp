@@ -28,14 +28,6 @@
 using namespace pepp;
 using namespace pepp::link;
 
-std::string pepp::link::input_file_name(const decltype(LinkInput::source) &source) {
-  if (const auto *path = std::get_if<std::filesystem::path>(&source)) return path->string();
-  else if (const auto *opened = std::get_if<LinkInput::Opened>(&source)) return opened->path.string();
-  else if (const auto *script = std::get_if<LinkInput::Script>(&source))
-    if (const auto *path = std::get_if<std::filesystem::path>(&script->source)) return path->string();
-  return "<memory>";
-}
-
 pepp::link::LinkContext pepp::link::do_link(LinkConfig &&config) {
   LinkContext ret;
   // Parse scripts prior to creating group so that OUTPUT_* directives can determine ELF type.

@@ -27,6 +27,7 @@
 #include "core/formats/elf/packed_input_group.hpp"
 #include "core/link/diagnostics.hpp"
 #include "core/link/entry.hpp"
+#include "core/link/file_name.hpp"
 #include "core/link/link_config.hpp"
 #include "core/link/link_context.hpp"
 #include "core/link/link_view.hpp"
@@ -37,20 +38,6 @@
 #include "core/link/symbol_resolution.hpp"
 
 namespace pepp::link {
-
-// Returns the name of a file matching ld's formatting. An in-memory file has no path and prints as <memory>.
-template <bts::ElfBits B, bts::ElfEndian E>
-std::string file_name(const bts::PackedInputElfGroup<B, E> &group, bts::ElfFileID file) {
-  const auto &provenance = group.provenance(file);
-  if (const auto *path = std::get_if<bts::ElfFromPath>(&provenance)) return path->path.string();
-  else if (const auto *member = std::get_if<bts::ElfFromArchive>(&provenance)) {
-    const auto &archive = group.archive(member->archive);
-    return fmt::format("{}({})", archive.path() ? archive.path()->string() : "<memory>", archive.name(member->member));
-  }
-  return "<memory>";
-}
-
-std::string input_file_name(const decltype(LinkInput::source) &source);
 
 // Run every step of the linker for a given config, stopping at the first Fatal diagnostic.
 // Check ok() before using the result.
