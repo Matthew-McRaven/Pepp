@@ -46,7 +46,7 @@ DriverResult assemble_riscv(const RISCVDriverConfig &cfg, const FormattingConfig
 
   auto addresses = riscv_assign_addresses(result.diagnostics, split.grouped_ir);
   if (result.diagnostics.count(Severity::Fatal) > 0) return result;
-  auto object_code = riscv_to_object_code(result.diagnostics, addresses, split.grouped_ir);
+  auto object_code = riscv_to_object_code(result.diagnostics, addresses, split.grouped_ir, cfg.output_type);
   if (result.diagnostics.count(Severity::Fatal) > 0) return result;
   std::optional<ListingLayout> layout;
   if (fmtcfg.listing) {

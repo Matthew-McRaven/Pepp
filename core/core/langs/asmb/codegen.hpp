@@ -463,9 +463,10 @@ struct ProgramObjectCodeResult {
 using LinesByAddress = fc::vector_map<u32, const LinearIR *>;
 
 // Values which do not fit their field are reported to diag, and their bytes are left as zeros.
-template <typename Address, typename Visitor>
+template <typename Address, typename Visitor, typename... Extra>
 ProgramObjectCodeResult to_object_code(DiagnosticTable &diag, const IRMemoryAddressTable<Address> &addresses,
-                                       std::vector<std::pair<SectionDescriptor, IRProgram>> &prog) {
+                                       std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
+                                       const Extra &...extra) {
   ProgramObjectCodeResult ret;
   std::vector<detail::SectionOffsets> offsets(prog.size(), detail::SectionOffsets{});
   u64 object_size = 0, ir_count = 0;
@@ -495,7 +496,7 @@ ProgramObjectCodeResult to_object_code(DiagnosticTable &diag, const IRMemoryAddr
     // Establish flat-map invariant
     std::sort(lines_by_address.container.begin(), lines_by_address.container.end());
     Visitor visitor(diag, addresses, lines_by_address, sec.low_address, slice.get(0, slice.size()), ret.relocations[it],
-                    ret.ir_to_object_code);
+                    ret.ir_to_object_code, extra...);
     for (const auto &line : ir) visitor.accept(line.get());
   }
 

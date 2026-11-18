@@ -68,7 +68,8 @@ IRMemoryAddressTable<RISCVAddress> riscv_assign_addresses(DiagnosticTable &diag,
 std::optional<ArgumentConstraint> riscv_argument_constraint(const LinearIR &line);
 
 ProgramObjectCodeResult riscv_to_object_code(DiagnosticTable &diag, const IRMemoryAddressTable<RISCVAddress> &,
-                                             std::vector<std::pair<SectionDescriptor, IRProgram>> &prog);
+                                             std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
+                                             pepp::bts::ElfFileType type = pepp::bts::ElfFileType::ET_EXEC);
 
 // The listing line program is written only if `listing` is non-null.
 ElfResult riscv_to_elf(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,

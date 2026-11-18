@@ -139,8 +139,10 @@ struct RISCVObjectVistitor : public RISCVIRVisitor {
   bits::span<u8> out_bytes;
   std::vector<Relocation> &relocations;
   IR2ObjectCodeMap &ir_to_object_code;
+  const bts::ElfFileType output_type;
   RISCVObjectVistitor(DiagnosticTable &, const IRMemoryAddressTable<RISCVAddress> &, const LinesByAddress &,
-                      const u32 base_address, bits::span<u8>, std::vector<Relocation> &, IR2ObjectCodeMap &);
+                      const u32 base_address, bits::span<u8>, std::vector<Relocation> &, IR2ObjectCodeMap &,
+                      bts::ElfFileType output_type);
   // Integer instructions can delegate to a shared implementation.
   void emit_line(const IntegerInstruction *line);
   // The value to encode for a line's operand at address, recording the relocation it needs (if any). nullopt if the
@@ -177,9 +179,9 @@ struct RISCVObjectVistitor : public RISCVIRVisitor {
 pepp::tc::RISCVObjectVistitor::RISCVObjectVistitor(
     DiagnosticTable &diag, const IRMemoryAddressTable<RISCVAddress> &ir_to_address,
     const LinesByAddress &lines_by_address, const u32 base_address, bits::span<u8> out_bytes,
-    std::vector<Relocation> &relocs, IR2ObjectCodeMap &ir_to_object_code)
+    std::vector<Relocation> &relocs, IR2ObjectCodeMap &ir_to_object_code, bts::ElfFileType output_type)
     : diag(diag), ir_to_address(ir_to_address), lines_by_address(lines_by_address), base_address(base_address),
-      out_bytes(out_bytes), relocations(relocs), ir_to_object_code(ir_to_object_code) {}
+      out_bytes(out_bytes), relocations(relocs), ir_to_object_code(ir_to_object_code), output_type(output_type) {}
 
 void pepp::tc::RISCVObjectVistitor::visit(const EmptyLine *) {
   // Does not generate object code
@@ -430,8 +432,8 @@ std::optional<pepp::tc::ArgumentConstraint> pepp::tc::riscv_argument_constraint(
 
 pepp::tc::ProgramObjectCodeResult
 pepp::tc::riscv_to_object_code(DiagnosticTable &diag, const IRMemoryAddressTable<RISCVAddress> &addresses,
-                               std::vector<std::pair<SectionDescriptor, IRProgram>> &prog) {
-  return to_object_code<RISCVAddress, RISCVObjectVistitor>(diag, addresses, prog);
+                               std::vector<std::pair<SectionDescriptor, IRProgram>> &prog, bts::ElfFileType type) {
+  return to_object_code<RISCVAddress, RISCVObjectVistitor>(diag, addresses, prog, type);
 }
 
 pepp::tc::ElfResult pepp::tc::riscv_to_elf(std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
