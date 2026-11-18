@@ -27,6 +27,7 @@
 #include <ranges>
 #include <span>
 #include <string_view>
+#include <type_traits>
 #include <vector>
 #include "core/compile/ir_linear/attr_comment.hpp"
 #include "core/compile/ir_linear/line_dot.hpp"
@@ -405,36 +406,37 @@ inline constexpr std::array constant_plus_symbol_kinds{expr::Kind::Constant, exp
 inline constexpr OperandPattern symbol_pattern{.kinds = symbol_kinds};
 inline constexpr OperandPattern constant_plus_symbol_pattern{.kinds = constant_plus_symbol_kinds};
 
-// Match an IRValue (which may not be an expression) against an expression pattern. Returns the first symbol of the
-// simplified tree, with the tree's constant as its addend. A symbolic IR value is treated as expr::Kind::Symbolic.
-std::optional<SymbolOffset> match_symbol_operand(pepp::ast::IRValue &value, const OperandPattern &pattern);
+// An IR operand whose tree has been maximally reduced.
+struct SimplifiedOperand {
+  expr::Tree tree; // Empty for a lone symbol.
+  // The tree's first symbols in postfix order, or nullptr.
+  std::array<std::shared_ptr<pepp::core::symbol::Entry>, 2> symbols;
+  i64 addend = 0; // The tree's constant, sign-extended.
+
+  // Return true if the tree
+  // A lone symbol is treated as expr::Kind::Identifier.
+  bool matches(const OperandPattern &pattern) const;
+  // Must have matched a pattern which holds a symbol.
+  SymbolOffset target() const { return SymbolOffset{symbols[0], addend}; }
+};
+// Returns nullopt if value is neither a symbol nor an expression.
+std::optional<SimplifiedOperand> simplify_operand(pepp::ast::IRValue &value);
 // value as `symbol [+ constant]` where symbol may be a constant.
 std::optional<SymbolOffset> symbol_offset(pepp::ast::IRValue &value);
 
-// A field relocated against `[constant +] symbol`.
-template <typename Type> struct SymbolFixup {
-  OperandPattern operand;
-  Type type;
-};
-
-// Append fixup's relocations to out if non-null. If fixup pattern is not matched, return false without modifying out.
+// Append the relocation of type against operand's `[constant +] symbol` at offset.
 template <typename Type>
-bool append_relocations(const SymbolFixup<Type> &fixup, pepp::ast::IRValue &value, u32 offset,
-                        std::vector<Relocation> *out) {
-  const auto target = match_symbol_operand(value, fixup.operand);
-  if (target && out)
-    out->push_back(Relocation{.target = *target, .section_offset = offset, .type = bits::to_underlying(fixup.type)});
-  return target.has_value();
+  requires std::is_enum_v<Type>
+void append_relocations(Type type, const SimplifiedOperand &operand, u32 offset, std::vector<Relocation> &out) {
+  out.push_back(Relocation{.target = operand.target(), .section_offset = offset, .type = bits::to_underlying(type)});
 }
 
-// Each architecture keeps a table of fixup rules, sorted by IR format. Returns the first rule of format which matches
-// value, after appending its relocations at offset to out. Returns nullptr if no rule matches. If out is null, only
-// find the rule.
+// Each architecture keeps a table of fixup rules, sorted by IR format. Returns the first rule of format whose pattern
+// matches operand, or nullptr if none match.
 template <typename Rule, typename IRFormat>
-const Rule *find_fixup_rule(std::span<const Rule> rules, IRFormat format, pepp::ast::IRValue &value, u32 offset,
-                            std::vector<Relocation> *out) {
+const Rule *find_fixup_rule(std::span<const Rule> rules, IRFormat format, const SimplifiedOperand &operand) {
   for (const auto &rule : std::ranges::equal_range(rules, format, {}, &Rule::format))
-    if (append_relocations(rule.fixup, value, offset, out)) return &rule;
+    if (operand.matches(rule.operand)) return &rule;
   return nullptr;
 }
 

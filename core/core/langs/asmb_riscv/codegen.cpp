@@ -206,32 +206,32 @@ constexpr std::array call_of_constant_plus_symbol{K::Constant, K::Symbolic, K::A
 // The format of the IR an operand is encoded into. Fixup rules are keyed, and sorted, by format.
 enum class IRFormat : u8 { B, J, U, I, S, Word };
 
-using Symbol = pepp::tc::SymbolFixup<RV>;
 struct FixupRule {
   IRFormat format;
-  Symbol fixup;
+  pepp::tc::OperandPattern operand;
+  RV fixup;
 };
 
 // Every (IR format, operand shape) which a relocation can express.
 constexpr auto fixup_rules = std::to_array<FixupRule>({
-    {IRFormat::B, Symbol{symbol_pattern, RV::R_RISCV_BRANCH}},
-    {IRFormat::B, Symbol{constant_plus_symbol_pattern, RV::R_RISCV_BRANCH}},
-    {IRFormat::J, Symbol{symbol_pattern, RV::R_RISCV_JAL}},
-    {IRFormat::J, Symbol{constant_plus_symbol_pattern, RV::R_RISCV_JAL}},
-    {IRFormat::U, Symbol{{call_of_symbol, "%hi"}, RV::R_RISCV_HI20}},
-    {IRFormat::U, Symbol{{call_of_constant_plus_symbol, "%hi"}, RV::R_RISCV_HI20}},
-    {IRFormat::U, Symbol{{call_of_symbol, "%pcrel_hi"}, RV::R_RISCV_PCREL_HI20}},
-    {IRFormat::U, Symbol{{call_of_constant_plus_symbol, "%pcrel_hi"}, RV::R_RISCV_PCREL_HI20}},
-    {IRFormat::I, Symbol{{call_of_symbol, "%lo"}, RV::R_RISCV_LO12_I}},
-    {IRFormat::I, Symbol{{call_of_constant_plus_symbol, "%lo"}, RV::R_RISCV_LO12_I}},
+    {IRFormat::B, symbol_pattern, RV::R_RISCV_BRANCH},
+    {IRFormat::B, constant_plus_symbol_pattern, RV::R_RISCV_BRANCH},
+    {IRFormat::J, symbol_pattern, RV::R_RISCV_JAL},
+    {IRFormat::J, constant_plus_symbol_pattern, RV::R_RISCV_JAL},
+    {IRFormat::U, {call_of_symbol, "%hi"}, RV::R_RISCV_HI20},
+    {IRFormat::U, {call_of_constant_plus_symbol, "%hi"}, RV::R_RISCV_HI20},
+    {IRFormat::U, {call_of_symbol, "%pcrel_hi"}, RV::R_RISCV_PCREL_HI20},
+    {IRFormat::U, {call_of_constant_plus_symbol, "%pcrel_hi"}, RV::R_RISCV_PCREL_HI20},
+    {IRFormat::I, {call_of_symbol, "%lo"}, RV::R_RISCV_LO12_I},
+    {IRFormat::I, {call_of_constant_plus_symbol, "%lo"}, RV::R_RISCV_LO12_I},
     // %pcrel symbol is the address of the initial auipc containing %pcrel_hi.
-    {IRFormat::I, Symbol{{call_of_symbol, "%pcrel_lo"}, RV::R_RISCV_PCREL_LO12_I}},
-    {IRFormat::S, Symbol{{call_of_symbol, "%lo"}, RV::R_RISCV_LO12_S}},
-    {IRFormat::S, Symbol{{call_of_constant_plus_symbol, "%lo"}, RV::R_RISCV_LO12_S}},
-    {IRFormat::S, Symbol{{call_of_symbol, "%pcrel_lo"}, RV::R_RISCV_PCREL_LO12_S}},
+    {IRFormat::I, {call_of_symbol, "%pcrel_lo"}, RV::R_RISCV_PCREL_LO12_I},
+    {IRFormat::S, {call_of_symbol, "%lo"}, RV::R_RISCV_LO12_S},
+    {IRFormat::S, {call_of_constant_plus_symbol, "%lo"}, RV::R_RISCV_LO12_S},
+    {IRFormat::S, {call_of_symbol, "%pcrel_lo"}, RV::R_RISCV_PCREL_LO12_S},
     // RISC-V has no sub-word relocation for data
-    {IRFormat::Word, Symbol{symbol_pattern, RV::R_RISCV_32}},
-    {IRFormat::Word, Symbol{constant_plus_symbol_pattern, RV::R_RISCV_32}},
+    {IRFormat::Word, symbol_pattern, RV::R_RISCV_32},
+    {IRFormat::Word, constant_plus_symbol_pattern, RV::R_RISCV_32},
 });
 static_assert(std::ranges::is_sorted(fixup_rules, {}, &FixupRule::format), "Rules must be pre-sorted");
 
@@ -263,16 +263,13 @@ std::optional<u32> checked_value(pepp::tc::DiagnosticTable &diag, const pepp::tc
 
 std::optional<u32> pepp::tc::RISCVObjectVistitor::operand_field(const LinearIR &line, pepp::ast::IRValue &value,
                                                                 ArgumentConstraint constraint, u32 address) {
-  if (const auto format = format_of(line)) {
-    const auto first = relocations.size();
-    const auto *rule = find_fixup_rule<FixupRule>(fixup_rules, *format, value, address - base_address, &relocations);
+  const auto format = format_of(line);
+  const auto operand = format ? simplify_operand(value) : std::nullopt;
+  if (const auto *rule = operand ? find_fixup_rule<FixupRule>(fixup_rules, *format, *operand) : nullptr) {
     // A constant symbol cannot be moved.
-    if (rule && !relocations[first].target.symbol->is_constant())
-      return relocated_field_value(line, value, rule->fixup.type, relocations[first].target, constraint, address);
-    else if (rule) {
-      relocations.resize(first);
-      return checked_value(diag, line, value, constraint);
-    }
+    if (operand->symbols[0]->is_constant()) return checked_value(diag, line, value, constraint);
+    append_relocations(rule->fixup, *operand, address - base_address, relocations);
+    return relocated_field_value(line, value, rule->fixup, operand->target(), constraint, address);
   }
   // A `symbol [+ constant]` is left to validate_argument
   if (!symbol_offset(value) && value_needs_relocation(value)) {
@@ -323,10 +320,11 @@ std::optional<u32> pepp::tc::RISCVObjectVistitor::relocated_field_value(const Li
 std::optional<pepp::tc::SymbolOffset> pepp::tc::RISCVObjectVistitor::pcrel_hi_value(u32 address) const {
   if (const auto found = lines_by_address.find(address); found == lines_by_address.end()) return std::nullopt;
   else if (const auto *instr = dynamic_cast<const UTypeIR *>(found->second); !instr || !instr->imm) return std::nullopt;
-  else if (const auto *rule = find_fixup_rule<FixupRule>(fixup_rules, IRFormat::U, *instr->imm, 0, nullptr);
-           !rule || rule->fixup.type != RV::R_RISCV_PCREL_HI20)
+  else if (const auto operand = simplify_operand(*instr->imm); !operand) return std::nullopt;
+  else if (const auto *rule = find_fixup_rule<FixupRule>(fixup_rules, IRFormat::U, *operand);
+           !rule || rule->fixup != RV::R_RISCV_PCREL_HI20)
     return std::nullopt;
-  else return match_symbol_operand(*instr->imm, rule->fixup.operand);
+  else return operand->target();
 }
 
 void pepp::tc::RISCVObjectVistitor::emit_line(const IntegerInstruction *line) {
