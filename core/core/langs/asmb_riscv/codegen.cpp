@@ -16,6 +16,7 @@
  */
 
 #include "core/langs/asmb_riscv/codegen.hpp"
+#include <array>
 #include <fmt/format.h>
 #include "core/compile/ir_linear/attr_symbol.hpp"
 #include "core/formats/elf/enums.hpp"
@@ -24,6 +25,7 @@
 #include "core/langs/asmb/debug_line.hpp"
 #include "core/langs/asmb_riscv/ir_lines.hpp"
 #include "core/langs/asmb_riscv/text_format.hpp"
+#include "core/macros.hpp"
 #include "core/math/bitmanip/copy.hpp"
 #include "ir_visitor.hpp"
 #include "spdlog/spdlog.h"
@@ -145,6 +147,10 @@ struct RISCVObjectVistitor : public RISCVIRVisitor {
   // operand is invalid, which has been reported.
   std::optional<u32> operand_field(const LinearIR &line, pepp::ast::IRValue &value, ArgumentConstraint constraint,
                                    u32 address);
+  // The value to encode for an operand at address, which a relocation of type against target fills. nullopt if the
+  // operand is invalid, which has been reported.
+  std::optional<u32> relocated_field_value(const LinearIR &line, pepp::ast::IRValue &value, bts::RelocationsRISCV type,
+                                           const SymbolOffset &target, ArgumentConstraint constraint, u32 address);
   // The value inside %pcrel_hi() at a given address. Nullopt if target is not an auipc or if it does not use
   // %pcrel_hi().
   std::optional<SymbolOffset> pcrel_hi_value(u32 address) const;
@@ -190,70 +196,41 @@ void pepp::tc::RISCVObjectVistitor::visit(const SymbolLine *) {
 namespace {
 using RV = pepp::bts::RelocationsRISCV;
 using K = pepp::tc::expr::Kind;
-using pepp::tc::symbol_offset_patterns;
+using pepp::tc::constant_plus_symbol_pattern;
+using pepp::tc::symbol_pattern;
 constexpr std::array call_of_symbol{K::Symbolic, K::Call};
 constexpr std::array call_of_constant_plus_symbol{K::Constant, K::Symbolic, K::Add, K::Call};
 
 // The format of the IR an operand is encoded into. Fixup rules are keyed, and sorted, by format.
 enum class IRFormat : u8 { B, J, U, I, S, Word };
 
-// How a relocated field is filled in while its symbol is defined.
-enum class FixupValue : u8 {
-  OperandValue,   // The operand's value, e.g. %hi(sym) or a .word.
-  PcRelative,     // S + A - P, a branch or jump's offset.
-  PcRelativeHigh, // The upper 20 bits of S + A - P, rounded up when the lower 12 bits will sign-extend negative.
-  PcRelativeLow,  // The lower 12 bits of the PcRelativeHigh at the symbol's address, from that instruction's S + A - P.
-};
-
+using Symbol = pepp::tc::SymbolFixup<RV>;
 struct FixupRule {
   IRFormat format;
-  pepp::tc::OperandPattern operand;
-  RV type;
-  FixupValue value;
+  Symbol fixup;
 };
 
 // Every (IR format, operand shape) which a relocation can express.
-constexpr std::array<FixupRule, 16> fixup_rules{{
-    {IRFormat::B, symbol_offset_patterns[0], RV::R_RISCV_BRANCH, FixupValue::PcRelative},
-    {IRFormat::B, symbol_offset_patterns[1], RV::R_RISCV_BRANCH, FixupValue::PcRelative},
-    {IRFormat::J, symbol_offset_patterns[0], RV::R_RISCV_JAL, FixupValue::PcRelative},
-    {IRFormat::J, symbol_offset_patterns[1], RV::R_RISCV_JAL, FixupValue::PcRelative},
-    {IRFormat::U, {.kinds = call_of_symbol, .function = "%hi"}, RV::R_RISCV_HI20, FixupValue::OperandValue},
-    {IRFormat::U,
-     {.kinds = call_of_constant_plus_symbol, .symbol = 1, .addend = 0, .function = "%hi"},
-     RV::R_RISCV_HI20,
-     FixupValue::OperandValue},
-    {IRFormat::U,
-     {.kinds = call_of_symbol, .function = "%pcrel_hi"},
-     RV::R_RISCV_PCREL_HI20,
-     FixupValue::PcRelativeHigh},
-    {IRFormat::U,
-     {.kinds = call_of_constant_plus_symbol, .symbol = 1, .addend = 0, .function = "%pcrel_hi"},
-     RV::R_RISCV_PCREL_HI20,
-     FixupValue::PcRelativeHigh},
-    {IRFormat::I, {.kinds = call_of_symbol, .function = "%lo"}, RV::R_RISCV_LO12_I, FixupValue::OperandValue},
-    {IRFormat::I,
-     {.kinds = call_of_constant_plus_symbol, .symbol = 1, .addend = 0, .function = "%lo"},
-     RV::R_RISCV_LO12_I,
-     FixupValue::OperandValue},
-    // %pcrel_lo names the auipc whose %pcrel_hi it completes, rather than the target.
-    {IRFormat::I,
-     {.kinds = call_of_symbol, .function = "%pcrel_lo"},
-     RV::R_RISCV_PCREL_LO12_I,
-     FixupValue::PcRelativeLow},
-    {IRFormat::S, {.kinds = call_of_symbol, .function = "%lo"}, RV::R_RISCV_LO12_S, FixupValue::OperandValue},
-    {IRFormat::S,
-     {.kinds = call_of_constant_plus_symbol, .symbol = 1, .addend = 0, .function = "%lo"},
-     RV::R_RISCV_LO12_S,
-     FixupValue::OperandValue},
-    {IRFormat::S,
-     {.kinds = call_of_symbol, .function = "%pcrel_lo"},
-     RV::R_RISCV_PCREL_LO12_S,
-     FixupValue::PcRelativeLow},
-    // RISC-V has no sub-word relocation for data, so only a word may hold an address.
-    {IRFormat::Word, symbol_offset_patterns[0], RV::R_RISCV_32, FixupValue::OperandValue},
-    {IRFormat::Word, symbol_offset_patterns[1], RV::R_RISCV_32, FixupValue::OperandValue},
-}};
+constexpr auto fixup_rules = std::to_array<FixupRule>({
+    {IRFormat::B, Symbol{symbol_pattern, RV::R_RISCV_BRANCH}},
+    {IRFormat::B, Symbol{constant_plus_symbol_pattern, RV::R_RISCV_BRANCH}},
+    {IRFormat::J, Symbol{symbol_pattern, RV::R_RISCV_JAL}},
+    {IRFormat::J, Symbol{constant_plus_symbol_pattern, RV::R_RISCV_JAL}},
+    {IRFormat::U, Symbol{{call_of_symbol, "%hi"}, RV::R_RISCV_HI20}},
+    {IRFormat::U, Symbol{{call_of_constant_plus_symbol, "%hi"}, RV::R_RISCV_HI20}},
+    {IRFormat::U, Symbol{{call_of_symbol, "%pcrel_hi"}, RV::R_RISCV_PCREL_HI20}},
+    {IRFormat::U, Symbol{{call_of_constant_plus_symbol, "%pcrel_hi"}, RV::R_RISCV_PCREL_HI20}},
+    {IRFormat::I, Symbol{{call_of_symbol, "%lo"}, RV::R_RISCV_LO12_I}},
+    {IRFormat::I, Symbol{{call_of_constant_plus_symbol, "%lo"}, RV::R_RISCV_LO12_I}},
+    // %pcrel symbol is the address of the initial auipc containing %pcrel_hi.
+    {IRFormat::I, Symbol{{call_of_symbol, "%pcrel_lo"}, RV::R_RISCV_PCREL_LO12_I}},
+    {IRFormat::S, Symbol{{call_of_symbol, "%lo"}, RV::R_RISCV_LO12_S}},
+    {IRFormat::S, Symbol{{call_of_constant_plus_symbol, "%lo"}, RV::R_RISCV_LO12_S}},
+    {IRFormat::S, Symbol{{call_of_symbol, "%pcrel_lo"}, RV::R_RISCV_PCREL_LO12_S}},
+    // RISC-V has no sub-word relocation for data
+    {IRFormat::Word, Symbol{symbol_pattern, RV::R_RISCV_32}},
+    {IRFormat::Word, Symbol{constant_plus_symbol_pattern, RV::R_RISCV_32}},
+});
 static_assert(std::ranges::is_sorted(fixup_rules, {}, &FixupRule::format), "Rules must be pre-sorted");
 
 std::optional<IRFormat> format_of(const pepp::tc::LinearIR &line) {
@@ -273,53 +250,81 @@ std::optional<IRFormat> format_of(const pepp::tc::LinearIR &line) {
     return IRFormat::Word;
   return std::nullopt;
 }
+
+// If operand violates constraint then nullopt else value.
+std::optional<u32> checked_value(pepp::tc::DiagnosticTable &diag, const pepp::tc::LinearIR &line,
+                                 pepp::ast::IRValue &value, pepp::tc::ArgumentConstraint constraint) {
+  if (!pepp::tc::validate_argument(diag, line, value, constraint, 32)) return std::nullopt;
+  return value.value_as<u32>();
+}
 } // namespace
 
 std::optional<u32> pepp::tc::RISCVObjectVistitor::operand_field(const LinearIR &line, pepp::ast::IRValue &value,
                                                                 ArgumentConstraint constraint, u32 address) {
-  const auto format = format_of(line);
-  const auto fixup = format ? find_fixup_rule<FixupRule>(fixup_rules, *format, value) : std::nullopt;
-  // A constant symbol cannot be moved.
-  if (fixup && !fixup->target.symbol->is_constant()) {
-    const auto &[rule, target] = *fixup;
-    relocations.push_back(Relocation{
-        .target = target, .section_offset = address - base_address, .type = bits::to_underlying(rule.type)});
-    if (rule.value == FixupValue::PcRelativeLow) {
-      // Find the paired auipc that this line reference.
-      const auto auipc = target.symbol->is_undefined() ? 0 : target.symbol->value->value()() + target.addend;
-      const auto hi = target.symbol->is_undefined() ? std::nullopt : pcrel_hi_value(auipc);
-      if (!hi) {
-        const auto message = CodegenError::to_string(CodegenError::NullaryError::Argument_UnpairedPcrelLo);
-        diag.add_message(line.source_interval, message, Severity::Error);
-        return std::nullopt;
-      } else if (hi->symbol->is_undefined()) return 0;
-      // Per standard, we are supposed to compute the relocation as S + A - P
-      return static_cast<u32>(hi->symbol->value->value()() + hi->addend - auipc) & 0xFFF;
-    } else if (rule.value != FixupValue::OperandValue) {
-      // An undefined symbol is only known once linked, so no attempt is made to emit a correct immediate.
-      if (target.symbol->is_undefined()) return 0;
-      const u32 delta = target.symbol->value->value()() + target.addend - address;
-      if (rule.value == FixupValue::PcRelativeHigh) return ((delta + 0x800) >> 12) & 0xF'FFFF;
-      else if (!validate_value(diag, line, {delta, {32, expr::Signedness::Signed}}, constraint)) return std::nullopt;
-      return delta;
+  if (const auto format = format_of(line)) {
+    const auto first = relocations.size();
+    const auto *rule = find_fixup_rule<FixupRule>(fixup_rules, *format, value, address - base_address, &relocations);
+    // A constant symbol cannot be moved.
+    if (rule && !relocations[first].target.symbol->is_constant())
+      return relocated_field_value(line, value, rule->fixup.type, relocations[first].target, constraint, address);
+    else if (rule) {
+      relocations.resize(first);
+      return checked_value(diag, line, value, constraint);
     }
-  } else if (!fixup && !symbol_offset(value) && value_needs_relocation(value)) {
-    // A `symbol [+ constant]` is left to validate_argument
+  }
+  // A `symbol [+ constant]` is left to validate_argument
+  if (!symbol_offset(value) && value_needs_relocation(value)) {
     const auto message = CodegenError::to_string(CodegenError::NullaryError::Argument_NotRelocatable);
     diag.add_message(line.source_interval, message, Severity::Error);
     return std::nullopt;
+  } else return checked_value(diag, line, value, constraint);
+}
+
+std::optional<u32> pepp::tc::RISCVObjectVistitor::relocated_field_value(const LinearIR &line, pepp::ast::IRValue &value,
+                                                                        bts::RelocationsRISCV type,
+                                                                        const SymbolOffset &target,
+                                                                        ArgumentConstraint constraint, u32 address) {
+  using enum RV;
+  switch (type) {
+  // The symbol is an auipc. The field holds the lower 12 bits of S + A - P computed by that auipc's %pcrel_hi.
+  case R_RISCV_PCREL_LO12_I: [[fallthrough]];
+  case R_RISCV_PCREL_LO12_S: {
+    const auto auipc = target.symbol->is_undefined() ? 0 : target.symbol->value->value()() + target.addend;
+    const auto hi = target.symbol->is_undefined() ? std::nullopt : pcrel_hi_value(auipc);
+    if (!hi) {
+      const auto message = CodegenError::to_string(CodegenError::NullaryError::Argument_UnpairedPcrelLo);
+      diag.add_message(line.source_interval, message, Severity::Error);
+      return std::nullopt;
+    } else if (hi->symbol->is_undefined()) return 0;
+    return static_cast<u32>(hi->symbol->value->value()() + hi->addend - auipc) & 0xFFF;
   }
-  if (!validate_argument(diag, line, value, constraint, 32)) return std::nullopt;
-  return value.value_as<u32>();
+  // S + A - P. An auipc holds its upper 20 bits, rounded up when the lower 12 bits will sign-extend negative.
+  case R_RISCV_PCREL_HI20: [[fallthrough]];
+  case R_RISCV_BRANCH: [[fallthrough]];
+  case R_RISCV_JAL: {
+    // An undefined symbol is only known once linked. Don't both to emit a useful immediate.
+    if (target.symbol->is_undefined()) return 0;
+    const u32 delta = target.symbol->value->value()() + target.addend - address;
+    if (type == R_RISCV_PCREL_HI20) return ((delta + 0x800) >> 12) & 0xF'FFFF;
+    else if (!validate_value(diag, line, {delta, {32, expr::Signedness::Signed}}, constraint)) return std::nullopt;
+    return delta;
+  }
+  // The field holds the operand's value, e.g. %hi(sym) or a .word.
+  case R_RISCV_HI20: [[fallthrough]];
+  case R_RISCV_LO12_I: [[fallthrough]];
+  case R_RISCV_LO12_S: [[fallthrough]];
+  case R_RISCV_32: return checked_value(diag, line, value, constraint);
+  default: PEPP_UNREACHABLE();
+  }
 }
 
 std::optional<pepp::tc::SymbolOffset> pepp::tc::RISCVObjectVistitor::pcrel_hi_value(u32 address) const {
   if (const auto found = lines_by_address.find(address); found == lines_by_address.end()) return std::nullopt;
   else if (const auto *instr = dynamic_cast<const UTypeIR *>(found->second); !instr || !instr->imm) return std::nullopt;
-  else if (const auto fixup = find_fixup_rule<FixupRule>(fixup_rules, IRFormat::U, *instr->imm);
-           fixup && fixup->rule.type == RV::R_RISCV_PCREL_HI20)
-    return fixup->target;
-  return std::nullopt;
+  else if (const auto *rule = find_fixup_rule<FixupRule>(fixup_rules, IRFormat::U, *instr->imm, 0, nullptr);
+           !rule || rule->fixup.type != RV::R_RISCV_PCREL_HI20)
+    return std::nullopt;
+  else return match_symbol_operand(*instr->imm, rule->fixup.operand);
 }
 
 void pepp::tc::RISCVObjectVistitor::emit_line(const IntegerInstruction *line) {

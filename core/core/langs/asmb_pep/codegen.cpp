@@ -43,26 +43,27 @@
 
 namespace {
 using PepRelocation = pepp::bts::RelocationsPep;
-using pepp::tc::symbol_offset_patterns;
+using pepp::tc::constant_plus_symbol_pattern;
+using pepp::tc::symbol_pattern;
+using Fixup = pepp::tc::SymbolFixup<PepRelocation>;
 
 enum class IRFormat : u8 { OperandSpecifier, Byte, Word };
 
 struct FixupRule {
   IRFormat format;
-  pepp::tc::OperandPattern operand;
-  PepRelocation type;
+  Fixup fixup;
 };
 
 // Every (IR format, operand pattern) which needs to be relocated in Pep/10
-constexpr std::array<FixupRule, 6> fixup_rules{{
-    {IRFormat::OperandSpecifier, symbol_offset_patterns[0], PepRelocation::R_PEP10_ABS16},
-    {IRFormat::OperandSpecifier, symbol_offset_patterns[1], PepRelocation::R_PEP10_ABS16},
+constexpr auto fixup_rules = std::to_array<FixupRule>({
+    {IRFormat::OperandSpecifier, Fixup{symbol_pattern, PepRelocation::R_PEP10_ABS16}},
+    {IRFormat::OperandSpecifier, Fixup{constant_plus_symbol_pattern, PepRelocation::R_PEP10_ABS16}},
     // R_PEP10_ABS8 truncates an address to a byte.
-    {IRFormat::Byte, symbol_offset_patterns[0], PepRelocation::R_PEP10_ABS8},
-    {IRFormat::Byte, symbol_offset_patterns[1], PepRelocation::R_PEP10_ABS8},
-    {IRFormat::Word, symbol_offset_patterns[0], PepRelocation::R_PEP10_ABS16},
-    {IRFormat::Word, symbol_offset_patterns[1], PepRelocation::R_PEP10_ABS16},
-}};
+    {IRFormat::Byte, Fixup{symbol_pattern, PepRelocation::R_PEP10_ABS8}},
+    {IRFormat::Byte, Fixup{constant_plus_symbol_pattern, PepRelocation::R_PEP10_ABS8}},
+    {IRFormat::Word, Fixup{symbol_pattern, PepRelocation::R_PEP10_ABS16}},
+    {IRFormat::Word, Fixup{constant_plus_symbol_pattern, PepRelocation::R_PEP10_ABS16}},
+});
 static_assert(std::ranges::is_sorted(fixup_rules, {}, &FixupRule::format), "Rules must be pre-sorted");
 
 std::optional<IRFormat> format_of(const pepp::tc::LinearIR &line) {
@@ -75,11 +76,11 @@ std::optional<IRFormat> format_of(const pepp::tc::LinearIR &line) {
   return std::nullopt;
 }
 
-// The fixup rule for a line's operand
-std::optional<pepp::tc::MatchedFixupRule<FixupRule>> find_fixup(const pepp::tc::LinearIR &line,
-                                                                pepp::ast::IRValue &value) {
+// Returns the fixup rule for a line's operand and append relocations to a nun-null out.
+const FixupRule *find_fixup(const pepp::tc::LinearIR &line, pepp::ast::IRValue &value, u32 offset,
+                            std::vector<pepp::tc::Relocation> *out) {
   const auto format = format_of(line);
-  return format ? pepp::tc::find_fixup_rule<FixupRule>(fixup_rules, *format, value) : std::nullopt;
+  return format ? pepp::tc::find_fixup_rule<FixupRule>(fixup_rules, *format, value, offset, out) : nullptr;
 }
 } // namespace
 
@@ -97,7 +98,7 @@ pepp::tc::PeppSectionAnalysisResults pepp::tc::pepp_split_to_sections(Diagnostic
   };
   // A symbol which can move must be used in a form which a fixup rule can relocate.
   const auto check_operand = [&diag](const LinearIR &line, pepp::ast::IRValue &arg) {
-    if (value_needs_relocation(arg) && !find_fixup(line, arg))
+    if (value_needs_relocation(arg) && !find_fixup(line, arg, 0, nullptr))
       diag.add_message(line.source_interval, "Operands referencing symbols must be of the form symbol [+ constant]",
                        Severity::Error);
   };
@@ -273,12 +274,11 @@ bool needs_relocation(const pepp::core::symbol::Entry &symbol) {
 } // namespace
 
 bool pepp::tc::PeppObjectVistitor::relocate(const LinearIR &line, pepp::ast::IRValue &arg, u16 offset) {
-  const auto fixup = find_fixup(line, arg);
+  const auto first = relocations.size();
+  const auto *rule = find_fixup(line, arg, offset, &relocations);
   // This should be a previously-reported error, but allow the object code to be generated without crashing.
-  if (!fixup && value_needs_relocation(arg)) return false;
-  else if (!fixup || !needs_relocation(*fixup->target.symbol)) return true;
-  relocations.push_back(
-      Relocation{.target = fixup->target, .section_offset = offset, .type = bits::to_underlying(fixup->rule.type)});
+  if (!rule && value_needs_relocation(arg)) return false;
+  else if (rule && !needs_relocation(*relocations[first].target.symbol)) relocations.resize(first);
   return true;
 }
 

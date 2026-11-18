@@ -33,10 +33,10 @@
 #include "core/compile/ir_linear/line_symbol.hpp"
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/symbol/entry.hpp"
-#include "core/langs/asmb/diagnostic_table.hpp"
-#include "core/langs/asmb/ir_constraints.hpp"
 #include "core/compile/symbol/value.hpp"
 #include "core/formats/elf/packed_storage.hpp"
+#include "core/langs/asmb/diagnostic_table.hpp"
+#include "core/langs/asmb/ir_constraints.hpp"
 #include "core/langs/asmb/ir_program.hpp"
 #include "core/langs/expr/ir.hpp"
 
@@ -393,40 +393,49 @@ struct Relocation {
 // function (%pcrel).
 bool value_needs_relocation(pepp::ast::IRValue &value);
 
-// Describe an operand to an instruction or dot command which needs relocation.
-// e.g., %hi(constant + symbol) is {Constant, Symbolic, Add, Call} with symbol 1, addend 0, and function "%hi".
+// Describe an operand which needs relocation, e.g., %hi(constant + symbol) is {Constant, Symbolic, Add, Call} with
+// function "%hi".
 struct OperandPattern {
   std::span<const expr::Kind> kinds;
-  expr::NodeId symbol = 0;                 // The position of the symbol in the tree. When 0, the symbol is the root.
-  std::optional<expr::NodeId> addend = {}; // If non-empty, the position in the tree of the addend.
-  std::string_view function = {};          // If non-empty, the root of the tree must be a call to this function.
+  std::string_view function = {}; // If non-empty, the root of the tree must be a call to this function.
 };
 inline constexpr std::array symbol_kinds{expr::Kind::Symbolic};
 inline constexpr std::array constant_plus_symbol_kinds{expr::Kind::Constant, expr::Kind::Symbolic, expr::Kind::Add};
-// Operands of the form `symbol` or `constant + symbol`, which every architecture can relocate.
-inline constexpr std::array<OperandPattern, 2> symbol_offset_patterns{{
-    {.kinds = symbol_kinds},
-    {.kinds = constant_plus_symbol_kinds, .symbol = 1, .addend = 0},
-}};
-// Match an IRValue (which may not be an expression) against an expression pattern. A Symbolic is treated as
-// expr::Kind::Symbolic.
+// All architectures can relocate patterns `symbol` and `constant + symbol`.
+inline constexpr OperandPattern symbol_pattern{.kinds = symbol_kinds};
+inline constexpr OperandPattern constant_plus_symbol_pattern{.kinds = constant_plus_symbol_kinds};
+
+// Match an IRValue (which may not be an expression) against an expression pattern. Returns the first symbol of the
+// simplified tree, with the tree's constant as its addend. A symbolic IR value is treated as expr::Kind::Symbolic.
 std::optional<SymbolOffset> match_symbol_operand(pepp::ast::IRValue &value, const OperandPattern &pattern);
-// value as `symbol [+ constant]`, if it has one of the symbol_offset_patterns. The symbol may be a constant.
+// value as `symbol [+ constant]` where symbol may be a constant.
 std::optional<SymbolOffset> symbol_offset(pepp::ast::IRValue &value);
 
-// A fixup rule and the symbol which matched it
-template <typename Rule> struct MatchedFixupRule {
-  const Rule &rule;
-  SymbolOffset target;
+// A field relocated against `[constant +] symbol`.
+template <typename Type> struct SymbolFixup {
+  OperandPattern operand;
+  Type type;
 };
-// Each architecture keeps a table of fixup rules. Try all of the rules which match the IR format of the line, and
-// returning the first rule which matches or nullopt if none match.
+
+// Append fixup's relocations to out if non-null. If fixup pattern is not matched, return false without modifying out.
+template <typename Type>
+bool append_relocations(const SymbolFixup<Type> &fixup, pepp::ast::IRValue &value, u32 offset,
+                        std::vector<Relocation> *out) {
+  const auto target = match_symbol_operand(value, fixup.operand);
+  if (target && out)
+    out->push_back(Relocation{.target = *target, .section_offset = offset, .type = bits::to_underlying(fixup.type)});
+  return target.has_value();
+}
+
+// Each architecture keeps a table of fixup rules, sorted by IR format. Returns the first rule of format which matches
+// value, after appending its relocations at offset to out. Returns nullptr if no rule matches. If out is null, only
+// find the rule.
 template <typename Rule, typename IRFormat>
-std::optional<MatchedFixupRule<Rule>> find_fixup_rule(std::span<const Rule> rules, IRFormat format,
-                                                      pepp::ast::IRValue &value) {
+const Rule *find_fixup_rule(std::span<const Rule> rules, IRFormat format, pepp::ast::IRValue &value, u32 offset,
+                            std::vector<Relocation> *out) {
   for (const auto &rule : std::ranges::equal_range(rules, format, {}, &Rule::format))
-    if (auto target = match_symbol_operand(value, rule.operand)) return MatchedFixupRule<Rule>{rule, *target};
-  return std::nullopt;
+    if (append_relocations(rule.fixup, value, offset, out)) return &rule;
+  return nullptr;
 }
 
 // If value cannot be encoded under the given constraint, report a diagnostic and return false. If narrowing_relocation

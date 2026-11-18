@@ -14,6 +14,7 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "core/langs/asmb/codegen.hpp"
+#include <algorithm>
 #include <array>
 #include "core/compile/ir_value/expression.hpp"
 #include "core/compile/ir_value/numeric.hpp"
@@ -34,20 +35,28 @@ expr::Tree simplified(const pepp::ast::Expression &exp) {
   return expr::simplify(exp.tree(), exp.default_type(), exp.resolve_types_of(), exp.resolve_constants_of());
 }
 
-// Match a simplified expression tree against a relocation pattern. If the tree matches, return the symbol and addend.
+// Match a simplified expression tree against a relocation pattern. If the tree matches, return its first symbol, with
+// its constant as the addend. A pattern holds at most one constant, which simplification places before the symbols.
 std::optional<SymbolOffset> match(const expr::Tree &tree, const pepp::ast::Expression &exp,
                                    const pepp::tc::OperandPattern &pattern) {
+  using namespace bits;
   if (!expr::matches(tree.kinds(), pattern.kinds)) return std::nullopt;
   if (!pattern.function.empty()) {
     const auto *call = std::get_if<expr::Call>(&tree[tree.root()]);
     if (!call || call->function->name != pattern.function) return std::nullopt;
   }
+  const auto &kinds = tree.kinds();
+  const auto symbol = std::ranges::find_if(kinds, [](expr::Kind kind) { return any(kind & expr::Kind::Symbolic); });
+  const auto constant = std::ranges::find_if(kinds, [](expr::Kind kind) { return any(kind & expr::Kind::Constant); });
+  if (symbol == kinds.end()) return std::nullopt;
   // Lowering referenced every identifier, including location counters, into the symbol table.
-  const auto *identifier = std::get_if<expr::Identifier>(&tree[pattern.symbol]);
-  const auto &name = identifier ? identifier->name : std::get<expr::LocationCounter>(tree[pattern.symbol]).name;
+  const auto &node = tree[static_cast<expr::NodeId>(symbol - kinds.begin())];
+  const auto *identifier = std::get_if<expr::Identifier>(&node);
+  const auto &name = identifier ? identifier->name : std::get<expr::LocationCounter>(node).name;
   // Sign extend addend so that ABS16 effectively wraps mod 2^16, which is important for expressions like `sym-2`.
-  const i64 addend =
-      pattern.addend ? expr::constant_values(tree, exp.default_type())[*pattern.addend]->as_signed() : 0;
+  const i64 addend = constant == kinds.end()
+                         ? 0
+                         : expr::constant_values(tree, exp.default_type())[constant - kinds.begin()]->as_signed();
   return SymbolOffset{exp.symbol_table()->get(name).value(), addend};
 }
 
@@ -103,9 +112,8 @@ bool pepp::tc::value_needs_relocation(pepp::ast::IRValue &value) {
 }
 
 std::optional<SymbolOffset> pepp::tc::symbol_offset(pepp::ast::IRValue &value) {
-  for (const auto &pattern : symbol_offset_patterns)
-    if (auto offset = match_symbol_operand(value, pattern)) return offset;
-  return std::nullopt;
+  if (auto offset = match_symbol_operand(value, symbol_pattern)) return offset;
+  return match_symbol_operand(value, constant_plus_symbol_pattern);
 }
 
 std::optional<SymbolOffset> pepp::tc::match_symbol_operand(pepp::ast::IRValue &value, const OperandPattern &pattern) {
