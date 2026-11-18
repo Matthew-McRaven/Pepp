@@ -22,10 +22,12 @@
 #include <vector>
 #include "core/formats/elf/packed_access_relocations.hpp"
 #include "core/formats/elf/packed_access_symbol.hpp"
+#include "core/formats/elf/packed_types.hpp"
 #include "core/link/diagnostics.hpp"
 #include "core/link/link_view.hpp"
 #include "core/link/relocations.hpp"
 #include "core/link/symbol_definitions.hpp"
+#include "core/math/bitmanip/enums.hpp"
 
 namespace pepp::link {
 
@@ -54,19 +56,21 @@ template <ElfBits B, ElfEndian E>
 void apply_relocations(Diagnostics &diagnostics, const LinkView<B, E> &link, InputElfSectionHandle relocations,
                        InputElfSectionHandle target, std::span<u8> bytes) {
   const auto &file = link.group.file(target.file);
-  const auto fail = [&](RelocationCode code, InputElfSectionHandle section, u64 offset) {
-    diagnostics.add({Severity::Error, code, RelocationSite{section, offset}});
-  };
-  if (file.section_headers[relocations.index].sh_type != bits::to_underlying(bts::SectionTypes::SHT_RELA))
-    return fail(RelocationCode::NotRela, relocations, 0);
+  if (file.section_headers[relocations.index].sh_type != bits::to_underlying(bts::SectionTypes::SHT_RELA)) {
+    diagnostics.add({Severity::Error, RelocationCode::NotRela, RelocationSite{relocations, 0}});
+    return;
+  }
   const auto machine = static_cast<bts::ElfMachineType>(u16(file.header.e_machine));
   const bts::PackedRelocationReader<B, E> reader(file, static_cast<u16>(relocations.index));
   const bts::PackedSymbolReader<B, E> symtab(file, file.section_headers[relocations.index].sh_link);
   for (u32 it = 0; it < reader.relocation_count(); ++it) {
     const auto rela = reader.get_rela(it);
-    const auto symbol = relocation_target_address(link, symtab, target.file, u32(rela.r_sym()));
-    if (!symbol) fail(RelocationCode::NoSymbolAddress, target, rela.r_offset);
-    else if (const auto error = apply_relocation(machine, rela, *symbol, bytes)) fail(*error, target, rela.r_offset);
+    const ResolvedRelocation rel{.offset = rela.r_offset,
+                                 .type = static_cast<u32>(rela.r_type()),
+                                 .symbol = relocation_target_address(link, symtab, target.file, u32(rela.r_sym())),
+                                 .addend = static_cast<i64>(bts::sword<B>(rela.r_addend))};
+    if (const auto code = apply_relocation(machine, E, rel, bytes))
+      diagnostics.add({Severity::Error, *code, RelocationSite{target, rel.offset}});
   }
 }
 

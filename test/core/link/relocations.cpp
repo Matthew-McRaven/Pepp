@@ -28,8 +28,8 @@ TEST_CASE("apply_relocation unit tests", "[scope:core][scope:core.link][kind:uni
   using Result = std::pair<std::optional<RelocationCode>, std::vector<u8>>;
   const auto apply = [](ElfMachineType machine, RelocationsPep type, u64 symbol, i64 addend, u64 offset) {
     std::vector<u8> bytes(6, 0xEE);
-    const PackedElfRelA<ElfBits::b32, ElfEndian::be> rela(offset, bits::to_underlying(type), 0, addend);
-    const auto error = apply_relocation(machine, rela, symbol, bytes);
+    const ResolvedRelocation rel{offset, bits::to_underlying(type), symbol, addend};
+    const auto error = apply_relocation(machine, ElfEndian::be, rel, bytes);
     return Result{error, bytes};
   };
   const std::optional<RelocationCode> ok;

@@ -19,32 +19,20 @@
 #include <optional>
 #include <span>
 #include "core/formats/elf/enums_eheader.hpp"
-#include "core/formats/elf/packed_types.hpp"
 #include "core/integers.h"
 #include "core/link/diagnostics.hpp"
-#include "core/math/bitmanip/copy.hpp"
-#include "core/math/bitmanip/log2.hpp"
 
 namespace pepp::link {
 
-// Returns the number of bytes written by a relocation that computes S + A, or 0 for a relocation that writes nothing.
-// Returns nullopt for every other type.
-std::optional<u8> relocation_size(bts::ElfMachineType machine, u32 type);
+// An input file's relocation, with its symbol replaced by the output definition's address to which it resolved.
+struct ResolvedRelocation {
+  u64 offset = 0; // Of the relocated field, within its section.
+  u32 type = 0;
+  std::optional<u64> symbol; // S. Empty if the definition is not placed in the output.
+  i64 addend = 0;            // A
+};
 
-// Only works for relocations which overwrite target bytes. relocations which read-modify-write (RV instructions) are
-// unsupported.
-template <bts::ElfBits B, bts::ElfEndian E>
-std::optional<RelocationCode> apply_relocation(bts::ElfMachineType machine, const bts::PackedElfRelA<B, E> &rela,
-                                               u64 symbol, std::span<u8> section) {
-  const auto size = relocation_size(machine, rela.r_type());
-  if (!size) return RelocationCode::UnsupportedType;
-  else if (*size == 0) return std::nullopt;
-  const u64 offset = rela.r_offset;
-  if (offset > section.size() || *size > section.size() - offset) return RelocationCode::BadOffset;
-  const u64 value = symbol + static_cast<u64>(static_cast<i64>(bts::sword<B>(rela.r_addend)));
-  if (!bits::int_fits(value, *size)) return RelocationCode::Truncated;
-  const auto order = E == bts::ElfEndian::be ? bits::Order::BigEndian : bits::Order::LittleEndian;
-  bits::memcpy_endian(section.subspan(offset, *size), order, value);
-  return std::nullopt;
-}
+// Apply a relocation to the bytes of its section. Returns the reason if it cannot be applied.
+std::optional<RelocationCode> apply_relocation(bts::ElfMachineType machine, bts::ElfEndian endian,
+                                               const ResolvedRelocation &rel, std::span<u8> section);
 } // namespace pepp::link
