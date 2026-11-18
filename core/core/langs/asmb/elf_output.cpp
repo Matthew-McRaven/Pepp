@@ -23,6 +23,7 @@
 #include <stdexcept>
 #include "core/compile/symbol/entry.hpp"
 #include "core/compile/symbol/value.hpp"
+#include "core/formats/elf/enums_sections.hpp"
 #include "core/formats/elf/packed_access_relocations.hpp"
 #include "core/formats/elf/packed_access_symbol.hpp"
 #include "core/formats/elf/packed_ops.hpp"
@@ -86,12 +87,23 @@ std::optional<u64> section_low_address(const pepp::core::symbol::Entry &entry, c
   return prog[shndx - base].first.low_address;
 }
 
+// True if a relocation type must not be re-written as section-relative offset.
+// An R_RISCV_PCREL_LO12's symbol must be its auipc's label, because linkers find the paired R_RISCV_PCREL_HI20 at the
+// label's address.
+bool no_rewrite_relative(ElfMachineType machine, u32 type) {
+  using RV = RelocationsRISCV;
+  const auto riscv = static_cast<RV>(type);
+  return machine == ElfMachineType::EM_RISCV &&
+         (riscv == RV::R_RISCV_PCREL_LO12_I || riscv == RV::R_RISCV_PCREL_LO12_S);
+}
+
 // Symbols that must not be replaced with section-relative relocation entries.
-std::set<const pepp::core::symbol::Entry *> preserved_symbols(const pepp::tc::ProgramObjectCodeResult &object_code) {
+std::set<const pepp::core::symbol::Entry *> preserved_symbols(const pepp::tc::ProgramObjectCodeResult &object_code,
+                                                              ElfMachineType machine) {
   std::set<const pepp::core::symbol::Entry *> ret;
   for (const auto &relocations : object_code.relocations)
     for (const auto &relocation : relocations)
-      if (relocation.preserve_symbol) ret.insert(relocation.target.symbol.get());
+      if (no_rewrite_relative(machine, relocation.type)) ret.insert(relocation.target.symbol.get());
   return ret;
 }
 
@@ -160,7 +172,8 @@ WrittenSymbols write_symbols(PackedGrowableElfFile<B, E> &elf, const pepp::core:
 // Must follow write_symbols, since relocations name their symbol by index.
 template <ElfBits B, ElfEndian E>
 void write_relocations(PackedGrowableElfFile<B, E> &elf, const Program &prog,
-                       const pepp::tc::ProgramObjectCodeResult &object_code, const WrittenSymbols &symbols) {
+                       const pepp::tc::ProgramObjectCodeResult &object_code, const WrittenSymbols &symbols,
+                       ElfMachineType machine) {
   for (u32 it = 0; it < prog.size(); it++) {
     const auto &relocs = object_code.relocations[it];
     if (relocs.empty()) continue;
@@ -174,7 +187,7 @@ void write_relocations(PackedGrowableElfFile<B, E> &elf, const Program &prog,
       // Local symbols (other than section symbols) might be dropped. Give them an addend which is equal to the distance
       // between the section symbol and the local symbol. In the local case, replace the requested symbol with the
       // section symbol unless the assembler specifically requested the symbol be preserved as-is.
-      const bool local = !rel.preserve_symbol && binding_of(entry) == SymbolBinding::STB_LOCAL;
+      const bool local = !no_rewrite_relative(machine, rel.type) && binding_of(entry) == SymbolBinding::STB_LOCAL;
       const u32 symbol = local ? symbols.section.at(entry.section_index) : symbols.index.at(&entry);
       if (symbol == 0) throw std::logic_error("No symbol to relocate against");
       sword<B> addend = 0;
@@ -239,8 +252,8 @@ pepp::tc::ElfResult build(ElfFileType type, ElfMachineType machine, const Progra
     const auto index = add_named_section(*elf, name, SectionTypes::SHT_PROGBITS);
     elf->section_headers[index].sh_addralign = 1;
   }
-  const auto written = write_symbols(*elf, symbols, preserved_symbols(object_code), prog);
-  write_relocations(*elf, prog, object_code, written);
+  const auto written = write_symbols(*elf, symbols, preserved_symbols(object_code, machine), prog);
+  write_relocations(*elf, prog, object_code, written, machine);
   return ret;
 }
 } // namespace
