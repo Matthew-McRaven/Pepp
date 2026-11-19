@@ -486,6 +486,31 @@ TEST_CASE("SvgTransform tests-matrix manipulation tests",
     REQUIRE_THAT(item->scaleX(), Catch::Matchers::WithinAbs(0.0, 0.01));
     REQUIRE_THAT(item->scaleY(), Catch::Matchers::WithinAbs(0.0, 0.01));
   }
+
+  {
+    //  Collapse multiple translates
+    SvgTransformList list;
+    list.appendItem().setRotate(45);
+    list.appendItem().setRotate(45);
+    list.consolidate();
+    const auto &item = list.getItem(0);
+    REQUIRE_THAT(item->rotateAngle(), Catch::Matchers::WithinAbs(90.0, 0.01));
+    REQUIRE_THAT(item->rotateX(), Catch::Matchers::WithinAbs(0.0, 0.01));
+    REQUIRE_THAT(item->rotateY(), Catch::Matchers::WithinAbs(0.0, 0.01));
+  }
+  {
+    //  Ignore transforms that sum to zero.
+    SvgTransformList list;
+    list.appendItem().setRotate(45);
+    list.appendItem().setRotate(45);
+    list.appendItem().setRotate(-90);
+    list.consolidate();
+    // const auto &item = list.getItem(0);
+    // REQUIRE_THAT(item->scaleX(), Catch::Matchers::WithinAbs(0.0, 0.01));
+    // REQUIRE_THAT(item->scaleY(), Catch::Matchers::WithinAbs(0.0, 0.01));
+    CHECK(list.size() == 0);
+    CHECK(list.toString() == ""s);
+  }
 }
 /*list1.appendItem().setRotate(-1.1, 2.2, -3.3);
   list1.appendItem().setScale(6, 7);

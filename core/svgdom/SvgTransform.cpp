@@ -442,8 +442,9 @@ void SvgTransformList::setRotate(const double angle, const double cx, const doub
   }
 
   // STEP 4: Rotate
-  const double cosR = std::cos(angle);
-  const double sinR = std::sin(angle);
+  const double radians = angle * SvgTransformList::radiansToDegrees;
+  const double cosR = std::cos(radians);
+  const double sinR = std::sin(radians);
   multiply(cosR, sinR, -sinR, cosR, 0, 0);
 
   // STEP 7: Reset transform-origin pivot (Move origin back)
