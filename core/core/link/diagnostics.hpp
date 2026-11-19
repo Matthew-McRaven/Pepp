@@ -87,6 +87,9 @@ enum class RelocationCode : u8 {
   BadOffset,
   // The symbol has no address (e.g., it is in a section that is not part of the output).
   NoSymbolAddress,
+  Misaligned,
+  // This reolocation is the second member of a pair, but the first member is missing.
+  Unpaired,
 };
 
 using DiagnosticCode =

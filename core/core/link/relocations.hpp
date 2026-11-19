@@ -18,21 +18,53 @@
 #pragma once
 #include <optional>
 #include <span>
+#include <variant>
 #include "core/formats/elf/enums_eheader.hpp"
+#include "core/formats/elf/packed_types.hpp"
 #include "core/integers.h"
 #include "core/link/diagnostics.hpp"
 
 namespace pepp::link {
 
-// An input file's relocation, with its symbol replaced by the output definition's address to which it resolved.
+// A relocation from the input with its symbol resolved to one in the output.
 struct ResolvedRelocation {
-  u64 offset = 0; // Of the relocated field, within its section.
-  u32 type = 0;
+  ResolvedRelocation(u64 offset, u32 type, std::optional<u64> symbol, i64 addend)
+      : offset(offset), type(type), symbol(symbol), addend(addend) {}
+  template <bts::ElfBits B, bts::ElfEndian E>
+  ResolvedRelocation(const bts::PackedElfRelA<B, E> &rela, std::optional<u64> symbol)
+      : offset(rela.r_offset), type(static_cast<u32>(rela.r_type())), symbol(symbol),
+        addend(static_cast<i64>(bts::sword<B>(rela.r_addend))) {}
+
+  u64 offset;                // Of the relocated field within its section.
+  u32 type;                  // machine-dependent relocation type.
   std::optional<u64> symbol; // S. Empty if the definition is not placed in the output.
-  i64 addend = 0;            // A
+  i64 addend;                // A
 };
 
-// Apply a relocation to the bytes of its section. Returns the reason if it cannot be applied.
-std::optional<RelocationCode> apply_relocation(bts::ElfMachineType machine, bts::ElfEndian endian,
-                                               const ResolvedRelocation &rel, std::span<u8> section);
+struct PairedRelocation {
+  // The relocation currently being applied.
+  ResolvedRelocation rel;
+  // The additional relocation entry consumed by rel.
+  ResolvedRelocation pair;
+};
+
+// There exists a relocation with this (offset, type) in the current setion
+struct RelocationKey {
+  u64 offset = 0;
+  u32 type = 0;
+};
+// Given a relocation which is the second member of a pair, find the first member of the pair, if it exists.
+std::optional<RelocationKey> paired_key(bts::ElfMachineType machine, u64 address, const ResolvedRelocation &rel);
+
+std::optional<RelocationCode> apply_relocation(bts::ElfMachineType machine, bts::ElfBits width, bts::ElfEndian endian,
+                                               u64 address, std::span<u8> bytes,
+                                               const std::variant<ResolvedRelocation, PairedRelocation> &relocation);
+
+// Apply a relocation to bytes, the output's copy of its section placed at address. Returns the reason if it cannot be
+// applied.
+template <bts::ElfBits B, bts::ElfEndian E>
+std::optional<RelocationCode> apply_relocation(bts::ElfMachineType machine, u64 address, std::span<u8> bytes,
+                                               const std::variant<ResolvedRelocation, PairedRelocation> &relocation) {
+  return apply_relocation(machine, B, E, address, bytes, relocation);
+}
 } // namespace pepp::link
