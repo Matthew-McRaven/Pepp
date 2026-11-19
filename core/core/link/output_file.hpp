@@ -57,11 +57,13 @@ void write_sections(Diagnostics &diagnostics, const LinkView<B, E> &link, bts::P
       const auto member = link.placements.sections().handle(position);
       const auto contents = link.group.data(member);
       const auto from = contents->get(0, contents->size());
-      const auto to = data->get(link.placements.assignments()[position].offset, from.size());
+      const auto offset = link.placements.assignments()[position].offset;
+      const auto to = data->get(offset, from.size());
       if (to.size() != from.size()) throw std::runtime_error("could not map an output section");
       std::ranges::copy(from, to.begin());
       if (relocations[position] != 0)
-        apply_relocations(diagnostics, link, {member.file, relocations[position]}, member, to);
+        apply_relocations(diagnostics, link, {member.file, relocations[position]}, member,
+                          link.outputs[id]->vma + offset, to);
     }
     slice->flush();
   }

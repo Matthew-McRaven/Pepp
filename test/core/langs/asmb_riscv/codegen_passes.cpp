@@ -265,7 +265,7 @@ TEST_CASE("RISCV ASM code generator relocations",
     IRMemoryAddressTable<RISCVAddress> addresses;
     ProgramObjectCodeResult code;
   };
-  const auto assemble = [](const char *source) {
+  const auto assemble = [](const char *source, pepp::bts::ElfFileType type = pepp::bts::ElfFileType::ET_EXEC) {
     Assembled ret;
     auto p = Parser(data(source));
     ret.symbols = p.symbol_table();
@@ -273,7 +273,7 @@ TEST_CASE("RISCV ASM code generator relocations",
     REQUIRE(ret.diag.count() == 0);
     ret.split = riscv_split_to_sections(ret.diag, ret.program);
     ret.addresses = riscv_assign_addresses(ret.diag, ret.split.grouped_ir);
-    ret.code = riscv_to_object_code(ret.diag, ret.addresses, ret.split.grouped_ir);
+    ret.code = riscv_to_object_code(ret.diag, ret.addresses, ret.split.grouped_ir, type);
     return ret;
   };
   // One use of each fixup rule. data is 0x1800 past the auipc, so its lower 12 bits (0x800) sign-extend negative.
@@ -357,6 +357,51 @@ data: .word 0)");
     CHECK((offset == 24 && type == bits::to_underlying(R_RISCV_PCREL_LO12_I)));
     CHECK((name_of(symbol) == ".Lhi" && addend == 0));
   }
+  SECTION("Symbol differences") {
+    // Labels in one section still need relocations as. Eventual linker relaxation can move them.
+    const char *source = R"(a: nop
+b: nop
+.word b - a
+.word d - b + 8
+.word ext - .
+.word b + 4 - .
+.half ext - a
+.byte d - ext
+.byte b - a
+.data
+d: .word 0)";
+    const auto object = assemble(source, pepp::bts::ElfFileType::ET_REL);
+    REQUIRE(object.diag.count() == 0);
+    const std::vector<std::tuple<u32, pepp::bts::RelocationsRISCV, std::string, i64>> expected{
+        {8, R_RISCV_ADD32, "b", 0},    {8, R_RISCV_SUB32, "a", 0},       {12, R_RISCV_ADD32, "d", 8},
+        {12, R_RISCV_SUB32, "b", 0},   {16, R_RISCV_32_PCREL, "ext", 0}, {20, R_RISCV_32_PCREL, "b", 4},
+        {24, R_RISCV_ADD16, "ext", 0}, {24, R_RISCV_SUB16, "a", 0},      {26, R_RISCV_ADD8, "d", 0},
+        {26, R_RISCV_SUB8, "ext", 0},  {27, R_RISCV_ADD8, "b", 0},       {27, R_RISCV_SUB8, "a", 0},
+    };
+    const auto &relocations = object.code.relocations.at(0);
+    REQUIRE(relocations.size() == expected.size());
+    for (std::size_t it = 0; it < expected.size(); it++) {
+      CAPTURE(it);
+      const auto &[offset, type, symbol, addend] = expected[it];
+      CHECK(relocations[it].section_offset == offset);
+      CHECK(relocations[it].type == bits::to_underlying(type));
+      CHECK(relocations[it].target.symbol->name == symbol);
+      CHECK(relocations[it].target.addend == addend);
+    }
+    // In an ET_REL, ADD and SUB add to the current value of field. 0-init by default.
+    // A defined R_RISCV_32_PCREL holds b + 4 - 20.
+    std::vector<u8> fields(20, 0);
+    fields[12] = 0xF4, fields[13] = fields[14] = fields[15] = 0xFF;
+    CHECK(std::ranges::equal(object.code.section_slices.at(0).get(8, 20), fields));
+
+    // ET_EXEC requires fields be assigned values without relocations. Those involving ext stay 0.
+    const auto executable = assemble(source);
+    REQUIRE(executable.diag.count() == 0);
+    const u32 d = executable.symbols->get("d").value()->value->value()();
+    fields[0] = fields[19] = 4;
+    for (u32 it = 0; it < 4; it++) fields[4 + it] = static_cast<u8>((d + 4) >> (8 * it));
+    CHECK(std::ranges::equal(executable.code.section_slices.at(0).get(8, 20), fields));
+  }
   SECTION("Invalid relocations") {
     using E = CodegenError;
     using enum CodegenError::NullaryError;
@@ -364,6 +409,7 @@ data: .word 0)");
     for (const auto &[source, error] : std::vector<std::pair<const char *, E::NullaryError>>{
              {"addi x1, x1, %hi(l)\nl:", Argument_NotRelocatable},                  // Wrong instruction type for %hi
              {".word l * 2\nl:", Argument_NotRelocatable},                          // Not symbol [+ constant]
+             {"addi x1, x1, d - l\nl: nop\n.data\nd:", Argument_NotRelocatable},    // Only data has ADD/SUB
              {"addi x1, x1, %pcrel_lo(l)\nl: nop", Argument_UnpairedPcrelLo},       // Not an auipc
              {"l: lui x1, 1\naddi x1, x1, %pcrel_lo(l)", Argument_UnpairedPcrelLo}, // No %pcrel_hi
          }) {

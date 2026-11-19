@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "Token.h"
 #include "TokenSource.h"
 #include "CommonTokenFactory.h"
 

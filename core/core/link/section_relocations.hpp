@@ -19,6 +19,7 @@
 #pragma once
 #include <optional>
 #include <span>
+#include <variant>
 #include <vector>
 #include "core/formats/elf/packed_access_relocations.hpp"
 #include "core/formats/elf/packed_access_symbol.hpp"
@@ -26,6 +27,7 @@
 #include "core/link/link_view.hpp"
 #include "core/link/relocations.hpp"
 #include "core/link/symbol_definitions.hpp"
+#include "core/math/bitmanip/enums.hpp"
 
 namespace pepp::link {
 
@@ -49,24 +51,47 @@ std::optional<u64> relocation_target_address(const LinkView<B, E> &link, const b
   return std::nullopt;
 }
 
+// Find a relocation with a particular (offset, type).
+template <ElfBits B, ElfEndian E>
+std::optional<u32> find_relocation(const bts::PackedRelocationReader<B, E> &reader, u32 index, RelocationKey key) {
+  const auto matches = [&](u32 it) {
+    const auto rela = reader.get_rela(it);
+    return u64(rela.r_offset) == key.offset && static_cast<u32>(rela.r_type()) == key.type;
+  };
+  // Typical a hi/lo pair is emitted sequentially. We are currently in the lo part, searching for the hi.
+  // The best guess is at index-1, but we revert to a linear scan over all relocations.
+  for (u32 it = index; it-- > 0;)
+    if (matches(it)) return it;
+  for (u32 it = index + 1; it < reader.relocation_count(); ++it)
+    if (matches(it)) return it;
+  return std::nullopt;
+}
+
 // Apply relocations to output's copy of the bytes. bytes should be an alias of target's data, just in the output file.
 template <ElfBits B, ElfEndian E>
 void apply_relocations(Diagnostics &diagnostics, const LinkView<B, E> &link, InputElfSectionHandle relocations,
-                       InputElfSectionHandle target, std::span<u8> bytes) {
+                       InputElfSectionHandle target, u64 address, std::span<u8> bytes) {
   const auto &file = link.group.file(target.file);
-  const auto fail = [&](RelocationCode code, InputElfSectionHandle section, u64 offset) {
-    diagnostics.add({Severity::Error, code, RelocationSite{section, offset}});
-  };
-  if (file.section_headers[relocations.index].sh_type != bits::to_underlying(bts::SectionTypes::SHT_RELA))
-    return fail(RelocationCode::NotRela, relocations, 0);
+  if (file.section_headers[relocations.index].sh_type != bits::to_underlying(bts::SectionTypes::SHT_RELA)) {
+    diagnostics.add({Severity::Error, RelocationCode::NotRela, RelocationSite{relocations, 0}});
+    return;
+  }
   const auto machine = static_cast<bts::ElfMachineType>(u16(file.header.e_machine));
   const bts::PackedRelocationReader<B, E> reader(file, static_cast<u16>(relocations.index));
   const bts::PackedSymbolReader<B, E> symtab(file, file.section_headers[relocations.index].sh_link);
+  const auto resolve = [&](u32 index) {
+    const auto rela = reader.get_rela(index);
+    return ResolvedRelocation(rela, relocation_target_address(link, symtab, target.file, u32(rela.r_sym())));
+  };
   for (u32 it = 0; it < reader.relocation_count(); ++it) {
-    const auto rela = reader.get_rela(it);
-    const auto symbol = relocation_target_address(link, symtab, target.file, u32(rela.r_sym()));
-    if (!symbol) fail(RelocationCode::NoSymbolAddress, target, rela.r_offset);
-    else if (const auto error = apply_relocation(machine, rela, *symbol, bytes)) fail(*error, target, rela.r_offset);
+    const auto rel = resolve(it);
+    std::variant<ResolvedRelocation, PairedRelocation> relocation = rel;
+    // Check if rel is the second member of a paired relocation. If so, update the relocation in-place.
+    const auto maybe_paired_key = paired_key(machine, address, rel);
+    const auto pair_index = maybe_paired_key ? find_relocation(reader, it, *maybe_paired_key) : std::nullopt;
+    if (pair_index) relocation = PairedRelocation{rel, resolve(*pair_index)};
+    if (const auto code = apply_relocation<B, E>(machine, address, bytes, relocation))
+      diagnostics.add({Severity::Error, *code, RelocationSite{target, rel.offset}});
   }
 }
 

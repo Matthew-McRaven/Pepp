@@ -14,6 +14,7 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "core/langs/asmb/codegen.hpp"
+#include <algorithm>
 #include <array>
 #include "core/compile/ir_value/expression.hpp"
 #include "core/compile/ir_value/numeric.hpp"
@@ -32,23 +33,6 @@ namespace expr = pepp::tc::expr;
 // Simplify first, so that e.g. sym - 1 + 3 becomes the constant + symbol which is eash to match against a relocation.
 expr::Tree simplified(const pepp::ast::Expression &exp) {
   return expr::simplify(exp.tree(), exp.default_type(), exp.resolve_types_of(), exp.resolve_constants_of());
-}
-
-// Match a simplified expression tree against a relocation pattern. If the tree matches, return the symbol and addend.
-std::optional<SymbolOffset> match(const expr::Tree &tree, const pepp::ast::Expression &exp,
-                                   const pepp::tc::OperandPattern &pattern) {
-  if (!expr::matches(tree.kinds(), pattern.kinds)) return std::nullopt;
-  if (!pattern.function.empty()) {
-    const auto *call = std::get_if<expr::Call>(&tree[tree.root()]);
-    if (!call || call->function->name != pattern.function) return std::nullopt;
-  }
-  // Lowering referenced every identifier, including location counters, into the symbol table.
-  const auto *identifier = std::get_if<expr::Identifier>(&tree[pattern.symbol]);
-  const auto &name = identifier ? identifier->name : std::get<expr::LocationCounter>(tree[pattern.symbol]).name;
-  // Sign extend addend so that ABS16 effectively wraps mod 2^16, which is important for expressions like `sym-2`.
-  const i64 addend =
-      pattern.addend ? expr::constant_values(tree, exp.default_type())[*pattern.addend]->as_signed() : 0;
-  return SymbolOffset{exp.symbol_table()->get(name).value(), addend};
 }
 
 // The value an argument encodes, typed so that its sign can be checked against a constraint.
@@ -102,20 +86,48 @@ bool pepp::tc::value_needs_relocation(pepp::ast::IRValue &value) {
   return false;
 }
 
-std::optional<SymbolOffset> pepp::tc::symbol_offset(pepp::ast::IRValue &value) {
-  for (const auto &pattern : symbol_offset_patterns)
-    if (auto offset = match_symbol_operand(value, pattern)) return offset;
-  return std::nullopt;
+bool pepp::tc::SimplifiedOperand::matches(const OperandPattern &pattern) const {
+  static constexpr std::array lone_symbol{expr::Kind::Identifier};
+  // If empty, then it must be a lone symbol.
+  if (tree.empty()) return pattern.function.empty() && expr::matches(lone_symbol, pattern.kinds);
+  else if (!expr::matches(tree.kinds(), pattern.kinds)) return false;
+  // If not a function call, then matching on types of tree nodes is sufficient.
+  else if (pattern.function.empty()) return true;
+  // Otherwise, check that the root node contains the expected function.
+  const auto *call = std::get_if<expr::Call>(&tree[tree.root()]);
+  return call && call->function->name == pattern.function;
 }
 
-std::optional<SymbolOffset> pepp::tc::match_symbol_operand(pepp::ast::IRValue &value, const OperandPattern &pattern) {
-  using K = expr::Kind;
-  static constexpr std::array lone_symbol{K::Identifier};
-  if (auto *symbolic = dynamic_cast<pepp::ast::Symbolic *>(&value)) {
-    if (!pattern.function.empty() || !expr::matches(lone_symbol, pattern.kinds)) return std::nullopt;
-    return SymbolOffset{symbolic->symbol(), 0};
-  } else if (const auto *expression = dynamic_cast<pepp::ast::Expression *>(&value))
-    return match(simplified(*expression), *expression, pattern);
+std::optional<pepp::tc::SimplifiedOperand> pepp::tc::simplify_operand(pepp::ast::IRValue &value) {
+  using namespace bits;
+  if (auto *symbolic = dynamic_cast<pepp::ast::Symbolic *>(&value))
+    return SimplifiedOperand{.symbols = {symbolic->symbol()}};
+  const auto *expression = dynamic_cast<pepp::ast::Expression *>(&value);
+  if (!expression) return std::nullopt;
+
+  SimplifiedOperand ret{.tree = simplified(*expression)};
+  const auto &kinds = ret.tree.kinds();
+  auto symbol = ret.symbols.begin();
+  std::optional<std::size_t> constant;
+  for (std::size_t it = 0; it < kinds.size(); it++) {
+    if (any(kinds[it] & expr::Kind::Constant) && !constant) constant = it;
+    else if (any(kinds[it] & expr::Kind::Symbolic) && symbol != ret.symbols.end()) {
+      // Lowering referenced every identifier, including location counters, into the symbol table.
+      const auto &node = ret.tree[static_cast<expr::NodeId>(it)];
+      const auto *identifier = std::get_if<expr::Identifier>(&node);
+      const auto &name = identifier ? identifier->name : std::get<expr::LocationCounter>(node).name;
+      *symbol++ = expression->symbol_table()->get(name).value();
+    }
+  }
+  // Sign extend addend so that ABS16 effectively wraps mod 2^16, which is important for expressions like `sym-2`.
+  if (constant) ret.addend = expr::constant_values(ret.tree, expression->default_type())[*constant]->as_signed();
+  return ret;
+}
+
+std::optional<SymbolOffset> pepp::tc::symbol_offset(pepp::ast::IRValue &value) {
+  const auto operand = simplify_operand(value);
+  if (operand && (operand->matches(symbol_pattern) || operand->matches(constant_plus_symbol_pattern)))
+    return operand->target();
   return std::nullopt;
 }
 

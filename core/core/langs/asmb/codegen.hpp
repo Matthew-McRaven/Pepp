@@ -27,16 +27,17 @@
 #include <ranges>
 #include <span>
 #include <string_view>
+#include <type_traits>
 #include <vector>
 #include "core/compile/ir_linear/attr_comment.hpp"
 #include "core/compile/ir_linear/line_dot.hpp"
 #include "core/compile/ir_linear/line_symbol.hpp"
 #include "core/compile/ir_value/symbolic.hpp"
 #include "core/compile/symbol/entry.hpp"
-#include "core/langs/asmb/diagnostic_table.hpp"
-#include "core/langs/asmb/ir_constraints.hpp"
 #include "core/compile/symbol/value.hpp"
 #include "core/formats/elf/packed_storage.hpp"
+#include "core/langs/asmb/diagnostic_table.hpp"
+#include "core/langs/asmb/ir_constraints.hpp"
 #include "core/langs/asmb/ir_program.hpp"
 #include "core/langs/expr/ir.hpp"
 
@@ -387,49 +388,56 @@ struct Relocation {
   SymbolOffset target; // S + A
   u32 section_offset;  // Offset into a section's object code (in bytes) of the field which needs relocation.
   u32 type;            // Architecture specific, e.g., RelocationsPep.
-  // The assembler must not rewrite the symbol as an offset from the section. If the symbol is local, this may result in
-  // it being written to the final .symtab
-  bool preserve_symbol = false;
 };
 
 // True if value depends on a symbol which can move (e.g., a label or undefined symbol) or it uses a relocation
 // function (%pcrel).
 bool value_needs_relocation(pepp::ast::IRValue &value);
 
-// Describe an operand to an instruction or dot command which needs relocation.
-// e.g., %hi(constant + symbol) is {Constant, Symbolic, Add, Call} with symbol 1, addend 0, and function "%hi".
+// Describe an operand which needs relocation, e.g., %hi(constant + symbol) is {Constant, Symbolic, Add, Call} with
+// function "%hi".
 struct OperandPattern {
   std::span<const expr::Kind> kinds;
-  expr::NodeId symbol = 0;                 // The position of the symbol in the tree. When 0, the symbol is the root.
-  std::optional<expr::NodeId> addend = {}; // If non-empty, the position in the tree of the addend.
-  std::string_view function = {};          // If non-empty, the root of the tree must be a call to this function.
+  std::string_view function = {}; // If non-empty, the root of the tree must be a call to this function.
 };
 inline constexpr std::array symbol_kinds{expr::Kind::Symbolic};
 inline constexpr std::array constant_plus_symbol_kinds{expr::Kind::Constant, expr::Kind::Symbolic, expr::Kind::Add};
-// Operands of the form `symbol` or `constant + symbol`, which every architecture can relocate.
-inline constexpr std::array<OperandPattern, 2> symbol_offset_patterns{{
-    {.kinds = symbol_kinds},
-    {.kinds = constant_plus_symbol_kinds, .symbol = 1, .addend = 0},
-}};
-// Match an IRValue (which may not be an expression) against an expression pattern. A Symbolic is treated as
-// expr::Kind::Symbolic.
-std::optional<SymbolOffset> match_symbol_operand(pepp::ast::IRValue &value, const OperandPattern &pattern);
-// value as `symbol [+ constant]`, if it has one of the symbol_offset_patterns. The symbol may be a constant.
+// All architectures can relocate patterns `symbol` and `constant + symbol`.
+inline constexpr OperandPattern symbol_pattern{.kinds = symbol_kinds};
+inline constexpr OperandPattern constant_plus_symbol_pattern{.kinds = constant_plus_symbol_kinds};
+
+// An IR operand whose tree has been maximally reduced.
+struct SimplifiedOperand {
+  expr::Tree tree; // Empty for a lone symbol.
+  // The tree's first symbols in postfix order, or nullptr.
+  std::array<std::shared_ptr<pepp::core::symbol::Entry>, 2> symbols;
+  i64 addend = 0; // The tree's constant, sign-extended.
+
+  // Return true if the tree
+  // A lone symbol is treated as expr::Kind::Identifier.
+  bool matches(const OperandPattern &pattern) const;
+  // Must have matched a pattern which holds a symbol.
+  SymbolOffset target() const { return SymbolOffset{symbols[0], addend}; }
+};
+// Returns nullopt if value is neither a symbol nor an expression.
+std::optional<SimplifiedOperand> simplify_operand(pepp::ast::IRValue &value);
+// value as `symbol [+ constant]` where symbol may be a constant.
 std::optional<SymbolOffset> symbol_offset(pepp::ast::IRValue &value);
 
-// A fixup rule and the symbol which matched it
-template <typename Rule> struct MatchedFixupRule {
-  const Rule &rule;
-  SymbolOffset target;
-};
-// Each architecture keeps a table of fixup rules. Try all of the rules which match the IR format of the line, and
-// returning the first rule which matches or nullopt if none match.
+// Append the relocation of type against operand's `[constant +] symbol` at offset.
+template <typename Type>
+  requires std::is_enum_v<Type>
+void append_relocations(Type type, const SimplifiedOperand &operand, u32 offset, std::vector<Relocation> &out) {
+  out.push_back(Relocation{.target = operand.target(), .section_offset = offset, .type = bits::to_underlying(type)});
+}
+
+// Each architecture keeps a table of fixup rules, sorted by IR format. Returns the first rule of format whose pattern
+// matches operand, or nullptr if none match.
 template <typename Rule, typename IRFormat>
-std::optional<MatchedFixupRule<Rule>> find_fixup_rule(std::span<const Rule> rules, IRFormat format,
-                                                      pepp::ast::IRValue &value) {
+const Rule *find_fixup_rule(std::span<const Rule> rules, IRFormat format, const SimplifiedOperand &operand) {
   for (const auto &rule : std::ranges::equal_range(rules, format, {}, &Rule::format))
-    if (auto target = match_symbol_operand(value, rule.operand)) return MatchedFixupRule<Rule>{rule, *target};
-  return std::nullopt;
+    if (operand.matches(rule.operand)) return &rule;
+  return nullptr;
 }
 
 // If value cannot be encoded under the given constraint, report a diagnostic and return false. If narrowing_relocation
@@ -457,9 +465,10 @@ struct ProgramObjectCodeResult {
 using LinesByAddress = fc::vector_map<u32, const LinearIR *>;
 
 // Values which do not fit their field are reported to diag, and their bytes are left as zeros.
-template <typename Address, typename Visitor>
+template <typename Address, typename Visitor, typename... Extra>
 ProgramObjectCodeResult to_object_code(DiagnosticTable &diag, const IRMemoryAddressTable<Address> &addresses,
-                                       std::vector<std::pair<SectionDescriptor, IRProgram>> &prog) {
+                                       std::vector<std::pair<SectionDescriptor, IRProgram>> &prog,
+                                       const Extra &...extra) {
   ProgramObjectCodeResult ret;
   std::vector<detail::SectionOffsets> offsets(prog.size(), detail::SectionOffsets{});
   u64 object_size = 0, ir_count = 0;
@@ -489,7 +498,7 @@ ProgramObjectCodeResult to_object_code(DiagnosticTable &diag, const IRMemoryAddr
     // Establish flat-map invariant
     std::sort(lines_by_address.container.begin(), lines_by_address.container.end());
     Visitor visitor(diag, addresses, lines_by_address, sec.low_address, slice.get(0, slice.size()), ret.relocations[it],
-                    ret.ir_to_object_code);
+                    ret.ir_to_object_code, extra...);
     for (const auto &line : ir) visitor.accept(line.get());
   }
 

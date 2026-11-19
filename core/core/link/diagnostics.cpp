@@ -61,6 +61,8 @@ std::string_view to_string(RelocationCode code) {
   case Truncated: return "relocation truncated to fit";
   case BadOffset: return "relocation offset is outside of its section";
   case NoSymbolAddress: return "relocation against a symbol without an address";
+  case Misaligned: return "relocation value is misaligned";
+  case Unpaired: return "relocation is missing its paired relocation";
   }
   return "unknown error";
 }

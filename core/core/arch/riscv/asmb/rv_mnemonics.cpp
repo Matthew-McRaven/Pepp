@@ -351,11 +351,10 @@ template <> riscv::InstructionI riscv::MnemonicDescriptor::encode<riscv::Instruc
 template <> riscv::InstructionS riscv::MnemonicDescriptor::encode<riscv::InstructionS>(Values v) const {
   const u8 rs1 = resolve_rs1(v.rs1);
   const u8 rs2 = resolve_rs2(v.rs2);
+  InstructionS ret{.opcode = _opcode7, .imm1 = 0, .funct3 = _funct3, .rs1 = rs1, .rs2 = rs2, .imm2 = 0};
   // Sometime immediate already has bits in it for specialized instructions. Preserve those bits with |
-  const u16 imm = encode_imm(v.imm.value_or(0) | _imm_or_funct7);
-  const u8 imm11_05 = (imm >> 5u) & ((1 << 7) - 1);
-  const u8 imm4_0 = imm & ((1 << 5) - 1);
-  return InstructionS{.opcode = _opcode7, .imm1 = imm4_0, .funct3 = _funct3, .rs1 = rs1, .rs2 = rs2, .imm2 = imm11_05};
+  ret.set_imm(v.imm.value_or(0) | _imm_or_funct7);
+  return ret;
 }
 template <> riscv::InstructionU riscv::MnemonicDescriptor::encode<riscv::InstructionU>(Values v) const {
   const u8 rd = resolve_rd(v.rd);
@@ -366,31 +365,18 @@ template <> riscv::InstructionU riscv::MnemonicDescriptor::encode<riscv::Instruc
 template <> riscv::InstructionB riscv::MnemonicDescriptor::encode<riscv::InstructionB>(Values v) const {
   const u8 rs1 = resolve_rs1(v.rs1);
   const u8 rs2 = resolve_rs2(v.rs2);
+  InstructionB ret{
+      .opcode = _opcode7, .imm1 = 0, .imm2 = 0, .funct3 = _funct3, .rs1 = rs1, .rs2 = rs2, .imm3 = 0, .imm4 = 0};
   // Sometime immediate already has bits in it for specialized instructions. Preserve those bits with |
-  const u32 imm = encode_imm(v.imm.value_or(0) | _imm_or_funct7);
-  const u8 imm4_1 = imm & ((1u << 4) - 1);
-  const u8 imm10_5 = (imm >> 4u) & ((1u << 6) - 1);
-  const u8 imm11_11 = (imm >> 10u) & 1;
-  const u8 imm12_12 = (imm >> 11u) & 1;
-  return InstructionB{.opcode = _opcode7,
-                      .imm1 = imm11_11,
-                      .imm2 = imm4_1,
-                      .funct3 = _funct3,
-                      .rs1 = rs1,
-                      .rs2 = rs2,
-                      .imm3 = imm10_5,
-                      .imm4 = imm12_12};
+  ret.set_imm(v.imm.value_or(0) | _imm_or_funct7);
+  return ret;
 }
 template <> riscv::InstructionJ riscv::MnemonicDescriptor::encode<riscv::InstructionJ>(Values v) const {
   const u8 rd = resolve_rd(v.rd);
+  InstructionJ ret{.opcode = _opcode7, .rd = rd, .imm1 = 0, .imm2 = 0, .imm3 = 0, .imm4 = 0};
   // Sometime immediate already has bits in it for specialized instructions. Preserve those bits with |
-  const u32 imm = encode_imm(v.imm.value_or(0) | _imm_or_funct7);
-  const u16 imm10_01 = imm & ((1u << 10) - 1);
-  const u8 imm11_11 = (imm >> 10u) & 1;
-  const u16 imm19_12 = (imm >> 11u) & ((1u << 8) - 1);
-  const u8 imm20_20 = (imm >> 19u) & 1;
-  return InstructionJ{
-      .opcode = _opcode7, .rd = rd, .imm1 = imm19_12, .imm2 = imm11_11, .imm3 = imm10_01, .imm4 = imm20_20};
+  ret.set_jump_offset(v.imm.value_or(0) | _imm_or_funct7);
+  return ret;
 }
 
 static void add_rv32i_instructions(riscv::MnemonicSet &mn_set) {

@@ -18,33 +18,53 @@
 #pragma once
 #include <optional>
 #include <span>
+#include <variant>
 #include "core/formats/elf/enums_eheader.hpp"
 #include "core/formats/elf/packed_types.hpp"
 #include "core/integers.h"
 #include "core/link/diagnostics.hpp"
-#include "core/math/bitmanip/copy.hpp"
-#include "core/math/bitmanip/log2.hpp"
 
 namespace pepp::link {
 
-// Returns the number of bytes written by a relocation that computes S + A, or 0 for a relocation that writes nothing.
-// Returns nullopt for every other type.
-std::optional<u8> relocation_size(bts::ElfMachineType machine, u32 type);
+// A relocation from the input with its symbol resolved to one in the output.
+struct ResolvedRelocation {
+  ResolvedRelocation(u64 offset, u32 type, std::optional<u64> symbol, i64 addend)
+      : offset(offset), type(type), symbol(symbol), addend(addend) {}
+  template <bts::ElfBits B, bts::ElfEndian E>
+  ResolvedRelocation(const bts::PackedElfRelA<B, E> &rela, std::optional<u64> symbol)
+      : offset(rela.r_offset), type(static_cast<u32>(rela.r_type())), symbol(symbol),
+        addend(static_cast<i64>(bts::sword<B>(rela.r_addend))) {}
 
-// Only works for relocations which overwrite target bytes. relocations which read-modify-write (RV instructions) are
-// unsupported.
+  u64 offset;                // Of the relocated field within its section.
+  u32 type;                  // machine-dependent relocation type.
+  std::optional<u64> symbol; // S. Empty if the definition is not placed in the output.
+  i64 addend;                // A
+};
+
+struct PairedRelocation {
+  // The relocation currently being applied.
+  ResolvedRelocation rel;
+  // The additional relocation entry consumed by rel.
+  ResolvedRelocation pair;
+};
+
+// There exists a relocation with this (offset, type) in the current setion
+struct RelocationKey {
+  u64 offset = 0;
+  u32 type = 0;
+};
+// Given a relocation which is the second member of a pair, find the first member of the pair, if it exists.
+std::optional<RelocationKey> paired_key(bts::ElfMachineType machine, u64 address, const ResolvedRelocation &rel);
+
+std::optional<RelocationCode> apply_relocation(bts::ElfMachineType machine, bts::ElfBits width, bts::ElfEndian endian,
+                                               u64 address, std::span<u8> bytes,
+                                               const std::variant<ResolvedRelocation, PairedRelocation> &relocation);
+
+// Apply a relocation to bytes, the output's copy of its section placed at address. Returns the reason if it cannot be
+// applied.
 template <bts::ElfBits B, bts::ElfEndian E>
-std::optional<RelocationCode> apply_relocation(bts::ElfMachineType machine, const bts::PackedElfRelA<B, E> &rela,
-                                               u64 symbol, std::span<u8> section) {
-  const auto size = relocation_size(machine, rela.r_type());
-  if (!size) return RelocationCode::UnsupportedType;
-  else if (*size == 0) return std::nullopt;
-  const u64 offset = rela.r_offset;
-  if (offset > section.size() || *size > section.size() - offset) return RelocationCode::BadOffset;
-  const u64 value = symbol + static_cast<u64>(static_cast<i64>(bts::sword<B>(rela.r_addend)));
-  if (!bits::int_fits(value, *size)) return RelocationCode::Truncated;
-  const auto order = E == bts::ElfEndian::be ? bits::Order::BigEndian : bits::Order::LittleEndian;
-  bits::memcpy_endian(section.subspan(offset, *size), order, value);
-  return std::nullopt;
+std::optional<RelocationCode> apply_relocation(bts::ElfMachineType machine, u64 address, std::span<u8> bytes,
+                                               const std::variant<ResolvedRelocation, PairedRelocation> &relocation) {
+  return apply_relocation(machine, B, E, address, bytes, relocation);
 }
 } // namespace pepp::link
