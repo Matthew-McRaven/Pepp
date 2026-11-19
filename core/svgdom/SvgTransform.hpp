@@ -66,10 +66,9 @@ class SvgTransformList {
 
   static constexpr double radiansToDegrees = std::numbers::inv_pi / 180.0;
   static constexpr double degreesToRadians = 180.0 / std::numbers::inv_pi;
-  static constexpr double epsilon = 1e-9;
+  static constexpr double epsilon = 3e-3; // 0.003
 
   void resetMatrix();
-  // void createMatrix();
   void multiply(const double ma, const double mb, const double mc, const double md, const double me, const double mf);
   void composeSequentialMatrix();
 
@@ -79,7 +78,7 @@ class SvgTransformList {
   void setSkewX(const double angle);
   void setSkewY(const double angle);
   void setTranslate(const double tx, const double ty = 0);
-  bool isNearlyZero(const double x);
+  bool isNearlyZero(const double x) const noexcept;
 
 public:
   SvgTransformList() = default;
