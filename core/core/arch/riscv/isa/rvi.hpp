@@ -92,6 +92,11 @@ struct InstructionS {
     const int32_t imm = imm1 | (imm2 << 5);
     return (imm << 20) >> 20;
   }
+  // Inverse of signed_imm. Bits 12+ are ignored.
+  void set_imm(uint32_t value) noexcept {
+    imm1 = value;
+    imm2 = value >> 5;
+  }
 };
 static_assert(sizeof(InstructionS) == 4, "S-type instruction must be 32 bits");
 
@@ -120,6 +125,13 @@ struct InstructionB {
     constexpr uint32_t ext = 0xFFFFF000;
     return (imm2 << 1) | (imm3 << 5) | (imm1 << 11) | (sign() ? ext : 0);
   }
+  // Inverse of signed_imm. Bit 0 and 12+ are ignored.
+  void set_imm(uint32_t offset) noexcept {
+    imm1 = offset >> 11;
+    imm2 = offset >> 1;
+    imm3 = offset >> 5;
+    imm4 = offset >> 12;
+  }
 };
 static_assert(sizeof(InstructionB) == 4, "B-type instruction must be 32 bits");
 
@@ -136,6 +148,13 @@ struct InstructionJ {
     constexpr uint32_t ext = 0xFFF00000;
     const int32_t jo = (imm3 << 1) | (imm2 << 11) | (imm1 << 12);
     return jo | (sign() ? ext : 0);
+  }
+  // Inverse of jump_offset. Bit 0 and 20+ are ignored.
+  void set_jump_offset(uint32_t offset) noexcept {
+    imm1 = offset >> 12;
+    imm2 = offset >> 11;
+    imm3 = offset >> 1;
+    imm4 = offset >> 20;
   }
 };
 static_assert(sizeof(InstructionJ) == 4, "J-type instruction must be 32 bits");

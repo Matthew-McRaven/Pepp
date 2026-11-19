@@ -13,8 +13,7 @@ namespace riscv {
 
 struct Values {
   std::optional<uint8_t> rs1, rs2, rd;
-  // The immediate as written in assembly, unshifted and unmasked. encode() converts it
-  // to field bits via encode_imm().
+  // The immediate as written in assembly, unshifted and unmasked. encode() converts it to field bits.
   std::optional<uint32_t> imm;
 };
 
