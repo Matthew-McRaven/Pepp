@@ -418,9 +418,8 @@ TEST_CASE("SvgTransform tests-matrix manipulation tests",
     list.appendItem().setSkewX(10);
     list.appendItem().setSkewX(5);
     list.consolidate();
-    const auto &item = list.getItem(1);
+    const auto &item = list.getItem(0);
     REQUIRE_THAT(item->skewX(), Catch::Matchers::WithinAbs(15.0, 0.01));
-    // CHECK(list.toString() == "transform=\"skewX(15)\""s);
   }
   {
     //  Ignore transforms that sum to zero.
@@ -429,11 +428,66 @@ TEST_CASE("SvgTransform tests-matrix manipulation tests",
     list.appendItem().setSkewX(5);
     list.appendItem().setSkewX(-15);
     list.consolidate();
-    const auto &item = list.getItem(0);
-    REQUIRE_THAT(item->skewX(), Catch::Matchers::WithinAbs(0.0, 0.01));
-    // CHECK(list.toString() == ""s);
+    CHECK(list.size() == 0);
+    // const auto &item = list.getItem(0);
+    // REQUIRE_THAT(item->skewX(), Catch::Matchers::WithinAbs(0.0, 0.01));
+    CHECK(list.toString() == ""s);
   }
-  /*list1.appendItem().setRotate(-1.1, 2.2, -3.3);
+  {
+    //  Collapse multiple translates
+    SvgTransformList list;
+    list.appendItem().setSkewY(10);
+    list.appendItem().setSkewY(5);
+    list.consolidate();
+    //  SkewY gets converted into rotate and SkewX during consolidate().
+    REQUIRE_THAT(list.getItem(0)->rotateAngle(), Catch::Matchers::WithinAbs(15.0, 0.01));
+    REQUIRE_THAT(list.getItem(1)->skewX(), Catch::Matchers::WithinAbs(15.0, 0.01));
+  }
+  {
+    //  Ignore transforms that sum to zero.
+    SvgTransformList list;
+    list.appendItem().setSkewY(10);
+    list.appendItem().setSkewY(5);
+    list.appendItem().setSkewY(-15);
+    list.consolidate();
+    CHECK(list.size() == 0);
+    // const auto &item = list.getItem(0);
+    // REQUIRE_THAT(item->skewY(), Catch::Matchers::WithinAbs(0.0, 0.01));
+    CHECK(list.toString() == ""s);
+  }
+  {
+    //  Collapse multiple translates - When x and y scale are same, y scale is eliminated.
+    SvgTransformList list;
+    list.appendItem().setScale(10, 5);
+    list.appendItem().setScale(5, 10);
+    list.consolidate();
+    const auto &item = list.getItem(0);
+    REQUIRE_THAT(item->scaleX(), Catch::Matchers::WithinAbs(50.0, 0.01));
+    REQUIRE_THAT(item->scaleY(), Catch::Matchers::WithinAbs(0.0, 0.01));
+  }
+  {
+    //  Collapse multiple translates
+    SvgTransformList list;
+    list.appendItem().setScale(10, 6);
+    list.appendItem().setScale(5, 10);
+    list.consolidate();
+    const auto &item = list.getItem(0);
+    REQUIRE_THAT(item->scaleX(), Catch::Matchers::WithinAbs(50.0, 0.01));
+    REQUIRE_THAT(item->scaleY(), Catch::Matchers::WithinAbs(60.0, 0.01));
+  }
+  {
+    //  Ignore transforms that sum to zero.
+    SvgTransformList list;
+    list.appendItem().setScale(10, 6);
+    list.appendItem().setScale(5, 10);
+    list.appendItem().setScale(1 / 50, 1 / 60);
+    list.consolidate();
+    const auto &item = list.getItem(0);
+    REQUIRE_THAT(item->scaleX(), Catch::Matchers::WithinAbs(0.0, 0.01));
+    REQUIRE_THAT(item->scaleY(), Catch::Matchers::WithinAbs(0.0, 0.01));
+  }
+}
+/*list1.appendItem().setRotate(-1.1, 2.2, -3.3);
   list1.appendItem().setScale(6, 7);
   list1.appendItem().setSkewY(-450);
   CHECK(list1.toString() ==
@@ -449,34 +503,8 @@ TEST_CASE("SvgTransform tests-matrix manipulation tests",
     CHECK(test2->rotateX() == 2.2);
     CHECK(test2->rotateY() == -3.3);
 
-    test2 = list2.getItem(1);
-    REQUIRE(test2 != nullptr);
-    CHECK(test2->scaleX() == 6);
-    CHECK(test2->scaleY() == 7);
-
-    test2 = list2.getItem(2);
-    REQUIRE(test2 != nullptr);
-    CHECK(test2->skewX() == 25.5);
-
-    test2 = list2.getItem(3);
-    REQUIRE(test2 != nullptr);
-    CHECK(test2->skewY() == -90); //  Clamped to 0 & -359
-
-    test2 = list2.getItem(4);
-    REQUIRE(test2 != nullptr);
-    CHECK(test2->translateX() == 23.4);
-    CHECK(test2->translateY() == 43.2);
-
-           // Error condition
-    test2 = list2.getItem(5);
-    CHECK(test2 == nullptr);
 
     CHECK(list2.toString() ==
           "transform=\"rotate(-1.1 2.2 -3.3) scale(6 7) skewX(25.5) skewY(-90) translate(23.4 43.2)\""s);
   }
-  //  Change values
-  list2.removeItem(2);                      //  Removes SkewX
-  list2.removeItem(3);                      //  Remove Translate
-  list2.getItem(0)->setTranslate(123, 456); //  Update first item to translate
-  CHECK(list2.toString() == "transform=\"translate(123 456) scale(6 7) skewY(-90)\""s);*/
-}
+}*/

@@ -320,12 +320,12 @@ void SvgTransformList::consolidate() {
 
   //  If both values are 1, then there is no transform
   if (!isNearlyZero(scaleX - 1) || !isNearlyZero(scaleY - 1)) {
-    if (!isNearlyZero(scaleY) || !isNearlyZero(scaleY - scaleX))
-      //  X and Y directions have scale
-      appendItem().setScale(scaleX, determinant < 0 ? scaleY : -scaleY);
-    else
-      //  If scaleY is zero, use scaleX value
+    if (isNearlyZero(scaleY) || isNearlyZero(scaleY - scaleX))
+      //  scaleY is same as scaleX. No need to save yScale
       appendItem().setScale(scaleX);
+    else
+      //  X and Y directions have scale
+      appendItem().setScale(scaleX, determinant > 0 ? scaleY : -scaleY);
   }
 
   // Rotation is isolated from the first column vector [a, b]
@@ -483,4 +483,4 @@ void SvgTransformList::setTranslate(const double tx, const double ty) {
   }
 }
 
-bool SvgTransformList::isNearlyZero(const double x) { return std::fabs(x) < SvgTransformList::epsilon; }
+bool SvgTransformList::isNearlyZero(const double x) const noexcept { return std::fabs(x) < SvgTransformList::epsilon; }
