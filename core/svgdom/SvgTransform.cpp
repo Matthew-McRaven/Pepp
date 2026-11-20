@@ -315,8 +315,10 @@ void SvgTransformList::consolidate() {
   // If the determinant is negative, correct the scale and flip the sign
   const double determinant = _a * _d - _b * _c;
 
-  const double scaleX = std::sqrt(_a * _a + _b * _b);
-  const double scaleY = std::sqrt(_c * _c + _d * _d);
+  //  Round to nearest percent. Transform functions and trig functions create errors
+  //  around 0.03% percent. For example, 15 becomes 14.9997-this is never the right answer.
+  const double scaleX = std::lround(std::sqrt(_a * _a + _b * _b));
+  const double scaleY = std::lround(std::sqrt(_c * _c + _d * _d));
 
   //  If both values are 1, then there is no transform
   if (!isNearlyZero(scaleX - 1) || !isNearlyZero(scaleY - 1)) {
@@ -329,7 +331,7 @@ void SvgTransformList::consolidate() {
   }
 
   // Rotation is isolated from the first column vector [a, b]
-  const double rotateAngle = std::atan2(_b, _a) * SvgTransformList::degreesToRadians;
+  const double rotateAngle = std::lround(std::atan2(_b, _a) * SvgTransformList::degreesToRadians);
   if (!isNearlyZero(rotateAngle))
     //  There is a non-zero rotation
     appendItem().setRotate(rotateAngle);
@@ -343,6 +345,7 @@ void SvgTransformList::consolidate() {
     skewX = std::atan2(_c, _d) * SvgTransformList::degreesToRadians;
   }
 
+  skewX = std::lround(skewX);
   if (!isNearlyZero(skewX))
     //  There is a non-zero skew in X direction
     appendItem().setSkewX(skewX);
@@ -351,38 +354,6 @@ void SvgTransformList::consolidate() {
   // In 2D matrix transformations, a combination of Rotation + Skew X is
   // mathematically identical to a combination of Skew X + Skew Y.
 }
-
-//  Only works for single function. does not work with 2 "translate" function
-//  (or any other duplicates like skewY skewY).
-/*void SvgTransformList::createMatrix() {
-  //  Convert all angles from degrees to radians
-  const double rRad = _rotateAngle * SvgTransformList::radiansToDegrees;
-  const double skXRad = _skewX * SvgTransformList::radiansToDegrees;
-  const double skYRad = _skewY * SvgTransformList::radiansToDegrees;
-
-  // Default scales to 1 if not provided
-  // const double sx = scale &&scale.x != = undefined ? scale.x : 1;
-  // const double sy = scale &&scale.y != = undefined ? scale.y : 1;
-
-  // Default translations to 0 if not provided
-  // const double tx = translate &&translate.x != = undefined ? translate.x : 0;
-  // const double ty = translate &&translate.y != = undefined ? translate.y : 0;
-
-  // 1. Calculate individual trigonometric values
-  const double cosR = std::cos(rRad);
-  const double sinR = std::sin(rRad);
-  const double tanX = std::tan(skXRad);
-  const double tanY = std::tan(skYRad);
-
-  // 2. Pre-multiply combinations step-by-step to arrive at the final 6 coefficients
-  // This computes: Translation * Rotation * SkewY * SkewX * Scale
-  _a = _scaleX * (cosR * (1 + tanX * tanY) + sinR * tanY);
-  _b = _scaleX * (sinR * (1 + tanX * tanY) - cosR * tanY);
-  _c = _scaleY * (cosR * tanX - sinR);
-  _d = _scaleY * (sinR * tanX + cosR);
-  _e = _translateX + _rotateX - (_a * _rotateX + _c * _rotateY);
-  _f = _translateY + _rotateY - (_b * _rotateX + _d * _rotateY);
-}*/
 
 void SvgTransformList::resetMatrix() {
   // Start with an Identity Matrix (no changes)
