@@ -55,44 +55,33 @@ srli \rd, \rd, 16
           false};
 }
 
-// Call far-away subroutine: call rd, symbol -> auipc rd, %pcrel_hi(symbol); jalr rd, %pcrel_lo(<the auipc>)(rd)
-MacroDefinition call_rd() {
-  return {"call",
-          {{.name = "rd"}, {.name = "symbol"}},
-          R"(.Lpcrel_hi\@: auipc \rd, %pcrel_hi(\symbol)
-jalr \rd, %pcrel_lo(.Lpcrel_hi\@)(\rd)
-)",
-          false};
+// Returns an auipc+jalr pair which calls symbol through rt and links rd. In an ET_REL file, the auipc's
+// R_RISCV_CALL_PLT relocates both instructions, so the jalr holds 0. Otherwise, the assembler resolves both.
+std::string far_call(pepp::bts::ElfFileType output_type, const std::string &rt, const std::string &rd) {
+  if (output_type == pepp::bts::ElfFileType::ET_REL)
+    return "auipc " + rt + ", %call_plt(\\symbol)\njalr " + rd + ", 0(" + rt + ")\n";
+  return ".Lpcrel_hi\\@: auipc " + rt + ", %pcrel_hi(\\symbol)\njalr " + rd + ", %pcrel_lo(.Lpcrel_hi\\@)(" + rt +
+         ")\n";
+}
+
+// Call far-away subroutine: call rd, symbol
+MacroDefinition call_rd(pepp::bts::ElfFileType output_type) {
+  return {"call", {{.name = "rd"}, {.name = "symbol"}}, far_call(output_type, "\\rd", "\\rd"), false};
 }
 
 // Call far-away subroutine: call symbol -> call ra, symbol
-MacroDefinition call() {
-  return {"call",
-          {{.name = "symbol"}},
-          R"(.Lpcrel_hi\@: auipc ra, %pcrel_hi(\symbol)
-jalr ra, %pcrel_lo(.Lpcrel_hi\@)(ra)
-)",
-          false};
+MacroDefinition call(pepp::bts::ElfFileType output_type) {
+  return {"call", {{.name = "symbol"}}, far_call(output_type, "ra", "ra"), false};
 }
 
-// Tail call far-away subroutine: tail symbol -> auipc t1, %pcrel_hi(symbol); jalr zero, %pcrel_lo(<the auipc>)(t1)
-MacroDefinition tail() {
-  return {"tail",
-          {{.name = "symbol"}},
-          R"(.Lpcrel_hi\@: auipc t1, %pcrel_hi(\symbol)
-jalr zero, %pcrel_lo(.Lpcrel_hi\@)(t1)
-)",
-          false};
+// Tail call far-away subroutine: tail symbol -> jump symbol, t1
+MacroDefinition tail(pepp::bts::ElfFileType output_type) {
+  return {"tail", {{.name = "symbol"}}, far_call(output_type, "t1", "zero"), false};
 }
 
-// Jump to far-away routine: jump symbol, rt -> auipc rt, %pcrel_hi(symbol); jalr zero, %pcrel_lo(<the auipc>)(rt)
-MacroDefinition jump() {
-  return {"jump",
-          {{.name = "symbol"}, {.name = "rt"}},
-          R"(.Lpcrel_hi\@: auipc \rt, %pcrel_hi(\symbol)
-jalr zero, %pcrel_lo(.Lpcrel_hi\@)(\rt)
-)",
-          false};
+// Jump to far-away routine: jump symbol, rt
+MacroDefinition jump(pepp::bts::ElfFileType output_type) {
+  return {"jump", {{.name = "symbol"}, {.name = "rt"}}, far_call(output_type, "\\rt", "zero"), false};
 }
 
 // Load local address: lla rd, symbol -> auipc rd, %pcrel_hi(symbol); addi rd, rd, %pcrel_lo(<the auipc>)
@@ -147,18 +136,18 @@ MacroDefinition store_global(const std::string &mnemonic) {
           false};
 }
 
-const std::vector<MacroDefinition> &definitions() {
-  static const std::vector<MacroDefinition> ret{
-      sext_b(),           sext_h(),           zext_h(),          call(),            call_rd(),
-      tail(),             jump(),             li(),              load_address("la"), load_address("lla"),
-      load_global("lb"),  load_global("lh"),  load_global("lw"), load_global("lbu"), load_global("lhu"),
+std::vector<MacroDefinition> definitions(pepp::bts::ElfFileType output_type) {
+  return {
+      sext_b(),           sext_h(),           zext_h(),           call(output_type), call_rd(output_type),
+      tail(output_type),  jump(output_type),  li(),               load_address("la"), load_address("lla"),
+      load_global("lb"),  load_global("lh"),  load_global("lw"),  load_global("lbu"), load_global("lhu"),
       store_global("sb"), store_global("sh"), store_global("sw"),
   };
-  return ret;
 }
 } // namespace
 
-void pepp::tc::riscv_insert_pseudo_instructions(MacroRegistry &registry) {
+void pepp::tc::riscv_insert_pseudo_instructions(MacroRegistry &registry, bts::ElfFileType output_type) {
   // Fails, keeping the existing macro, if the name is already defined.
-  for (const auto &definition : definitions()) (void)registry.insert(std::make_shared<MacroDefinition>(definition));
+  for (const auto &definition : definitions(output_type))
+    (void)registry.insert(std::make_shared<MacroDefinition>(definition));
 }

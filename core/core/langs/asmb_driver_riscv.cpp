@@ -29,7 +29,7 @@ namespace pepp::tc {
 
 DriverResult assemble_riscv(const RISCVDriverConfig &cfg, const FormattingConfig &fmtcfg, std::string source) {
   DriverResult result;
-  auto rv_parser = parser::RISCVParser(support::SeekableData{std::move(source)}, cfg.macros);
+  auto rv_parser = parser::RISCVParser(support::SeekableData{std::move(source)}, cfg.macros, cfg.output_type);
   auto sy = rv_parser.symbol_table();
   inject_symdefs(cfg.symdefs, *sy, 4);
 

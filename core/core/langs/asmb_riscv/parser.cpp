@@ -96,12 +96,13 @@ std::expected<expr::Value, expr::NullaryError> bitwidth(Arguments arguments, exp
 }
 expr::Type bitwidth_type(Types, expr::Type default_type) { return {default_type.bits, expr::Signedness::Signed}; }
 
-const std::array<expr::Function, 7> functions{{
+const std::array<expr::Function, 8> functions{{
     // Relocation modifiers
     {"%hi", Category::ConstExpr, value_parameter, hi20, hi_type},
     {"%lo", Category::ConstExpr, value_parameter, lo12, lo_type},
     {"%pcrel_hi", Category::NonConstExpr, value_parameter, nullptr, hi_type},
     {"%pcrel_lo", Category::NonConstExpr, value_parameter, nullptr, lo_type},
+    {"%call_plt", Category::NonConstExpr, value_parameter, nullptr, hi_type},
     // Constant-evaluated functions needed to implement pseudo-instructions as macros.
     {"%defined", Category::ConstEval, symbol_parameter, defined, nullptr},
     {"%constant", Category::ConstEval, value_if_constant_parameter, constant, nullptr},
@@ -167,12 +168,13 @@ pepp::tc::expr::NameLocationCounter resolve_location_counter(pepp::core::symbol:
 }
 } // namespace
 
-pepp::tc::parser::RISCVParser::RISCVParser(support::SeekableData &&data, std::shared_ptr<MacroRegistry> macros)
+pepp::tc::parser::RISCVParser::RISCVParser(support::SeekableData &&data, std::shared_ptr<MacroRegistry> macros,
+                                           bts::ElfFileType output_type)
     : _pool(std::make_shared<std::unordered_set<std::string>>()),
       _root_lexer(std::make_shared<langs::RISCVLexer>(_pool, std::move(data))),
       _symtab(std::make_shared<pepp::core::symbol::LeafTable>(2)),
       _macros(macros ? std::move(macros) : std::make_shared<MacroRegistry>()) {
-  riscv_insert_pseudo_instructions(*_macros);
+  riscv_insert_pseudo_instructions(*_macros, output_type);
   _lexer_stack.emplace(_root_lexer, std::make_shared<lex::Buffer>(&*_root_lexer));
 }
 

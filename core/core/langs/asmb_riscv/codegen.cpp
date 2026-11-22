@@ -238,6 +238,9 @@ constexpr auto fixup_rules = std::to_array<FixupRule>({
     {IRFormat::U, {call_of_constant_plus_symbol, "%hi"}, RV::R_RISCV_HI20},
     {IRFormat::U, {call_of_symbol, "%pcrel_hi"}, RV::R_RISCV_PCREL_HI20},
     {IRFormat::U, {call_of_constant_plus_symbol, "%pcrel_hi"}, RV::R_RISCV_PCREL_HI20},
+    // Also relocates the jalr after the auipc.
+    {IRFormat::U, {call_of_symbol, "%call_plt"}, RV::R_RISCV_CALL_PLT},
+    {IRFormat::U, {call_of_constant_plus_symbol, "%call_plt"}, RV::R_RISCV_CALL_PLT},
     {IRFormat::I, {call_of_symbol, "%lo"}, RV::R_RISCV_LO12_I},
     {IRFormat::I, {call_of_constant_plus_symbol, "%lo"}, RV::R_RISCV_LO12_I},
     // %pcrel symbol is the address of the initial auipc containing %pcrel_hi.
@@ -343,6 +346,7 @@ std::optional<u32> pepp::tc::RISCVObjectVistitor::relocated_field_value(const Li
     return static_cast<u32>(hi->symbol->value->value()() + hi->addend - auipc) & 0xFFF;
   }
   // S + A - P. An auipc holds its upper 20 bits, rounded up when the lower 12 bits will sign-extend negative.
+  case R_RISCV_CALL_PLT: [[fallthrough]];
   case R_RISCV_PCREL_HI20: [[fallthrough]];
   case R_RISCV_BRANCH: [[fallthrough]];
   case R_RISCV_JAL: [[fallthrough]];
@@ -350,7 +354,7 @@ std::optional<u32> pepp::tc::RISCVObjectVistitor::relocated_field_value(const Li
     // An undefined symbol is only known once linked. Don't both to emit a useful immediate.
     if (target.symbol->is_undefined()) return 0;
     const u32 delta = target.symbol->value->value()() + target.addend - address;
-    if (type == R_RISCV_PCREL_HI20) return ((delta + 0x800) >> 12) & 0xF'FFFF;
+    if (type == R_RISCV_PCREL_HI20 || type == R_RISCV_CALL_PLT) return ((delta + 0x800) >> 12) & 0xF'FFFF;
     else if (!validate_value(diag, line, {delta, {32, expr::Signedness::Signed}}, constraint)) return std::nullopt;
     return delta;
   }
