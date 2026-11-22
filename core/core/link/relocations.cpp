@@ -74,7 +74,8 @@ std::optional<u8> riscv_relocation_size(RV type) {
   case R_RISCV_PCREL_LO12_S: return 4;
   case R_RISCV_64: [[fallthrough]];
   case R_RISCV_ADD64: [[fallthrough]];
-  case R_RISCV_SUB64: return 8;
+  case R_RISCV_SUB64: [[fallthrough]];
+  case R_RISCV_CALL_PLT: return 8;
   default: return std::nullopt;
   }
 }
@@ -195,6 +196,15 @@ private:
     case R_RISCV_PCREL_HI20:
       if (const auto error = check_high(relative)) return error;
       patch<riscv::InstructionU>(field, [&](auto &insn) { insn.imm = high20(relative); });
+      return std::nullopt;
+    // An auipc+jalr pair. A static link has no preemptible symbols, so the call targets the symbol itself.
+    // TODO: dynamic executables and shared objects must route calls to preemptible symbols through a PLT entry. See
+    // "Procedure Linkage Table" in the RISC-V ELF psABI, writePlt in lld/ELF/Arch/RISCV.cpp, and R_PLT_PC in
+    // lld/ELF/Relocations.cpp.
+    case R_RISCV_CALL_PLT:
+      if (const auto error = check_high(relative)) return error;
+      patch<riscv::InstructionU>(field.first(4), [&](auto &insn) { insn.imm = high20(relative); });
+      patch<riscv::InstructionI>(field.last(4), [&](auto &insn) { insn.imm = static_cast<u32>(relative); });
       return std::nullopt;
     // A PCREL_LO12 with its R_RISCV_PCREL_HI20 is a PairedRelocation.
     // Handled inline by operator()(const PairedRelocation&)
