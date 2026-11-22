@@ -27,7 +27,7 @@
 #include "./helpers.hpp"
 #include "core/formats/elf/packed_io.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
-#include "core/langs/asmb_driver.hpp"
+#include "core/driver/asmb_driver.hpp"
 #include "core/langs/ldscript/parser.hpp"
 #include "core/link/linker_passes.hpp"
 

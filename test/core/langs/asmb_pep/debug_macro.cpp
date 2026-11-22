@@ -17,7 +17,7 @@
 
 #include <catch.hpp>
 #include "core/langs/asmb/debug_line.hpp"
-#include "core/langs/asmb_driver.hpp"
+#include "core/driver/asmb_driver.hpp"
 
 TEST_CASE("Pepp ASM .debug_macro", "[scope:core][scope:core.langs][kind:unit][arch:pep10]") {
   using namespace pepp::tc;

@@ -25,7 +25,7 @@
 #include "core/compile/source/seekable.hpp"
 #include "core/formats/elf/enums.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
-#include "core/langs/asmb_driver.hpp"
+#include "core/driver/asmb_driver.hpp"
 #include "core/langs/asmb_pep/codegen.hpp"
 #include "core/langs/asmb_pep/parser.hpp"
 #include "core/langs/asmb_pep/parser_error.hpp"

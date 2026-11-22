@@ -20,7 +20,7 @@
 #include <vector>
 #include "core/langs/asmb/codegen_error.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
-#include "core/langs/asmb_driver.hpp"
+#include "core/driver/asmb_driver.hpp"
 #include "core/langs/asmb_riscv/codegen.hpp"
 #include "core/langs/asmb_riscv/parser.hpp"
 
