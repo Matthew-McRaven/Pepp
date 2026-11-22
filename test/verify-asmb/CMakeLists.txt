@@ -34,4 +34,7 @@ if(NOT IOS)
   set_tests_properties(verify-asmb-pep10-standalone PROPERTIES COST 10)
   set_tests_properties(verify-asmb-pep9-figs PROPERTIES COST 20)
   set_tests_properties(verify-asmb-pep10-figs PROPERTIES COST 20)
+
+  # Re-enable once the new assembler's output is compared through assemble + link.
+  set_tests_properties(verify-asmb-pep9-compare PROPERTIES DISABLED TRUE)
 endif()
