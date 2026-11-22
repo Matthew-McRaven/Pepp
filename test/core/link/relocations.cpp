@@ -94,6 +94,8 @@ TEST_CASE("apply_relocation RISC-V", "[scope:core][scope:core.link][kind:unit][a
         0x10, 0x00, 0x00, 0x00, // .word 0x10
         0x10, 0x00,             // .half 0x10
         0x05, 0xEE,             // .byte 5, unrelocated
+        0x97, 0x00, 0x00, 0x00, // auipc x1
+        0xE7, 0x80, 0x00, 0x00, // jalr x1, (x1)
     };
     const auto high = rel(8, R_RISCV_PCREL_HI20, 0x3000);
     const auto store = rel(16, R_RISCV_PCREL_LO12_S, 0x1000, 8);
@@ -103,7 +105,7 @@ TEST_CASE("apply_relocation RISC-V", "[scope:core][scope:core.link][kind:unit][a
     CHECK(key->offset == high.offset);
     CHECK(key->type == high.type);
     CHECK_FALSE(paired_key(ElfMachineType::EM_RISCV, 0x1000, high).has_value());
-    // The auipc and lui round up, because their paired lower 12 bits sign-extend negative.
+    // The auipcs and lui round up, because their paired lower 12 bits sign-extend negative.
     const std::vector<std::variant<ResolvedRelocation, PairedRelocation>> relocations{
         rel(0, R_RISCV_BRANCH, 0xF00),
         rel(4, R_RISCV_JAL, 0x2000, 4),
@@ -119,6 +121,7 @@ TEST_CASE("apply_relocation RISC-V", "[scope:core][scope:core.link][kind:unit][a
         rel(36, R_RISCV_SUB16, 0x20),
         rel(38, R_RISCV_ADD8, 0x10),
         rel(38, R_RISCV_SUB8, 3),
+        rel(40, R_RISCV_CALL_PLT, 0x2830),
     };
     CHECK(relocate(bytes, relocations).empty());
     // Checked against riscv64-elf-objdump with --adjust-vma=0x1000.
@@ -134,6 +137,8 @@ TEST_CASE("apply_relocation RISC-V", "[scope:core][scope:core.link][kind:unit][a
         0x10, 0x08, 0x00, 0x00, // 0x10 + 0x2000 - 0x1800
         0x20, 0x00,             // 0x10 + 0x30 - 0x20
         0x12, 0xEE,             // 5 + 0x10 - 3
+        0x97, 0x20, 0x00, 0x00, // auipc ra, 0x2
+        0xE7, 0x80, 0x80, 0x80, // jalr -2040(ra) # 0x2830
     };
     CHECK(bytes == expected);
   }

@@ -28,6 +28,7 @@
 #include "core/compile/macro/macro_registry.hpp"
 #include "core/compile/macro/macro_replacement.hpp"
 #include "core/compile/source/seekable.hpp"
+#include "core/formats/elf/enums_eheader.hpp"
 #include "core/langs/asmb/conditionals.hpp"
 #include "core/langs/asmb/ir_program.hpp"
 #include "core/langs/asmb/macros.hpp"
@@ -75,7 +76,9 @@ struct RISCVOperand {
 };
 
 struct RISCVParser {
-  explicit RISCVParser(support::SeekableData &&data, std::shared_ptr<MacroRegistry> macros = nullptr);
+  // output_type selects the expansion of pseudo-instructions which differ between output types.
+  explicit RISCVParser(support::SeekableData &&data, std::shared_ptr<MacroRegistry> macros = nullptr,
+                       bts::ElfFileType output_type = bts::ElfFileType::ET_EXEC);
 
   IRProgram parse(DiagnosticTable &);
   std::shared_ptr<pepp::core::symbol::LeafTable> symbol_table() const;

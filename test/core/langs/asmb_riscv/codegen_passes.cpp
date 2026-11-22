@@ -29,6 +29,7 @@
 #include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/langs/asmb/listing.hpp"
 #include "core/langs/asmb_driver.hpp"
+#include "core/langs/asmb/macros.hpp"
 #include "core/langs/asmb_riscv/codegen.hpp"
 #include "core/langs/asmb_riscv/parser.hpp"
 #include "core/langs/asmb_riscv/text_format.hpp"
@@ -267,14 +268,18 @@ TEST_CASE("RISCV ASM code generator relocations",
   };
   const auto assemble = [](const char *source, pepp::bts::ElfFileType type = pepp::bts::ElfFileType::ET_EXEC) {
     Assembled ret;
-    auto p = Parser(data(source));
+    auto p = Parser(data(source), nullptr, type);
     ret.symbols = p.symbol_table();
-    ret.program = p.parse(ret.diag);
+    ret.program = parser::flatten_macros(p.parse(ret.diag));
     REQUIRE(ret.diag.count() == 0);
     ret.split = riscv_split_to_sections(ret.diag, ret.program);
     ret.addresses = riscv_assign_addresses(ret.diag, ret.split.grouped_ir);
     ret.code = riscv_to_object_code(ret.diag, ret.addresses, ret.split.grouped_ir, type);
     return ret;
+  };
+  const auto word = [](const Assembled &assembled, u32 offset) {
+    const auto bytes = assembled.code.section_slices.at(0).get(offset, 4);
+    return u32(bytes[0]) | u32(bytes[1]) << 8 | u32(bytes[2]) << 16 | u32(bytes[3]) << 24;
   };
   // One use of each fixup rule. data is 0x1800 past the auipc, so its lower 12 bits (0x800) sign-extend negative.
   auto result = assemble(R"(k: .equ 5
@@ -318,13 +323,9 @@ data: .word 0)");
     }
   }
   SECTION("%pcrel exhibits correct sign-extension behavior") {
-    const auto word = [&](u32 offset) {
-      const auto bytes = result.code.section_slices.at(0).get(offset, 4);
-      return u32(bytes[0]) | u32(bytes[1]) << 8 | u32(bytes[2]) << 16 | u32(bytes[3]) << 24;
-    };
-    CHECK(word(20) >> 12 == 2);
-    CHECK(word(24) >> 20 == 0x800);                                     // I-type imm[11:0]
-    CHECK((word(28) >> 25 == 0x40 && ((word(28) >> 7) & 0x1F) == 0)); // S-type imm[11:5], imm[4:0]
+    CHECK(word(result, 20) >> 12 == 2);
+    CHECK(word(result, 24) >> 20 == 0x800);                                           // I-type imm[11:0]
+    CHECK((word(result, 28) >> 25 == 0x40 && ((word(result, 28) >> 7) & 0x1F) == 0)); // S-type imm[11:5], imm[4:0]
   }
   SECTION("Local labels are removed unless they are a target of a relocation") {
     auto written = riscv_to_elf(result.split.grouped_ir, result.addresses, result.code, *result.symbols);
@@ -402,6 +403,15 @@ d: .word 0)";
     for (u32 it = 0; it < 4; it++) fields[4 + it] = static_cast<u8>((d + 4) >> (8 * it));
     CHECK(std::ranges::equal(executable.code.section_slices.at(0).get(8, 20), fields));
   }
+  SECTION("Calls in an object file") {
+    // f is 0x1800 past the auipc, so the auipc rounds up. The R_RISCV_CALL_PLT also covers the jalr, which holds 0.
+    const auto object = assemble("tail f\n.skip 0x17F8\nf: nop", pepp::bts::ElfFileType::ET_REL);
+    REQUIRE(object.diag.count() == 0);
+    const auto &relocations = object.code.relocations.at(0);
+    REQUIRE(relocations.size() == 1);
+    CHECK((relocations[0].type == bits::to_underlying(R_RISCV_CALL_PLT) && relocations[0].target.symbol->name == "f"));
+    CHECK((word(object, 0) >> 12 == 2 && word(object, 4) >> 20 == 0));
+  }
   SECTION("Invalid relocations") {
     using E = CodegenError;
     using enum CodegenError::NullaryError;
@@ -412,6 +422,7 @@ d: .word 0)";
              {"addi x1, x1, d - l\nl: nop\n.data\nd:", Argument_NotRelocatable},    // Only data has ADD/SUB
              {"addi x1, x1, %pcrel_lo(l)\nl: nop", Argument_UnpairedPcrelLo},       // Not an auipc
              {"l: lui x1, 1\naddi x1, x1, %pcrel_lo(l)", Argument_UnpairedPcrelLo}, // No %pcrel_hi
+             {"l: auipc x1, %call_plt(f)\naddi x1, x1, %pcrel_lo(l)\nf:", Argument_UnpairedPcrelLo}, // Not %pcrel_hi
          }) {
       CAPTURE(source);
       const auto rejected = assemble(source);

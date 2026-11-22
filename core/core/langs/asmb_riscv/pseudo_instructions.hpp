@@ -14,11 +14,12 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #pragma once
+#include "core/formats/elf/enums_eheader.hpp"
 
 namespace pepp::tc {
 class MacroRegistry;
 
-// Insert RISC-V's pseudo-instructions (e.g., li, mv) into registry as macros.
+// Insert RISC-V's pseudo-instructions (e.g., li, mv) into registry as macros. Some expand differently by output_type.
 // Macros with clashing names will not be replaced.
-void riscv_insert_pseudo_instructions(MacroRegistry &registry);
+void riscv_insert_pseudo_instructions(MacroRegistry &registry, bts::ElfFileType output_type);
 } // namespace pepp::tc
