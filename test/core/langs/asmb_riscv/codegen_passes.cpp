@@ -24,11 +24,11 @@
 #include "core/compile/ir_linear/line_symbol.hpp"
 #include "core/compile/symbol/entry.hpp"
 #include "core/compile/symbol/leaf_table.hpp"
+#include "core/driver/executable.hpp"
 #include "core/langs/asmb/codegen_error.hpp"
 #include "core/langs/asmb/debug_line.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/langs/asmb/listing.hpp"
-#include "core/driver/asmb_driver.hpp"
 #include "core/langs/asmb/macros.hpp"
 #include "core/langs/asmb_riscv/codegen.hpp"
 #include "core/langs/asmb_riscv/parser.hpp"
@@ -171,9 +171,11 @@ struct Expect {
 TEST_CASE("RISCV ASM .debug_macro", "[scope:core][scope:core.langs][kind:unit][arch:riscv]") {
   using namespace pepp::tc;
   const auto source = ".macro inc reg\naddi \\reg, \\reg, 1\n.endm\ninc x5\n";
-  auto result = assemble_riscv(RISCVDriverConfig{}, FormattingConfig{}, source);
+  ExecutableSpec spec;
+  spec.sources.push_back({"macros.s", RISCVDriverConfig{}, {}, source});
+  auto result = assemble_and_link(std::move(spec));
   REQUIRE(result.ok());
-  const auto input = to_input_elf(*result.elf());
+  const auto input = result.open();
   const auto macros = std::visit([](const auto &file) { return read_macros(*file); }, input);
   REQUIRE(macros.has_value());
   // Pseudo-instructions are registry macros, so only inc is exported.

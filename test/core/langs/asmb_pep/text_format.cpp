@@ -23,7 +23,7 @@
 #include "core/compile/source/seekable.hpp"
 #include "core/langs/asmb/asmb_tokens.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
-#include "core/driver/asmb_driver.hpp"
+#include "core/driver/executable.hpp"
 #include "core/langs/asmb_pep/codegen.hpp"
 #include "core/langs/asmb_pep/lexer.hpp"
 #include "core/langs/asmb_pep/parser.hpp"
@@ -34,9 +34,11 @@ static auto data = [](std::string str) { return pepp::tc::support::SeekableData{
 
 // The listing of a Pep/10 `source`, which must assemble without errors.
 std::vector<std::string> listing_of(std::string source) {
-  auto result = pepp::tc::assemble_pep10(pepp::tc::Pep10DriverConfig{}, {.listing = true}, std::move(source));
+  pepp::tc::ExecutableSpec spec;
+  spec.sources.push_back({"listing.pep", pepp::tc::Pep10DriverConfig{}, {.listing = true}, std::move(source)});
+  auto result = pepp::tc::assemble_and_link(std::move(spec));
   REQUIRE(result.ok());
-  auto listing = result.listing();
+  auto listing = result.listing(0);
   REQUIRE(listing.has_value());
   return std::move(*listing);
 }

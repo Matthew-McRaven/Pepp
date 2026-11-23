@@ -27,7 +27,7 @@
 #include "./helpers.hpp"
 #include "core/langs/asmb/debug_line.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
-#include "core/driver/asmb_driver.hpp"
+#include "core/driver/executable.hpp"
 #include "core/langs/ldscript/parser.hpp"
 #include "core/link/linker_passes.hpp"
 #include "spdlog/spdlog.h"
@@ -40,24 +40,6 @@ using namespace link_test;
 // linker.
 TEST_CASE("Link a program with its OS", "[scope:core][scope:core.link][kind:e2e][arch:pep10]") {
   using namespace pepp::tc;
-  const Pep10DriverConfig relocatable{.output_type = ElfFileType::ET_REL};
-  auto program = assemble_pep10(relocatable, {.listing = true}, R"(.SECTION ".text","rx"
-LDBA charIn,d
-STBA charOut,d
-RET
-)");
-  auto os = assemble_pep10(relocatable, {}, R"(.SECTION ".os","rw"
-.EXPORT charIn
-.EXPORT charOut
-charIn:.BLOCK 1
-charOut:.BLOCK 1
-.SECTION ".a_long_section_name","rw"
-.BLOCK 1
-)");
-  REQUIRE(program.ok());
-  REQUIRE(os.ok());
-  const auto listing = program.listing();
-  REQUIRE(listing);
   DiagnosticTable diag;
   // Discard debug information to keep the link map short.
   auto script = ldscript::parse(diag, R"(SECTIONS {
@@ -67,16 +49,28 @@ charOut:.BLOCK 1
   /DISCARD/ : { *(.debug*) }
 })");
   REQUIRE(diag.count() == 0);
-  const auto unlinked = reread<ElfBits::b32, ElfEndian::be>(program.elf()->elf, program.elf()->segments);
-
-  LinkConfig config;
-  config.inputs.push_back({LinkInput::Script{std::move(script)}});
-  config.inputs.push_back({LinkInput::Opened{"program.o", to_input_elf(*program.elf())}});
-  config.inputs.push_back({LinkInput::Opened{"os.o", to_input_elf(*os.elf())}});
-  config.map = "link_map_os.map";
-  auto result = do_link(std::move(config));
-  CHECK(result.diagnostics.size() == 0);
-  const auto linked = reread<ElfBits::b32, ElfEndian::be>(result);
+  ExecutableSpec spec;
+  spec.sources.push_back({"program.o", Pep10DriverConfig{}, {.listing = true}, R"(.SECTION ".text","rx"
+LDBA charIn,d
+STBA charOut,d
+RET
+)"});
+  spec.sources.push_back({"os.o", Pep10DriverConfig{}, {}, R"(.SECTION ".os","rw"
+.EXPORT charIn
+.EXPORT charOut
+charIn:.BLOCK 1
+charOut:.BLOCK 1
+.SECTION ".a_long_section_name","rw"
+.BLOCK 1
+)"});
+  spec.link.inputs.push_back({LinkInput::Script{std::move(script)}});
+  spec.link.map = "link_map_os.map";
+  auto result = assemble_and_link(std::move(spec));
+  REQUIRE(result.ok());
+  CHECK(result.link->diagnostics.size() == 0);
+  auto &program = *result.assemblies[0].elf();
+  const auto unlinked = reread<ElfBits::b32, ElfEndian::be>(program.elf, program.segments);
+  const auto linked = reread<ElfBits::b32, ElfEndian::be>(*result.link);
 
   // Bytes 1-2 and 4-5 are the operands of LDBA and STBA. The opcodes and RET do not change.
   const auto text_of = [](const auto &elf) {
@@ -90,27 +84,18 @@ charOut:.BLOCK 1
   CHECK(std::vector<u8>{after[1], after[2], after[4], after[5]} == std::vector<u8>{0xBE, 0xEF, 0xBE, 0xF0});
   CHECK(std::vector<u8>{after[0], after[3], after[6]} == std::vector<u8>{before[0], before[3], before[6]});
 
-  CHECK(!link_map(result)->empty());
+  CHECK(!link_map(*result.link)->empty());
   std::ifstream written("link_map_os.map", std::ios::binary);
-  CHECK(std::string(std::istreambuf_iterator<char>(written), {}) == link_map(result));
+  CHECK(std::string(std::istreambuf_iterator<char>(written), {}) == link_map(*result.link));
   // program.o is the first ELF file in the link. Its discarded debug information has no address.
-  CHECK(section_address(result, {pepp::bts::ElfFileID(1), find_named_section(unlinked, ".debug_line")}) ==
+  CHECK(section_address(*result.link, {pepp::bts::ElfFileID(1), find_named_section(unlinked, ".debug_line")}) ==
         std::nullopt);
 
-  // Move each listing row from its offset in program.o to its address in the output, which holds the relocated bytes.
-  auto rows = read_listing_rows(unlinked);
-  REQUIRE(rows);
-  for (auto &row : *rows) {
-    const auto address = section_address(result, {pepp::bts::ElfFileID(1), row.section});
-    REQUIRE(address);
-    row.section = bits::to_underlying(SectionIndices::SHN_ABS);
-    row.start += *address, row.end += *address;
-  }
-  REQUIRE(program.unformatted_listing);
-  const auto &[text, style] = *program.unformatted_listing;
-  const auto relinked = format_listing(std::make_unique<PackedInputElfBE32>(result.output), *rows, text, style);
+  const auto listing = result.assemblies[0].listing();
+  REQUIRE(listing);
+  const auto relinked = result.listing(0);
   REQUIRE(relinked);
   SPDLOG_WARN("Pre-link:\n{}", fmt::join(*listing, "\n"));
   SPDLOG_WARN("Post-link:\n{}", fmt::join(*relinked, "\n"));
-  SPDLOG_WARN("Link map:\n{}", *link_map(result));
+  SPDLOG_WARN("Link map:\n{}", *link_map(*result.link));
 }

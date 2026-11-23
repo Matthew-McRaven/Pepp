@@ -28,6 +28,7 @@
 #include "core/formats/elf/packed_io.hpp"
 #include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/driver/asmb_driver.hpp"
+#include "core/driver/executable.hpp"
 #include "core/langs/ldscript/parser.hpp"
 #include "core/link/linker_passes.hpp"
 
@@ -227,16 +228,15 @@ msg:.ASCII "Hi\x00"
 ptr:.WORD loop
 )";
   auto assembled = assemble_pep10(Pep10DriverConfig{}, {}, source);
-  auto object = assemble_pep10(Pep10DriverConfig{.output_type = ElfFileType::ET_REL}, {}, source);
   REQUIRE(assembled.ok());
-  REQUIRE(object.ok());
   const auto expected = reread<ElfBits::b32, ElfEndian::be>(assembled.elf()->elf, assembled.elf()->segments);
 
-  LinkConfig config;
-  config.inputs.push_back({to_input_elf(object.elf()->elf, &object.elf()->segments)});
-  auto result = do_link(std::move(config));
-  CHECK(result.diagnostics.size() == 0);
-  const auto linked = reread<ElfBits::b32, ElfEndian::be>(result);
+  ExecutableSpec spec;
+  spec.sources.push_back({"object.pep", Pep10DriverConfig{}, {}, source});
+  auto result = assemble_and_link(std::move(spec));
+  REQUIRE(result.ok());
+  CHECK(result.link->diagnostics.size() == 0);
+  const auto linked = reread<ElfBits::b32, ElfEndian::be>(*result.link);
 
   u32 compared = 0;
   for (u16 index = 2; index < linked.section_headers.size(); ++index) {

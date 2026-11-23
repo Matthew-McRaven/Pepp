@@ -30,6 +30,7 @@
 #include "core/langs/asmb/diagnostic_table.hpp"
 #include "core/langs/asmb/listing.hpp"
 #include "core/driver/asmb_driver.hpp"
+#include "core/driver/executable.hpp"
 #include "core/langs/asmb_pep/codegen.hpp"
 #include "core/langs/asmb_pep/ir_visitor.hpp"
 #include "core/langs/asmb_pep/parser.hpp"
@@ -580,11 +581,13 @@ x:       .WORD   5
          .SECTION "text", "rx"
          RET
 )";
-  auto result = pepp::tc::assemble_pep10(pepp::tc::Pep10DriverConfig{}, {.listing = true}, source);
+  pepp::tc::ExecutableSpec spec;
+  spec.sources.push_back({"reopen.pep", pepp::tc::Pep10DriverConfig{}, {.listing = true}, source});
+  auto result = pepp::tc::assemble_and_link(std::move(spec));
   REQUIRE(result.ok());
-  const auto listing = result.listing();
+  const auto listing = result.listing(0);
   REQUIRE(listing.has_value());
-  const auto input = pepp::tc::to_input_elf(*result.elf());
+  const auto input = result.open();
   const auto mappings = std::visit([](const auto &file) { return pepp::tc::read_line_mappings(*file); }, input);
   REQUIRE(mappings.has_value());
   const auto stop = std::ranges::find(*mappings, 6u, &pepp::tc::LineMapping::source_line);

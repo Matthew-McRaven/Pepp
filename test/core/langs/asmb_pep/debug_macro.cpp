@@ -17,7 +17,7 @@
 
 #include <catch.hpp>
 #include "core/langs/asmb/debug_line.hpp"
-#include "core/driver/asmb_driver.hpp"
+#include "core/driver/executable.hpp"
 
 TEST_CASE("Pepp ASM .debug_macro", "[scope:core][scope:core.langs][kind:unit][arch:pep10]") {
   using namespace pepp::tc;
@@ -38,9 +38,11 @@ TEST_CASE("Pepp ASM .debug_macro", "[scope:core][scope:core.langs][kind:unit][ar
 twice 5
 outer
 )";
-  auto result = assemble_pep10(Pep10DriverConfig{.macros = registry}, FormattingConfig{}, source);
+  ExecutableSpec spec;
+  spec.sources.push_back({"macros.pep", Pep10DriverConfig{.macros = registry}, {}, source});
+  auto result = assemble_and_link(std::move(spec));
   REQUIRE(result.ok());
-  const auto input = to_input_elf(*result.elf());
+  const auto input = result.open();
 
   auto f = [](const auto &file) {
     constexpr auto E = std::remove_cvref_t<decltype(*file)>::elf_endian;
