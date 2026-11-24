@@ -14,7 +14,7 @@ qt_add_qml_module(
   ui/DiagramCanvas.qml
   ui/ComponentEditor.qml
   ui/BluePrintListView.qml
-  ui/blueprint/BluePrintEditor.qml
+  ui/blueprint/BluePrintLibrary.qml
   ui/blueprint/GateProperties.qml
   ui/blueprint/PinProperties.qml
   ui/blueprint/BluePrintThumbNail.qml
@@ -41,7 +41,8 @@ qt_add_qml_module(
   ui/schematic/orient.cpp
   ui/schematic/circuitproject.cpp
   DEPENDENCIES
-  QtQuick)
+  QtQuick
+  QML_FILES ui/blueprint/BluePrintEditor.qml)
 
 # must include any subdirectories for classes that use QML_ELEMENT
 target_include_directories(CircuitDesign PRIVATE ui/)
