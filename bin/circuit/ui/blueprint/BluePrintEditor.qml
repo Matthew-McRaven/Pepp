@@ -6,6 +6,18 @@ import "./" as Bp
 
 SplitView {
     orientation: Qt.Horizontal
+
+    Dialog {
+        id: pineditDialog
+        modal: false
+        standardButtons: Dialog.Ok
+        Bp.BluePrintPopOut {
+            anchors.fill: parent
+        }
+        width: parent.width * 3 / 4
+        height: parent.height * 3 / 4
+    }
+
     Bp.BluePrintLibrary {
         SplitView.fillHeight: true
         SplitView.fillWidth: true
@@ -19,6 +31,13 @@ SplitView {
         Bp.BluePrintThumbNail {
             Layout.preferredWidth: root.preferredWidth
             Layout.preferredHeight: root.preferredWidth
+            MouseArea {
+                anchors.fill: parent
+                onClicked: {
+                    console.log("Thumbnail clicked");
+                    pineditDialog.open();
+                }
+            }
         }
 
         Rectangle {
