@@ -14,6 +14,12 @@ qt_add_qml_module(
   ui/DiagramCanvas.qml
   ui/ComponentEditor.qml
   ui/BluePrintListView.qml
+  ui/blueprint/BluePrintLibrary.qml
+  ui/blueprint/GateProperties.qml
+  ui/blueprint/BluePrintThumbNail.qml
+  ui/blueprint/GridLines.qml
+  ui/blueprint/BluePrintPopOut.qml
+  ui/pins/PinProperties.qml
   SOURCES
   ui/blueprintlibrarymodel.hpp
   ui/blueprintlibrarymodel.cpp
@@ -35,7 +41,9 @@ qt_add_qml_module(
   ui/schematic/orient.cpp
   ui/schematic/circuitproject.cpp
   DEPENDENCIES
-  QtQuick)
+  QtQuick
+  QML_FILES
+  ui/blueprint/BluePrintEditor.qml)
 
 # must include any subdirectories for classes that use QML_ELEMENT
 target_include_directories(CircuitDesign PRIVATE ui/)
@@ -60,6 +68,7 @@ target_link_libraries(
           Qt6::Qml
           Qt6::Quick
           Qt6::Widgets
+          Qt::QuickControls2
           pepp-core)
 
 set_target_properties(CircuitDesign PROPERTIES FOLDER "qtc_runnable")
