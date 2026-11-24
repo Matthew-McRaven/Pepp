@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import "./" as Bp
+import "../pins" as Pins
 
 SplitView {
     orientation: Qt.Horizontal
@@ -70,7 +71,7 @@ SplitView {
                 }
 
                 //  Pin logic
-                Bp.PinProperties {
+                Pins.PinProperties {
                     Layout.fillWidth: true
                 }
             }   //  StackLayout

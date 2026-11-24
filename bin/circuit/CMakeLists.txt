@@ -16,10 +16,10 @@ qt_add_qml_module(
   ui/BluePrintListView.qml
   ui/blueprint/BluePrintLibrary.qml
   ui/blueprint/GateProperties.qml
-  ui/blueprint/PinProperties.qml
   ui/blueprint/BluePrintThumbNail.qml
   ui/blueprint/GridLines.qml
   ui/blueprint/BluePrintPopOut.qml
+  ui/pins/PinProperties.qml
   SOURCES
   ui/blueprintlibrarymodel.hpp
   ui/blueprintlibrarymodel.cpp
