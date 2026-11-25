@@ -160,6 +160,8 @@ TEST_CASE("Create library file", "[scope:core][scope:core.svgdom][kind:unit]") {
       use->setFill(colors.at(i));
       use->setOpacity(opacity);
       opacity += 0.2;
+      //  Round to hundredths.
+      opacity = lround(opacity * 100) / 100.0;
       const double x = (i % 3) * 60;
       const double y = i < 3 ? 0 : 40;
       use->setX(x);

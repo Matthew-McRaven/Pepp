@@ -388,3 +388,148 @@ TEST_CASE("SvgTransform tests-multiple transformations",
   list2.getItem(0)->setTranslate(123, 456); //  Update first item to translate
   CHECK(list2.toString() == "transform=\"translate(123 456) scale(6 7) skewY(-90)\""s);
 }
+
+TEST_CASE("SvgTransform tests-matrix manipulation tests",
+          "[scope:core][scope:core.svgdom.svgtransformlist4][kind:unit]") {
+  //  Test multiple similar transformations are combined
+
+  // std::cout << "From SvgTransformList" << std::endl;
+
+  {
+    //  Collapse multiple translates
+    SvgTransformList list;
+    list.appendItem().setTranslate(10, 20);
+    list.appendItem().setTranslate(5, 5);
+    list.consolidate();
+    CHECK(list.toString() == "transform=\"translate(15 25)\""s);
+  }
+  {
+    //  Ignore transforms that sum to zero.
+    SvgTransformList list;
+    list.appendItem().setTranslate(10, 20);
+    list.appendItem().setTranslate(5, 5);
+    list.appendItem().setTranslate(-15, -25);
+    list.consolidate();
+    CHECK(list.toString() == ""s);
+  }
+  {
+    //  Collapse multiple translates
+    SvgTransformList list;
+    list.appendItem().setSkewX(10);
+    list.appendItem().setSkewX(5);
+    list.consolidate();
+    const auto &item = list.getItem(0);
+    REQUIRE_THAT(item->skewX(), Catch::Matchers::WithinAbs(15.0, 0.01));
+  }
+  {
+    //  Ignore transforms that sum to zero.
+    SvgTransformList list;
+    list.appendItem().setSkewX(10);
+    list.appendItem().setSkewX(5);
+    list.appendItem().setSkewX(-15);
+    list.consolidate();
+    CHECK(list.size() == 0);
+    // const auto &item = list.getItem(0);
+    // REQUIRE_THAT(item->skewX(), Catch::Matchers::WithinAbs(0.0, 0.01));
+    CHECK(list.toString() == ""s);
+  }
+  {
+    //  Collapse multiple translates
+    SvgTransformList list;
+    list.appendItem().setSkewY(10);
+    list.appendItem().setSkewY(5);
+    list.consolidate();
+    //  SkewY gets converted into rotate and SkewX during consolidate().
+    REQUIRE_THAT(list.getItem(0)->rotateAngle(), Catch::Matchers::WithinAbs(15.0, 0.01));
+    REQUIRE_THAT(list.getItem(1)->skewX(), Catch::Matchers::WithinAbs(15.0, 0.01));
+  }
+  {
+    //  Ignore transforms that sum to zero.
+    SvgTransformList list;
+    list.appendItem().setSkewY(10);
+    list.appendItem().setSkewY(5);
+    list.appendItem().setSkewY(-15);
+    list.consolidate();
+    CHECK(list.size() == 0);
+    // const auto &item = list.getItem(0);
+    // REQUIRE_THAT(item->skewY(), Catch::Matchers::WithinAbs(0.0, 0.01));
+    CHECK(list.toString() == ""s);
+  }
+  {
+    //  Collapse multiple translates - When x and y scale are same, y scale is eliminated.
+    SvgTransformList list;
+    list.appendItem().setScale(10, 5);
+    list.appendItem().setScale(5, 10);
+    list.consolidate();
+    const auto &item = list.getItem(0);
+    REQUIRE_THAT(item->scaleX(), Catch::Matchers::WithinAbs(50.0, 0.01));
+    REQUIRE_THAT(item->scaleY(), Catch::Matchers::WithinAbs(0.0, 0.01));
+  }
+  {
+    //  Collapse multiple translates
+    SvgTransformList list;
+    list.appendItem().setScale(10, 6);
+    list.appendItem().setScale(5, 10);
+    list.consolidate();
+    const auto &item = list.getItem(0);
+    REQUIRE_THAT(item->scaleX(), Catch::Matchers::WithinAbs(50.0, 0.01));
+    REQUIRE_THAT(item->scaleY(), Catch::Matchers::WithinAbs(60.0, 0.01));
+  }
+  {
+    //  Ignore transforms that sum to zero.
+    SvgTransformList list;
+    list.appendItem().setScale(10, 6);
+    list.appendItem().setScale(5, 10);
+    list.appendItem().setScale(1 / 50, 1 / 60);
+    list.consolidate();
+    const auto &item = list.getItem(0);
+    REQUIRE_THAT(item->scaleX(), Catch::Matchers::WithinAbs(0.0, 0.01));
+    REQUIRE_THAT(item->scaleY(), Catch::Matchers::WithinAbs(0.0, 0.01));
+  }
+
+  {
+    //  Collapse multiple translates
+    SvgTransformList list;
+    list.appendItem().setRotate(45);
+    list.appendItem().setRotate(45);
+    list.consolidate();
+    const auto &item = list.getItem(0);
+    REQUIRE_THAT(item->rotateAngle(), Catch::Matchers::WithinAbs(90.0, 0.01));
+    REQUIRE_THAT(item->rotateX(), Catch::Matchers::WithinAbs(0.0, 0.01));
+    REQUIRE_THAT(item->rotateY(), Catch::Matchers::WithinAbs(0.0, 0.01));
+  }
+  {
+    //  Ignore transforms that sum to zero.
+    SvgTransformList list;
+    list.appendItem().setRotate(45);
+    list.appendItem().setRotate(45);
+    list.appendItem().setRotate(-90);
+    list.consolidate();
+    // const auto &item = list.getItem(0);
+    // REQUIRE_THAT(item->scaleX(), Catch::Matchers::WithinAbs(0.0, 0.01));
+    // REQUIRE_THAT(item->scaleY(), Catch::Matchers::WithinAbs(0.0, 0.01));
+    CHECK(list.size() == 0);
+    CHECK(list.toString() == ""s);
+  }
+}
+/*list1.appendItem().setRotate(-1.1, 2.2, -3.3);
+  list1.appendItem().setScale(6, 7);
+  list1.appendItem().setSkewY(-450);
+  CHECK(list1.toString() ==
+        "transform=\"rotate(-1.1 2.2 -3.3) scale(6 7) skewX(25.5) skewY(-90) translate(23.4 43.2)\""s);
+
+         //  Test string parsing
+  SvgTransformList list2;
+  list2.fromString("rotate( -1.1,2.2 , -3.3) scale ( 6 7) skewX (+25.5 ) skewY(-450 ) translate (23.4 ,43.2 )"s);
+  {
+    auto test2 = list2.getItem(0);
+    REQUIRE(test2 != nullptr);
+    CHECK(test2->rotateAngle() == -1.1);
+    CHECK(test2->rotateX() == 2.2);
+    CHECK(test2->rotateY() == -3.3);
+
+
+    CHECK(list2.toString() ==
+          "transform=\"rotate(-1.1 2.2 -3.3) scale(6 7) skewX(25.5) skewY(-90) translate(23.4 43.2)\""s);
+  }
+}*/
